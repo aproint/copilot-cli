@@ -7,9 +7,9 @@ package mocks
 import (
 	reflect "reflect"
 
-	apprunner0 "github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	apprunner "github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	resourcegroups "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	apprunner "github.com/aws/aws-sdk-go/service/apprunner"
+	apprunner0 "github.com/aws/aws-sdk-go/service/apprunner"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,10 +37,10 @@ func (m *MockappRunnerClient) EXPECT() *MockappRunnerClientMockRecorder {
 }
 
 // DescribeOperation mocks base method.
-func (m *MockappRunnerClient) DescribeOperation(operationId, svcARN string) (*apprunner.OperationSummary, error) {
+func (m *MockappRunnerClient) DescribeOperation(operationId, svcARN string) (*apprunner0.OperationSummary, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeOperation", operationId, svcARN)
-	ret0, _ := ret[0].(*apprunner.OperationSummary)
+	ret0, _ := ret[0].(*apprunner0.OperationSummary)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,10 +52,10 @@ func (mr *MockappRunnerClientMockRecorder) DescribeOperation(operationId, svcARN
 }
 
 // DescribeService mocks base method.
-func (m *MockappRunnerClient) DescribeService(svcARN string) (*apprunner0.Service, error) {
+func (m *MockappRunnerClient) DescribeService(svcARN string) (*apprunner.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeService", svcARN)
-	ret0, _ := ret[0].(*apprunner0.Service)
+	ret0, _ := ret[0].(*apprunner.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

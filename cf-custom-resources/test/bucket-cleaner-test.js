@@ -5,7 +5,7 @@
 describe("Bucket Cleaner", () => {
   const s3 = require("@aws-sdk/client-s3");
   const {mockClient} = require("aws-sdk-client-mock");
-  const LambdaTester = require("lambda-tester").noVersionCheck();
+  const LambdaTester = require("./lambda-tester").noVersionCheck();
   const sinon = require("sinon");
   const bucketCleanerHandler = require("../lib/bucket-cleaner");
   const nock = require("nock");

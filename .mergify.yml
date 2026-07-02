@@ -7,6 +7,7 @@ queue_rules:
       - status-success=mocks
       - status-success=go-unit-tests
       - status-success=js-unit-tests
+      - status-success=js-lint
       - status-success=local-integration-tests
       - status-success=license
       - status-success=conventional-commits
@@ -24,6 +25,7 @@ pull_request_rules:
       - status-success=mocks
       - status-success=go-unit-tests
       - status-success=js-unit-tests
+      - status-success=js-lint
       - status-success=local-integration-tests
       - status-success=license
       - status-success=conventional-commits
@@ -51,6 +53,7 @@ pull_request_rules:
       - status-success=mocks
       - status-success=go-unit-tests
       - status-success=js-unit-tests
+      - status-success=js-lint
       - status-success=local-integration-tests
       - status-success=license
       - status-success=conventional-commits

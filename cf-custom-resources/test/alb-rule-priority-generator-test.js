@@ -5,7 +5,7 @@
 describe("ALB Rule Priority Generator", () => {
   const elbv2 = require("@aws-sdk/client-elastic-load-balancing-v2");
   const { mockClient } = require('aws-sdk-client-mock');
-  const LambdaTester = require("lambda-tester").noVersionCheck();
+  const LambdaTester = require("./lambda-tester").noVersionCheck();
   const sinon = require("sinon");
   const albRulePriorityHandler = require("../lib/alb-rule-priority-generator");
   const nock = require("nock");

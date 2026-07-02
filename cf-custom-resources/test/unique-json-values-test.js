@@ -4,7 +4,7 @@
 "use strict";
 
 describe("Unique Aliases", () => {
-  const LambdaTester = require("lambda-tester").noVersionCheck();
+  const LambdaTester = require("./lambda-tester").noVersionCheck();
   const uniqueJSONValues = require("../lib/unique-json-values");
   const nock = require("nock");
   const responseURL = "https://cloudwatch-response-mock.example.com/";

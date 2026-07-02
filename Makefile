@@ -64,13 +64,20 @@ compile-darwin:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-darwin-arm64 ./cmd/copilot
 
 .PHONY: test
-test: run-unit-test custom-resource-tests
+test: run-unit-test custom-resource-tests custom-resource-lint
 
 .PHONY: custom-resource-tests
 custom-resource-tests: tools
 	@echo "Running custom resource unit tests" &&\
 	cd ${SOURCE_CUSTOM_RESOURCES} &&\
 	npm test -- --coverage &&\
+	cd ${ROOT_SRC_DIR}
+
+.PHONY: custom-resource-lint
+custom-resource-lint: tools
+	@echo "Running custom resource lint" &&\
+	cd ${SOURCE_CUSTOM_RESOURCES} &&\
+	npm run lint &&\
 	cd ${ROOT_SRC_DIR}
 
 # Minifies the resources in cf-custom-resources/lib and copies
@@ -114,7 +121,7 @@ run-integ-test:
 	go test -race -count=1 -timeout 120m -tags=integration ${PACKAGES}
 
 .PHONY: local-test
-local-test: package-custom-resources custom-resource-tests run-local-test package-custom-resources-clean
+local-test: package-custom-resources custom-resource-tests custom-resource-lint run-local-test package-custom-resources-clean
 
 .PHONY: local-integration-test
 local-integration-test: package-custom-resources run-local-test package-custom-resources-clean

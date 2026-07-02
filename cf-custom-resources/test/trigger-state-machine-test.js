@@ -6,7 +6,7 @@
 describe("trigger state machine", () => {
   const sfn = require("@aws-sdk/client-sfn");
   const { mockClient } = require('aws-sdk-client-mock');
-  const lambdaTester = require("lambda-tester").noVersionCheck();
+  const lambdaTester = require("./lambda-tester").noVersionCheck();
   const nock = require("nock");
   const sinon = require("sinon");
   const handler = require("../lib/trigger-state-machine");

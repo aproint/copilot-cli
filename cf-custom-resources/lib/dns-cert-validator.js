@@ -348,7 +348,8 @@ const deleteHostedZoneRecords = async function (
     if (recordSetNotFoundErrMessageRegex.test(e.message)) {
       return; // If we attempt to `DELETE` a record that doesn't exist, the job is already done, skip waiting.
     }
-    throw new Error(`delete record ${option.ResourceRecord.Name}: ` + e.message);
+    const recordNames = filteredRecordOption.map((option) => option.ResourceRecord.Name).join(", ");
+    throw new Error(`delete records ${recordNames}: ` + e.message);
   }
 };
 

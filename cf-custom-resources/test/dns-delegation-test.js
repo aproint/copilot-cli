@@ -5,7 +5,7 @@
 describe("DNS Delegation Handler", () => {
   const r53 = require("@aws-sdk/client-route-53");
   const{mockClient} = require("aws-sdk-client-mock");
-  const LambdaTester = require("lambda-tester").noVersionCheck();
+  const LambdaTester = require("./lambda-tester").noVersionCheck();
   const sinon = require("sinon");
   const dnsDelegationHandler = require("../lib/dns-delegation");
   const nock = require("nock");

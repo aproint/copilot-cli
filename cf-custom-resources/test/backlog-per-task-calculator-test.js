@@ -4,7 +4,7 @@
 const { mockClient } = require('aws-sdk-client-mock');
 const { ECSClient, DescribeServicesCommand } = require("@aws-sdk/client-ecs");
 const { SQSClient, GetQueueUrlCommand, GetQueueAttributesCommand } = require("@aws-sdk/client-sqs");
-const lambdaTester = require("lambda-tester").noVersionCheck();
+const lambdaTester = require("./lambda-tester").noVersionCheck();
 const sinon = require("sinon");
 const calculatorLambda = require("../lib/backlog-per-task-calculator");
 

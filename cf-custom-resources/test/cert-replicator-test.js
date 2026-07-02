@@ -5,7 +5,7 @@
 describe("Certificate Replicator Handler", () => {
   const acm = require('@aws-sdk/client-acm');
   const { mockClient } = require('aws-sdk-client-mock');
-  const LambdaTester = require("lambda-tester").noVersionCheck();
+  const LambdaTester = require("./lambda-tester").noVersionCheck();
   const sinon = require("sinon");
   const handler = require("../lib/cert-replicator");
   const nock = require("nock");

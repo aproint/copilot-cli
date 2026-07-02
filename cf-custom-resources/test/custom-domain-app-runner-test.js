@@ -8,7 +8,7 @@
 const r53 = require("@aws-sdk/client-route-53");
 const appRunner = require("@aws-sdk/client-apprunner");
 const { mockClient } = require('aws-sdk-client-mock');
-const LambdaTester = require("lambda-tester").noVersionCheck();
+const LambdaTester = require("./lambda-tester").noVersionCheck();
 const {handler, domainStatusPendingVerification, waitForDomainStatusPendingAttempts, waitForDomainToBeDisassociatedAttempts, withSleep, reset, withDeadlineExpired } = require("../lib/custom-domain-app-runner");
 const customDomainAppRunner = require('../lib/custom-domain-app-runner');
 const sinon = require("sinon");

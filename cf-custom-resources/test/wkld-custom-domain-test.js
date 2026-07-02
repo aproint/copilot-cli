@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 "use strict";
 
-const LambdaTester = require("lambda-tester").noVersionCheck();
+const LambdaTester = require("./lambda-tester").noVersionCheck();
 const sinon = require("sinon");
 const nock = require("nock");
 let origLog = console.log;

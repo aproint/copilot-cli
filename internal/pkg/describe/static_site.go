@@ -225,7 +225,7 @@ func (w *staticSiteDesc) HumanString() string {
 		writer.Flush()
 		for _, object := range w.Objects {
 			fmt.Fprintf(writer, "\n  %s\t%s\n", "Environment", object.Environment)
-			fmt.Fprintf(writer, object.Tree)
+			fmt.Fprint(writer, object.Tree)
 		}
 		writer.Flush()
 	}

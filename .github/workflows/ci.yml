@@ -14,18 +14,18 @@ jobs:
       matrix:
         command: [compile-linux, compile-windows, compile-darwin]
     steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version-file: .go-version
 
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
-          node-version: 16.x
-
-      - name: Check out code
-        uses: actions/checkout@v2
+          node-version-file: .node-version
 
       - name: Package custom resources
         run: make package-custom-resources
@@ -39,18 +39,18 @@ jobs:
   mocks:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version-file: .go-version
 
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
-          node-version: 16.x
-
-      - name: Check out code
-        uses: actions/checkout@v2
+          node-version-file: .node-version
 
       - name: Generate mocks
         run: make gen-mocks
@@ -63,45 +63,73 @@ jobs:
       - name: Check for nonzero diff
         run: '[ -z "$(cat gitstatus.txt)" ] && echo "Generated mocks all match"'
 
-  test:
+  go-unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.23'
-
-      - name: Set up Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: 16.x
-
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
 
-      - name: Run tests
-        run: make local-test
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
 
-      - name: Upload golang coverage report to CodeCov
-        uses: codecov/codecov-action@v3
+      - name: Run Go unit tests
+        run: make run-unit-test
+
+      - name: Upload Go coverage report to Codecov
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.out
 
-      - name: Upload node coverage report to CodeCov
-        uses: codecov/codecov-action@v3
+  js-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Run custom resource unit tests
+        run: make custom-resource-tests
+
+      - name: Upload Node coverage report to Codecov
+        uses: codecov/codecov-action@v7
         with:
           directory: cf-custom-resources/
+
+  local-integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Run local integration tests
+        run: make local-integration-test
 
   license:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.23'
-
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
 
       - name: Run license check
         run: ./scripts/license.sh .
@@ -110,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: validate
-        uses: actions/github-script@v6
+        uses: actions/github-script@v9
         with:
           script: |
             // See https://gist.github.com/marcojahn/482410b728c31b221b70ea6d2c433f0c#file-conventional-commit-regex-md

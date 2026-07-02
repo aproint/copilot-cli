@@ -9,6 +9,8 @@ TEMPLATES_DIR=${ROOT_SRC_DIR}/internal/pkg/template/templates
 BUILT_CUSTOM_RESOURCES=${TEMPLATES_DIR}/custom-resources
 GOBIN=${ROOT_SRC_DIR}/bin/tools
 COVERAGE=coverage.out
+MOCKGEN_VERSION=v1.6.0
+GINKGO_VERSION=v2.20.1
 
 DESTINATION=./bin/local/${BINARY_NAME}
 VERSION=$(shell git describe --always --tags | sed 's/-/+/')
@@ -113,6 +115,9 @@ run-integ-test:
 .PHONY: local-test
 local-test: package-custom-resources custom-resource-tests run-local-test package-custom-resources-clean
 
+.PHONY: local-integration-test
+local-integration-test: package-custom-resources run-local-test package-custom-resources-clean
+
 .PHONY: run-local-test
 run-local-test:
 	go test -race -count=1 -timeout=60m -tags=localintegration -coverprofile=${COVERAGE} ${PACKAGES}
@@ -127,7 +132,7 @@ e2e: build-e2e
 .PHONY: e2e-dryrun
 e2e-dryrun: build # Sample command "make e2e-dryrun test=multi-env-app" to run the test suit under "e2e/multi-env-app"
 	@echo "Install ginkgo"
-	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+	go install github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 	@echo "Setup credentials"
 	./scripts/dryrun-creds.sh e2e
 	@echo "Run the $(test) test"
@@ -140,7 +145,7 @@ e2e-dryrun: build # Sample command "make e2e-dryrun test=multi-env-app" to run t
 .PHONY: regression-dryrun
 regression-dryrun: build
 	@echo "Install ginkgo"
-	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+	go install github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 	@echo "Setup credentials"
 	./scripts/dryrun-creds.sh regression
 	@echo "Run the $(test) test"
@@ -159,7 +164,7 @@ site-local:
 
 .PHONY: gen-mocks
 gen-mocks: tools
-	GOBIN=${GOBIN} go install github.com/golang/mock/mockgen@latest
+	GOBIN=${GOBIN} go install github.com/golang/mock/mockgen@${MOCKGEN_VERSION}
 	# TODO: make this more extensible?
 	${GOBIN}/mockgen -package=mocks -destination=./internal/pkg/aws/sessions/mocks/mock_sessions.go -source=./internal/pkg/aws/sessions/sessions.go
 	${GOBIN}/mockgen -package=mocks -destination=./internal/pkg/cli/mocks/mock_rg.go -source=./internal/pkg/cli/env_delete.go resourceGetter

@@ -65,6 +65,12 @@ $ copilot init --app demo                \
 This will create a VPC, Application Load Balancer, an Amazon ECS Service with the sample app running on AWS Fargate.
 This process will take around 8 minutes to complete - at which point you'll get a URL for your sample app running! 🚀
 
+## Development requirements
+
+Local builds and CI use Go 1.26 and Node.js 24 LTS. The Go module declares
+`toolchain go1.26.0`; developers can use the version files in the repository
+root with common version managers, or install matching runtimes directly.
+
 ## Learning more
 
 Want to learn more about what's happening? Check out our documentation [https://aproint.github.io/copilot-cli/](https://aproint.github.io/copilot-cli/) for a getting started guide, learning about Copilot concepts, and a breakdown of our commands.

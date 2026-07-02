@@ -37,7 +37,7 @@ describe("DNS Certificate Validation And Custom Domains for NLB", () => {
     // Reimport handlers so that the lazy loading does not fail the mocks.
     // A description of the issue can be found here: https://github.com/dwyl/aws-sdk-mock/issues/206.
     // This workaround follows the comment here: https://github.com/dwyl/aws-sdk-mock/issues/206#issuecomment-640418772.
-    jest.resetModules();
+    vi.resetModules();
     imported = require("../lib/wkld-custom-domain");
     r53 = require("@aws-sdk/client-route-53");
     acm = require("@aws-sdk/client-acm");

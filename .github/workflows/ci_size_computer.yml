@@ -12,14 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.21"
+          go-version-file: .go-version
 
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
-          node-version: 16.x
+          node-version-file: .node-version
 
       - name: Get latest release with tag
         id: latestrelease
@@ -27,7 +27,7 @@ jobs:
           echo "VERSION_TAG=$(curl -s https://api.github.com/repos/aproint/copilot-cli/releases/latest --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_OUTPUT
 
       - name: Check out latest release tag
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.latestrelease.outputs.VERSION_TAG }}
           repository: aproint/copilot-cli
@@ -43,7 +43,7 @@ jobs:
           echo "WINDOWS_AMD_KIB=$(du -k ./bin/local/copilot.exe | awk '{ print $1}')" >> $GITHUB_OUTPUT
 
       - name: Check out PR commit
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -91,7 +91,7 @@ jobs:
           echo ${{ github.event.number }} > artifacts/pr_number
           echo ${sizes_json} > artifacts/sizes.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pr_number_and_bin_sizes
           path: artifacts/

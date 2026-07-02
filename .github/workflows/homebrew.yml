@@ -44,7 +44,7 @@ jobs:
           chmod +x copilot
           tar czf copilot_${semvar}_linux_arm64.tar.gz copilot
       - name: Save archive files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: save tar files
           path: '*.tar.gz'
@@ -55,11 +55,11 @@ jobs:
     needs: download-and-archive
     steps:
       - name: Download archive files
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v8
         with:
           name: save tar files
       - name: Update release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: '*.tar.gz'
@@ -72,11 +72,11 @@ jobs:
     steps:
       - name: Download archive files
         id: download
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v8
         with:
           name: save tar files
       - name: Checkout bottle repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
         with:
           repository: 'aproint/homebrew-tap'
           path: 'homebrew-tap'
@@ -134,7 +134,7 @@ jobs:
           echo pr_title="chore: upgrade copilot-cli to ${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
           echo pr_body="Created by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. @aproint/copilot-cli" >> $GITHUB_OUTPUT
       - name: Create pull-request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v8
         with:
           path: homebrew-tap
           delete-branch: true

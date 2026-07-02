@@ -14,7 +14,7 @@ describe("BacklogPerTask metric calculator", () => {
   let ecsMock, sqsMock;
 
   beforeAll(() => {
-    jest
+    vi
     .spyOn(global.Date, 'now')
     .mockImplementation(() =>
       new Date('2021-09-02').valueOf(), // maps to 1630540800000.
@@ -37,7 +37,7 @@ describe("BacklogPerTask metric calculator", () => {
 
   afterAll(() => {
     console = origConsole;
-    jest.spyOn(global.Date, 'now').mockClear();
+    vi.spyOn(global.Date, 'now').mockClear();
     ecsMock.restore();
     sqsMock.restore();
   });

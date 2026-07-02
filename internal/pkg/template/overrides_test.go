@@ -141,11 +141,12 @@ func TestTemplate_WalkOverridesCDKDir(t *testing.T) {
 	_ = fs.MkdirAll("templates/overrides/cdk/bin", 0755)
 	_ = afero.WriteFile(fs, "templates/overrides/cdk/bin/app.js", []byte(`const app = new cdk.App();`), 0644)
 	_ = afero.WriteFile(fs, "templates/overrides/cdk/package.json", []byte(`{
- "devDependencies": {
-   "aws-cdk": "{{.Version}}",
-   "ts-node": "^10.9.1",
-   "typescript": "~4.9.4"
- },
+	 "devDependencies": {
+	   "aws-cdk": "{{.Version}}",
+	   "tsx": "^4.20.6",
+	   "typescript": "~6.0.3",
+	   "vitest": "^4.1.9"
+	 },
  "dependencies": {
    "aws-cdk-lib": "{{.Version}}",
    "constructs": "^{{.ConstructsVersion}}",
@@ -194,11 +195,12 @@ transform{{$resource.LogicalID}}() {
 		case "package.json":
 			walked["package.json"] = true
 			require.Equal(t, `{
- "devDependencies": {
-   "aws-cdk": "2.137.0",
-   "ts-node": "^10.9.1",
-   "typescript": "~4.9.4"
- },
+	 "devDependencies": {
+	   "aws-cdk": "2.137.0",
+	   "tsx": "^4.20.6",
+	   "typescript": "~6.0.3",
+	   "vitest": "^4.1.9"
+	 },
  "dependencies": {
    "aws-cdk-lib": "2.137.0",
    "constructs": "^10.0.0",

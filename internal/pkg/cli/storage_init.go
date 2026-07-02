@@ -770,7 +770,7 @@ func (o *initStorageOpts) Execute() error {
 			addon.description,
 			color.HighlightResource(displayPath(addon.path)))
 		if addon.description == blobDescriptionParameters {
-			log.Infoln(indentBy(color.Faint.Sprintf(addon.recommendedAction()), 2))
+			log.Infoln(indentBy(color.Faint.Sprint(addon.recommendedAction()), 2))
 		}
 	}
 	log.Infoln()

@@ -1,6 +1,7 @@
 FROM docker:20.10.13-dind
 
-ARG GOLANG_VERSION=1.23.7
+ARG GOLANG_VERSION=1.26.0
+ARG GINKGO_VERSION=v2.20.1
 
 # Docker needs somewhere to put creds from docker login.
 RUN wget https://github.com/docker/docker-credential-helpers/releases/download/v0.6.0/docker-credential-pass-v0.6.0-amd64.tar.gz && tar -xf docker-credential-pass-v0.6.0-amd64.tar.gz && chmod +x docker-credential-pass &&  mv docker-credential-pass /bin
@@ -17,7 +18,7 @@ RUN rm go$GOLANG_VERSION.linux-amd64.tar.gz
 RUN apk del go
 
 ENV GOPROXY=direct
-RUN go install github.com/onsi/ginkgo/v2/ginkgo@latest
+RUN go install github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 
 # Copy the binary
 ADD bin/local/copilot-linux-amd64 /bin/copilot

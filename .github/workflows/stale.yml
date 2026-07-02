@@ -12,7 +12,7 @@ jobs:
     if: github.repository == 'aproint/copilot-cli'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v5
+      - uses: actions/stale@v10
         with:
           # issue configuration
           stale-issue-message: "This issue is stale because it has been open 60 days with no response activity. Remove the stale label, add a comment, or this will be closed in 14 days."

@@ -155,7 +155,7 @@ func (c *rollingUpdateComponent) renderFailureMsgs(out io.Writer) (numLines int,
 	if l := len(c.failureMsgs); l > 1 {
 		title = fmt.Sprintf("Latest %d failure events", l)
 	}
-	title = fmt.Sprintf("%s%s", color.DullRed.Sprintf("✘ "), color.Faint.Sprintf(title))
+	title = fmt.Sprintf("%s%s", color.DullRed.Sprintf("✘ "), color.Faint.Sprint(title))
 	components := []Renderer{
 		&singleLineComponent{}, // Add an empty line before rendering failure events.
 		&singleLineComponent{
@@ -207,7 +207,7 @@ func (c *rollingUpdateComponent) renderStoppedTasks(out io.Writer) (numLines int
 	header := []string{"TaskId", "CurrentStatus", "DesiredStatus"}
 	var rows [][]string
 	title := fmt.Sprintf("Latest %d %s stopped reason", len(c.stoppedTasks), english.PluralWord(len(c.stoppedTasks), "task", "tasks"))
-	title = fmt.Sprintf("%s%s", color.DullRed.Sprintf("✘ "), color.Faint.Sprintf(title))
+	title = fmt.Sprintf("%s%s", color.DullRed.Sprintf("✘ "), color.Faint.Sprint(title))
 	childComponents := []Renderer{
 		&singleLineComponent{}, // Add an empty line before rendering task stopped events.
 		&singleLineComponent{

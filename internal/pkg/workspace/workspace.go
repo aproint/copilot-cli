@@ -31,10 +31,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 )

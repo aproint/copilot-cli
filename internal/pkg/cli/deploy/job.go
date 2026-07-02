@@ -6,15 +6,15 @@ package deploy
 import (
 	"fmt"
 
-	awscloudformation "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	awsecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/aws/partitions"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/upload/customresource"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/partitions"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/upload/customresource"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
 
 type jobDeployer struct {

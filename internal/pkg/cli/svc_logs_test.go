@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
+	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aws/aws-sdk-go/aws"
-	awsecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/mocks"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/logging"
-	"github.com/aws/copilot-cli/internal/pkg/term/selector"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/logging"
+	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"

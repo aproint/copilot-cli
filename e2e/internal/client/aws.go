@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	cmd "github.com/aws/copilot-cli/e2e/internal/command"
+	cmd "github.com/aproint/copilot-cli/e2e/internal/command"
 )
 
 // IAM policy ARNs.
@@ -39,8 +39,10 @@ func NewAWS() *AWS {
 	return &AWS{}
 }
 
-/*CreateStack runs:
+/*
+CreateStack runs:
 aws cloudformation create-stack
+
 	--stack-name $name
 	--template-body $templatePath
 */
@@ -54,8 +56,10 @@ func (a *AWS) CreateStack(name, templatePath string) error {
 	return a.exec(command)
 }
 
-/*WaitStackCreateComplete runs:
+/*
+WaitStackCreateComplete runs:
 aws cloudformation wait stack-create-complete
+
 	--stack-name $name
 */
 func (a *AWS) WaitStackCreateComplete(name string) error {
@@ -232,8 +236,10 @@ func (a *AWS) deleteIAMUser(userName string) error {
 	return nil
 }
 
-/*VPCStackOutput runs:
+/*
+VPCStackOutput runs:
 aws cloudformation describe-stacks --stack-name $name |
+
 	jq -r .Stacks[0].Outputs
 */
 func (a *AWS) VPCStackOutput(name string) ([]VPCStackOutput, error) {
@@ -257,7 +263,8 @@ func (a *AWS) VPCStackOutput(name string) ([]VPCStackOutput, error) {
 	return outputs, nil
 }
 
-/*DeleteStack runs:
+/*
+DeleteStack runs:
 aws cloudformation delete-stack --stack-name $name
 */
 func (a *AWS) DeleteStack(name string) error {
@@ -269,8 +276,10 @@ func (a *AWS) DeleteStack(name string) error {
 	return a.exec(command)
 }
 
-/*WaitStackDeleteComplete runs:
+/*
+WaitStackDeleteComplete runs:
 aws cloudformation wait stack-delete-complete
+
 	--stack-name $name
 */
 func (a *AWS) WaitStackDeleteComplete(name string) error {
@@ -283,8 +292,10 @@ func (a *AWS) WaitStackDeleteComplete(name string) error {
 	return a.exec(command)
 }
 
-/*CreateECRRepo runs:
+/*
+CreateECRRepo runs:
 aws ecr create-repository --repository-name $name |
+
 	jq -r .repository.repositoryUri
 */
 func (a *AWS) CreateECRRepo(name string) (string, error) {
@@ -303,7 +314,8 @@ func (a *AWS) CreateECRRepo(name string) (string, error) {
 	return strings.TrimSpace(b.String()), nil
 }
 
-/*ECRLoginPassword runs:
+/*
+ECRLoginPassword runs:
 aws ecr get-login-password
 */
 func (a *AWS) ECRLoginPassword() (string, error) {
@@ -319,8 +331,10 @@ func (a *AWS) ECRLoginPassword() (string, error) {
 	return strings.TrimSpace(b.String()), nil
 }
 
-/*DeleteECRRepo runs:
+/*
+DeleteECRRepo runs:
 aws ecr delete-repository
+
 	--repository-name $name --force
 */
 func (a *AWS) DeleteECRRepo(name string) error {
@@ -337,7 +351,8 @@ func (a *AWS) exec(command string, opts ...cmd.Option) error {
 	return BashExec(fmt.Sprintf("aws %s", command), opts...)
 }
 
-/*GetFileSystemSize runs:
+/*
+GetFileSystemSize runs:
 aws efs describe-file-systems | jq -r '.FileSystems[0].SizeInBytes.Value',
 which returns the size in bytes of the first filesystem returned by the call.
 */

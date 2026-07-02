@@ -7,26 +7,26 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
+	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
-	rg "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
 
 	"io"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/codepipeline"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
-	"github.com/aws/copilot-cli/internal/pkg/term/selector"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/aws/copilot-cli/internal/pkg/describe"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/describe"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/spf13/cobra"
 )
 

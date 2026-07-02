@@ -9,20 +9,20 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ssm"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/describe"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
+	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"github.com/aws/aws-sdk-go/aws"
 	awsssm "github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/describe"
-	"github.com/aws/copilot-cli/internal/pkg/template"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
-	"github.com/aws/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/copilot-cli/internal/pkg/workspace"
 	"github.com/dustin/go-humanize/english"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -481,7 +481,7 @@ Create a secret with prompts.
 /code $ copilot secret init
 Create a secret named db-password in multiple environments.
 /code $ copilot secret init --name db-password
-Create secrets from input.yml. For the format of the YAML file, please see https://aws.github.io/copilot-cli/docs/commands/secret-init/.
+Create secrets from input.yml. For the format of the YAML file, please see https://aproint.github.io/copilot-cli/docs/commands/secret-init/.
 /code $ copilot secret init --cli-input-yaml input.yml`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
 			opts, err := newSecretInitOpts(vars)

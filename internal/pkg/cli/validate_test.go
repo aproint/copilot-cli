@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/copilot-cli/internal/pkg/workspace"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 
 	"github.com/spf13/afero"
 

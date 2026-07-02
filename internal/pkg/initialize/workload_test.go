@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/initialize/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/initialize/mocks"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

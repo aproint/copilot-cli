@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	cfnstack "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/copilot-cli/internal/pkg/describe/mocks"
-	"github.com/aws/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/copilot-cli/internal/pkg/template"
-	"github.com/aws/copilot-cli/internal/pkg/version"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	cfnstack "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

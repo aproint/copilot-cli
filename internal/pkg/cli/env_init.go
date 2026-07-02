@@ -12,35 +12,35 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/profile"
-	"github.com/aws/copilot-cli/internal/pkg/describe"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/copilot-cli/internal/pkg/version"
-	"github.com/aws/copilot-cli/internal/pkg/workspace"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/profile"
+	"github.com/aproint/copilot-cli/internal/pkg/describe"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/version"
+	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"github.com/dustin/go-humanize/english"
 	"github.com/spf13/afero"
 	"golang.org/x/mod/semver"
 
 	"github.com/aws/aws-sdk-go/service/ssm"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/iam"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/partitions"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	deploycfn "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ec2"
-	"github.com/aws/copilot-cli/internal/pkg/aws/iam"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/copilot-cli/internal/pkg/aws/partitions"
-	"github.com/aws/copilot-cli/internal/pkg/aws/s3"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	deploycfn "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	termprogress "github.com/aws/copilot-cli/internal/pkg/term/progress"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
-	"github.com/aws/copilot-cli/internal/pkg/term/selector"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -69,7 +69,7 @@ const (
 	fmtEnvInitCredsPrompt  = "Which credentials would you like to use to create %s?"
 	envInitCredsHelpPrompt = `The credentials are used to create your environment in an AWS account and region.
 To learn more:
-https://aws.github.io/copilot-cli/docs/credentials/#environment-credentials`
+https://aproint.github.io/copilot-cli/docs/credentials/#environment-credentials`
 	envInitRegionPrompt        = "Which region?"
 	envInitDefaultRegionOption = "us-west-2"
 
@@ -550,7 +550,7 @@ https://aws.amazon.com/premiumsupport/knowledge-center/ecs-pull-container-api-er
 			log.Warningf(`If you proceed without public subnets, you will not be able to deploy 
 Load Balanced Web Services in this environment, and will need to specify 'private' 
 network placement in your workload manifest(s). See the manifest documentation 
-specific to your workload type(s) (https://aws.github.io/copilot-cli/docs/manifest/overview/).
+specific to your workload type(s) (https://aproint.github.io/copilot-cli/docs/manifest/overview/).
 `)
 		}
 		o.importVPC.PublicSubnetIDs = publicSubnets

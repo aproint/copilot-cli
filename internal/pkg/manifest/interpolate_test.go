@@ -51,7 +51,7 @@ http:
     - ${ip}
 # Configuration for your containers and service.
 image:
-  # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/backend-service/#image-build
+  # Docker build arguments. For additional overrides: https://aproint.github.io/copilot-cli/docs/manifest/backend-service/#image-build
   location: ${0accountID}.dkr.${repo-provider}.${region}.amazonaws.com/vault/${COPILOT_ENVIRONMENT_NAME}:${tag}
   port: 80
   labels: |
@@ -94,7 +94,7 @@ http:
     - 10.24.34.0/23
 # Configuration for your containers and service.
 image:
-  # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/backend-service/#image-build
+  # Docker build arguments. For additional overrides: https://aproint.github.io/copilot-cli/docs/manifest/backend-service/#image-build
   location: ${0accountID}.dkr.${repo-provider}..amazonaws.com/vault/test:latest
   port: 80
   labels: |

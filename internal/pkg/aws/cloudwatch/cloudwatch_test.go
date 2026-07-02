@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch/mocks"
+	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch/mocks"
-	rg "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -531,7 +531,7 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 				},
 			},
 		},
-	
+
 		"success with pagination": {
 			in: mockNames,
 			setupMocks: func(m cloudWatchMocks) {
@@ -542,8 +542,8 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 						NextToken: aws.String("mockNextToken"),
 						CompositeAlarms: []*cloudwatch.CompositeAlarm{
 							{
-								AlarmName:             aws.String(name1),
-								AlarmDescription:      aws.String(desc1),
+								AlarmName:        aws.String(name1),
+								AlarmDescription: aws.String(desc1),
 							},
 							nil,
 						},
@@ -554,8 +554,8 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 					}).Return(&cloudwatch.DescribeAlarmsOutput{
 						MetricAlarms: []*cloudwatch.MetricAlarm{
 							{
-								AlarmName:             aws.String(name2),
-								AlarmDescription:      aws.String(desc2),
+								AlarmName:        aws.String(name2),
+								AlarmDescription: aws.String(desc2),
 							},
 							nil,
 						},
@@ -569,8 +569,8 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 					Description: desc1,
 				},
 				{
-					Name:         name2,
-					Description:  desc2,
+					Name:        name2,
+					Description: desc2,
 				},
 			},
 		},

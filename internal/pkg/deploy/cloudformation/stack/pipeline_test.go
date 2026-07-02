@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack/mocks"
-	"github.com/aws/copilot-cli/internal/pkg/template"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 )
 
 const (

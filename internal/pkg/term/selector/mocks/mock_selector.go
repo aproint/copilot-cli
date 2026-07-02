@@ -7,12 +7,12 @@ package mocks
 import (
 	reflect "reflect"
 
-	ecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	config "github.com/aws/copilot-cli/internal/pkg/config"
-	deploy "github.com/aws/copilot-cli/internal/pkg/deploy"
-	ecs0 "github.com/aws/copilot-cli/internal/pkg/ecs"
-	prompt "github.com/aws/copilot-cli/internal/pkg/term/prompt"
-	workspace "github.com/aws/copilot-cli/internal/pkg/workspace"
+	ecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	config "github.com/aproint/copilot-cli/internal/pkg/config"
+	deploy "github.com/aproint/copilot-cli/internal/pkg/deploy"
+	ecs0 "github.com/aproint/copilot-cli/internal/pkg/ecs"
+	prompt "github.com/aproint/copilot-cli/internal/pkg/term/prompt"
+	workspace "github.com/aproint/copilot-cli/internal/pkg/workspace"
 	gomock "github.com/golang/mock/gomock"
 )
 

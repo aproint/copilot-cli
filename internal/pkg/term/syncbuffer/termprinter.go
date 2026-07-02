@@ -10,7 +10,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/cursor"
+	"github.com/aproint/copilot-cli/internal/pkg/term/cursor"
 	"golang.org/x/term"
 )
 

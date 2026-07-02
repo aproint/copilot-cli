@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	"github.com/aws/copilot-cli/internal/pkg/describe/mocks"
-	"github.com/aws/copilot-cli/internal/pkg/describe/stack"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

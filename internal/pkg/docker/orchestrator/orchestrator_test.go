@@ -14,8 +14,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/docker/dockerengine"
-	"github.com/aws/copilot-cli/internal/pkg/docker/dockerengine/dockerenginetest"
+	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
+	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine/dockerenginetest"
 	"github.com/stretchr/testify/require"
 )
 

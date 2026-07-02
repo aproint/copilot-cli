@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/docker/dockerengine"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 
-	cfnstack "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	cfnstack "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 )
 
 // WorkerServiceDescriber retrieves information about a worker service.

@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 )
 
 // DeployTask deploys a task stack, renders the deployment to out until it is done.

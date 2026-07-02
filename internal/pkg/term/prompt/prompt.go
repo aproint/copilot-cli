@@ -13,7 +13,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 )
 
 func init() {

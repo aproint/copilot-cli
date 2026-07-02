@@ -5,8 +5,8 @@ package partitions
 
 import (
 	"errors"
-	"github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"testing"
 
 	"github.com/stretchr/testify/require"

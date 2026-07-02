@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/ini"
+	"github.com/aproint/copilot-cli/internal/pkg/ini"
 )
 
 const (

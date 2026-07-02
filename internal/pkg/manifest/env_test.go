@@ -6,10 +6,10 @@ package manifest
 import (
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
 
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/template"
 	"github.com/stretchr/testify/require"
 )
 

@@ -117,7 +117,7 @@ List of all available properties for a `'Load Balanced Web Service'` manifest. T
     === "Event-driven"
 
         ```yaml
-        # See https://aws.github.io/copilot-cli/docs/developing/publish-subscribe/
+        # See https://aproint.github.io/copilot-cli/docs/developing/publish-subscribe/
         name: 'orders'
         type: 'Load Balanced Web Service'
 

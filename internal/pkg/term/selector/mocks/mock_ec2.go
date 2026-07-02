@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	ec2 "github.com/aws/copilot-cli/internal/pkg/aws/ec2"
+	ec2 "github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	gomock "github.com/golang/mock/gomock"
 )
 

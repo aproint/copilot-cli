@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/template"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"gopkg.in/yaml.v3"
 )
 

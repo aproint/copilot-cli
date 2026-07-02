@@ -8,14 +8,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/describe"
-	"github.com/aws/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/describe"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

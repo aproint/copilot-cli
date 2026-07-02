@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/group"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/group"
 )
 
 // RootUsage is the text template for the root command.

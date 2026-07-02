@@ -1,6 +1,6 @@
 # The manifest for the "test" environment.
 # Read the full specification for the "Environment" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/environment/
+#  https://aproint.github.io/copilot-cli/docs/manifest/environment/
 
 # Your environment name will be used in naming your resources like VPC, cluster, etc.
 name: test

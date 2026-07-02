@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 )
 
 // ErrNoPipelineInWorkspace means there was no pipeline manifest in the workspace dir.

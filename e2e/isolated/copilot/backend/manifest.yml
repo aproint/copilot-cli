@@ -1,6 +1,6 @@
 # The manifest for the "backend" service.
 # Read the full specification for the "Backend Service" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/backend-service/
+#  https://aproint.github.io/copilot-cli/docs/manifest/backend-service/
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
 name: backend
@@ -10,7 +10,7 @@ type: Backend Service
 
 # Configuration for your containers and service.
 image:
-  # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/backend-service/#image-build
+  # Docker build arguments. For additional overrides: https://aproint.github.io/copilot-cli/docs/manifest/backend-service/#image-build
   build: backend/Dockerfile
   # Port exposed through your container to route traffic to it.
   port: 80

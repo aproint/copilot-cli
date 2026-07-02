@@ -7,9 +7,9 @@ package jobrunner
 import (
 	"fmt"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 )
 
 // StateMachineExecutor is the interface that implements the Execute method to invoke a state machine.

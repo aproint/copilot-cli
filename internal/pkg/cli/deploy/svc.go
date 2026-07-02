@@ -14,11 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"golang.org/x/mod/semver"
 
-	awscloudformation "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
+	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 )
 
 type uploader interface {
@@ -112,7 +112,7 @@ func (e *errAppOutOfDate) Error() string {
 func (e *errAppOutOfDate) RecommendActions() string {
 	return fmt.Sprintf(`Cannot deploy service %q because the current application version %q
 is incompatible. To upgrade the application, please run %s.
-(see https://aws.github.io/copilot-cli/docs/credentials/#application-credentials)
+(see https://aproint.github.io/copilot-cli/docs/credentials/#application-credentials)
 `, e.svc, e.curVersion, color.HighlightCode("copilot app upgrade"))
 }
 

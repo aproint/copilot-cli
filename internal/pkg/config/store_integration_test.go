@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
 
-	"github.com/aws/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/stretchr/testify/require"
 )
 

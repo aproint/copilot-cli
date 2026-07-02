@@ -11,12 +11,12 @@ import (
 
 	"github.com/xlab/treeprint"
 
+	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cp "github.com/aws/aws-sdk-go/service/codepipeline"
-	rg "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
 )
 
 type api interface {
@@ -150,7 +150,8 @@ func (c *CodePipeline) GetPipeline(name string) (*Pipeline, error) {
 
 // HumanString returns the stringified Stage struct with human readable format.
 // Example output:
-//   DeployTo-test	Deploy	Cloudformation	stackname: dinder-test-test
+//
+//	DeployTo-test	Deploy	Cloudformation	stackname: dinder-test-test
 func (s *Stage) HumanString() string {
 	return fmt.Sprintf("%s\t%s\t%s\t%s\n", s.Name, s.Category, s.Provider, s.Details)
 }
@@ -222,7 +223,8 @@ func (c *CodePipeline) GetPipelineState(name string) (*PipelineState, error) {
 
 // HumanString returns the stringified PipelineState struct with human readable format.
 // Example output:
-//   DeployTo-test	Deploy	Cloudformation	stackname: dinder-test-test
+//
+//	DeployTo-test	Deploy	Cloudformation	stackname: dinder-test-test
 func (ss *StageState) HumanString() string {
 	status := ss.AggregateStatus()
 	transition := ss.Transition

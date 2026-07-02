@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/aas/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	aas "github.com/aws/aws-sdk-go/service/applicationautoscaling"
-	"github.com/aws/copilot-cli/internal/pkg/aws/aas/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

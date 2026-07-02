@@ -6,9 +6,9 @@ package stack
 import (
 	"sort"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/tags"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/aws/tags"
 )
 
 func mergeAndFlattenTags(additionalTags map[string]string, cliTags map[string]string) []*cloudformation.Tag {

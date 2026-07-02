@@ -10,14 +10,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	describestack "github.com/aws/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	describestack "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 
 	// TODO refactor this into our own pkg
-	"github.com/aws/copilot-cli/internal/pkg/aws/codepipeline"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 )
 
 type pipelineGetter interface {

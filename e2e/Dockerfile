@@ -23,9 +23,9 @@ RUN go install github.com/onsi/ginkgo/v2/ginkgo@latest
 ADD bin/local/copilot-linux-amd64 /bin/copilot
 
 # Add the e2e directory and the project go.mod
-ADD e2e/ github.com/aws/copilot-cli/e2e/
-ADD go.mod github.com/aws/copilot-cli/
-ADD go.sum github.com/aws/copilot-cli/
+ADD e2e/ github.com/aproint/copilot-cli/e2e/
+ADD go.mod github.com/aproint/copilot-cli/
+ADD go.sum github.com/aproint/copilot-cli/
 
 # Startup script which inits dockerd and then runs the e2e tests
 COPY e2e/e2e.sh /bin/

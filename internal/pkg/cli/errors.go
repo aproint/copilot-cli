@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/dustin/go-humanize/english"
 )
 
@@ -190,5 +190,5 @@ For more information on YAML overrides see %s
     Principal:
       AWS: "arn:aws:iam::[app-account-ID]:root"
     Action: 'sts:AssumeRole'`),
-		color.Emphasize("https://aws.github.io/copilot-cli/docs/developing/overrides/yamlpatch/"))
+		color.Emphasize("https://aproint.github.io/copilot-cli/docs/developing/overrides/yamlpatch/"))
 }

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/stream"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/stream"
 	"golang.org/x/sync/errgroup"
 )
 

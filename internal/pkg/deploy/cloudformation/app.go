@@ -9,21 +9,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/stream"
-	"github.com/aws/copilot-cli/internal/pkg/version"
+	"github.com/aproint/copilot-cli/internal/pkg/stream"
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/copilot-cli/internal/pkg/term/progress"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/term/progress"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
 	sdkcloudformationiface "github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation/stackset"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 )
 
 type errNoRegionalResources struct {

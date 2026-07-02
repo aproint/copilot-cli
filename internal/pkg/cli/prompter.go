@@ -3,7 +3,7 @@
 
 package cli
 
-import "github.com/aws/copilot-cli/internal/pkg/term/prompt"
+import "github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 
 type prompter interface {
 	Get(message, help string, validator prompt.ValidatorFunc, promptOpts ...prompt.PromptConfig) (string, error)

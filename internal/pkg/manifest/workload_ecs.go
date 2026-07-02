@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/docker/dockerengine"
 	"gopkg.in/yaml.v3"
 )
 

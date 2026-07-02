@@ -3,9 +3,9 @@ env:
   parameter-store:
     NEUTRAL_BUILD_RELEASE_ROLE: COPILOT_NEUTRAL_BUILD_RELEASE_ROLE_ARN
   variables:
-    NEUTRAL_BUILD_RELEASE_BUCKET_NAME: ecs-cli-v2-release
+    NEUTRAL_BUILD_RELEASE_BUCKET_NAME: aproint-copilot-cli-release
     AWS_STS_REGIONAL_ENDPOINTS: regional
-    INTEG_TEST_SESSION_NAME: aws_copilot_cli_integ_test
+    INTEG_TEST_SESSION_NAME: aproint_copilot_cli_integ_test
     TAG_KEY: access
     TAG_VALUE: private
 

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/aws/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
 )
 
 const (

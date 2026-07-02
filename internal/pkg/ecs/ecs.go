@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/stepfunctions"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aws/copilot-cli/internal/pkg/aws/stepfunctions"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
 )
 
 const (

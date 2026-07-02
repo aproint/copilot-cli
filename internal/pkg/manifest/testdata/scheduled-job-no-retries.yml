@@ -1,6 +1,6 @@
 # The manifest for the "cuteness-aggregator" job.
 # Read the full specification for the "Scheduled Job" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/scheduled-job/
+#  https://aproint.github.io/copilot-cli/docs/manifest/scheduled-job/
 
 # Your job name will be used in naming your resources like log groups, ECS Tasks, etc.
 name: cuteness-aggregator
@@ -16,7 +16,7 @@ timeout: 3h    # Optional. The timeout after which to stop the job if it's still
 
 # Configuration for your container and task.
 image:
-  # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/scheduled-job/#image-build
+  # Docker build arguments. For additional overrides: https://aproint.github.io/copilot-cli/docs/manifest/scheduled-job/#image-build
   build: ./cuteness-aggregator/Dockerfile
 
 cpu: 256       # Number of CPU units for the task.

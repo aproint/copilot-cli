@@ -6,10 +6,10 @@ package selector
 import (
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/term/selector/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/term/selector/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	cfnstack "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	cfnstack "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/copilot-cli/internal/pkg/version"
 	"gopkg.in/yaml.v3"
 )
 

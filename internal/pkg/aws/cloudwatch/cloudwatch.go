@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	rg "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
+	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"

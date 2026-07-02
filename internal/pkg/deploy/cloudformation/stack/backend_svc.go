@@ -5,18 +5,18 @@ package stack
 
 import (
 	"fmt"
-	"github.com/aws/copilot-cli/internal/pkg/aws/elbv2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 	"strconv"
 	"strings"
 
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/upload/customresource"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template/override"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/upload/customresource"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/copilot-cli/internal/pkg/template"
-	"github.com/aws/copilot-cli/internal/pkg/template/override"
 )
 
 // BackendService represents the configuration needed to create a CloudFormation stack from a backend service manifest.

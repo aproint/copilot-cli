@@ -4,8 +4,8 @@
 package cli
 
 import (
-	"github.com/aws/copilot-cli/cmd/copilot/template"
-	"github.com/aws/copilot-cli/internal/pkg/cli/group"
+	"github.com/aproint/copilot-cli/cmd/copilot/template"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/group"
 	"github.com/spf13/cobra"
 )
 

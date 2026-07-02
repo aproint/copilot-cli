@@ -13,9 +13,9 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
 )
 
 // Parameter name formats for resources in an application. Applications are laid out in SSM

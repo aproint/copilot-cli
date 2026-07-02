@@ -11,7 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/request"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation/stackset"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset"
 )
 
 // StackSetDescriber is the CloudFormation interface needed to describe the health of a stack set operation.

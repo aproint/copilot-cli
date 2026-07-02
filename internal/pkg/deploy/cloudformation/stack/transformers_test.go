@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/elbv2"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/template/templatetest"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/template/templatetest"
 
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template/override"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/copilot-cli/internal/pkg/template"
-	"github.com/aws/copilot-cli/internal/pkg/template/override"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )

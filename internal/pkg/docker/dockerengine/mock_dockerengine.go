@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	exec "github.com/aws/copilot-cli/internal/pkg/exec"
+	exec "github.com/aproint/copilot-cli/internal/pkg/exec"
 	gomock "github.com/golang/mock/gomock"
 )
 

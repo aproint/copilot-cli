@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/ec2"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/describe"
-	"github.com/aws/copilot-cli/internal/pkg/docker/dockerengine"
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/describe"
+	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 
 	"github.com/aws/aws-sdk-go/aws"
 )

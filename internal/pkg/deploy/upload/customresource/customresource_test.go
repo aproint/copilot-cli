@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
 
 type fakeTemplateReader struct {

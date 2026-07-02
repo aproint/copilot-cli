@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/override"
-	"github.com/aws/copilot-cli/internal/pkg/template"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/override"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/spf13/afero"
 )
 
@@ -156,11 +156,11 @@ func (o *overrideOpts) askIaCTool() error {
 	help := `The AWS Cloud Development Kit (CDK) lets you override templates using
 the expressive power of programming languages.
 This option is recommended for users that need to override several resources.
-To learn more about the CDK: https://aws.github.io/copilot-cli/docs/developing/overrides/cdk/
+To learn more about the CDK: https://aproint.github.io/copilot-cli/docs/developing/overrides/cdk/
 
 CloudFormation YAML patches is recommended for users that need to override
 a handful resources or do not want to depend on any other tool.
-To learn more about CFN yaml patches: https://aws.github.io/copilot-cli/docs/developing/overrides/yamlpatch/`
+To learn more about CFN yaml patches: https://aproint.github.io/copilot-cli/docs/developing/overrides/yamlpatch/`
 	tool, err := o.prompt.SelectOne(msg, help, validIaCTools, prompt.WithFinalMessage("IaC tool:"))
 	if err != nil {
 		return fmt.Errorf("select IaC tool: %v", err)

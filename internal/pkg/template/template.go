@@ -14,8 +14,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/s3"
-	"github.com/aws/copilot-cli/internal/pkg/template/artifactpath"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/template/artifactpath"
 )
 
 //go:embed templates templates/overrides/cdk/.gitignore

@@ -6,9 +6,9 @@ package config
 import (
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
 )
 
 type mockSSM struct {

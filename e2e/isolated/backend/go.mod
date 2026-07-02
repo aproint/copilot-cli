@@ -1,4 +1,4 @@
-module github.com/aws/copilot-cli/e2e/isolated/back-end
+module github.com/aproint/copilot-cli/e2e/isolated/back-end
 
 go 1.20
 

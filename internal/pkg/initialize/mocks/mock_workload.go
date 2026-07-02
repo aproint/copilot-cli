@@ -8,8 +8,8 @@ import (
 	encoding "encoding"
 	reflect "reflect"
 
-	config "github.com/aws/copilot-cli/internal/pkg/config"
-	cloudformation "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
+	config "github.com/aproint/copilot-cli/internal/pkg/config"
+	cloudformation "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	gomock "github.com/golang/mock/gomock"
 )
 

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 )
 
 var (

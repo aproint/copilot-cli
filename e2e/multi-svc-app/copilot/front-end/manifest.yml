@@ -1,6 +1,6 @@
 # The manifest for the "fe" service.
 # Read the full specification for the "Load Balanced Web Service" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/
+#  https://aproint.github.io/copilot-cli/docs/manifest/lb-web-service/
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
 name: front-end
@@ -50,8 +50,8 @@ storage:
       
 
 variables:
-  TEST_JSON_ENV_VAR: "{}" # https://github.com/aws/copilot-cli/issues/1292
-  TEST_BOOL_ENV_VAR: on # https://github.com/aws/copilot-cli/issues/1120
+  TEST_JSON_ENV_VAR: "{}" # https://github.com/aproint/copilot-cli/issues/1292
+  TEST_BOOL_ENV_VAR: on # https://github.com/aproint/copilot-cli/issues/1120
   TEST_JOB_CHECK_VAR: "no"
 
 env_file: magic.env

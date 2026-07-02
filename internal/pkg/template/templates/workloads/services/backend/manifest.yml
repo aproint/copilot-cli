@@ -1,6 +1,6 @@
 # The manifest for the "{{.Name}}" service.
 # Read the full specification for the "{{.Type}}" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/backend-service/
+#  https://aproint.github.io/copilot-cli/docs/manifest/backend-service/
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
 name: {{.Name}}
@@ -14,7 +14,7 @@ type: {{.Type}}
 # Configuration for your containers and service.
 image:
 {{- if .ImageConfig.Image.Build.BuildArgs.Dockerfile}}
-  # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/backend-service/#image-build
+  # Docker build arguments. For additional overrides: https://aproint.github.io/copilot-cli/docs/manifest/backend-service/#image-build
   build: {{.ImageConfig.Image.Build.BuildArgs.Dockerfile}}
 {{- end}}
 {{- if .ImageConfig.Image.Location}}
@@ -26,7 +26,7 @@ image:
 {{- end}}
 {{- if not .ImageConfig.HealthCheck.IsEmpty}}
   healthcheck:
-    # Container health checks: https://aws.github.io/copilot-cli/docs/manifest/backend-service/#image-healthcheck
+    # Container health checks: https://aproint.github.io/copilot-cli/docs/manifest/backend-service/#image-healthcheck
     command: {{fmtSlice (quoteSlice .ImageConfig.HealthCheck.Command)}}
     interval: {{.ImageConfig.HealthCheck.Interval}}
     retries: {{.ImageConfig.HealthCheck.Retries}}
@@ -37,7 +37,7 @@ image:
 cpu: {{.CPU}}       # Number of CPU units for the task.
 memory: {{.Memory}}    # Amount of memory in MiB used by the task.
 {{- if .Platform.PlatformString}}
-platform: {{.Platform.PlatformString}}     # See https://aws.github.io/copilot-cli/docs/manifest/backend-service/#platform
+platform: {{.Platform.PlatformString}}     # See https://aproint.github.io/copilot-cli/docs/manifest/backend-service/#platform
 {{- end}}
 count: {{.Count.Value}}       # Number of tasks that should be running in your service.
 {{- if not .TaskConfig.IsWindows }}

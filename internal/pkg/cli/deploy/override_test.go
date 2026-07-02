@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/override"
+	"github.com/aproint/copilot-cli/internal/pkg/override"
 	"github.com/stretchr/testify/require"
 
 	"github.com/spf13/afero"

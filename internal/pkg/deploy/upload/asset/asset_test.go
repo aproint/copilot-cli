@@ -16,7 +16,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )

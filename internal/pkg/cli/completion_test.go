@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

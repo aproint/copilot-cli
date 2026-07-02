@@ -9,11 +9,11 @@ import (
 	io "io"
 	reflect "reflect"
 
+	cloudformation0 "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	stackset "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset"
+	cloudwatch "github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
+	ecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	cloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
-	cloudformation0 "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	stackset "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation/stackset"
-	cloudwatch "github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch"
-	ecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
 	gomock "github.com/golang/mock/gomock"
 )
 

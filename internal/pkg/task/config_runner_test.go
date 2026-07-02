@@ -10,10 +10,10 @@ import (
 
 	awsecs "github.com/aws/aws-sdk-go/service/ecs"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/task/mocks"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ec2"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/task/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

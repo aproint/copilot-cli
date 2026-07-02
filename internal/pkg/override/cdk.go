@@ -13,10 +13,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/workspace"
+	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"gopkg.in/yaml.v3"
 
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/spf13/afero"
 )
 

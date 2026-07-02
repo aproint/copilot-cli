@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	cloudformation "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
+	cloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	gomock "github.com/golang/mock/gomock"
 )
 

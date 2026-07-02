@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation/stackset"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 
-	"github.com/aws/copilot-cli/internal/pkg/stream"
+	"github.com/aproint/copilot-cli/internal/pkg/stream"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )

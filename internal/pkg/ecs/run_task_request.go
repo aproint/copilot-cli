@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
+	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aws/aws-sdk-go/aws"
-	awsecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
 )
 
 const (

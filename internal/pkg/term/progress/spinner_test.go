@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/progress/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/term/progress/mocks"
 	spin "github.com/briandowns/spinner"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"

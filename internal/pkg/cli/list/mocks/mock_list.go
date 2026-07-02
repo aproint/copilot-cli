@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	config "github.com/aws/copilot-cli/internal/pkg/config"
+	config "github.com/aproint/copilot-cli/internal/pkg/config"
 	gomock "github.com/golang/mock/gomock"
 )
 

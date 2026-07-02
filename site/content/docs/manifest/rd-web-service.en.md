@@ -57,7 +57,7 @@ List of all available properties for a `'Request-Driven Web Service'` manifest.
     === "Event-driven"
 
         ```yaml
-        # See https://aws.github.io/copilot-cli/docs/developing/publish-subscribe/
+        # See https://aproint.github.io/copilot-cli/docs/developing/publish-subscribe/
         name: refunds
         type: Request-Driven Web Service
 

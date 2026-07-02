@@ -79,7 +79,7 @@
         ```yaml
         # プライベート証明書がインポートされている Environment であれば、
         # HTTPS のエンドポイントを Service に割り当てることができます。
-        # https://aws.github.io/copilot-cli/docs/manifest/environment#http-private-certificates を参照してください。
+        # https://aproint.github.io/copilot-cli/docs/manifest/environment#http-private-certificates を参照してください。
 
         name: api
         type: Backend Service
@@ -99,7 +99,7 @@
     === "Event-driven"
 
         ```yaml
-        # https://aws.github.io/copilot-cli/docs/developing/publish-subscribe/ を参照してください。
+        # https://aproint.github.io/copilot-cli/docs/developing/publish-subscribe/ を参照してください。
         name: warehouse
         type: Backend Service
     

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/e2e/internal/client"
+	"github.com/aproint/copilot-cli/e2e/internal/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -21,7 +21,8 @@ var vpcStackTemplatePath string
 var vpcImport client.EnvInitRequestVPCImport
 var vpcConfig client.EnvInitRequestVPCConfig
 
-/**
+/*
+*
 The Customized Env Suite creates multiple environments with customized resources,
 deploys a service to it, and then
 tears it down.

@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/exec"
+	"github.com/aproint/copilot-cli/internal/pkg/exec"
 )
 
 func describeGitChanges(r execRunner) (string, error) {

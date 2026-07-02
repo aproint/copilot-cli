@@ -13,10 +13,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	"github.com/aws/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 )
 
 // RDWebServiceDescriber retrieves information about a request-driven web service.

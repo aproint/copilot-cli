@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/copilot-cli/internal/pkg/version"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"

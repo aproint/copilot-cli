@@ -8,11 +8,11 @@ import (
 	"errors"
 	"os"
 
-	"github.com/aws/copilot-cli/cmd/copilot/template"
-	"github.com/aws/copilot-cli/internal/pkg/cli"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/copilot-cli/internal/pkg/version"
+	"github.com/aproint/copilot-cli/cmd/copilot/template"
+	"github.com/aproint/copilot-cli/internal/pkg/cli"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/spf13/cobra"
 )
 

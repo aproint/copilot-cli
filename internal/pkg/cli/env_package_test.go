@@ -10,20 +10,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
 
 	"github.com/spf13/afero"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 
-	"github.com/aws/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/golang/mock/gomock"
 )
 

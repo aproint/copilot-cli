@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aws/aws-sdk-go/aws"
 	sdkSecretsmanager "github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/copilot-cli/internal/pkg/aws/secretsmanager"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/mocks"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

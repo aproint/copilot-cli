@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 )
 
 type errMissingRegion struct{}
@@ -23,7 +23,7 @@ func (e *errMissingRegion) RecommendActions() string { // implements new actionR
 	return fmt.Sprintf(`It looks like your AWS region configuration is missing.
 - We recommend including your region configuration in the "~/.aws/config" file.
 - Alternatively, you can run %s to set the environment variable.
-More information: https://aws.github.io/copilot-cli/docs/credentials/`, color.HighlightCode("export AWS_REGION=<application region>"))
+More information: https://aproint.github.io/copilot-cli/docs/credentials/`, color.HighlightCode("export AWS_REGION=<application region>"))
 }
 
 type errCredRetrieval struct {
@@ -44,7 +44,7 @@ func (e *errCredRetrieval) RecommendActions() string {
 		notice = fmt.Sprintf("It looks like your AWS profile [%s] is misconfigured or missing", e.profile)
 	}
 	return fmt.Sprintf(`%s:
-More information: https://aws.github.io/copilot-cli/docs/credentials/`, notice)
+More information: https://aproint.github.io/copilot-cli/docs/credentials/`, notice)
 }
 
 func isCredRetrievalErr(err error) bool {

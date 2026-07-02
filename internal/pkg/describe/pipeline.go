@@ -4,10 +4,10 @@
 package describe
 
 import (
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	describestack "github.com/aws/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/copilot-cli/internal/pkg/version"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	describestack "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 )
 
 // PipelineStackDescriber retrieves information about a deployed pipeline stack.

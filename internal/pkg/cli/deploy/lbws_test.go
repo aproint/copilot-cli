@@ -7,22 +7,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/aws/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
 
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/override"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/copilot-cli/internal/pkg/override"
 )
 
 func TestLbWebSvcDeployer_GenerateCloudFormationTemplate(t *testing.T) {

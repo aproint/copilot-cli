@@ -9,27 +9,27 @@ import (
 	"os"
 	"slices"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
 
-	"github.com/aws/copilot-cli/internal/pkg/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 
 	"github.com/spf13/cobra"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecr"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	clideploy "github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecr"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	clideploy "github.com/aws/copilot-cli/internal/pkg/cli/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	termprogress "github.com/aws/copilot-cli/internal/pkg/term/progress"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
-	"github.com/aws/copilot-cli/internal/pkg/term/selector"
 )
 
 const (

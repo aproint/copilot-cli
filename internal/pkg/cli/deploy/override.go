@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/copilot-cli/internal/pkg/override"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/override"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/spf13/afero"
 )
 

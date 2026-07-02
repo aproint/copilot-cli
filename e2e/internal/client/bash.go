@@ -4,7 +4,7 @@
 package client
 
 import (
-	cmd "github.com/aws/copilot-cli/e2e/internal/command"
+	cmd "github.com/aproint/copilot-cli/e2e/internal/command"
 )
 
 // BashExec execute bash commands.

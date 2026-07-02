@@ -5,12 +5,12 @@ package multi_svc_app_test
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
-	"io"
 	"path/filepath"
 
-	"github.com/aws/copilot-cli/regression/client"
+	"github.com/aproint/copilot-cli/regression/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

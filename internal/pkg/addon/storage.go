@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
 
 const (

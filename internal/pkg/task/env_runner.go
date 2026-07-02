@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/ec2"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 )
 
 const (
@@ -76,7 +76,7 @@ func (r *EnvRunner) Run() ([]*Task, error) {
 	subnets := description.EnvironmentVPC.PublicSubnetIDs
 
 	filters := r.filtersForVPCFromAppEnv()
-	// Use only environment security group https://github.com/aws/copilot-cli/issues/1882.
+	// Use only environment security group https://github.com/aproint/copilot-cli/issues/1882.
 	securityGroups, err := r.VPCGetter.SecurityGroups(append(filters, ec2.Filter{
 		Name:   fmt.Sprintf(ec2.FmtTagFilter, envSecurityGroupCFNLogicalIDTagKey),
 		Values: []string{envSecurityGroupCFNLogicalIDTagValue},

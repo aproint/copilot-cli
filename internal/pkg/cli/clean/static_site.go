@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/copilot-cli/internal/pkg/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/s3"
 )
 
 type bucketResourceGetter interface {

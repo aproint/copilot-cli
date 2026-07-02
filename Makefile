@@ -13,10 +13,10 @@ COVERAGE=coverage.out
 DESTINATION=./bin/local/${BINARY_NAME}
 VERSION=$(shell git describe --always --tags | sed 's/-/+/')
 
-BINARY_S3_BUCKET_PATH=https://ecs-cli-v2-release.s3.amazonaws.com
+BINARY_RELEASE_HOST=https://github.com/aproint/copilot-cli/releases/download
 
-LINKER_FLAGS=-X github.com/aws/copilot-cli/internal/pkg/version.Version=${VERSION}\
--X github.com/aws/copilot-cli/internal/pkg/cli.binaryS3BucketPath=${BINARY_S3_BUCKET_PATH}
+LINKER_FLAGS=-X github.com/aproint/copilot-cli/internal/pkg/version.Version=${VERSION}\
+-X github.com/aproint/copilot-cli/internal/pkg/cli.binaryReleaseHost=${BINARY_RELEASE_HOST}
 # RELEASE_BUILD_LINKER_FLAGS disables DWARF and symbol table generation to reduce binary size
 RELEASE_BUILD_LINKER_FLAGS=-s -w
 
@@ -36,10 +36,10 @@ release: package-custom-resources compile-darwin compile-linux compile-windows p
 
 .PHONY: release-docker
 release-docker:
-	docker build -t aws/copilot . &&\
-	docker create -ti --name amazon-ecs-copilot-builder aws/copilot &&\
-	docker cp amazon-ecs-copilot-builder:/copilot/bin/local/ . &&\
-	docker rm -f amazon-ecs-copilot-builder
+	docker build -t aproint/copilot . &&\
+	docker create -ti --name aproint-copilot-builder aproint/copilot &&\
+	docker cp aproint-copilot-builder:/copilot/bin/local/ . &&\
+	docker rm -f aproint-copilot-builder
 	@echo "Built binaries under ./local/"
 
 .PHONY: compile-local

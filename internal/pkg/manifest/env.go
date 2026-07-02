@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/template"
 	"gopkg.in/yaml.v3"
 )
 
@@ -101,7 +101,7 @@ type EnvironmentConfig struct {
 // Public Load Balancer ingress restricted to a Content Delivery Network.
 func (mft *EnvironmentConfig) IsPublicLBIngressRestrictedToCDN() bool {
 	// Check the fixed manifest first. This would be `http.public.ingress.cdn`.
-	// For more information, see https://github.com/aws/copilot-cli/pull/4068#issuecomment-1275080333
+	// For more information, see https://github.com/aproint/copilot-cli/pull/4068#issuecomment-1275080333
 	if !mft.HTTPConfig.Public.Ingress.IsEmpty() {
 		return aws.BoolValue(mft.HTTPConfig.Public.Ingress.CDNIngress)
 	}

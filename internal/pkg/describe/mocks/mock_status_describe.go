@@ -7,11 +7,11 @@ package mocks
 import (
 	reflect "reflect"
 
-	cloudwatch "github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch"
-	cloudwatchlogs "github.com/aws/copilot-cli/internal/pkg/aws/cloudwatchlogs"
-	ecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	elbv2 "github.com/aws/copilot-cli/internal/pkg/aws/elbv2"
-	ecs0 "github.com/aws/copilot-cli/internal/pkg/ecs"
+	cloudwatch "github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
+	cloudwatchlogs "github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatchlogs"
+	ecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	elbv2 "github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
+	ecs0 "github.com/aproint/copilot-cli/internal/pkg/ecs"
 	gomock "github.com/golang/mock/gomock"
 )
 

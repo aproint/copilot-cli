@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codestarconnections"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/codestar/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/codestar/mocks"
 
 	"github.com/golang/mock/gomock"
 

@@ -1,6 +1,6 @@
 # The manifest for the "job" job.
 # Read the full specification for the "Scheduled Job" type at:
-#  https://github.com/aws/copilot-cli/wiki/Manifests#scheduled-job
+#  https://github.com/aproint/copilot-cli/wiki/Manifests#scheduled-job
 
 # Your job name will be used in naming your resources like log groups, ECS Tasks, etc.
 name: job

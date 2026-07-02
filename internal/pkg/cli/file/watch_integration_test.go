@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/cli/file"
+	"github.com/aproint/copilot-cli/internal/pkg/cli/file"
 	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/require"
 )

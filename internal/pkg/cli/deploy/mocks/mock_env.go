@@ -8,13 +8,13 @@ import (
 	context "context"
 	reflect "reflect"
 
+	cloudformation0 "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	elbv2 "github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
+	config "github.com/aproint/copilot-cli/internal/pkg/config"
+	cloudformation1 "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	stack "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	stack0 "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	cloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
-	cloudformation0 "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	elbv2 "github.com/aws/copilot-cli/internal/pkg/aws/elbv2"
-	config "github.com/aws/copilot-cli/internal/pkg/config"
-	cloudformation1 "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
-	stack "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	stack0 "github.com/aws/copilot-cli/internal/pkg/describe/stack"
 	gomock "github.com/golang/mock/gomock"
 )
 

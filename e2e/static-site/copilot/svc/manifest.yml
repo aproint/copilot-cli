@@ -1,6 +1,6 @@
 # The manifest for the "svc" service.
 # Read the full specification for the "Static Site Service" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/static-site/
+#  https://aproint.github.io/copilot-cli/docs/manifest/static-site/
 
 # Your service name will be used in naming your resources like S3 buckets, etc.
 name: svc

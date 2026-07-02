@@ -6,8 +6,8 @@ package cloudformationtest
 import (
 	"context"
 
+	cfn "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	sdk "github.com/aws/aws-sdk-go/service/cloudformation"
-	cfn "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
 )
 
 // Double is a test double for cloudformation.CloudFormation

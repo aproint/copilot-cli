@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
-	"github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

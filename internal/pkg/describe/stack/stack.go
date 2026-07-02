@@ -6,9 +6,9 @@ package stack
 import (
 	"fmt"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
 )
 
 type cfn interface {

@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
 
-	rg "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/mocks"
+	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

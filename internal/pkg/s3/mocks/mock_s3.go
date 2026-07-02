@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	resourcegroups "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
+	resourcegroups "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	gomock "github.com/golang/mock/gomock"
 )
 

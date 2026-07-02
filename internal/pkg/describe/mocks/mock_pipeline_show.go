@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	codepipeline "github.com/aws/copilot-cli/internal/pkg/aws/codepipeline"
+	codepipeline "github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
 	gomock "github.com/golang/mock/gomock"
 )
 

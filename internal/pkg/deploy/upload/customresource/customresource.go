@@ -12,9 +12,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/template/artifactpath"
+	"github.com/aproint/copilot-cli/internal/pkg/template/artifactpath"
 
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
 
 // Directory under which all custom resources are minified and packaged.

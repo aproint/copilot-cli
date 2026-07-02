@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	stack "github.com/aws/copilot-cli/internal/pkg/describe/stack"
+	stack "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	gomock "github.com/golang/mock/gomock"
 )
 

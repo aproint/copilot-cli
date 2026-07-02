@@ -7,11 +7,11 @@ package mocks
 import (
 	reflect "reflect"
 
-	apprunner "github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	cloudwatch "github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch"
-	ecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	config "github.com/aws/copilot-cli/internal/pkg/config"
-	stack "github.com/aws/copilot-cli/internal/pkg/describe/stack"
+	apprunner "github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	cloudwatch "github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
+	ecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	config "github.com/aproint/copilot-cli/internal/pkg/config"
+	stack "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	gomock "github.com/golang/mock/gomock"
 )
 

@@ -7,18 +7,18 @@ import (
 	"fmt"
 	"sort"
 
-	awsS3 "github.com/aws/copilot-cli/internal/pkg/aws/s3"
-	"github.com/aws/copilot-cli/internal/pkg/s3"
+	awsS3 "github.com/aproint/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/s3"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/aas"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatchlogs"
+	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/copilot-cli/internal/pkg/aws/aas"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatchlogs"
-	awsecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/aws/elbv2"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/ecs"
 )
 
 const (

@@ -6,8 +6,7 @@ phases:
       - echo "cd into $CODEBUILD_SRC_DIR"
       - cd $CODEBUILD_SRC_DIR
       # Download the copilot linux binary. You can update this version.
-      - wget -q {{.BinaryS3BucketPath}}/copilot-linux-{{.Version}}
-      - mv ./copilot-linux-{{.Version}} ./copilot-linux
+      - wget -q {{.BinaryReleaseHost}}/{{.Version}}/copilot-linux -O copilot-linux
       - chmod +x ./copilot-linux
   build:
     commands:

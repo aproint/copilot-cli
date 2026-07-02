@@ -16,7 +16,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/elbv2"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/elbv2/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2/mocks"
 )
 
 func TestELBV2_TargetsHealth(t *testing.T) {

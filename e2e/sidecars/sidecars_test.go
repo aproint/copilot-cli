@@ -11,14 +11,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/copilot-cli/e2e/internal/client"
+	"github.com/aproint/copilot-cli/e2e/internal/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 const manifest = `# The manifest for the "hello" service.
 # Read the full specification for the "Load Balanced Web Service" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/
+#  https://aproint.github.io/copilot-cli/docs/manifest/lb-web-service/
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
 name: hello

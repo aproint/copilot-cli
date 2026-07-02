@@ -36,4 +36,4 @@ $ copilot pipeline override -n myrepo-main --tool cdk
 
 ## 出力例
 
-![pipeline-override](https://github.com/aws/copilot-cli/assets/10566468/21ecf58b-fc7e-4e20-a5b7-6b8e2049fda4)
+![pipeline-override](https://github.com/aproint/copilot-cli/assets/10566468/21ecf58b-fc7e-4e20-a5b7-6b8e2049fda4)

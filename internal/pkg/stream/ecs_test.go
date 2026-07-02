@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aws/aws-sdk-go/aws"
 	awsecs "github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/stretchr/testify/require"
 )
 

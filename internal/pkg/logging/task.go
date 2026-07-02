@@ -9,11 +9,11 @@ import (
 	"io"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatchlogs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/task"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatchlogs"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/task"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
 )
 
 const (

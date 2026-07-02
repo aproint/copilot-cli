@@ -14,14 +14,14 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/progress/summarybar"
+	"github.com/aproint/copilot-cli/internal/pkg/term/progress/summarybar"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatch"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatchlogs"
-	awsecs "github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/aws/elbv2"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatchlogs"
+	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 
 	fcolor "github.com/fatih/color"
 )

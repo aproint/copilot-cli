@@ -1,22 +1,20 @@
-## :warning: Upcoming end-of-support :warning:
+## Fork Status
 
-AWS Copilot CLI will reach end-of-support on June 12, 2026. After this date, the tool will no longer receive updates, security patches, or technical support. We recommend migrating to alternative solutions as soon as possible to ensure continued support and access to the latest features.
-For more information, refer to our [blogpost](https://aws.amazon.com/blogs/containers/announcing-the-end-of-support-for-the-aws-copilot-cli/).
+This repository is the Aproint-maintained fork of AWS Copilot CLI. It is not affiliated with, endorsed by, or supported by Amazon Web Services. See [FORK.md](./FORK.md) for the fork identity and distribution channels.
 
-##  <img align="left" alt="AWS Copilot CLI" src="./site/content/assets/images/copilot-logo-48-light.svg" width="85" /> AWS Copilot CLI
-###### _Build, Release and Operate Containerized Applications on AWS._ 
+##  <img align="left" alt="Aproint Copilot CLI" src="./site/content/assets/images/copilot-logo-48-light.svg" width="85" /> Aproint Copilot CLI
+###### _Build, Release and Operate Containerized Applications on AWS._
 
-![latest version](https://img.shields.io/github/v/release/aws/copilot-cli)
-[![Join the chat at https://gitter.im/aws/copilot-cli](https://badges.gitter.im/aws/copilot-cli.svg)](https://gitter.im/aws/copilot-cli?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+![latest version](https://img.shields.io/github/v/release/aproint/copilot-cli)
 
-* **Documentation**: [https://aws.github.io/copilot-cli/](https://aws.github.io/copilot-cli/)
+* **Documentation**: [https://aproint.github.io/copilot-cli/](https://aproint.github.io/copilot-cli/)
 
-The AWS Copilot CLI is a tool for developers to build, release and operate production-ready containerized applications
+The Aproint Copilot CLI is a fork of AWS Copilot CLI for developers to build, release and operate production-ready containerized applications
 on AWS App Runner or Amazon ECS on AWS Fargate.
 
 Use Copilot to:
 * Deploy production-ready, scalable services on AWS from a Dockerfile in one command.
-* Add databases or inject secrets to your services.  
+* Add databases or inject secrets to your services.
 * Grow from one microservice to a collection of related microservices in an application.
 * Set up test and production environments, across regions and accounts.
 * Set up CI/CD pipelines to release your services to your environments.
@@ -30,7 +28,7 @@ Use Copilot to:
 
 To install with homebrew:
 ```sh
-$ brew install aws/tap/copilot-cli
+$ brew install aproint/tap/copilot-cli
 ```
 To install manually, we're distributing binaries from our GitHub releases:
 
@@ -40,10 +38,10 @@ To install manually, we're distributing binaries from our GitHub releases:
 
 | Platform | Command to install |
 |---------|---------
-| macOS | `curl -Lo copilot https://github.com/aws/copilot-cli/releases/latest/download/copilot-darwin && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
-| Linux x86 (64-bit) | `curl -Lo copilot https://github.com/aws/copilot-cli/releases/latest/download/copilot-linux && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
-| Linux (ARM) | `curl -Lo copilot https://github.com/aws/copilot-cli/releases/latest/download/copilot-linux-arm64 && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
-| Windows | `Invoke-WebRequest -OutFile 'C:\Program Files\copilot.exe' https://github.com/aws/copilot-cli/releases/latest/download/copilot-windows.exe` |
+| macOS | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-darwin && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
+| Linux x86 (64-bit) | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-linux && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
+| Linux (ARM) | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-linux-arm64 && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
+| Windows | `Invoke-WebRequest -OutFile 'C:\Program Files\copilot.exe' https://github.com/aproint/copilot-cli/releases/latest/download/copilot-windows.exe` |
 
 </details>
 
@@ -67,19 +65,19 @@ $ copilot init --app demo                \
 This will create a VPC, Application Load Balancer, an Amazon ECS Service with the sample app running on AWS Fargate.
 This process will take around 8 minutes to complete - at which point you'll get a URL for your sample app running! 🚀
 
-## Learning more 
+## Learning more
 
-Want to learn more about what's happening? Check out our documentation [https://aws.github.io/copilot-cli/](https://aws.github.io/copilot-cli/) for a getting started guide, learning about Copilot concepts, and a breakdown of our commands. 
+Want to learn more about what's happening? Check out our documentation [https://aproint.github.io/copilot-cli/](https://aproint.github.io/copilot-cli/) for a getting started guide, learning about Copilot concepts, and a breakdown of our commands.
 
 ## Feedback
 
-Have any feedback at all? 🙏 Drop us an [issue](https://github.com/aws/copilot-cli/issues/new) or join us on [gitter](https://gitter.im/aws/copilot-cli).
+Have any feedback at all? Drop us an [issue](https://github.com/aproint/copilot-cli/issues/new).
 
 We're happy to hear feedback or answer questions, so reach out, anytime!
 
 ## Security disclosures
 
-If you think you’ve found a potential security issue, please do not post it in the Issues. Instead, please follow the instructions [here](https://aws.amazon.com/security/vulnerability-reporting/) or email AWS security directly at [aws-security@amazon.com](mailto:aws-security@amazon.com).
+If you think you've found a potential security issue, please do not post it in the Issues. Instead, use GitHub private vulnerability reporting for this repository.
 
 ## License
 This library is licensed under the Apache 2.0 License.

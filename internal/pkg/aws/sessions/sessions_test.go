@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions/mocks"
 	"github.com/golang/mock/gomock"
 
 	"github.com/aws/aws-sdk-go/aws"

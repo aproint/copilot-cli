@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatchlogs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatchlogs"
 )
 
 // HumanJSONStringer can output in both human-readable and JSON format.

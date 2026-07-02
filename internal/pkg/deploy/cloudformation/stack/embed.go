@@ -3,7 +3,7 @@
 
 package stack
 
-import "github.com/aws/copilot-cli/internal/pkg/template"
+import "github.com/aproint/copilot-cli/internal/pkg/template"
 
 type loadBalancedWebSvcReadParser interface {
 	template.ReadParser

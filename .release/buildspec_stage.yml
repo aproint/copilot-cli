@@ -2,7 +2,7 @@ version: 0.2
 env:
   variables:
     AWS_STS_REGIONAL_ENDPOINTS: "regional"
-    STAGE_SESSION_NAME: "aws_copilot_cli"
+    STAGE_SESSION_NAME: "aproint_copilot_cli"
   parameter-store:
     STAGE_ROLE_ARN: COPILOT_STAGE_ROLE_ARN
     STAGE_BUCKET: COPILOT_STAGE_BUCKET_NAME

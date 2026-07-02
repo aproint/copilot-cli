@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/copilot-cli/internal/pkg/addon/mocks"
-	"github.com/aws/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/addon/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
 	"github.com/golang/mock/gomock"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"

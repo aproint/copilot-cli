@@ -5,14 +5,14 @@ package selector
 
 import (
 	"fmt"
-	"github.com/aws/copilot-cli/internal/pkg/workspace"
+	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/lnquy/cron"
 	"github.com/spf13/afero"
 )
@@ -284,13 +284,13 @@ func (s *dockerfileSelector) listDockerfiles() ([]string, error) {
 	return dockerfiles, nil
 }
 
-// listDirsAndFiles returns the list of directories and files within the presumed 
+// listDirsAndFiles returns the list of directories and files within the presumed
 // project root and two subdirectory levels below.
 func (s *localFileSelector) listDirsAndFiles() ([]string, error) {
 	return s.getDirAndFileNames(s.ws.ProjectRoot(), 3)
 }
 
-// getDirAndFileNames recursively fetches directory and file names to the depth indicated. 
+// getDirAndFileNames recursively fetches directory and file names to the depth indicated.
 // Hidden files and the copilot dir are excluded.
 func (s *localFileSelector) getDirAndFileNames(dir string, depth int) ([]string, error) {
 	wdDirsAndFiles, err := s.fs.ReadDir(dir)

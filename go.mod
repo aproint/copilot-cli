@@ -1,4 +1,4 @@
-module github.com/aws/copilot-cli
+module github.com/aproint/copilot-cli
 
 go 1.23
 

@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/progress"
+	"github.com/aproint/copilot-cli/internal/pkg/term/progress"
 )
 
 var errTotalIsZero = errors.New("the data sums up to zero")

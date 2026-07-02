@@ -6,8 +6,8 @@ package describe
 import (
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/aws/elbv2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 )
 
 func isContainerHealthCheckEnabled(tasks []ecs.TaskStatus) bool {

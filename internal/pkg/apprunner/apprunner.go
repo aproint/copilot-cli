@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awsapprunner "github.com/aws/aws-sdk-go/service/apprunner"
-	"github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	"github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
 )
 
 const (

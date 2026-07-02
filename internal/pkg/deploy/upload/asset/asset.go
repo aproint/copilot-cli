@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 )

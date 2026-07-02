@@ -12,10 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"gopkg.in/yaml.v3"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecr"
-	"github.com/aws/copilot-cli/internal/pkg/aws/partitions"
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecr"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/partitions"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
 
 // DeployedAppMetadata wraps the Metadata field of a deployed

@@ -67,7 +67,7 @@ Optional Flags
 
 !!!attention "Considerations when using Aurora Serverless v1 storage"
     #### Aurora Serverless v1 is only supported for workload-level storage
-    If you want to create an Aurora Serverless v1 with "environment" lifecycle, please see [this example](https://github.com/aws/copilot-cli/discussions/5621).
+    If you want to create an Aurora Serverless v1 with "environment" lifecycle, please see [this example](https://github.com/aproint/copilot-cli/discussions/5621).
 
 
 ## How can I use it? 

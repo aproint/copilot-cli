@@ -4,8 +4,8 @@
 package manifest
 
 import (
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/ec2"
 )
 
 type subnetIDsGetter interface {

@@ -29,7 +29,7 @@ Please read it over and let us know if it's not up-to-date (or, even better, sub
 
 From the repository root run:
 
-`git remote add upstream git@github.com:aws/copilot-cli`
+`git remote add upstream git@github.com:aproint/copilot-cli`
 
 `git fetch upstream`
 
@@ -60,7 +60,7 @@ Below are the different commands which can be run in the root of the project dir
 ### Generating mocks
 Often times, it's helpful to generate mocks to make unit-testing easier and more focused. We strongly encourage this and encourage you to generate mocks when appropriate! In order to generate mocks:
 
-* Add the package your interface is in under the [gen-mocks](https://github.com/aws/copilot-cli/blob/master/Makefile) command in the Makefile.
+* Add the package your interface is in under the [gen-mocks](https://github.com/aproint/copilot-cli/blob/master/Makefile) command in the Makefile.
 * run `make gen-mocks`
 
 ## Adding new dependencies
@@ -73,9 +73,9 @@ We'll evaluate the dependency and the use case and decide on the next steps. To 
 We're so excited you want to contribute to the CLI! We welcome all PRs and will try to get to them as soon as possible.
 The best place to start, though, is with filing an issue first. Filing an issue gives us some time to chat about the code you're keen on writing, and make sure that it's not already being worked on, or has already been discussed.
 
-You can also check out our [issues queue](https://github.com/aws/copilot-cli/issues) to see all the known issues - this is a really great place to start.
+You can also check out our [issues queue](https://github.com/aproint/copilot-cli/issues) to see all the known issues - this is a really great place to start.
 
-If you want to get your feet wet, check out issues tagged with [good first issue](https://github.com/aws/copilot-cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+If you want to get your feet wet, check out issues tagged with [good first issue](https://github.com/aproint/copilot-cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 These issues are great for folks who are looking to get started, but not sure where to start 😁.
 
 ## Contributing code

@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudfront"
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudfront"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/dustin/go-humanize/english"
 )
 
@@ -255,7 +255,7 @@ type errHealthCheckPortExposedWithInvalidProtocol struct {
 }
 
 func (e *errHealthCheckPortExposedWithInvalidProtocol) Error() string {
-	return fmt.Sprintf(`container %q exposes port %d using protocol %s invalid for health checks. Valid protocol %s %s.`, 
-		e.container, e.healthCheckPort, e.protocol, english.PluralWord(len(validHealthCheckProtocols), "is", "are"), 
+	return fmt.Sprintf(`container %q exposes port %d using protocol %s invalid for health checks. Valid protocol %s %s.`,
+		e.container, e.healthCheckPort, e.protocol, english.PluralWord(len(validHealthCheckProtocols), "is", "are"),
 		english.WordSeries(quoteStringSlice(validHealthCheckProtocols), "or"))
 }

@@ -117,7 +117,7 @@
     === "Event-driven"
 
         ```yaml
-        # https://aws.github.io/copilot-cli/docs/developing/publish-subscribe/ を参照してください。
+        # https://aproint.github.io/copilot-cli/docs/developing/publish-subscribe/ を参照してください。
         name: 'orders'
         type: 'Load Balanced Web Service'
 

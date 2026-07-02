@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatchlogs"
+	"github.com/aproint/copilot-cli/internal/pkg/describe"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudwatchlogs"
-	"github.com/aws/copilot-cli/internal/pkg/describe"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
 )
 
 const (
@@ -236,7 +236,8 @@ func (s *JobLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
 	return s.workloadLogger.writeEventLogs(logEventsOpts, opts.OnEvents, opts.Follow)
 }
 
-//  The log stream prefixes for a job should be:
+//	The log stream prefixes for a job should be:
+//
 // 1. copilot/;
 // 2. copilot/, states;
 // 3. copilot/query/taskID where query is the job's name, thus the main container's name.

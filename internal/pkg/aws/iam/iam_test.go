@@ -7,10 +7,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/iam/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/copilot-cli/internal/pkg/aws/iam/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

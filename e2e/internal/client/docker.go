@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	cmd "github.com/aws/copilot-cli/e2e/internal/command"
+	cmd "github.com/aproint/copilot-cli/e2e/internal/command"
 )
 
 // Docker is a wrapper around Docker commands.
@@ -18,7 +18,8 @@ func NewDocker() *Docker {
 	return &Docker{}
 }
 
-/*Login runs:
+/*
+Login runs:
 docker login -u AWS --password-stdin $uri
 */
 func (d *Docker) Login(uri, password string) error {
@@ -30,7 +31,8 @@ func (d *Docker) Login(uri, password string) error {
 	return d.exec(command, cmd.Stdin(strings.NewReader(password)))
 }
 
-/*Build runs:
+/*
+Build runs:
 docker build -t $uri $path
 */
 func (d *Docker) Build(uri, path string) error {
@@ -41,7 +43,8 @@ func (d *Docker) Build(uri, path string) error {
 	return d.exec(command)
 }
 
-/*Push runs:
+/*
+Push runs:
 docker push $uri
 */
 func (d *Docker) Push(uri string) error {

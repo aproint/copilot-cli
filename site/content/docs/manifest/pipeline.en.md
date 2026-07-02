@@ -38,7 +38,7 @@ List of all available properties for a Copilot pipeline manifest. To learn more 
 
         ```yaml
         # Alternatively, you can control the order of stack deployments in a stage. 
-        # See https://aws.github.io/copilot-cli/blogs/release-v118/#controlling-order-of-deployments-in-a-pipeline
+        # See https://aproint.github.io/copilot-cli/blogs/release-v118/#controlling-order-of-deployments-in-a-pipeline
         name: app-pipeline
     
         source:

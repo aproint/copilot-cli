@@ -12,7 +12,7 @@ jobs:
         run: |
           version="${GITHUB_REF##*/}"
           semvar="${version:1}"
-          curl -Lo copilot-darwin-amd64 https://github.com/aws/copilot-cli/releases/download/${version}/copilot-darwin-amd64
+          curl -Lo copilot-darwin-amd64 https://github.com/aproint/copilot-cli/releases/download/${version}/copilot-darwin-amd64
           cp copilot-darwin-amd64 copilot
           chmod +x copilot
           tar czf copilot_${semvar}_macOS_amd64.tar.gz copilot
@@ -21,7 +21,7 @@ jobs:
         run: |
           version="${GITHUB_REF##*/}"
           semvar="${version:1}"
-          curl -Lo copilot-darwin-arm64 https://github.com/aws/copilot-cli/releases/download/${version}/copilot-darwin-arm64
+          curl -Lo copilot-darwin-arm64 https://github.com/aproint/copilot-cli/releases/download/${version}/copilot-darwin-arm64
           cp copilot-darwin-arm64 copilot
           chmod +x copilot
           tar czf copilot_${semvar}_macOS_arm64.tar.gz copilot
@@ -30,7 +30,7 @@ jobs:
         run: |
           version="${GITHUB_REF##*/}"
           semvar="${version:1}"
-          curl -Lo copilot-linux https://github.com/aws/copilot-cli/releases/download/${version}/copilot-linux
+          curl -Lo copilot-linux https://github.com/aproint/copilot-cli/releases/download/${version}/copilot-linux
           cp copilot-linux copilot
           chmod +x copilot
           tar czf copilot_${semvar}_linux_amd64.tar.gz copilot
@@ -39,7 +39,7 @@ jobs:
         run: |
           version="${GITHUB_REF##*/}"
           semvar="${version:1}"
-          curl -Lo copilot-linux-arm64 https://github.com/aws/copilot-cli/releases/download/${version}/copilot-linux-arm64
+          curl -Lo copilot-linux-arm64 https://github.com/aproint/copilot-cli/releases/download/${version}/copilot-linux-arm64
           cp copilot-linux-arm64 copilot
           chmod +x copilot
           tar czf copilot_${semvar}_linux_arm64.tar.gz copilot
@@ -78,7 +78,7 @@ jobs:
       - name: Checkout bottle repo
         uses: actions/checkout@v2
         with:
-          repository: 'aws/homebrew-tap'
+          repository: 'aproint/homebrew-tap'
           path: 'homebrew-tap'
       - name: Update version
         run: |
@@ -91,7 +91,7 @@ jobs:
           tmp=$(mktemp)
           version="${GITHUB_REF##*/}"
           semvar="${version:1}"
-          jq --arg version "${version}" --arg semvar "${semvar}" '.bottle.root_url = "https://github.com/aws/copilot-cli/releases/download/" + $version + "/copilot_" + $semvar + "_"' homebrew-tap/bottle-configs/copilot-cli.json > "$tmp" && mv "$tmp" homebrew-tap/bottle-configs/copilot-cli.json
+          jq --arg version "${version}" --arg semvar "${semvar}" '.bottle.root_url = "https://github.com/aproint/copilot-cli/releases/download/" + $version + "/copilot_" + $semvar + "_"' homebrew-tap/bottle-configs/copilot-cli.json > "$tmp" && mv "$tmp" homebrew-tap/bottle-configs/copilot-cli.json
       - name: Update sierra
         run: |
           version="${GITHUB_REF##*/}"
@@ -123,8 +123,8 @@ jobs:
       - name: Create commits
         run: |
           cd homebrew-tap
-          git config user.name 'ecs-cicd-bot'
-          git config user.email 'ecs-cicd-bot@users.noreply.github.com'
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add bottle-configs/copilot-cli.json
           git commit -m "chore: upgrade copilot-cli to ${GITHUB_REF##*/}"
       - name: Set pull-request variables
@@ -132,14 +132,14 @@ jobs:
         run: |
           echo version="${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
           echo pr_title="chore: upgrade copilot-cli to ${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
-          echo pr_body="Created by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. @aws/aws-ecs-devx" >> $GITHUB_OUTPUT
+          echo pr_body="Created by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. @aproint/copilot-cli" >> $GITHUB_OUTPUT
       - name: Create pull-request
         uses: peter-evans/create-pull-request@v3
         with:
           path: homebrew-tap
           delete-branch: true
-          push-to-fork: ecs-cicd-bot/homebrew-tap
+          push-to-fork: aproint/homebrew-tap
           title: ${{ steps.vars.outputs.pr_title }}
           body: ${{ steps.vars.outputs.pr_body }}
           branch: "upgrade-copilot-${{ steps.vars.outputs.version }}"
-          token: ${{ secrets.ECS_CICD_BOT }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}

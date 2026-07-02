@@ -3,7 +3,7 @@
 
 package orchestratortest
 
-import "github.com/aws/copilot-cli/internal/pkg/docker/orchestrator"
+import "github.com/aproint/copilot-cli/internal/pkg/docker/orchestrator"
 
 // Double is a test double for orchestrator.Orchestrator
 type Double struct {

@@ -7,9 +7,9 @@ package mocks
 import (
 	reflect "reflect"
 
+	apprunner0 "github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
+	resourcegroups "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	apprunner "github.com/aws/aws-sdk-go/service/apprunner"
-	apprunner0 "github.com/aws/copilot-cli/internal/pkg/aws/apprunner"
-	resourcegroups "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
 	gomock "github.com/golang/mock/gomock"
 )
 

@@ -70,7 +70,7 @@ Just like your service has a simple manifest file, so does your pipeline. After 
 ```yaml
 # The manifest for the "demo-api-frontend-main" pipeline.
 # This YAML file defines your pipeline: the source repository it tracks and the order of the environments to deploy to.
-# For more info: https://aws.github.io/copilot-cli/docs/manifest/pipeline/
+# For more info: https://aproint.github.io/copilot-cli/docs/manifest/pipeline/
 
 # The name of the pipeline.
 name: demo-api-frontend-main
@@ -143,8 +143,7 @@ After creating your pipeline, you can manage the version of Copilot used by your
 ```yaml
 ...
       # Download the copilot linux binary.
-      - wget -q https://ecs-cli-v2-release.s3.amazonaws.com/copilot-linux-v1.16.0
-      - mv ./copilot-linux-v1.16.0 ./copilot-linux
+      - wget -q https://github.com/aproint/copilot-cli/releases/download/v1.16.0/copilot-linux -O copilot-linux
 ...
 ```
 

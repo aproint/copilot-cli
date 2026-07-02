@@ -14,12 +14,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudfront"
+	"github.com/aproint/copilot-cli/internal/pkg/graph"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudfront"
-	"github.com/aws/copilot-cli/internal/pkg/graph"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
 	"github.com/dustin/go-humanize/english"
 )
 

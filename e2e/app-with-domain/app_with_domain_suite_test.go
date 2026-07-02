@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aproint/copilot-cli/e2e/internal/client"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/copilot-cli/e2e/internal/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

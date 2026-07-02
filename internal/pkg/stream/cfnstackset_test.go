@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation/stackset"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset"
 )
 
 // mockStackSetClient implements the StackSetDescriber interface.

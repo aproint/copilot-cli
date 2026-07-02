@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/cursor"
+	"github.com/aproint/copilot-cli/internal/pkg/term/cursor"
 	"github.com/stretchr/testify/require"
 )
 

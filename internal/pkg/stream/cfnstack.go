@@ -12,10 +12,10 @@ import (
 
 	awsarn "github.com/aws/aws-sdk-go/aws/arn"
 
+	cfn "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	cfn "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
 )
 
 // StackEventsDescriber is the CloudFormation interface needed to describe stack events.

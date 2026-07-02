@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/e2e/internal/client"
+	"github.com/aproint/copilot-cli/e2e/internal/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -18,7 +18,8 @@ var aws *client.AWS
 var appName, envName string
 var tasks []client.TaskRunInput
 
-/**
+/*
+*
 The task suite runs through several tests focusing on running one-off tasks with different configurations.
 */
 func TestTask(t *testing.T) {

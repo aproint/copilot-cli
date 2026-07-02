@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/manifest/manifestinfo"
 )
 
 // Workload represents a deployable long-running service or task.

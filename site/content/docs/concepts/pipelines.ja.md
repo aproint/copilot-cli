@@ -78,7 +78,7 @@ Service はシンプルな Manifest ファイルを持ちます。同様に、Pi
 ```yaml
 # Pipeline 名 "demo-api-frontend-main" の Manifest
 # この YAML ファイルは Pipeline を定義します。追跡するソースリポジトリと、Environment のデプロイ順序を指定します
-# 詳細はこちら: https://aws.github.io/copilot-cli/ja/docs/manifest/pipeline/
+# 詳細はこちら: https://aproint.github.io/copilot-cli/ja/docs/manifest/pipeline/
 
 # Pipeline 名
 name: demo-api-frontend-main
@@ -151,8 +151,7 @@ Pipeline を作成した後、`buildspec.yml` の以下の行を最新バージ�
 ```yaml
 ...
       # Copilot Linux バイナリをダウンロードします
-      - wget -q https://ecs-cli-v2-release.s3.amazonaws.com/copilot-linux-v1.16.0
-      - mv ./copilot-linux-v1.16.0 ./copilot-linux
+      - wget -q https://github.com/aproint/copilot-cli/releases/download/v1.16.0/copilot-linux -O copilot-linux
 ...
 ```
 

@@ -9,10 +9,10 @@ import (
 	io "io"
 	reflect "reflect"
 
-	addon "github.com/aws/copilot-cli/internal/pkg/addon"
-	cloudformation "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
-	cloudformation0 "github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
-	dockerengine "github.com/aws/copilot-cli/internal/pkg/docker/dockerengine"
+	addon "github.com/aproint/copilot-cli/internal/pkg/addon"
+	cloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	cloudformation0 "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	dockerengine "github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 	gomock "github.com/golang/mock/gomock"
 )
 

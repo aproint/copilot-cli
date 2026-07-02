@@ -20,7 +20,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aws/copilot-cli/internal/pkg/exec"
+	"github.com/aproint/copilot-cli/internal/pkg/exec"
 	"github.com/fatih/color"
 	"golang.org/x/sync/errgroup"
 )

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aws/copilot-cli/e2e/internal/client"
+	"github.com/aproint/copilot-cli/e2e/internal/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

@@ -8,8 +8,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/copilot-cli/internal/pkg/describe/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 
 	"github.com/dustin/go-humanize"
 )

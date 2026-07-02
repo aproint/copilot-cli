@@ -6,7 +6,7 @@
 package deploy
 
 import (
-	"github.com/aws/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
 )
 
 // CreateEnvironmentResponse holds the created environment on successful deployment.

@@ -8,7 +8,7 @@ Copilot では、Load Balanced Web Service にカスタムドメインを使用�
 
 !!!attention
     現時点では、 `copilot app init` を実行した時のみに Route 53　ドメインが関連づけられます。
-    Application のドメインをアップデートしたい場合 ([#3045](https://github.com/aws/copilot-cli/issues/3045)) 、新しいドメインを関連付けるために `--domain` を使用して新しい Application を作成する前に、`copilot app delete` を実行して古い Application を削除する必要があります。
+    Application のドメインをアップデートしたい場合 ([#3045](https://github.com/aproint/copilot-cli/issues/3045)) 、新しいドメインを関連付けるために `--domain` を使用して新しい Application を作成する前に、`copilot app delete` を実行して古い Application を削除する必要があります。
 
 ## Load Balanced Web Service
 [Application](../concepts/applications.ja.md#追加のアプリケーション設定)で説明したように、 `copilot app init` を実行するときに Application のドメイン名を設定できます。 [Load Balanced Web Service](../concepts/services.ja.md#load-balanced-web-service) をデプロイすると以下のようなドメイン名を使ってアクセスできるようになります。

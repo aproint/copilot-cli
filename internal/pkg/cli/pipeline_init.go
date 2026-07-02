@@ -14,36 +14,36 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
+	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/copilot-cli/internal/pkg/aws/identity"
-	rg "github.com/aws/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/dustin/go-humanize/english"
 
-	"github.com/aws/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 
-	"github.com/aws/copilot-cli/internal/pkg/exec"
+	"github.com/aproint/copilot-cli/internal/pkg/exec"
 
 	"github.com/aws/aws-sdk-go/aws"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/copilot-cli/internal/pkg/version"
+	"github.com/aproint/copilot-cli/internal/pkg/term/color"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/spf13/cobra"
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/aws/copilot-cli/internal/pkg/term/selector"
+	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/secretsmanager"
-	"github.com/aws/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/copilot-cli/internal/pkg/config"
-	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
-	"github.com/aws/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/copilot-cli/internal/pkg/template"
-	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
-	"github.com/aws/copilot-cli/internal/pkg/workspace"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/manifest"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
+	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"github.com/spf13/afero"
 )
 
@@ -92,7 +92,7 @@ var buildspecTemplateFunctions = map[string]interface{}{
 
 var (
 	// Filled in via the -ldflags flag at compile time to support pipeline buildspec CLI pulling.
-	binaryS3BucketPath string
+	binaryReleaseHost string
 )
 
 // Pipeline init errors.
@@ -775,15 +775,15 @@ func (o *initPipelineOpts) createBuildspec(buildSpecTemplatePath string) error {
 		return err
 	}
 	content, err := o.parser.Parse(buildSpecTemplatePath, struct {
-		BinaryS3BucketPath string
-		Version            string
-		ManifestPath       string
-		ArtifactBuckets    []artifactBucket
+		BinaryReleaseHost string
+		Version           string
+		ManifestPath      string
+		ArtifactBuckets   []artifactBucket
 	}{
-		BinaryS3BucketPath: binaryS3BucketPath,
-		Version:            version.Version,
-		ManifestPath:       filepath.ToSlash(o.manifestPath), // The manifest path must be rendered in the buildspec with '/' instead of os-specific separator.
-		ArtifactBuckets:    artifactBuckets,
+		BinaryReleaseHost: binaryReleaseHost,
+		Version:           version.Version,
+		ManifestPath:      filepath.ToSlash(o.manifestPath), // The manifest path must be rendered in the buildspec with '/' instead of os-specific separator.
+		ArtifactBuckets:   artifactBuckets,
 	}, template.WithFuncs(buildspecTemplateFunctions))
 	if err != nil {
 		return err

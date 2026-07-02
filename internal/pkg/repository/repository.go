@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aws/copilot-cli/internal/pkg/exec"
+	"github.com/aproint/copilot-cli/internal/pkg/exec"
 
-	"github.com/aws/copilot-cli/internal/pkg/docker/dockerengine"
+	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 )
 
 // ContainerLoginBuildPusher provides support for logging in to repositories, building images and pushing images to repositories.

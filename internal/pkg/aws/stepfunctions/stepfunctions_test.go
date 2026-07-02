@@ -14,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/aws/copilot-cli/internal/pkg/aws/stepfunctions/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/stepfunctions/mocks"
 	"github.com/golang/mock/gomock"
 )
 

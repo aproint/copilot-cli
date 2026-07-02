@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudfront"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudfront"
 )
 
 var (

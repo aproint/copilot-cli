@@ -8,7 +8,7 @@ In Copilot, there are two ways to use custom domains for your Load Balanced Web 
 
 !!!attention
     Today, a Route 53 domain name can only be associated when running `copilot app init`.  
-    If you'd like to update your application with a domain ([#3045](https://github.com/aws/copilot-cli/issues/3045)),
+    If you'd like to update your application with a domain ([#3045](https://github.com/aproint/copilot-cli/issues/3045)),
     you'll need to run `copilot app delete` to remove the old one before creating a new one with `--domain` to associate a new domain.
 
 ### Use app-associated root domain

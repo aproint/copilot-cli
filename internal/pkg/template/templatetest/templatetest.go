@@ -7,7 +7,7 @@ package templatetest
 import (
 	"bytes"
 
-	"github.com/aws/copilot-cli/internal/pkg/template"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
 
 // Stub stubs template.New and simulates successful read and parse calls.

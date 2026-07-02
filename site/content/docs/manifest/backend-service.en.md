@@ -79,7 +79,7 @@ List of all available properties for a `'Backend Service'` manifest. To learn ab
         ```yaml
         # Assuming your environment has private certificates imported, you can assign
         # an HTTPS endpoint to your service.
-        # See https://aws.github.io/copilot-cli/docs/manifest/environment/#http-private-certificates
+        # See https://aproint.github.io/copilot-cli/docs/manifest/environment/#http-private-certificates
         name: api
         type: Backend Service
 
@@ -98,7 +98,7 @@ List of all available properties for a `'Backend Service'` manifest. To learn ab
     === "Event-driven"
 
         ```yaml
-        # See https://aws.github.io/copilot-cli/docs/developing/publish-subscribe/
+        # See https://aproint.github.io/copilot-cli/docs/developing/publish-subscribe/
         name: warehouse
         type: Backend Service
 

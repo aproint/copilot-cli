@@ -125,7 +125,7 @@ func (c *CloudWatchLogs) LogEvents(opts LogEventsOpts) (*LogEventsOutput, error)
 			// by one to get logs after the last event.
 			in.SetStartTime(streamLastEventTime[logStream] + 1)
 		}
-		// TODO: https://github.com/aws/copilot-cli/pull/628#discussion_r374291068 and https://github.com/aws/copilot-cli/pull/628#discussion_r374294362
+		// TODO: https://github.com/aproint/copilot-cli/pull/628#discussion_r374291068 and https://github.com/aproint/copilot-cli/pull/628#discussion_r374294362
 		resp, err := c.client.GetLogEvents(in)
 		if err != nil {
 			return nil, fmt.Errorf("get log events of %s/%s: %w", opts.LogGroup, logStream, err)

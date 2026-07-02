@@ -1,6 +1,6 @@
 # The manifest for the "subscribers" service.
 # Read the full specification for the "Backend Service" type at:
-#  https://aws.github.io/copilot-cli/docs/manifest/backend-service/
+#  https://aproint.github.io/copilot-cli/docs/manifest/backend-service/
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
 name: subscribers
@@ -14,7 +14,7 @@ image:
   # Port exposed through your container to route traffic to it.
   port: 8080
   healthcheck:
-    # Container health checks: https://aws.github.io/copilot-cli/docs/manifest/backend-service/#image-healthcheck
+    # Container health checks: https://aproint.github.io/copilot-cli/docs/manifest/backend-service/#image-healthcheck
     command: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
     interval: 6s
     retries: 0

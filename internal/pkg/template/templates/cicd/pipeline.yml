@@ -1,6 +1,6 @@
 # The manifest for the "{{.Name}}" pipeline.
 # This YAML file defines your pipeline: the source repository it tracks and the order of the environments to deploy to.
-# For more info: https://aws.github.io/copilot-cli/docs/manifest/pipeline/
+# For more info: https://aproint.github.io/copilot-cli/docs/manifest/pipeline/
 
 # The name of the pipeline.
 name: {{.Name}}

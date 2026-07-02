@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/copilot-cli/e2e/internal/client"
+	"github.com/aproint/copilot-cli/e2e/internal/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -24,7 +24,8 @@ var timeNow = time.Now().Unix()
 const svcName = "backend"
 const envName = "test"
 
-/**
+/*
+*
 The Isolated Suite creates an environment with an imported VPC with only
 private subnets, deploys a backend service to it, and then tears it down.
 */

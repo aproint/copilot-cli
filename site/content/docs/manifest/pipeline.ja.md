@@ -38,7 +38,7 @@
 
         ```yaml
         # また、ステージ内のスタックデプロイの順番を制御することも可能です。
-        # https://aws.github.io/copilot-cli/blogs/release-v118/#controlling-order-of-deployments-in-a-pipeline を参照してください。
+        # https://aproint.github.io/copilot-cli/blogs/release-v118/#controlling-order-of-deployments-in-a-pipeline を参照してください。
         name: app-pipeline
     
         source:

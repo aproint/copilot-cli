@@ -1,5 +1,9 @@
 version: 0.2
 
+env:
+  variables:
+    GINKGO_VERSION: v2.20.1
+
 batch:
   fast-fail: false
   build-list:
@@ -13,9 +17,9 @@ phases:
   install:
     commands:
       - "cd $HOME/.goenv && git pull --ff-only && cd -"
-      - "goenv install 1.23.7"
-      - "goenv global 1.23.7"
-      - "go install github.com/onsi/ginkgo/v2/ginkgo@latest"
+      - "goenv install $(cat $CODEBUILD_SRC_DIR/.go-version)"
+      - "goenv global $(cat $CODEBUILD_SRC_DIR/.go-version)"
+      - "go install github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}"
   pre_build:
     commands:
       - printenv DOCKERHUB_TOKEN | docker login --username ${DOCKERHUB_USERNAME} --password-stdin

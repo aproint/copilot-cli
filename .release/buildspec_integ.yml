@@ -13,8 +13,8 @@ phases:
   install:
     commands:
       - "cd $HOME/.goenv && git pull --ff-only && cd -"
-      - "goenv install 1.23.7"
-      - "goenv global 1.23.7"
+      - "goenv install $(cat $CODEBUILD_SRC_DIR/.go-version)"
+      - "goenv global $(cat $CODEBUILD_SRC_DIR/.go-version)"
   build:
     commands:
       - echo `git rev-parse HEAD` # Do not delete; for pipeline logging purposes

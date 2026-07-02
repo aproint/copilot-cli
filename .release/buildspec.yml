@@ -8,8 +8,8 @@ phases:
   install:
     commands:
       - "cd $HOME/.goenv && git pull --ff-only && cd -"
-      - "goenv install 1.23.7" # Check if a version is available: https://github.com/syndbg/goenv/tree/master/plugins/go-build/share/go-build
-      - "goenv global 1.23.7"
+      - "goenv install $(cat $CODEBUILD_SRC_DIR/.go-version)" # Check if a version is available: https://github.com/syndbg/goenv/tree/master/plugins/go-build/share/go-build
+      - "goenv global $(cat $CODEBUILD_SRC_DIR/.go-version)"
   pre_build:
     commands:
       - echo "cd into $CODEBUILD_SRC_DIR"

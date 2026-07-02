@@ -4,9 +4,12 @@ queue_rules:
       - status-success=build (compile-linux)
       - status-success=build (compile-windows)
       - status-success=build (compile-darwin)
-      - status-success=test
-      - status-success=staticcheck
+      - status-success=mocks
+      - status-success=go-unit-tests
+      - status-success=js-unit-tests
+      - status-success=local-integration-tests
       - status-success=license
+      - status-success=conventional-commits
 
 pull_request_rules:
   - name: Merge for developers
@@ -18,9 +21,12 @@ pull_request_rules:
       - status-success=build (compile-linux)
       - status-success=build (compile-windows)
       - status-success=build (compile-darwin)
-      - status-success=test
-      - status-success=staticcheck
+      - status-success=mocks
+      - status-success=go-unit-tests
+      - status-success=js-unit-tests
+      - status-success=local-integration-tests
       - status-success=license
+      - status-success=conventional-commits
       - -label~=(WIP|do-not-merge)
       - -title~=(WIP|wip)
       - -merged
@@ -42,9 +48,12 @@ pull_request_rules:
       - status-success=build (compile-linux)
       - status-success=build (compile-windows)
       - status-success=build (compile-darwin)
-      - status-success=test
-      - status-success=staticcheck
+      - status-success=mocks
+      - status-success=go-unit-tests
+      - status-success=js-unit-tests
+      - status-success=local-integration-tests
       - status-success=license
+      - status-success=conventional-commits
       - author=dependabot[bot]
       - -title~=(WIP|wip)
       - -label~=(WIP|do-not-merge)

@@ -11,6 +11,11 @@ jobs:
   binsize:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out PR commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:

@@ -26,12 +26,12 @@ jobs:
       - name: Run tests
         run: make local-test
 
-      - name: Upload golang coverage report to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          files: ./coverage.out
+      # - name: Upload golang coverage report to Codecov
+      #   uses: codecov/codecov-action@v7
+      #   with:
+      #     files: ./coverage.out
 
-      - name: Upload node coverage report to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          directory: cf-custom-resources/
+      # - name: Upload node coverage report to Codecov
+      #   uses: codecov/codecov-action@v7
+      #   with:
+      #     directory: cf-custom-resources/

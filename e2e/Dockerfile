@@ -1,6 +1,6 @@
-FROM docker:20.10.13-dind
+FROM docker:28-dind
 
-ARG GOLANG_VERSION=1.26.0
+ARG GO_VERSION=1.26.0
 ARG GINKGO_VERSION=v2.20.1
 
 # Docker needs somewhere to put creds from docker login.
@@ -11,10 +11,9 @@ ENV GOBIN /go/bin
 # Install Go, Git and other dependencies so we can run ginkgo
 RUN apk update && apk add bash gcc musl-dev openssl go git aws-cli jq
 
-# Upgrade go to $GOLANG_VERSION. The version that's available in the base image is older than what we need.
-RUN wget https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
+# Upgrade Go to the repo version. The version that's available in the base image is older than what we need.
+RUN wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && rm go${GO_VERSION}.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin
-RUN rm go$GOLANG_VERSION.linux-amd64.tar.gz
 RUN apk del go
 
 ENV GOPROXY=direct

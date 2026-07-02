@@ -11,6 +11,7 @@ GOBIN=${ROOT_SRC_DIR}/bin/tools
 COVERAGE=coverage.out
 MOCKGEN_VERSION=v1.6.0
 GINKGO_VERSION=v2.20.1
+GO_VERSION=$(shell cat .go-version)
 
 DESTINATION=./bin/local/${BINARY_NAME}
 VERSION=$(shell git describe --always --tags | sed 's/-/+/')
@@ -38,7 +39,7 @@ release: package-custom-resources compile-darwin compile-linux compile-windows p
 
 .PHONY: release-docker
 release-docker:
-	docker build -t aproint/copilot . &&\
+	docker build --build-arg GO_VERSION=${GO_VERSION} -t aproint/copilot . &&\
 	docker create -ti --name aproint-copilot-builder aproint/copilot &&\
 	docker cp aproint-copilot-builder:/copilot/bin/local/ . &&\
 	docker rm -f aproint-copilot-builder
@@ -125,7 +126,7 @@ run-local-test:
 .PHONY: e2e
 e2e: build-e2e
 	@echo "Building E2E Docker Image" &&\
-	docker build -t copilot/e2e . -f e2e/Dockerfile
+	docker build --build-arg GO_VERSION=${GO_VERSION} -t copilot/e2e . -f e2e/Dockerfile
 	@echo "Running E2E Tests" &&\
 	docker run --privileged -v ${HOME}/.aws:/home/.aws -e "HOME=/home" copilot/e2e:latest
 

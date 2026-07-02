@@ -77,10 +77,10 @@ jobs:
       - name: Run Go unit tests
         run: make run-unit-test
 
-      - name: Upload Go coverage report to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          files: ./coverage.out
+      # - name: Upload Go coverage report to Codecov
+      #   uses: codecov/codecov-action@v7
+      #   with:
+      #     files: ./coverage.out
 
   js-unit-tests:
     runs-on: ubuntu-latest
@@ -96,10 +96,10 @@ jobs:
       - name: Run custom resource unit tests
         run: make custom-resource-tests
 
-      - name: Upload Node coverage report to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          directory: cf-custom-resources/
+      # - name: Upload Node coverage report to Codecov
+      #   uses: codecov/codecov-action@v7
+      #   with:
+      #     directory: cf-custom-resources/
 
   local-integration-tests:
     runs-on: ubuntu-latest

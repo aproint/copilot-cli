@@ -7,7 +7,8 @@ const resetESModules = global.vi.resetModules.bind(global.vi);
 global.vi.resetModules = () => {
   resetESModules();
   for (const modulePath of Object.keys(require.cache)) {
-    if (modulePath.includes("/cf-custom-resources/lib/")) {
+    const normalizedModulePath = modulePath.replace(/\\/g, "/");
+    if (normalizedModulePath.includes("/cf-custom-resources/lib/")) {
       delete require.cache[modulePath];
     }
   }

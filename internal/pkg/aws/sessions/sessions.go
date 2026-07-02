@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/version"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -38,9 +39,14 @@ const (
 type Provider struct {
 	defaultSess *session.Session
 
+	defaultConfigV2    awsv2.Config
+	hasDefaultConfigV2 bool
+
 	// Metadata associated with the provider.
-	userAgentExtras  []string
-	sessionValidator sessionValidator
+	userAgentExtras   []string
+	sessionValidator  sessionValidator
+	loadV2Config      v2ConfigLoader
+	configV2Validator v2ConfigValidator
 }
 
 type sessionValidator interface {

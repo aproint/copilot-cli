@@ -199,7 +199,7 @@ func (d *workerSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*
 		svcStackConfigurationOutput: svcStackConfigurationOutput{
 			conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
 			svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-				return ecs.New(s)
+				return ecs.New(s, v2ConfigFromSessionRegion(s))
 			}),
 		},
 		subscriptions: subs,

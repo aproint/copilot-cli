@@ -9,14 +9,11 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/exec"
@@ -65,7 +62,10 @@ func newSvcExecOpts(vars execVars) (*svcExecOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	ssmStore := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	ssmStore, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
 	deployStore, err := deploy.NewStore(sessProvider, ssmStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)
@@ -75,7 +75,7 @@ func newSvcExecOpts(vars execVars) (*svcExecOpts, error) {
 		store:    ssmStore,
 		sel:      selector.NewDeploySelect(prompt.New(), ssmStore, deployStore),
 		newSvcDescriber: func(s *session.Session) serviceDescriber {
-			return ecs.New(s)
+			return ecs.New(s, v2ConfigFromSessionRegion(s))
 		},
 		newCommandExecutor: func(s *session.Session) ecsCommandExecutor {
 			return awsecs.New(s)

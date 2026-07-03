@@ -13,13 +13,10 @@ import (
 
 	clideploy "github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	awss3 "github.com/aproint/copilot-cli/internal/pkg/aws/s3"
 	"github.com/aproint/copilot-cli/internal/pkg/cli/clean"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/s3"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 
@@ -81,7 +78,10 @@ func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 		return nil, err
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
 	opts := &deleteSvcOpts{
 		deleteSvcVars: vars,
@@ -101,7 +101,7 @@ func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 	}
 	opts.newSvcCleaner = func(sess *awssession.Session, env *config.Environment, manifestType string) cleaner {
 		if manifestType == manifestinfo.StaticSiteType {
-			return clean.StaticSite(opts.appName, env.Name, opts.name, s3.New(sess), awss3.New(sess))
+			return clean.StaticSite(opts.appName, env.Name, opts.name, s3.New(sess, v2ConfigFromSessionRegion(sess)), awss3.New(sess))
 		}
 		return &clean.NoOp{}
 	}

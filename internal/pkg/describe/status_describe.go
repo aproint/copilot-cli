@@ -104,8 +104,8 @@ func NewECSStatusDescriber(opt *NewServiceStatusConfig) (*ecsStatusDescriber, er
 		app:                opt.App,
 		env:                opt.Env,
 		svc:                opt.Svc,
-		svcDescriber:       ecs.New(sess),
-		cwSvcGetter:        cloudwatch.New(sess),
+		svcDescriber:       ecs.New(sess, v2ConfigFromSessionRegion(sess)),
+		cwSvcGetter:        cloudwatch.New(sess, v2ConfigFromSessionRegion(sess)),
 		ecsSvcGetter:       awsecs.New(sess),
 		aasSvcGetter:       aas.New(sess),
 		targetHealthGetter: elbv2.New(sess),
@@ -149,7 +149,7 @@ func NewStaticSiteStatusDescriber(opt *NewServiceStatusConfig) (*staticSiteStatu
 		if err != nil {
 			return nil, nil, err
 		}
-		return awsS3.New(sess), s3.New(sess), nil
+		return awsS3.New(sess), s3.New(sess, v2ConfigFromSessionRegion(sess)), nil
 	}
 	return describer, nil
 }

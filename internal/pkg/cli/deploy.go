@@ -15,13 +15,11 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/dustin/go-humanize/english"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/cli/group"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -120,7 +118,10 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 	if err != nil {
 		return nil, fmt.Errorf("default session: %v", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err

@@ -27,8 +27,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/cobra"
 )
 
@@ -96,7 +94,11 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfgStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	cfgStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
+	cfg := v2ConfigFromSessionRegion(defaultSess)
 
 	opts := &packageEnvOpts{
 		packageEnvVars: vars,
@@ -104,7 +106,7 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 		cfgStore:        cfgStore,
 		ws:              ws,
 		sel:             selector.NewLocalEnvironmentSelector(prompt.New(), cfgStore, ws),
-		caller:          identity.New(defaultSess),
+		caller:          identity.New(cfg),
 		fs:              fs,
 		tplWriter:       os.Stdout,
 		paramsWriter:    discardFile{},

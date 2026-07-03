@@ -35,6 +35,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
@@ -207,10 +208,12 @@ type defaultSessionProvider interface {
 
 type regionalSessionProvider interface {
 	DefaultWithRegion(region string) (*session.Session, error)
+	DefaultConfigWithRegion(ctx context.Context, region string) (awsv2.Config, error)
 }
 
 type sessionFromRoleProvider interface {
 	FromRole(roleARN string, region string) (*session.Session, error)
+	ConfigFromRole(ctx context.Context, roleARN string, region string) (awsv2.Config, error)
 }
 
 type sessionFromStaticProvider interface {

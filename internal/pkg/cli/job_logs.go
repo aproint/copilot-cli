@@ -7,9 +7,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
@@ -51,7 +48,10 @@ func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {

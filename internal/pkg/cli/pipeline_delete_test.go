@@ -11,8 +11,8 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/aws-sdk-go/aws"
-	sdkSecretsmanager "github.com/aws/aws-sdk-go/service/secretsmanager"
 
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
@@ -223,7 +223,7 @@ func TestDeletePipelineOpts_Execute(t *testing.T) {
 	mockResp := &secretsmanager.DescribeSecretOutput{
 		CreatedDate: aws.Time(mockTime),
 		Name:        aws.String(testPipelineSecret),
-		Tags: []*sdkSecretsmanager.Tag{
+		Tags: []secretsmanagertypes.Tag{
 			{
 				Key:   aws.String(deploy.AppTagKey),
 				Value: aws.String(mockTime.UTC().Format(time.UnixDate)),
@@ -233,7 +233,7 @@ func TestDeletePipelineOpts_Execute(t *testing.T) {
 	mockBadResp := &secretsmanager.DescribeSecretOutput{
 		CreatedDate: aws.Time(mockTime),
 		Name:        aws.String(testPipelineSecret),
-		Tags: []*sdkSecretsmanager.Tag{
+		Tags: []secretsmanagertypes.Tag{
 			{
 				Key:   aws.String("someOtherKey"),
 				Value: aws.String(mockTime.UTC().Format(time.UnixDate)),

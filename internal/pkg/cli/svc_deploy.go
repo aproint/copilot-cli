@@ -20,9 +20,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"golang.org/x/mod/semver"
 
@@ -105,7 +103,10 @@ func newSvcDeployOpts(vars deployWkldVars) (*deploySvcOpts, error) {
 		return nil, err
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
 
 	opts := &deploySvcOpts{
@@ -453,7 +454,7 @@ func (o *deploySvcOpts) configureClients() error {
 	o.envSess = envSess
 
 	// client to retrieve caller identity.
-	caller, err := identity.New(defaultSess).Get()
+	caller, err := identity.New(v2ConfigFromSessionRegion(defaultSess)).Get()
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}

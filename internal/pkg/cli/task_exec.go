@@ -6,13 +6,9 @@ package cli
 import (
 	"fmt"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/exec"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
@@ -64,7 +60,10 @@ func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
 		return nil, fmt.Errorf("default session: %v", err)
 	}
 
-	ssmStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	ssmStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
 	return &taskExecOpts{
 		taskExecVars:     vars,
@@ -72,7 +71,7 @@ func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
 		ssmPluginManager: exec.NewSSMPluginCommand(nil),
 		prompter:         prompter,
 		newTaskSel: func(sess *session.Session) runningTaskSelector {
-			return selector.NewTaskSelector(prompter, ecs.New(sess))
+			return selector.NewTaskSelector(prompter, ecs.New(sess, v2ConfigFromSessionRegion(sess)))
 		},
 		configSel: selector.NewConfigSelector(prompter, ssmStore),
 		newCommandExecutor: func(s *session.Session) ecsCommandExecutor {

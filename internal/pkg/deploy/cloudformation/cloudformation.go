@@ -25,6 +25,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codestar"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/stream"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
@@ -208,12 +209,13 @@ type CloudFormation struct {
 
 // New returns a configured CloudFormation client.
 func New(sess *session.Session, opts ...OptFn) CloudFormation {
+	v2Config, _ := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), aws.StringValue(sess.Config.Region))
 	client := CloudFormation{
 		cfnClient:      cloudformation.New(sess),
-		codeStarClient: codestar.New(sess),
-		cpClient:       codepipeline.New(sess),
+		codeStarClient: codestar.New(v2Config),
+		cpClient:       codepipeline.New(sess, v2Config),
 		ecsClient:      ecs.New(sess),
-		cwClient:       cloudwatch.New(sess),
+		cwClient:       cloudwatch.New(sess, v2Config),
 		regionalClient: func(region string) cfnClient {
 			return cloudformation.New(sess.Copy(&aws.Config{
 				Region: aws.String(region),

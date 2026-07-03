@@ -94,7 +94,7 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		if err != nil {
 			return nil, err
 		}
-		return cloudwatch.New(sess), nil
+		return cloudwatch.New(sess, v2ConfigFromSessionRegion(sess)), nil
 	}
 	describer.initEnvDescribers = func(env string) (envDescriber, error) {
 		if describer, ok := describer.envStackDescriber[env]; ok {

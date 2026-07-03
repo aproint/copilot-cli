@@ -24,8 +24,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
@@ -77,7 +75,10 @@ func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -101,7 +102,7 @@ func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
 
 		fs:              fs,
 		ws:              ws,
-		identity:        identity.New(defaultSess),
+		identity:        identity.New(v2ConfigFromSessionRegion(defaultSess)),
 		templateVersion: version.LatestTemplateVersion(),
 		newInterpolator: newManifestInterpolator,
 	}

@@ -11,11 +11,9 @@ import (
 	"strings"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	awscfn "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/iam"
@@ -102,7 +100,10 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 	if err != nil {
 		return nil, fmt.Errorf("default session: %v", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 
 	prompter := prompt.New()
 	return &deleteEnvOpts{
@@ -128,8 +129,8 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), sess)
 			o.deployer = cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
 			o.envDeleterFromApp = cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr))
-			o.pipelineGetter = codepipeline.New(defaultSess)
-			o.deployedPipelineLister = deploy.NewPipelineStore(rg.New(defaultSess))
+			o.pipelineGetter = codepipeline.New(defaultSess, v2ConfigFromSessionRegion(defaultSess))
+			o.deployedPipelineLister = deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSess)))
 			return nil
 		},
 	}, nil

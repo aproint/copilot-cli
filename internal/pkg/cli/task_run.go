@@ -18,9 +18,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/template/artifactpath"
 	"golang.org/x/mod/semver"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/spf13/pflag"
 
@@ -197,7 +195,10 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 	}
 
 	prompter := prompt.New()
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	opts := runTaskOpts{
 		runTaskVars: vars,
 
@@ -236,10 +237,10 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 		return awsecs.New(session)
 	}
 	opts.configureServiceDescriber = func(session *session.Session) ecs.ServiceDescriber {
-		return ecs.New(session)
+		return ecs.New(session, v2ConfigFromSessionRegion(session))
 	}
 	opts.configureJobDescriber = func(session *session.Session) ecs.JobDescriber {
-		return ecs.New(session)
+		return ecs.New(session, v2ConfigFromSessionRegion(session))
 	}
 	opts.configureUploader = func(session *session.Session) uploader {
 		return s3.New(session)
@@ -283,7 +284,7 @@ func (o *runTaskOpts) configureRunner() (taskRunner, error) {
 			return nil, fmt.Errorf("create describer for environment %s in application %s: %w", o.env, o.appName, err)
 		}
 
-		ecsClient := ecs.New(o.sess)
+		ecsClient := ecs.New(o.sess, v2ConfigFromSessionRegion(o.sess))
 		return &task.EnvRunner{
 			Count:     o.count,
 			GroupName: o.groupName,
@@ -314,7 +315,7 @@ func (o *runTaskOpts) configureRunner() (taskRunner, error) {
 		VPCGetter:             vpcGetter,
 		ClusterGetter:         ecsService,
 		Starter:               ecsService,
-		NonZeroExitCodeGetter: ecs.New(o.sess),
+		NonZeroExitCodeGetter: ecs.New(o.sess, v2ConfigFromSessionRegion(o.sess)),
 	}, nil
 
 }

@@ -7,12 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
@@ -53,7 +49,10 @@ func newShowEnvOpts(vars showEnvVars) (*showEnvOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {

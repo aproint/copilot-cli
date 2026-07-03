@@ -72,7 +72,8 @@ func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
 		return nil, fmt.Errorf("default session: %w", err)
 	}
 	fs := afero.NewOsFs()
-	identity := identity.New(sess)
+	cfg := v2ConfigFromSessionRegion(sess)
+	identity := identity.New(cfg)
 	iamClient := iam.New(sess)
 	return &initAppOpts{
 		initAppVars:    vars,

@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,9 +13,6 @@ import (
 
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -95,7 +93,10 @@ func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
 		return nil, fmt.Errorf("default session: %v", err)
 	}
 
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)
@@ -118,7 +119,11 @@ func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
 		if err != nil {
 			return err
 		}
-		opts.ecs = ecs.New(sess)
+		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		if err != nil {
+			return err
+		}
+		opts.ecs = ecs.New(sess, cfg)
 
 		newWorkloadLoggerOpts := &logging.NewWorkloadLoggerOpts{
 			App:  opts.appName,

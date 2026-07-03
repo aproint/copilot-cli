@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -386,7 +384,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "test",
 					},
 				}).Return(&ssm.PutSecretOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil)
 				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
 					Name:      "/copilot/test-app/prod/secrets/db-password",
@@ -397,7 +395,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "prod",
 					},
 				}).Return(&ssm.PutSecretOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil)
 				m.mockEnvCompatibilityChecker.EXPECT().Version().Return("v1.10.0", nil).Times(2)
 			},
@@ -418,7 +416,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "test",
 					},
 				}).Return(&ssm.PutSecretOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil)
 				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
 					Name:      "/copilot/test-app/prod/secrets/db-password",
@@ -429,7 +427,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "prod",
 					},
 				}).Return(&ssm.PutSecretOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil)
 				m.mockEnvCompatibilityChecker.EXPECT().Version().Return("v1.10.0", nil).Times(2)
 			},
@@ -458,7 +456,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "prod",
 					},
 				}).Return(&ssm.PutSecretOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil)
 				m.mockEnvCompatibilityChecker.EXPECT().Version().Return("v1.10.0", nil).Times(2)
 			},
@@ -487,7 +485,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "prod",
 					},
 				}).Return(&ssm.PutSecretOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil)
 				m.mockEnvCompatibilityChecker.EXPECT().Version().Return("v1.10.0", nil).Times(2)
 			},
@@ -527,7 +525,7 @@ db-host:
 						deploy.EnvTagKey: "prod",
 					},
 				}).Return(&ssm.PutSecretOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil)
 				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
 					Name:      "/copilot/test-app/test/secrets/db-host",

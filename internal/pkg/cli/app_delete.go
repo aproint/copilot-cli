@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
@@ -21,9 +19,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -80,7 +76,10 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 		return nil, fmt.Errorf("default session: %w", err)
 	}
 	prompter := prompt.New()
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
 	return &deleteAppOpts{
 		deleteAppVars: vars,
 		spinner:       termprogress.NewSpinner(log.DiagnosticWriter),
@@ -91,7 +90,7 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 		s3: func(session *session.Session) bucketEmptier {
 			return s3.New(session)
 		},
-		pipelineLister: deploy.NewPipelineStore(rg.New(defaultSession)),
+		pipelineLister: deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSession))),
 		sel:            selector.NewAppEnvSelector(prompter, store),
 		svcDeleteExecutor: func(appName, svcName string) (executor, error) {
 			opts, err := newDeleteSvcOpts(deleteSvcVars{

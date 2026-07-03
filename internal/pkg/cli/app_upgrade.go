@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/route53"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
@@ -61,11 +58,15 @@ func newAppUpgradeOpts(vars appUpgradeVars) (*appUpgradeOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(sess), ssm.New(sess), aws.StringValue(sess.Config.Region))
+	store, err := newSSMConfigStore(sess)
+	if err != nil {
+		return nil, err
+	}
+	cfg := v2ConfigFromSessionRegion(sess)
 	return &appUpgradeOpts{
 		appUpgradeVars: vars,
 		store:          store,
-		identity:       identity.New(sess),
+		identity:       identity.New(cfg),
 		route53:        route53.New(sess),
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		upgrader:       cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),

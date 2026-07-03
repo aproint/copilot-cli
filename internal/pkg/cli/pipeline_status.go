@@ -11,14 +11,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/spf13/afero"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
@@ -68,9 +63,13 @@ func newPipelineStatusOpts(vars pipelineStatusVars) (*pipelineStatusOpts, error)
 	if err != nil {
 		return nil, fmt.Errorf("session: %w", err)
 	}
-	codepipeline := codepipeline.New(session)
-	pipelineLister := deploy.NewPipelineStore(rg.New(session))
-	store := config.NewSSMStore(identity.New(session), ssm.New(session), aws.StringValue(session.Config.Region))
+	store, err := newSSMConfigStore(session)
+	if err != nil {
+		return nil, err
+	}
+	v2Config := v2ConfigFromSessionRegion(session)
+	codepipeline := codepipeline.New(session, v2Config)
+	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
 	prompter := prompt.New()
 	return &pipelineStatusOpts{
 		w:                      log.OutputWriter,

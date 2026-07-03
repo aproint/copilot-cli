@@ -258,6 +258,10 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create default: %w", err)
 	}
+	defaultConfig, err := in.SessionProvider.DefaultConfig(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("create default config: %w", err)
+	}
 	envSession, err := in.SessionProvider.FromRole(in.Env.ManagerRoleARN, in.Env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("create env session with region %s: %w", in.Env.Region, err)
@@ -284,7 +288,7 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	repoName := RepoName(in.App.Name, in.Name)
 	repository := repository.NewWithURI(
 		ecr.New(defaultSessEnvRegion), repoName, resources.RepositoryURLs[in.Name])
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := config.NewSSMStore(identity.New(defaultConfig), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
 	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
 		App:         in.App.Name,
 		Env:         in.Env.Name,

@@ -5,9 +5,10 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	sfn "github.com/aws/aws-sdk-go/service/sfn"
+	sfn "github.com/aws/aws-sdk-go-v2/service/sfn"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,31 +36,41 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // DescribeStateMachine mocks base method.
-func (m *Mockapi) DescribeStateMachine(input *sfn.DescribeStateMachineInput) (*sfn.DescribeStateMachineOutput, error) {
+func (m *Mockapi) DescribeStateMachine(ctx context.Context, input *sfn.DescribeStateMachineInput, opts ...func(*sfn.Options)) (*sfn.DescribeStateMachineOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeStateMachine", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeStateMachine", varargs...)
 	ret0, _ := ret[0].(*sfn.DescribeStateMachineOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeStateMachine indicates an expected call of DescribeStateMachine.
-func (mr *MockapiMockRecorder) DescribeStateMachine(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeStateMachine(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStateMachine", reflect.TypeOf((*Mockapi)(nil).DescribeStateMachine), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStateMachine", reflect.TypeOf((*Mockapi)(nil).DescribeStateMachine), varargs...)
 }
 
 // StartExecution mocks base method.
-func (m *Mockapi) StartExecution(input *sfn.StartExecutionInput) (*sfn.StartExecutionOutput, error) {
+func (m *Mockapi) StartExecution(ctx context.Context, input *sfn.StartExecutionInput, opts ...func(*sfn.Options)) (*sfn.StartExecutionOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartExecution", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "StartExecution", varargs...)
 	ret0, _ := ret[0].(*sfn.StartExecutionOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StartExecution indicates an expected call of StartExecution.
-func (mr *MockapiMockRecorder) StartExecution(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) StartExecution(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartExecution", reflect.TypeOf((*Mockapi)(nil).StartExecution), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartExecution", reflect.TypeOf((*Mockapi)(nil).StartExecution), varargs...)
 }

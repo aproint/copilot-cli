@@ -8,12 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerfile"
 
@@ -103,7 +100,10 @@ func newInitJobOpts(vars initJobVars) (*initJobOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(sess), ssm.New(sess), aws.StringValue(sess.Config.Region))
+	store, err := newSSMConfigStore(sess)
+	if err != nil {
+		return nil, err
+	}
 	jobInitter := &initialize.WorkloadInitializer{
 		Store:    store,
 		Ws:       ws,

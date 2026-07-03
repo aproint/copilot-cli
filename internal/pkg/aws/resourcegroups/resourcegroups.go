@@ -5,12 +5,12 @@
 package resourcegroups
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 )
 
 type api interface {
-	GetResources(input *resourcegroupstaggingapi.GetResourcesInput) (*resourcegroupstaggingapi.GetResourcesOutput, error)
+	GetResources(ctx context.Context, input *resourcegroupstaggingapi.GetResourcesInput, opts ...func(*resourcegroupstaggingapi.Options)) (*resourcegroupstaggingapi.GetResourcesOutput, error)
 }
 
 // ResourceGroups wraps an AWS ResourceGroups client.
@@ -35,33 +35,33 @@ type Resource struct {
 	Tags map[string]string
 }
 
-// New returns a ResourceGroup struct configured against the input session.
-func New(s *session.Session) *ResourceGroups {
+// New returns a ResourceGroup struct configured against the input SDK v2 config.
+func New(cfg awsv2.Config) *ResourceGroups {
 	return &ResourceGroups{
-		client: resourcegroupstaggingapi.New(s),
+		client: resourcegroupstaggingapi.NewFromConfig(cfg),
 	}
 }
 
 // GetResourcesByTags gets tag set and ARN for the resource with input resource type and tags.
 func (rg *ResourceGroups) GetResourcesByTags(resourceType string, tags map[string]string) ([]*Resource, error) {
 	var resources []*Resource
-	var tagFilter []*resourcegroupstaggingapi.TagFilter
+	var tagFilter []types.TagFilter
 	for k, v := range tags {
-		var values []*string
+		var values []string
 		if v != "" {
-			values = aws.StringSlice([]string{v})
+			values = []string{v}
 		}
-		tagFilter = append(tagFilter, &resourcegroupstaggingapi.TagFilter{
-			Key:    aws.String(k),
+		tagFilter = append(tagFilter, types.TagFilter{
+			Key:    awsv2.String(k),
 			Values: values,
 		})
 	}
 	resourceResp := &resourcegroupstaggingapi.GetResourcesOutput{}
 	for {
 		var err error
-		resourceResp, err = rg.client.GetResources(&resourcegroupstaggingapi.GetResourcesInput{
+		resourceResp, err = rg.client.GetResources(context.Background(), &resourcegroupstaggingapi.GetResourcesInput{
 			PaginationToken:     resourceResp.PaginationToken,
-			ResourceTypeFilters: aws.StringSlice([]string{resourceType}),
+			ResourceTypeFilters: []string{resourceType},
 			TagFilters:          tagFilter,
 		})
 		if err != nil {
@@ -73,16 +73,16 @@ func (rg *ResourceGroups) GetResourcesByTags(resourceType string, tags map[strin
 				if tag.Key == nil {
 					continue
 				}
-				tags[*tag.Key] = aws.StringValue(tag.Value)
+				tags[*tag.Key] = awsv2.ToString(tag.Value)
 			}
 			resources = append(resources, &Resource{
-				ARN:  aws.StringValue(resourceTagMapping.ResourceARN),
+				ARN:  awsv2.ToString(resourceTagMapping.ResourceARN),
 				Tags: tags,
 			})
 		}
 		// usually pagination token is "" when it doesn't have any next page. However, since it
 		// is type *string, it is safer for us to check nil value for it as well.
-		if token := resourceResp.PaginationToken; aws.StringValue(token) == "" {
+		if token := resourceResp.PaginationToken; awsv2.ToString(token) == "" {
 			break
 		}
 	}

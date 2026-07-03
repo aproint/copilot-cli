@@ -16,6 +16,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/stepfunctions"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -78,12 +79,18 @@ type Client struct {
 }
 
 // New creates a new Client.
-func New(sess *session.Session) *Client {
+func New(sess *session.Session, rgConfig awsv2.Config) *Client {
 	return &Client{
-		rgGetter:       resourcegroups.New(sess),
-		ecsClient:      ecs.New(sess),
-		StepFuncClient: stepfunctions.New(sess),
+		rgGetter:  resourcegroups.New(rgConfig),
+		ecsClient: ecs.New(sess),
 	}
+}
+
+// NewWithStepFunctionsConfig creates a new Client with a Step Functions client configured from SDK v2 config.
+func NewWithStepFunctionsConfig(sess *session.Session, cfg awsv2.Config) *Client {
+	client := New(sess, cfg)
+	client.StepFuncClient = stepfunctions.New(cfg)
+	return client
 }
 
 // ClusterARN returns the ARN of the cluster in an environment.

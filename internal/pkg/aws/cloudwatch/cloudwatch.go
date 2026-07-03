@@ -11,6 +11,7 @@ import (
 
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -59,11 +60,11 @@ type AlarmDescription struct {
 	Environment string `json:"environment"`
 }
 
-// New returns a CloudWatch struct configured against the input session.
-func New(s *session.Session) *CloudWatch {
+// New returns a CloudWatch struct configured against the input session and SDK v2 Resource Groups config.
+func New(s *session.Session, rgConfig awsv2.Config) *CloudWatch {
 	return &CloudWatch{
 		client:   cloudwatch.New(s),
-		rgClient: rg.New(s),
+		rgClient: rg.New(rgConfig),
 	}
 }
 

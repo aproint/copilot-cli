@@ -49,7 +49,7 @@ func NewPipelineDescriber(pipeline deploy.Pipeline, showResources bool) (*Pipeli
 		return nil, err
 	}
 
-	pipelineSvc := codepipeline.New(sess)
+	pipelineSvc := codepipeline.New(sess, v2ConfigFromSessionRegion(sess))
 
 	return &PipelineDescriber{
 		pipeline: pipeline,

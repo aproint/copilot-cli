@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -24,9 +24,9 @@ func TestSecretsManager_CreateSecret(t *testing.T) {
 	mockSecretString := "H0NKH0NKH0NK"
 	mockError := errors.New("mockError")
 	mockOutput := &secretsmanager.CreateSecretOutput{
-		ARN: aws.String("arn-goose"),
+		ARN: awsv2.String("arn-goose"),
 	}
-	mockAwsErr := awserr.New(secretsmanager.ErrCodeResourceExistsException, "", nil)
+	mockAwsErr := &types.ResourceExistsException{}
 
 	tests := map[string]struct {
 		inSecretName   string
@@ -39,10 +39,10 @@ func TestSecretsManager_CreateSecret(t *testing.T) {
 			inSecretName:   mockSecretName,
 			inSecretString: mockSecretString,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().CreateSecret(&secretsmanager.CreateSecretInput{
-					Name:         aws.String(mockSecretName),
-					SecretString: aws.String(mockSecretString),
-					Tags:         []*secretsmanager.Tag{},
+				m.EXPECT().CreateSecret(gomock.Any(), &secretsmanager.CreateSecretInput{
+					Name:         awsv2.String(mockSecretName),
+					SecretString: awsv2.String(mockSecretString),
+					Tags:         []types.Tag{},
 				}).Return(nil, mockError)
 			},
 			expectedError: fmt.Errorf("create secret %s: %w", mockSecretName, mockError),
@@ -52,10 +52,10 @@ func TestSecretsManager_CreateSecret(t *testing.T) {
 			inSecretName:   mockSecretName,
 			inSecretString: mockSecretString,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().CreateSecret(&secretsmanager.CreateSecretInput{
-					Name:         aws.String(mockSecretName),
-					SecretString: aws.String(mockSecretString),
-					Tags:         []*secretsmanager.Tag{},
+				m.EXPECT().CreateSecret(gomock.Any(), &secretsmanager.CreateSecretInput{
+					Name:         awsv2.String(mockSecretName),
+					SecretString: awsv2.String(mockSecretString),
+					Tags:         []types.Tag{},
 				}).Return(nil, mockAwsErr)
 			},
 			expectedError: &ErrSecretAlreadyExists{
@@ -68,10 +68,10 @@ func TestSecretsManager_CreateSecret(t *testing.T) {
 			inSecretName:   mockSecretName,
 			inSecretString: mockSecretString,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().CreateSecret(&secretsmanager.CreateSecretInput{
-					Name:         aws.String(mockSecretName),
-					SecretString: aws.String(mockSecretString),
-					Tags:         []*secretsmanager.Tag{},
+				m.EXPECT().CreateSecret(gomock.Any(), &secretsmanager.CreateSecretInput{
+					Name:         awsv2.String(mockSecretName),
+					SecretString: awsv2.String(mockSecretString),
+					Tags:         []types.Tag{},
 				}).Return(mockOutput, nil)
 			},
 			expectedError: nil,
@@ -95,8 +95,8 @@ func TestSecretsManager_CreateSecret(t *testing.T) {
 			// WHEN
 			oldSecretTags := secretTags
 			defer func() { secretTags = oldSecretTags }()
-			secretTags = func() []*secretsmanager.Tag {
-				return []*secretsmanager.Tag{}
+			secretTags = func() []types.Tag {
+				return []types.Tag{}
 			}
 
 			_, err := sm.CreateSecret(tc.inSecretName, tc.inSecretString)
@@ -120,9 +120,9 @@ func TestSecretsManager_DeleteSecret(t *testing.T) {
 		"should wrap error returned by DeleteSecret": {
 			inSecretName: mockSecretName,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().DeleteSecret(&secretsmanager.DeleteSecretInput{
-					SecretId:                   aws.String(mockSecretName),
-					ForceDeleteWithoutRecovery: aws.Bool(true),
+				m.EXPECT().DeleteSecret(gomock.Any(), &secretsmanager.DeleteSecretInput{
+					SecretId:                   awsv2.String(mockSecretName),
+					ForceDeleteWithoutRecovery: awsv2.Bool(true),
 				}).Return(nil, mockError)
 			},
 			expectedError: fmt.Errorf("delete secret %s from secrets manager: %w", mockSecretName, mockError),
@@ -130,9 +130,9 @@ func TestSecretsManager_DeleteSecret(t *testing.T) {
 		"should return no error if successful": {
 			inSecretName: mockSecretName,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().DeleteSecret(&secretsmanager.DeleteSecretInput{
-					SecretId:                   aws.String(mockSecretName),
-					ForceDeleteWithoutRecovery: aws.Bool(true),
+				m.EXPECT().DeleteSecret(gomock.Any(), &secretsmanager.DeleteSecretInput{
+					SecretId:                   awsv2.String(mockSecretName),
+					ForceDeleteWithoutRecovery: awsv2.Bool(true),
 				}).Return(nil, nil)
 			},
 			expectedError: nil,
@@ -165,16 +165,16 @@ func TestSecretsManager_DescribeSecret(t *testing.T) {
 	mockSecretName := "github-token-backend-badgoose"
 	mockError := errors.New("mockError")
 	mockAPIOutput := &secretsmanager.DescribeSecretOutput{
-		CreatedDate: aws.Time(mockTime),
-		Name:        aws.String(mockSecretName),
-		Tags:        []*secretsmanager.Tag{},
+		CreatedDate: awsv2.Time(mockTime),
+		Name:        awsv2.String(mockSecretName),
+		Tags:        []types.Tag{},
 	}
 	mockOutput := &DescribeSecretOutput{
-		CreatedDate: aws.Time(mockTime),
-		Name:        aws.String(mockSecretName),
-		Tags:        []*secretsmanager.Tag{},
+		CreatedDate: awsv2.Time(mockTime),
+		Name:        awsv2.String(mockSecretName),
+		Tags:        []types.Tag{},
 	}
-	mockAwsErr := awserr.New(secretsmanager.ErrCodeResourceNotFoundException, "", nil)
+	mockAwsErr := &types.ResourceNotFoundException{}
 
 	tests := map[string]struct {
 		inSecretName string
@@ -186,8 +186,8 @@ func TestSecretsManager_DescribeSecret(t *testing.T) {
 		"should wrap error returned by DescribeSecret": {
 			inSecretName: mockSecretName,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSecret(&secretsmanager.DescribeSecretInput{
-					SecretId: aws.String(mockSecretName),
+				m.EXPECT().DescribeSecret(gomock.Any(), &secretsmanager.DescribeSecretInput{
+					SecretId: awsv2.String(mockSecretName),
 				}).Return(nil, mockError)
 			},
 			expectedError: fmt.Errorf("describe secret %s: %w", mockSecretName, mockError),
@@ -196,8 +196,8 @@ func TestSecretsManager_DescribeSecret(t *testing.T) {
 		"should return no error if secret is not found": {
 			inSecretName: mockSecretName,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSecret(&secretsmanager.DescribeSecretInput{
-					SecretId: aws.String(mockSecretName),
+				m.EXPECT().DescribeSecret(gomock.Any(), &secretsmanager.DescribeSecretInput{
+					SecretId: awsv2.String(mockSecretName),
 				}).Return(nil, mockAwsErr)
 			},
 			expectedError: &ErrSecretNotFound{
@@ -209,8 +209,8 @@ func TestSecretsManager_DescribeSecret(t *testing.T) {
 		"should return no error if successful": {
 			inSecretName: mockSecretName,
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSecret(&secretsmanager.DescribeSecretInput{
-					SecretId: aws.String(mockSecretName),
+				m.EXPECT().DescribeSecret(gomock.Any(), &secretsmanager.DescribeSecretInput{
+					SecretId: awsv2.String(mockSecretName),
 				}).Return(mockAPIOutput, nil)
 			},
 			expectedResp:  mockOutput,
@@ -235,8 +235,8 @@ func TestSecretsManager_DescribeSecret(t *testing.T) {
 			// WHEN
 			oldSecretTags := secretTags
 			defer func() { secretTags = oldSecretTags }()
-			secretTags = func() []*secretsmanager.Tag {
-				return []*secretsmanager.Tag{}
+			secretTags = func() []types.Tag {
+				return []types.Tag{}
 			}
 
 			resp, err := sm.DescribeSecret(tc.inSecretName)
@@ -263,8 +263,8 @@ func TestSecretsManager_GetSecretValue(t *testing.T) {
 		"error": {
 			secretName: "asdf",
 			setupMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetSecretValueWithContext(gomock.Any(), &secretsmanager.GetSecretValueInput{
-					SecretId: aws.String("asdf"),
+				m.EXPECT().GetSecretValue(gomock.Any(), &secretsmanager.GetSecretValueInput{
+					SecretId: awsv2.String("asdf"),
 				}).Return(nil, errors.New("some error"))
 			},
 			wantError: `get secret "asdf" from secrets manager: some error`,
@@ -272,10 +272,10 @@ func TestSecretsManager_GetSecretValue(t *testing.T) {
 		"success": {
 			secretName: "asdf",
 			setupMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetSecretValueWithContext(gomock.Any(), &secretsmanager.GetSecretValueInput{
-					SecretId: aws.String("asdf"),
+				m.EXPECT().GetSecretValue(gomock.Any(), &secretsmanager.GetSecretValueInput{
+					SecretId: awsv2.String("asdf"),
 				}).Return(&secretsmanager.GetSecretValueOutput{
-					SecretString: aws.String("hi"),
+					SecretString: awsv2.String("hi"),
 				}, nil)
 			},
 			want: "hi",

@@ -24,7 +24,6 @@ import (
 	cmdtemplate "github.com/aproint/copilot-cli/cmd/copilot/template"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecr"
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
@@ -157,7 +156,10 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 		return nil, err
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSess), sdkssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {
 		return nil, err
@@ -189,18 +191,26 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 		if err != nil {
 			return fmt.Errorf("create default session with region %s: %w", o.targetEnv.Region, err)
 		}
+		defaultConfigEnvRegion, err := o.sessProvider.DefaultConfigWithRegion(context.Background(), o.targetEnv.Region)
+		if err != nil {
+			return fmt.Errorf("create default config with region %s: %w", o.targetEnv.Region, err)
+		}
 		o.envManagerSess, err = o.sessProvider.FromRole(o.targetEnv.ManagerRoleARN, o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("create env manager session %s: %w", o.targetEnv.Region, err)
+		}
+		envManagerConfig, err := o.sessProvider.ConfigFromRole(context.Background(), o.targetEnv.ManagerRoleARN, o.targetEnv.Region)
+		if err != nil {
+			return fmt.Errorf("create env manager config %s: %w", o.targetEnv.Region, err)
 		}
 
 		// EnvManagerRole has permissions to get task def and get SSM values.
 		// However, it doesn't have permissions to get secrets from secrets manager,
 		// so use the default sess and *hope* they have permissions.
-		o.ecsClient = ecs.New(o.envManagerSess)
-		o.ssm = ssm.New(o.envManagerSess)
+		o.ecsClient = ecs.New(o.envManagerSess, envManagerConfig)
+		o.ssm = ssm.New(envManagerConfig)
 		o.ecsExecutor = awsecs.New(o.envManagerSess)
-		o.secretsManager = secretsmanager.New(defaultSessEnvRegion)
+		o.secretsManager = secretsmanager.New(defaultConfigEnvRegion)
 
 		resources, err := cloudformation.New(o.sess, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(o.targetApp, o.targetEnv.Region)
 		if err != nil {
@@ -223,8 +233,8 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 			app:  o.appName,
 			env:  o.envName,
 			wkld: o.wkldName,
-			ecs:  ecs.New(o.envManagerSess),
-			rg:   resourcegroups.New(o.envManagerSess),
+			ecs:  ecs.New(o.envManagerSess, envManagerConfig),
+			rg:   resourcegroups.New(envManagerConfig),
 			rds:  rds.New(o.envManagerSess),
 		}
 		envDesc, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{

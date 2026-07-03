@@ -16,9 +16,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/dustin/go-humanize/english"
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
@@ -229,7 +227,11 @@ func newInitPipelineOpts(vars initPipelineVars) (*initPipelineOpts, error) {
 		return nil, err
 	}
 
-	ssmStore := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	ssmStore, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
+	v2Config := v2ConfigFromSessionRegion(defaultSession)
 	prompter := prompt.New()
 
 	wsAppName := tryReadingAppName()
@@ -240,7 +242,7 @@ func newInitPipelineOpts(vars initPipelineVars) (*initPipelineOpts, error) {
 	return &initPipelineOpts{
 		initPipelineVars: vars,
 		workspace:        ws,
-		secretsmanager:   secretsmanager.New(defaultSession),
+		secretsmanager:   secretsmanager.New(v2Config),
 		parser:           template.New(),
 		sessProvider:     p,
 		cfnClient:        cloudformation.New(defaultSession, cloudformation.WithProgressTracker(os.Stderr)),
@@ -249,7 +251,7 @@ func newInitPipelineOpts(vars initPipelineVars) (*initPipelineOpts, error) {
 		sel:              selector.NewAppEnvSelector(prompter, ssmStore),
 		runner:           exec.NewCmd(),
 		wsAppName:        wsAppName,
-		pipelineLister:   deploy.NewPipelineStore(rg.New(defaultSession)),
+		pipelineLister:   deploy.NewPipelineStore(rg.New(v2Config)),
 	}, nil
 }
 

@@ -8,13 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +47,11 @@ func buildAppListCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("default session: %v", err)
 			}
-			opts.store = config.NewSSMStore(identity.New(sess), ssm.New(sess), aws.StringValue(sess.Config.Region))
+			store, err := newSSMConfigStore(sess)
+			if err != nil {
+				return err
+			}
+			opts.store = store
 			return opts.Execute()
 		}),
 	}

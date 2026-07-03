@@ -7,10 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"io"
 	"sort"
@@ -59,7 +56,10 @@ func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 	if err != nil {
 		return nil, fmt.Errorf("default session: %w", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)
@@ -70,8 +70,8 @@ func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 		w:              log.OutputWriter,
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		deployStore:    deployStore,
-		codepipeline:   codepipeline.New(defaultSession),
-		pipelineLister: deploy.NewPipelineStore(rg.New(defaultSession)),
+		codepipeline:   codepipeline.New(defaultSession, v2ConfigFromSessionRegion(defaultSession)),
+		pipelineLister: deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSession))),
 		newVersionGetter: func(s string) (versionGetter, error) {
 			d, err := describe.NewAppDescriber(s)
 			if err != nil {

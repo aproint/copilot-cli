@@ -9,10 +9,6 @@ import (
 	"os"
 	"slices"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
@@ -79,7 +75,10 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
 	return &deleteJobOpts{
 		deleteJobVars: vars,
@@ -97,7 +96,7 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 			return ecr.New(session)
 		},
 		newTaskStopper: func(session *session.Session) taskStopper {
-			return ecs.New(session)
+			return ecs.New(session, v2ConfigFromSessionRegion(session))
 		},
 	}, nil
 }

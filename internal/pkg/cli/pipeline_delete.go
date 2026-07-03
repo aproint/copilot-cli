@@ -11,11 +11,9 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
@@ -25,7 +23,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 
 	"github.com/spf13/cobra"
@@ -86,17 +83,21 @@ func newDeletePipelineOpts(vars deletePipelineVars) (*deletePipelineOpts, error)
 	if err != nil {
 		return nil, fmt.Errorf("default session: %w", err)
 	}
-	ssmStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	ssmStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
-	codepipeline := codepipeline.New(defaultSess)
-	pipelineLister := deploy.NewPipelineStore(rg.New(defaultSess))
+	v2Config := v2ConfigFromSessionRegion(defaultSess)
+	codepipeline := codepipeline.New(defaultSess, v2Config)
+	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
 
 	opts := &deletePipelineOpts{
 		deletePipelineVars:     vars,
 		codepipeline:           codepipeline,
 		prog:                   termprogress.NewSpinner(log.DiagnosticWriter),
 		prompt:                 prompter,
-		secretsmanager:         secretsmanager.New(defaultSess),
+		secretsmanager:         secretsmanager.New(v2Config),
 		pipelineDeployer:       cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr)),
 		deployedPipelineLister: pipelineLister,
 		ws:                     ws,

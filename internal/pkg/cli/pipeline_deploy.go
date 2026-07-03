@@ -13,14 +13,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"golang.org/x/mod/semver"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	cs "github.com/aproint/copilot-cli/internal/pkg/aws/codestar"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	clideploy "github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
@@ -122,7 +120,11 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 	if err != nil {
 		return nil, fmt.Errorf("default session: %w", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
+	v2Config := v2ConfigFromSessionRegion(defaultSession)
 
 	prompter := prompt.New()
 	ws, err := workspace.Use(afero.NewOsFs())
@@ -146,7 +148,7 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 		diffWriter:         os.Stdout,
 		sessProvider:       sessProvider,
 		sel:                selector.NewWsPipelineSelector(prompter, ws),
-		codestar:           cs.New(defaultSession),
+		codestar:           cs.New(v2Config),
 		templateVersion:    version.LatestTemplateVersion(),
 		pipelineStackConfig: func(in *deploy.CreatePipelineInput) stackConfiguration {
 			return stack.NewPipelineStackConfig(in)
@@ -189,7 +191,7 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 	}
 	opts.configureDeployedPipelineLister = func() deployedPipelineLister {
 		// Initialize the client only after the appName is asked.
-		return deploy.NewPipelineStore(rg.New(defaultSession))
+		return deploy.NewPipelineStore(rg.New(v2Config))
 	}
 	opts.pipelineVersionGetter = func(appName, name string, isLegacy bool) (versionGetter, error) {
 		return describe.NewPipelineStackDescriber(appName, name, isLegacy)

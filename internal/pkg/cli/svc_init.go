@@ -12,11 +12,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/dustin/go-humanize/english"
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerfile"
@@ -194,7 +192,10 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(sess), ssm.New(sess), aws.StringValue(sess.Config.Region))
+	store, err := newSSMConfigStore(sess)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {

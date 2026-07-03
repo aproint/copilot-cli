@@ -10,11 +10,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
@@ -59,7 +56,10 @@ func newShowSvcOpts(vars showSvcVars) (*showSvcOpts, error) {
 		return nil, fmt.Errorf("default session: %v", err)
 	}
 
-	ssmStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	ssmStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	deployStore, err := deploy.NewStore(sessProvider, ssmStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)

@@ -7,10 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
@@ -64,7 +61,10 @@ func newSvcPauseOpts(vars svcPauseVars) (*svcPauseOpts, error) {
 		return nil, fmt.Errorf("default session: %v", err)
 	}
 
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)

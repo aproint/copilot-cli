@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	clideploy "github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
@@ -25,8 +24,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 )
 
@@ -62,7 +59,11 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 	if err != nil {
 		return nil, fmt.Errorf("default session: %w", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
+	v2Config := v2ConfigFromSessionRegion(defaultSession)
 
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
@@ -113,7 +114,7 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 		svcBuffer: &bytes.Buffer{},
 		jobBuffer: &bytes.Buffer{},
 		configureDeployedPipelineLister: func() deployedPipelineLister {
-			return deploy.NewPipelineStore(rg.New(defaultSession))
+			return deploy.NewPipelineStore(rg.New(v2Config))
 		},
 	}
 	return opts, nil

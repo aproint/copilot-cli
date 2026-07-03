@@ -5,16 +5,16 @@
 package identity
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type api interface {
-	GetCallerIdentity(input *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error)
+	GetCallerIdentity(ctx context.Context, input *sts.GetCallerIdentityInput, opts ...func(*sts.Options)) (*sts.GetCallerIdentityOutput, error)
 }
 
 // STS wraps the internal sts client.
@@ -22,10 +22,10 @@ type STS struct {
 	client api
 }
 
-// New returns a STS configured with the input session.
-func New(s *session.Session) STS {
+// New returns a STS configured with the input SDK v2 config.
+func New(cfg awsv2.Config) STS {
 	return STS{
-		client: sts.New(s),
+		client: sts.NewFromConfig(cfg),
 	}
 }
 
@@ -38,18 +38,18 @@ type Caller struct {
 
 // Get returns the Caller associated with the Client's session.
 func (s STS) Get() (Caller, error) {
-	out, err := s.client.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	out, err := s.client.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return Caller{}, fmt.Errorf("get caller identity: %w", err)
 	}
-	parsedARN, err := arn.Parse(aws.StringValue(out.Arn))
+	parsedARN, err := arn.Parse(awsv2.ToString(out.Arn))
 	if err != nil {
 		return Caller{}, fmt.Errorf("parse caller arn: %w", err)
 	}
 
 	return Caller{
-		RootUserARN: fmt.Sprintf("arn:%s:iam::%s:root", parsedARN.Partition, aws.StringValue(out.Account)),
-		Account:     aws.StringValue(out.Account),
-		UserID:      aws.StringValue(out.UserId),
+		RootUserARN: fmt.Sprintf("arn:%s:iam::%s:root", parsedARN.Partition, awsv2.ToString(out.Account)),
+		Account:     awsv2.ToString(out.Account),
+		UserID:      awsv2.ToString(out.UserId),
 	}, nil
 }

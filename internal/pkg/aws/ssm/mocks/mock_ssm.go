@@ -8,8 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	request "github.com/aws/aws-sdk-go/aws/request"
-	ssm "github.com/aws/aws-sdk-go/service/ssm"
+	ssm "github.com/aws/aws-sdk-go-v2/service/ssm"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,51 +36,61 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // AddTagsToResource mocks base method.
-func (m *Mockapi) AddTagsToResource(arg0 *ssm.AddTagsToResourceInput) (*ssm.AddTagsToResourceOutput, error) {
+func (m *Mockapi) AddTagsToResource(arg0 context.Context, arg1 *ssm.AddTagsToResourceInput, arg2 ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddTagsToResource", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AddTagsToResource", varargs...)
 	ret0, _ := ret[0].(*ssm.AddTagsToResourceOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AddTagsToResource indicates an expected call of AddTagsToResource.
-func (mr *MockapiMockRecorder) AddTagsToResource(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) AddTagsToResource(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTagsToResource", reflect.TypeOf((*Mockapi)(nil).AddTagsToResource), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTagsToResource", reflect.TypeOf((*Mockapi)(nil).AddTagsToResource), varargs...)
 }
 
-// GetParameterWithContext mocks base method.
-func (m *Mockapi) GetParameterWithContext(arg0 context.Context, arg1 *ssm.GetParameterInput, arg2 ...request.Option) (*ssm.GetParameterOutput, error) {
+// GetParameter mocks base method.
+func (m *Mockapi) GetParameter(arg0 context.Context, arg1 *ssm.GetParameterInput, arg2 ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "GetParameterWithContext", varargs...)
+	ret := m.ctrl.Call(m, "GetParameter", varargs...)
 	ret0, _ := ret[0].(*ssm.GetParameterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetParameterWithContext indicates an expected call of GetParameterWithContext.
-func (mr *MockapiMockRecorder) GetParameterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// GetParameter indicates an expected call of GetParameter.
+func (mr *MockapiMockRecorder) GetParameter(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParameterWithContext", reflect.TypeOf((*Mockapi)(nil).GetParameterWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParameter", reflect.TypeOf((*Mockapi)(nil).GetParameter), varargs...)
 }
 
 // PutParameter mocks base method.
-func (m *Mockapi) PutParameter(arg0 *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+func (m *Mockapi) PutParameter(arg0 context.Context, arg1 *ssm.PutParameterInput, arg2 ...func(*ssm.Options)) (*ssm.PutParameterOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PutParameter", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PutParameter", varargs...)
 	ret0, _ := ret[0].(*ssm.PutParameterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PutParameter indicates an expected call of PutParameter.
-func (mr *MockapiMockRecorder) PutParameter(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) PutParameter(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutParameter", reflect.TypeOf((*Mockapi)(nil).PutParameter), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutParameter", reflect.TypeOf((*Mockapi)(nil).PutParameter), varargs...)
 }

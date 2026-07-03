@@ -21,8 +21,6 @@ import (
 	"github.com/spf13/afero"
 	"golang.org/x/mod/semver"
 
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/iam"
@@ -195,7 +193,10 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
@@ -206,7 +207,7 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 		sessProvider: sessProvider,
 		store:        store,
 		appDeployer:  deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
-		identity:     identity.New(defaultSession),
+		identity:     identity.New(v2ConfigFromSessionRegion(defaultSession)),
 		prog:         termprogress.NewSpinner(log.DiagnosticWriter),
 		prompt:       prompter,
 		selCreds: func() (credsSelector, error) {
@@ -353,7 +354,7 @@ func (o *initEnvOpts) RecommendActions() error {
 func (o *initEnvOpts) initRuntimeClients() error {
 	// Initialize environment clients if not set.
 	if o.envIdentity == nil {
-		o.envIdentity = identity.New(o.sess)
+		o.envIdentity = identity.New(v2ConfigFromSessionRegion(o.sess))
 	}
 	if o.envDeployer == nil {
 		o.envDeployer = deploycfn.New(o.sess, deploycfn.WithProgressTracker(os.Stderr))

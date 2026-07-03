@@ -175,7 +175,7 @@ func (d *lbWebSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*s
 	return &svcStackConfigurationOutput{
 		conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
 		svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-			return ecs.New(s)
+			return ecs.New(s, v2ConfigFromSessionRegion(s))
 		}),
 	}, nil
 }

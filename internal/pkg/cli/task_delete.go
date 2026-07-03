@@ -11,13 +11,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
 	"github.com/spf13/afero"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	awscfn "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecr"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
@@ -87,7 +83,10 @@ func newDeleteTaskOpts(vars deleteTaskVars) (*deleteTaskOpts, error) {
 		return nil, fmt.Errorf("default session: %v", err)
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	prompter := prompt.New()
 	return &deleteTaskOpts{
 		deleteTaskVars: vars,
@@ -103,7 +102,7 @@ func newDeleteTaskOpts(vars deleteTaskVars) (*deleteTaskOpts, error) {
 			return selector.NewCFTaskSelect(prompter, store, cfn)
 		},
 		newTaskStopper: func(session *session.Session) taskStopper {
-			return ecs.New(session)
+			return ecs.New(session, v2ConfigFromSessionRegion(session))
 		},
 		newStackManager: func(session *session.Session) taskStackManager {
 			return cloudformation.New(session, cloudformation.WithProgressTracker(os.Stderr))

@@ -13,18 +13,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/spf13/cobra"
@@ -75,11 +71,15 @@ func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
 		wsAppName = tryReadingAppName()
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store, err := newSSMConfigStore(defaultSession)
+	if err != nil {
+		return nil, err
+	}
+	v2Config := v2ConfigFromSessionRegion(defaultSession)
 	prompter := prompt.New()
 	return &listPipelineOpts{
 		listPipelineVars: vars,
-		pipelineLister:   deploy.NewPipelineStore(rg.New(defaultSession)),
+		pipelineLister:   deploy.NewPipelineStore(rg.New(v2Config)),
 		prompt:           prompter,
 		sel:              selector.NewConfigSelector(prompter, store),
 		store:            store,

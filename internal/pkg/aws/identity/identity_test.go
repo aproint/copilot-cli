@@ -9,7 +9,8 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity/mocks"
-	"github.com/aws/aws-sdk-go/service/sts"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -30,26 +31,26 @@ func TestIdentity_Get(t *testing.T) {
 	}{
 		"should return wrapped error given error from STS GetCallerIdentity": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any()).Return(nil, mockError)
+				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 			wantErr: fmt.Errorf("get caller identity: %w", mockError),
 		},
 		"should return wrapped error if cannot parse the account arn": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any()).Return(&sts.GetCallerIdentityOutput{
-					Account: &mockAccount,
-					Arn:     &mockBadARN,
-					UserId:  &mockUserID,
+				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+					Account: awsv2.String(mockAccount),
+					Arn:     awsv2.String(mockBadARN),
+					UserId:  awsv2.String(mockUserID),
 				}, nil)
 			},
 			wantErr: fmt.Errorf("parse caller arn: arn: invalid prefix"),
 		},
 		"should return Identity": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any()).Return(&sts.GetCallerIdentityOutput{
-					Account: &mockAccount,
-					Arn:     &mockARN,
-					UserId:  &mockUserID,
+				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+					Account: awsv2.String(mockAccount),
+					Arn:     awsv2.String(mockARN),
+					UserId:  awsv2.String(mockUserID),
 				}, nil)
 			},
 			wantIdentity: Caller{
@@ -60,10 +61,10 @@ func TestIdentity_Get(t *testing.T) {
 		},
 		"should return Identity in non standard partition": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any()).Return(&sts.GetCallerIdentityOutput{
-					Account: &mockAccount,
-					Arn:     &mockChinaARN,
-					UserId:  &mockUserID,
+				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+					Account: awsv2.String(mockAccount),
+					Arn:     awsv2.String(mockChinaARN),
+					UserId:  awsv2.String(mockUserID),
 				}, nil)
 			},
 			wantIdentity: Caller{

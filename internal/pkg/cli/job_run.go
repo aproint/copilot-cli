@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/stepfunctions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -18,9 +17,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +50,10 @@ func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
 			Job: opts.jobName,
 
 			CFN:          cloudformation.New(sess),
-			StateMachine: stepfunctions.New(sess),
+			StateMachine: stepfunctions.New(v2ConfigFromSessionRegion(sess)),
 		}), nil
 	}
 	opts.newEnvCompatibilityChecker = func() (versionCompatibilityChecker, error) {

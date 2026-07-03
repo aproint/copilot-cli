@@ -5,11 +5,12 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	resourcegroups "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	config "github.com/aproint/copilot-cli/internal/pkg/config"
-	session "github.com/aws/aws-sdk-go/aws/session"
+	aws "github.com/aws/aws-sdk-go-v2/aws"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -172,17 +173,17 @@ func (m *MockSessionProvider) EXPECT() *MockSessionProviderMockRecorder {
 	return m.recorder
 }
 
-// FromRole mocks base method.
-func (m *MockSessionProvider) FromRole(roleARN, region string) (*session.Session, error) {
+// ConfigFromRole mocks base method.
+func (m *MockSessionProvider) ConfigFromRole(ctx context.Context, roleARN, region string) (aws.Config, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromRole", roleARN, region)
-	ret0, _ := ret[0].(*session.Session)
+	ret := m.ctrl.Call(m, "ConfigFromRole", ctx, roleARN, region)
+	ret0, _ := ret[0].(aws.Config)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FromRole indicates an expected call of FromRole.
-func (mr *MockSessionProviderMockRecorder) FromRole(roleARN, region interface{}) *gomock.Call {
+// ConfigFromRole indicates an expected call of ConfigFromRole.
+func (mr *MockSessionProviderMockRecorder) ConfigFromRole(ctx, roleARN, region interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromRole", reflect.TypeOf((*MockSessionProvider)(nil).FromRole), roleARN, region)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromRole", reflect.TypeOf((*MockSessionProvider)(nil).ConfigFromRole), ctx, roleARN, region)
 }

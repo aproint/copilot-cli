@@ -13,6 +13,7 @@ import (
 
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -101,11 +102,11 @@ func (ss StageState) AggregateStatus() string {
 	return ""
 }
 
-// New returns a CodePipeline client configured against the input session.
-func New(s *session.Session) *CodePipeline {
+// New returns a CodePipeline client configured against the input session and SDK v2 Resource Groups config.
+func New(s *session.Session, rgConfig awsv2.Config) *CodePipeline {
 	return &CodePipeline{
 		client:   cp.New(s),
-		rgClient: rg.New(s),
+		rgClient: rg.New(rgConfig),
 	}
 }
 

@@ -166,7 +166,7 @@ func (d *rdwsDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*rdwsS
 			svcStackConfigurationOutput: svcStackConfigurationOutput{
 				conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
 				svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-					return apprunner.New(s)
+					return apprunner.New(s, v2ConfigFromSessionRegion(s))
 				}),
 			},
 		}, nil
@@ -180,7 +180,7 @@ func (d *rdwsDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*rdwsS
 		svcStackConfigurationOutput: svcStackConfigurationOutput{
 			conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
 			svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-				return apprunner.New(s)
+				return apprunner.New(s, v2ConfigFromSessionRegion(s))
 			}),
 		},
 		rdSvcAlias: aws.StringValue(d.rdwsMft.Alias),

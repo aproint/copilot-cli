@@ -35,7 +35,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -108,7 +107,10 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore, err := newSSMConfigStore(defaultSess)
+	if err != nil {
+		return nil, err
+	}
 	prompt := prompt.New()
 	sel := selector.NewConfigSelector(prompt, configStore)
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
@@ -117,7 +119,7 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 	}
 	snsSel := selector.NewDeploySelect(prompt, configStore, deployStore)
 	spin := termprogress.NewSpinner(log.DiagnosticWriter)
-	id := identity.New(defaultSess)
+	id := identity.New(v2ConfigFromSessionRegion(defaultSess))
 	deployer := cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr))
 	iamClient := iam.New(defaultSess)
 	initAppCmd := &initAppOpts{

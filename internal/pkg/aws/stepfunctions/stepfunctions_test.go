@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sfn"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sfn"
 
 	"github.com/stretchr/testify/require"
 
@@ -30,8 +30,8 @@ func TestStepFunctions_StateMachineDefinition(t *testing.T) {
 		"fail to describe state machine": {
 			inStateMachineARN: "ninth inning",
 			mockStepFunctionsClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeStateMachine(&sfn.DescribeStateMachineInput{
-					StateMachineArn: aws.String("ninth inning"),
+				m.EXPECT().DescribeStateMachine(gomock.Any(), &sfn.DescribeStateMachineInput{
+					StateMachineArn: awsv2.String("ninth inning"),
 				}).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("describe state machine: some error"),
@@ -39,10 +39,10 @@ func TestStepFunctions_StateMachineDefinition(t *testing.T) {
 		"success": {
 			inStateMachineARN: "ninth inning",
 			mockStepFunctionsClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeStateMachine(&sfn.DescribeStateMachineInput{
-					StateMachineArn: aws.String("ninth inning"),
+				m.EXPECT().DescribeStateMachine(gomock.Any(), &sfn.DescribeStateMachineInput{
+					StateMachineArn: awsv2.String("ninth inning"),
 				}).Return(&sfn.DescribeStateMachineOutput{
-					Definition: aws.String("{\n  \"Version\": \"42\",\n  \"Comment\": \"very important comment\"\n}"),
+					Definition: awsv2.String("{\n  \"Version\": \"42\",\n  \"Comment\": \"very important comment\"\n}"),
 				}, nil)
 			},
 			wantedDefinition: "{\n  \"Version\": \"42\",\n  \"Comment\": \"very important comment\"\n}",
@@ -82,8 +82,8 @@ func TestStepFunctions_Execute(t *testing.T) {
 		"fail to execute state machine": {
 			inStateMachineARN: "forca barca",
 			mockStepFunctionsClient: func(m *mocks.Mockapi) {
-				m.EXPECT().StartExecution(&sfn.StartExecutionInput{
-					StateMachineArn: aws.String("forca barca"),
+				m.EXPECT().StartExecution(gomock.Any(), &sfn.StartExecutionInput{
+					StateMachineArn: awsv2.String("forca barca"),
 				}).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("execute state machine forca barca: some error"),
@@ -91,10 +91,10 @@ func TestStepFunctions_Execute(t *testing.T) {
 		"success": {
 			inStateMachineARN: "forca barca",
 			mockStepFunctionsClient: func(m *mocks.Mockapi) {
-				m.EXPECT().StartExecution(&sfn.StartExecutionInput{
-					StateMachineArn: aws.String("forca barca"),
+				m.EXPECT().StartExecution(gomock.Any(), &sfn.StartExecutionInput{
+					StateMachineArn: awsv2.String("forca barca"),
 				}).Return(&sfn.StartExecutionOutput{
-					ExecutionArn: aws.String("forca barca"),
+					ExecutionArn: awsv2.String("forca barca"),
 					StartDate:    func() *time.Time { t := time.Now(); return &t }(),
 				}, nil)
 			},

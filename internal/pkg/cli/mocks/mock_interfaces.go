@@ -35,6 +35,7 @@ import (
 	prompt "github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	selector "github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	workspace "github.com/aproint/copilot-cli/internal/pkg/workspace"
+	aws "github.com/aws/aws-sdk-go-v2/aws"
 	session "github.com/aws/aws-sdk-go/aws/session"
 	cloudformation1 "github.com/aws/aws-sdk-go/service/cloudformation"
 	gomock "github.com/golang/mock/gomock"
@@ -1960,6 +1961,21 @@ func (m *MockregionalSessionProvider) EXPECT() *MockregionalSessionProviderMockR
 	return m.recorder
 }
 
+// DefaultConfigWithRegion mocks base method.
+func (m *MockregionalSessionProvider) DefaultConfigWithRegion(ctx context.Context, region string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DefaultConfigWithRegion", ctx, region)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DefaultConfigWithRegion indicates an expected call of DefaultConfigWithRegion.
+func (mr *MockregionalSessionProviderMockRecorder) DefaultConfigWithRegion(ctx, region interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultConfigWithRegion", reflect.TypeOf((*MockregionalSessionProvider)(nil).DefaultConfigWithRegion), ctx, region)
+}
+
 // DefaultWithRegion mocks base method.
 func (m *MockregionalSessionProvider) DefaultWithRegion(region string) (*session.Session, error) {
 	m.ctrl.T.Helper()
@@ -1996,6 +2012,21 @@ func NewMocksessionFromRoleProvider(ctrl *gomock.Controller) *MocksessionFromRol
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MocksessionFromRoleProvider) EXPECT() *MocksessionFromRoleProviderMockRecorder {
 	return m.recorder
+}
+
+// ConfigFromRole mocks base method.
+func (m *MocksessionFromRoleProvider) ConfigFromRole(ctx context.Context, roleARN, region string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigFromRole", ctx, roleARN, region)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfigFromRole indicates an expected call of ConfigFromRole.
+func (mr *MocksessionFromRoleProviderMockRecorder) ConfigFromRole(ctx, roleARN, region interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromRole", reflect.TypeOf((*MocksessionFromRoleProvider)(nil).ConfigFromRole), ctx, roleARN, region)
 }
 
 // FromRole mocks base method.
@@ -2112,6 +2143,21 @@ func (m *MocksessionProvider) EXPECT() *MocksessionProviderMockRecorder {
 	return m.recorder
 }
 
+// ConfigFromRole mocks base method.
+func (m *MocksessionProvider) ConfigFromRole(ctx context.Context, roleARN, region string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigFromRole", ctx, roleARN, region)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfigFromRole indicates an expected call of ConfigFromRole.
+func (mr *MocksessionProviderMockRecorder) ConfigFromRole(ctx, roleARN, region interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromRole", reflect.TypeOf((*MocksessionProvider)(nil).ConfigFromRole), ctx, roleARN, region)
+}
+
 // Default mocks base method.
 func (m *MocksessionProvider) Default() (*session.Session, error) {
 	m.ctrl.T.Helper()
@@ -2125,6 +2171,21 @@ func (m *MocksessionProvider) Default() (*session.Session, error) {
 func (mr *MocksessionProviderMockRecorder) Default() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Default", reflect.TypeOf((*MocksessionProvider)(nil).Default))
+}
+
+// DefaultConfigWithRegion mocks base method.
+func (m *MocksessionProvider) DefaultConfigWithRegion(ctx context.Context, region string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DefaultConfigWithRegion", ctx, region)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DefaultConfigWithRegion indicates an expected call of DefaultConfigWithRegion.
+func (mr *MocksessionProviderMockRecorder) DefaultConfigWithRegion(ctx, region interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultConfigWithRegion", reflect.TypeOf((*MocksessionProvider)(nil).DefaultConfigWithRegion), ctx, region)
 }
 
 // DefaultWithRegion mocks base method.

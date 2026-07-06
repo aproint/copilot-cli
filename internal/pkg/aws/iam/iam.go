@@ -5,14 +5,15 @@
 package iam
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 )
 
 const (
@@ -20,12 +21,12 @@ const (
 )
 
 type api interface {
-	ListRoleTags(input *iam.ListRoleTagsInput) (*iam.ListRoleTagsOutput, error)
-	DeleteRolePolicy(input *iam.DeleteRolePolicyInput) (*iam.DeleteRolePolicyOutput, error)
-	ListRolePolicies(input *iam.ListRolePoliciesInput) (*iam.ListRolePoliciesOutput, error)
-	DeleteRole(input *iam.DeleteRoleInput) (*iam.DeleteRoleOutput, error)
-	CreateServiceLinkedRole(input *iam.CreateServiceLinkedRoleInput) (*iam.CreateServiceLinkedRoleOutput, error)
-	ListPolicies(input *iam.ListPoliciesInput) (*iam.ListPoliciesOutput, error)
+	ListRoleTags(context.Context, *iam.ListRoleTagsInput, ...func(*iam.Options)) (*iam.ListRoleTagsOutput, error)
+	DeleteRolePolicy(context.Context, *iam.DeleteRolePolicyInput, ...func(*iam.Options)) (*iam.DeleteRolePolicyOutput, error)
+	ListRolePolicies(context.Context, *iam.ListRolePoliciesInput, ...func(*iam.Options)) (*iam.ListRolePoliciesOutput, error)
+	DeleteRole(context.Context, *iam.DeleteRoleInput, ...func(*iam.Options)) (*iam.DeleteRoleOutput, error)
+	CreateServiceLinkedRole(context.Context, *iam.CreateServiceLinkedRoleInput, ...func(*iam.Options)) (*iam.CreateServiceLinkedRoleOutput, error)
+	ListPolicies(context.Context, *iam.ListPoliciesInput, ...func(*iam.Options)) (*iam.ListPoliciesOutput, error)
 }
 
 // IAM wraps the AWS SDK's IAM client.
@@ -33,10 +34,10 @@ type IAM struct {
 	client api
 }
 
-// New returns an IAM client configured against the input session.
-func New(s *session.Session) *IAM {
+// New returns an IAM client configured against the input SDK v2 config.
+func New(cfg awsv2.Config) *IAM {
 	return &IAM{
-		client: iam.New(s),
+		client: iam.NewFromConfig(cfg),
 	}
 }
 
@@ -45,17 +46,17 @@ func (c *IAM) ListRoleTags(roleName string) (map[string]string, error) {
 	tags := make(map[string]string)
 	var marker *string
 	for {
-		out, err := c.client.ListRoleTags(&iam.ListRoleTagsInput{
-			RoleName: aws.String(roleName),
+		out, err := c.client.ListRoleTags(context.Background(), &iam.ListRoleTagsInput{
+			RoleName: awsv2.String(roleName),
 			Marker:   marker,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("list role tags for role %s and marker %v: %w", roleName, marker, err)
 		}
 		for _, tag := range out.Tags {
-			tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
+			tags[awsv2.ToString(tag.Key)] = awsv2.ToString(tag.Value)
 		}
-		if !aws.BoolValue(out.IsTruncated) {
+		if !out.IsTruncated {
 			return tags, nil
 		}
 		marker = out.Marker
@@ -75,8 +76,8 @@ func (c *IAM) DeleteRole(roleNameOrARN string) error {
 	if err := c.deleteRolePolicies(roleName); err != nil {
 		return err
 	}
-	if _, err := c.client.DeleteRole(&iam.DeleteRoleInput{
-		RoleName: aws.String(roleName),
+	if _, err := c.client.DeleteRole(context.Background(), &iam.DeleteRoleInput{
+		RoleName: awsv2.String(roleName),
 	}); err != nil {
 		if isNotExistErr(err) {
 			// The role does not exist, exit successfully.
@@ -91,8 +92,8 @@ func (c *IAM) DeleteRole(roleNameOrARN string) error {
 // This role is necessary so that Amazon ECS can call AWS APIs.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using-service-linked-roles.html
 func (c *IAM) CreateECSServiceLinkedRole() error {
-	if _, err := c.client.CreateServiceLinkedRole(&iam.CreateServiceLinkedRoleInput{
-		AWSServiceName: aws.String(ecsServiceName),
+	if _, err := c.client.CreateServiceLinkedRole(context.Background(), &iam.CreateServiceLinkedRoleInput{
+		AWSServiceName: awsv2.String(ecsServiceName),
 	}); err != nil {
 		return fmt.Errorf("create service linked role for %s: %w", ecsServiceName, err)
 	}
@@ -101,26 +102,26 @@ func (c *IAM) CreateECSServiceLinkedRole() error {
 
 // ListPolicyNames returns a list of local policy names.
 func (c *IAM) ListPolicyNames() ([]string, error) {
-	var policies []*iam.Policy
+	var policies []types.Policy
 	var marker *string
 	for {
-		output, err := c.client.ListPolicies(&iam.ListPoliciesInput{
+		output, err := c.client.ListPolicies(context.Background(), &iam.ListPoliciesInput{
 			Marker:            marker,
-			Scope:             aws.String("Local"),
-			PolicyUsageFilter: aws.String("PermissionsBoundary"),
+			Scope:             types.PolicyScopeTypeLocal,
+			PolicyUsageFilter: types.PolicyUsageTypePermissionsBoundary,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("list IAM policies: %w", err)
 		}
 		policies = append(policies, output.Policies...)
-		if !aws.BoolValue(output.IsTruncated) {
+		if !output.IsTruncated {
 			break
 		}
 		marker = output.Marker
 	}
 	var policyNames = make([]string, len(policies))
 	for i, policy := range policies {
-		policyNames[i] = aws.StringValue(policy.PolicyName)
+		policyNames[i] = awsv2.ToString(policy.PolicyName)
 	}
 	return policyNames, nil
 }
@@ -131,23 +132,23 @@ func (c *IAM) deleteRolePolicies(roleName string) error {
 		return err
 	}
 	for _, policyName := range policyNames {
-		if _, err := c.client.DeleteRolePolicy(&iam.DeleteRolePolicyInput{
-			PolicyName: policyName,
-			RoleName:   aws.String(roleName),
+		if _, err := c.client.DeleteRolePolicy(context.Background(), &iam.DeleteRolePolicyInput{
+			PolicyName: awsv2.String(policyName),
+			RoleName:   awsv2.String(roleName),
 		}); err != nil {
-			return fmt.Errorf("delete policy named %s in role %s: %w", aws.StringValue(policyName), roleName, err)
+			return fmt.Errorf("delete policy named %s in role %s: %w", policyName, roleName, err)
 		}
 	}
 	return nil
 }
 
-func (c *IAM) listRolePolicyNames(roleName string) ([]*string, error) {
-	var policyNames []*string
+func (c *IAM) listRolePolicyNames(roleName string) ([]string, error) {
+	var policyNames []string
 	var marker *string
 	for {
-		out, err := c.client.ListRolePolicies(&iam.ListRolePoliciesInput{
+		out, err := c.client.ListRolePolicies(context.Background(), &iam.ListRolePoliciesInput{
 			Marker:   marker,
-			RoleName: aws.String(roleName),
+			RoleName: awsv2.String(roleName),
 		})
 		if err != nil {
 			if isNotExistErr(err) {
@@ -156,7 +157,7 @@ func (c *IAM) listRolePolicyNames(roleName string) ([]*string, error) {
 			return nil, fmt.Errorf("list role policies for role %s: %v", roleName, err)
 		}
 		policyNames = append(policyNames, out.PolicyNames...)
-		if !aws.BoolValue(out.IsTruncated) {
+		if !out.IsTruncated {
 			return policyNames, nil
 		}
 		marker = out.Marker
@@ -164,14 +165,6 @@ func (c *IAM) listRolePolicyNames(roleName string) ([]*string, error) {
 }
 
 func isNotExistErr(err error) bool {
-	aerr, ok := err.(awserr.Error)
-	if !ok {
-		return false
-	}
-	switch aerr.Code() {
-	case iam.ErrCodeNoSuchEntityException:
-		return true
-	default:
-		return false
-	}
+	var notFound *types.NoSuchEntityException
+	return errors.As(err, &notFound)
 }

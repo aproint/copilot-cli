@@ -124,7 +124,7 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 				return fmt.Errorf("create session from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
 			}
 			o.rg = resourcegroupstaggingapi.New(sess)
-			o.iam = iam.New(sess)
+			o.iam = iam.New(v2ConfigFromSessionRegion(sess))
 			o.s3 = s3.New(sess)
 			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), sess)
 			o.deployer = cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))

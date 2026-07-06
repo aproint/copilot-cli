@@ -74,12 +74,12 @@ func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
 	fs := afero.NewOsFs()
 	cfg := v2ConfigFromSessionRegion(sess)
 	identity := identity.New(cfg)
-	iamClient := iam.New(sess)
+	iamClient := iam.New(v2ConfigFromSessionRegion(sess))
 	return &initAppOpts{
 		initAppVars:    vars,
 		identity:       identity,
 		store:          config.NewSSMStore(identity, ssm.New(sess), aws.StringValue(sess.Config.Region)),
-		route53:        route53.New(sess),
+		route53:        route53.New(v2ConfigFromSessionRegion(sess)),
 		cfn:            cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:         prompt.New(),
 		prog:           termprogress.NewSpinner(log.DiagnosticWriter),

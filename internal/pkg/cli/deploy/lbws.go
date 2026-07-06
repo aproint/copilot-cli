@@ -86,7 +86,7 @@ func NewLBWSDeployer(in *WorkloadDeployerInput) (*lbWebSvcDeployer, error) {
 			sess := svcDeployer.envSess.Copy(&aws.Config{
 				Region: optionalRegion,
 			})
-			return acm.New(sess)
+			return acm.New(v2ConfigFromSessionRegion(sess))
 		},
 	}, nil
 }

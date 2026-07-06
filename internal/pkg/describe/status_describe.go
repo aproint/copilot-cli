@@ -107,7 +107,7 @@ func NewECSStatusDescriber(opt *NewServiceStatusConfig) (*ecsStatusDescriber, er
 		svcDescriber:       ecs.New(sess, v2ConfigFromSessionRegion(sess)),
 		cwSvcGetter:        cloudwatch.New(sess, v2ConfigFromSessionRegion(sess)),
 		ecsSvcGetter:       awsecs.New(sess),
-		aasSvcGetter:       aas.New(sess),
+		aasSvcGetter:       aas.New(v2ConfigFromSessionRegion(sess)),
 		targetHealthGetter: elbv2.New(sess),
 	}, nil
 }
@@ -129,7 +129,7 @@ func NewAppRunnerStatusDescriber(opt *NewServiceStatusConfig) (*appRunnerStatusD
 		env:          opt.Env,
 		svc:          opt.Svc,
 		svcDescriber: appRunnerSvcDescriber,
-		eventsGetter: cloudwatchlogs.New(appRunnerSvcDescriber.sess),
+		eventsGetter: cloudwatchlogs.New(v2ConfigFromSessionRegion(appRunnerSvcDescriber.sess)),
 	}, nil
 }
 

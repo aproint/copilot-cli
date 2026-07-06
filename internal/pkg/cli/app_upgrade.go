@@ -67,7 +67,7 @@ func newAppUpgradeOpts(vars appUpgradeVars) (*appUpgradeOpts, error) {
 		appUpgradeVars: vars,
 		store:          store,
 		identity:       identity.New(cfg),
-		route53:        route53.New(sess),
+		route53:        route53.New(v2ConfigFromSessionRegion(sess)),
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		upgrader:       cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),
 		newVersionGetter: func(appName string) (versionGetter, error) {

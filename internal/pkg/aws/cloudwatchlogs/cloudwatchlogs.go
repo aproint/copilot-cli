@@ -5,13 +5,14 @@
 package cloudwatchlogs
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 )
 
 const (
@@ -25,8 +26,8 @@ var (
 )
 
 type api interface {
-	DescribeLogStreams(input *cloudwatchlogs.DescribeLogStreamsInput) (*cloudwatchlogs.DescribeLogStreamsOutput, error)
-	GetLogEvents(input *cloudwatchlogs.GetLogEventsInput) (*cloudwatchlogs.GetLogEventsOutput, error)
+	DescribeLogStreams(context.Context, *cloudwatchlogs.DescribeLogStreamsInput, ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogStreamsOutput, error)
+	GetLogEvents(context.Context, *cloudwatchlogs.GetLogEventsInput, ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.GetLogEventsOutput, error)
 }
 
 // CloudWatchLogs wraps an AWS Cloudwatch Logs client.
@@ -54,10 +55,10 @@ type LogEventsOpts struct {
 	LogStreamLimit int
 }
 
-// New returns a CloudWatchLogs configured against the input session.
-func New(s *session.Session) *CloudWatchLogs {
+// New returns a CloudWatchLogs configured against the input SDK v2 config.
+func New(cfg awsv2.Config) *CloudWatchLogs {
 	return &CloudWatchLogs{
-		client: cloudwatchlogs.New(s),
+		client: cloudwatchlogs.NewFromConfig(cfg),
 	}
 }
 
@@ -67,10 +68,10 @@ func (c *CloudWatchLogs) logStreams(logGroup string, logStreamLimit int, logStre
 	logStreamsResp := &cloudwatchlogs.DescribeLogStreamsOutput{}
 	for {
 		var err error
-		logStreamsResp, err = c.client.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
-			LogGroupName: aws.String(logGroup),
-			Descending:   aws.Bool(true),
-			OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
+		logStreamsResp, err = c.client.DescribeLogStreams(context.Background(), &cloudwatchlogs.DescribeLogStreamsInput{
+			LogGroupName: awsv2.String(logGroup),
+			Descending:   awsv2.Bool(true),
+			OrderBy:      types.OrderByLastEventTime,
 			NextToken:    logStreamsResp.NextToken,
 		})
 		if err != nil {
@@ -82,7 +83,7 @@ func (c *CloudWatchLogs) logStreams(logGroup string, logStreamLimit int, logStre
 
 		var streams []string
 		for _, logStream := range logStreamsResp.LogStreams {
-			name := aws.StringValue(logStream.LogStreamName)
+			name := awsv2.ToString(logStream.LogStreamName)
 			if name == "" {
 				continue
 			}
@@ -96,7 +97,7 @@ func (c *CloudWatchLogs) logStreams(logGroup string, logStreamLimit int, logStre
 		if logStreamLimit != 0 && len(logStreamNames) >= logStreamLimit {
 			break
 		}
-		if token := logStreamsResp.NextToken; aws.StringValue(token) == "" {
+		if token := logStreamsResp.NextToken; awsv2.ToString(token) == "" {
 			break
 		}
 	}
@@ -119,14 +120,14 @@ func (c *CloudWatchLogs) LogEvents(opts LogEventsOpts) (*LogEventsOutput, error)
 	}
 	for _, logStream := range logStreams {
 		// Set override value
-		in.SetLogStreamName(logStream)
+		in.LogStreamName = awsv2.String(logStream)
 		if streamLastEventTime[logStream] != 0 {
 			// If last event for this log stream exists, increment last log event timestamp
 			// by one to get logs after the last event.
-			in.SetStartTime(streamLastEventTime[logStream] + 1)
+			in.StartTime = awsv2.Int64(streamLastEventTime[logStream] + 1)
 		}
 		// TODO: https://github.com/aproint/copilot-cli/pull/628#discussion_r374291068 and https://github.com/aproint/copilot-cli/pull/628#discussion_r374294362
-		resp, err := c.client.GetLogEvents(in)
+		resp, err := c.client.GetLogEvents(context.Background(), in)
 		if err != nil {
 			return nil, fmt.Errorf("get log events of %s/%s: %w", opts.LogGroup, logStream, err)
 		}
@@ -134,9 +135,9 @@ func (c *CloudWatchLogs) LogEvents(opts LogEventsOpts) (*LogEventsOutput, error)
 		for _, event := range resp.Events {
 			log := &Event{
 				LogStreamName: logStream,
-				IngestionTime: aws.Int64Value(event.IngestionTime),
-				Message:       aws.StringValue(event.Message),
-				Timestamp:     aws.Int64Value(event.Timestamp),
+				IngestionTime: awsv2.ToInt64(event.IngestionTime),
+				Message:       awsv2.ToString(event.Message),
+				Timestamp:     awsv2.ToInt64(event.Timestamp),
 			}
 			events = append(events, log)
 		}
@@ -145,7 +146,7 @@ func (c *CloudWatchLogs) LogEvents(opts LogEventsOpts) (*LogEventsOutput, error)
 		}
 	}
 	sort.SliceStable(events, func(i, j int) bool { return events[i].Timestamp < events[j].Timestamp })
-	limit := int(aws.Int64Value(in.Limit))
+	limit := int(awsv2.ToInt32(in.Limit))
 	if limit != 0 {
 		return &LogEventsOutput{
 			Events:              truncateEvents(limit, events),
@@ -174,11 +175,19 @@ func truncateStreams(limit int, streams []string) []string {
 
 func initGetLogEventsInput(opts LogEventsOpts) *cloudwatchlogs.GetLogEventsInput {
 	return &cloudwatchlogs.GetLogEventsInput{
-		LogGroupName: aws.String(opts.LogGroup),
+		LogGroupName: awsv2.String(opts.LogGroup),
 		StartTime:    opts.StartTime,
 		EndTime:      opts.EndTime,
-		Limit:        opts.Limit,
+		Limit:        int64ToInt32Ptr(opts.Limit),
 	}
+}
+
+func int64ToInt32Ptr(v *int64) *int32 {
+	if v == nil {
+		return nil
+	}
+	converted := int32(*v)
+	return &converted
 }
 
 // Example: if the prefixes is []string{"a"} and all is []string{"a", "b", "ab"}

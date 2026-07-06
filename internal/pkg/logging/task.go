@@ -49,7 +49,7 @@ func NewTaskClient(sess *session.Session, groupName string, tasks []*task.Task) 
 		tasks:     tasks,
 
 		taskDescriber: ecs.New(sess),
-		eventsLogger:  cloudwatchlogs.New(sess),
+		eventsLogger:  cloudwatchlogs.New(v2ConfigFromSessionRegion(sess)),
 		eventsWriter:  log.OutputWriter,
 
 		sleep: func() {

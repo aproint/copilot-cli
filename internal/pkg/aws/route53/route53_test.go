@@ -4,14 +4,16 @@
 package route53
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/route53/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -27,16 +29,16 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		"domain exists": {
 			domainName: "mockDomain.com",
 			mockRoute53Client: func(m *mocks.Mockapi) {
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName: aws.String("mockDomain.com"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated: aws.Bool(false),
-					HostedZones: []*route53.HostedZone{
+					IsTruncated: false,
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain.com"),
 							Id:   aws.String("mockID"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
@@ -48,16 +50,16 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		"DNS with subdomain": {
 			domainName: "mockDomain.subdomain.com",
 			mockRoute53Client: func(m *mocks.Mockapi) {
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName: aws.String("mockDomain.subdomain.com"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated: aws.Bool(false),
-					HostedZones: []*route53.HostedZone{
+					IsTruncated: false,
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain.subdomain.com."),
 							Id:   aws.String("mockID"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
@@ -69,40 +71,40 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		"domain exists within more than one page": {
 			domainName: "mockDomain3.com",
 			mockRoute53Client: func(m *mocks.Mockapi) {
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName: aws.String("mockDomain3.com"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated:      aws.Bool(true),
+					IsTruncated:      true,
 					NextDNSName:      aws.String("mockDomain2.com"),
 					NextHostedZoneId: aws.String("mockID"),
-					HostedZones: []*route53.HostedZone{
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain1.com"),
 							Id:   aws.String("mockID1"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
 				}, nil)
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName:      aws.String("mockDomain2.com"),
 					HostedZoneId: aws.String("mockID"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated: aws.Bool(false),
-					HostedZones: []*route53.HostedZone{
+					IsTruncated: false,
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain2.com"),
 							Id:   aws.String("mockID2"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 						{
 							Name: aws.String("mockDomain3.com"),
 							Id:   aws.String("mockID3"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
@@ -114,37 +116,37 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		"domain does not exist": {
 			domainName: "mockDomain4.com",
 			mockRoute53Client: func(m *mocks.Mockapi) {
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName: aws.String("mockDomain4.com"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated:      aws.Bool(true),
+					IsTruncated:      true,
 					NextDNSName:      aws.String("mockDomain2.com"),
 					NextHostedZoneId: aws.String("mockID"),
-					HostedZones: []*route53.HostedZone{
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain1.com"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
 				}, nil)
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName:      aws.String("mockDomain2.com"),
 					HostedZoneId: aws.String("mockID"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated: aws.Bool(false),
-					HostedZones: []*route53.HostedZone{
+					IsTruncated: false,
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain2.com"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 						{
 							Name: aws.String("mockDomain3.com"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
@@ -157,7 +159,7 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		"failed to validate if domain exists": {
 			domainName: "mockDomain.com",
 			mockRoute53Client: func(m *mocks.Mockapi) {
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName: aws.String("mockDomain.com"),
 				}).Return(nil, errors.New("some error"))
 			},
@@ -166,47 +168,47 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		"filter and pick the first public hosted zone": {
 			domainName: "mockDomain3.com",
 			mockRoute53Client: func(m *mocks.Mockapi) {
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName: aws.String("mockDomain3.com"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated:      aws.Bool(true),
+					IsTruncated:      true,
 					NextDNSName:      aws.String("mockDomain2.com"),
 					NextHostedZoneId: aws.String("mockID"),
-					HostedZones: []*route53.HostedZone{
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain1.com"),
 							Id:   aws.String("mockID1"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
 				}, nil)
-				m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+				m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 					DNSName:      aws.String("mockDomain2.com"),
 					HostedZoneId: aws.String("mockID"),
 				}).Return(&route53.ListHostedZonesByNameOutput{
-					IsTruncated: aws.Bool(false),
-					HostedZones: []*route53.HostedZone{
+					IsTruncated: false,
+					HostedZones: []types.HostedZone{
 						{
 							Name: aws.String("mockDomain3.com"),
 							Id:   aws.String("mockID2"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(true),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: true,
 							},
 						},
 						{
 							Name: aws.String("mockDomain3.com"),
 							Id:   aws.String("mockID3"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 						{
 							Name: aws.String("mockDomain3.com"),
 							Id:   aws.String("mockID4"),
-							Config: &route53.HostedZoneConfig{
-								PrivateZone: aws.Bool(false),
+							Config: &types.HostedZoneConfig{
+								PrivateZone: false,
 							},
 						},
 					},
@@ -246,16 +248,16 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		defer ctrl.Finish()
 
 		m := mocks.NewMockapi(ctrl)
-		m.EXPECT().ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+		m.EXPECT().ListHostedZonesByName(context.Background(), &route53.ListHostedZonesByNameInput{
 			DNSName: aws.String("example.com"),
 		}).Return(&route53.ListHostedZonesByNameOutput{
-			IsTruncated: aws.Bool(false),
-			HostedZones: []*route53.HostedZone{
+			IsTruncated: false,
+			HostedZones: []types.HostedZone{
 				{
 					Name: aws.String("example.com"),
 					Id:   aws.String("Z0698117FUWMJ87C39TF"),
-					Config: &route53.HostedZoneConfig{
-						PrivateZone: aws.Bool(false),
+					Config: &types.HostedZoneConfig{
+						PrivateZone: false,
 					},
 				},
 			},
@@ -284,7 +286,7 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockAWS := mocks.NewMockapi(ctrl)
-		mockAWS.EXPECT().ListResourceRecordSets(gomock.Any()).Return(nil, errors.New("some error"))
+		mockAWS.EXPECT().ListResourceRecordSets(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 		r53 := Route53{
 			client: mockAWS,
 			hostedZoneIDFor: map[string]string{
@@ -303,7 +305,7 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockAWS := mocks.NewMockapi(ctrl)
-		mockAWS.EXPECT().ListResourceRecordSets(gomock.Any()).Return(&route53.ListResourceRecordSetsOutput{}, nil)
+		mockAWS.EXPECT().ListResourceRecordSets(gomock.Any(), gomock.Any()).Return(&route53.ListResourceRecordSetsOutput{}, nil)
 
 		mockResolver := mocks.NewMocknameserverResolver(ctrl)
 		mockResolver.EXPECT().LookupNS(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
@@ -326,12 +328,12 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockAWS := mocks.NewMockapi(ctrl)
-		mockAWS.EXPECT().ListResourceRecordSets(gomock.Any()).Return(&route53.ListResourceRecordSetsOutput{
-			ResourceRecordSets: []*route53.ResourceRecordSet{
+		mockAWS.EXPECT().ListResourceRecordSets(gomock.Any(), gomock.Any()).Return(&route53.ListResourceRecordSetsOutput{
+			ResourceRecordSets: []types.ResourceRecordSet{
 				{
 					Name: aws.String("example.com."),
-					Type: aws.String("NS"),
-					ResourceRecords: []*route53.ResourceRecord{
+					Type: types.RRTypeNs,
+					ResourceRecords: []types.ResourceRecord{
 						{
 							Value: aws.String("ns-1119.awsdns-11.org."),
 						},
@@ -372,14 +374,14 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockAWS := mocks.NewMockapi(ctrl)
-		mockAWS.EXPECT().ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
+		mockAWS.EXPECT().ListResourceRecordSets(context.Background(), &route53.ListResourceRecordSetsInput{
 			HostedZoneId: aws.String("Z0698117FUWMJ87C39TF"),
 		}).Return(&route53.ListResourceRecordSetsOutput{
-			ResourceRecordSets: []*route53.ResourceRecordSet{
+			ResourceRecordSets: []types.ResourceRecordSet{
 				{
 					Name: aws.String("example.com."),
-					Type: aws.String("NS"),
-					ResourceRecords: []*route53.ResourceRecord{
+					Type: types.RRTypeNs,
+					ResourceRecords: []types.ResourceRecord{
 						{
 							Value: aws.String("dns-ns1.amazon.com."),
 						},
@@ -390,8 +392,8 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 				},
 				{
 					Name: aws.String("demo.example.com."),
-					Type: aws.String("NS"),
-					ResourceRecords: []*route53.ResourceRecord{
+					Type: types.RRTypeNs,
+					ResourceRecords: []types.ResourceRecord{
 						{
 							Value: aws.String("ns-473.awsdns-59.com"),
 						},
@@ -428,14 +430,14 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockAWS := mocks.NewMockapi(ctrl)
-		mockAWS.EXPECT().ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
+		mockAWS.EXPECT().ListResourceRecordSets(context.Background(), &route53.ListResourceRecordSetsInput{
 			HostedZoneId: aws.String("Z0698117FUWMJ87C39TF"),
 		}).Return(&route53.ListResourceRecordSetsOutput{
-			ResourceRecordSets: []*route53.ResourceRecordSet{
+			ResourceRecordSets: []types.ResourceRecordSet{
 				{
 					Name: aws.String("example.com."),
-					Type: aws.String("NS"),
-					ResourceRecords: []*route53.ResourceRecord{
+					Type: types.RRTypeNs,
+					ResourceRecords: []types.ResourceRecord{
 						{
 							Value: aws.String("dns-ns1.amazon.com."),
 						},

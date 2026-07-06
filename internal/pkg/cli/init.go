@@ -121,7 +121,7 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 	spin := termprogress.NewSpinner(log.DiagnosticWriter)
 	id := identity.New(v2ConfigFromSessionRegion(defaultSess))
 	deployer := cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr))
-	iamClient := iam.New(defaultSess)
+	iamClient := iam.New(v2ConfigFromSessionRegion(defaultSess))
 	initAppCmd := &initAppOpts{
 		initAppVars: initAppVars{
 			name: vars.appName,

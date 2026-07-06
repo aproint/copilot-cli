@@ -46,7 +46,7 @@ func NewBackendDeployer(in *WorkloadDeployerInput) (*backendSvcDeployer, error) 
 		svcDeployer:        svcDeployer,
 		elbGetter:          elbv2.New(svcDeployer.envSess),
 		backendMft:         bsMft,
-		aliasCertValidator: acm.New(svcDeployer.envSess),
+		aliasCertValidator: acm.New(v2ConfigFromSessionRegion(svcDeployer.envSess)),
 	}, nil
 }
 

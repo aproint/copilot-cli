@@ -49,7 +49,7 @@ func newWorkloadLogger(opts *NewWorkloadLoggerOpts) *workloadLogger {
 		app:          opts.App,
 		env:          opts.Env,
 		name:         opts.Name,
-		eventsGetter: cloudwatchlogs.New(opts.Sess),
+		eventsGetter: cloudwatchlogs.New(v2ConfigFromSessionRegion(opts.Sess)),
 		w:            log.OutputWriter,
 		now:          time.Now,
 	}

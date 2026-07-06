@@ -363,7 +363,7 @@ func (o *initEnvOpts) initRuntimeClients() error {
 		o.cfn = cloudformation.New(o.sess)
 	}
 	if o.iam == nil {
-		o.iam = iam.New(o.sess)
+		o.iam = iam.New(v2ConfigFromSessionRegion(o.sess))
 	}
 	return nil
 }

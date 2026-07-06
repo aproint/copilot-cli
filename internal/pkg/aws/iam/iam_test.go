@@ -4,13 +4,14 @@
 package iam
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/iam/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +28,7 @@ func TestIAM_ListRoleTags(t *testing.T) {
 			inRoleName: "read-only",
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListRoleTags(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListRoleTags(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			wantedErr: errors.New("list role tags for role read-only and marker <nil>: some error"),
@@ -37,23 +38,23 @@ func TestIAM_ListRoleTags(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				gomock.InOrder(
-					m.EXPECT().ListRoleTags(&iam.ListRoleTagsInput{
+					m.EXPECT().ListRoleTags(context.Background(), &iam.ListRoleTagsInput{
 						RoleName: aws.String("read-only"),
 					}).Return(&iam.ListRoleTagsOutput{
-						IsTruncated: aws.Bool(true),
+						IsTruncated: true,
 						Marker:      aws.String("marker"),
-						Tags: []*iam.Tag{
+						Tags: []types.Tag{
 							{
 								Key:   aws.String("copilot-application"),
 								Value: aws.String("hello"),
 							},
 						},
 					}, nil),
-					m.EXPECT().ListRoleTags(&iam.ListRoleTagsInput{
+					m.EXPECT().ListRoleTags(context.Background(), &iam.ListRoleTagsInput{
 						RoleName: aws.String("read-only"),
 						Marker:   aws.String("marker"),
 					}).Return(&iam.ListRoleTagsOutput{
-						Tags: []*iam.Tag{
+						Tags: []types.Tag{
 							{
 								Key:   aws.String("copilot-environment"),
 								Value: aws.String("world"),
@@ -105,11 +106,11 @@ func TestIAM_DeleteRole(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					ListRolePolicies(&iam.ListRolePoliciesInput{
+					ListRolePolicies(context.Background(), &iam.ListRolePoliciesInput{
 						RoleName: aws.String("phonetool-test-CFNExecutionRole"),
 					}).
 					Return(nil, errors.New("some error"))
-				m.EXPECT().DeleteRolePolicy(gomock.Any()).Times(0)
+				m.EXPECT().DeleteRolePolicy(gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			wantedErr: errors.New("list role policies for role phonetool-test-CFNExecutionRole: some error"),
@@ -119,11 +120,11 @@ func TestIAM_DeleteRole(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					ListRolePolicies(gomock.Any()).
+					ListRolePolicies(gomock.Any(), gomock.Any()).
 					Return(&iam.ListRolePoliciesOutput{
-						PolicyNames: []*string{aws.String("policy1")},
+						PolicyNames: []string{"policy1"},
 					}, nil)
-				m.EXPECT().DeleteRolePolicy(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().DeleteRolePolicy(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			wantedErr: errors.New("delete policy named policy1 in role phonetool-test-CFNExecutionRole: some error"),
@@ -133,9 +134,9 @@ func TestIAM_DeleteRole(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					ListRolePolicies(gomock.Any()).
+					ListRolePolicies(gomock.Any(), gomock.Any()).
 					Return(&iam.ListRolePoliciesOutput{}, nil)
-				m.EXPECT().DeleteRole(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().DeleteRole(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			wantedErr: errors.New("delete role named phonetool-test-CFNExecutionRole: some error"),
@@ -145,9 +146,9 @@ func TestIAM_DeleteRole(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					ListRolePolicies(gomock.Any()).
-					Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "does not exist", nil))
-				m.EXPECT().DeleteRole(gomock.Any()).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "does not exist", nil))
+					ListRolePolicies(gomock.Any(), gomock.Any()).
+					Return(nil, &types.NoSuchEntityException{})
+				m.EXPECT().DeleteRole(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchEntityException{})
 				return m
 			},
 		},
@@ -156,23 +157,23 @@ func TestIAM_DeleteRole(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					ListRolePolicies(&iam.ListRolePoliciesInput{
+					ListRolePolicies(context.Background(), &iam.ListRolePoliciesInput{
 						RoleName: aws.String("phonetool-test-CFNExecutionRole"),
 					}).
 					Return(&iam.ListRolePoliciesOutput{
-						PolicyNames: []*string{aws.String("policy1"), aws.String("policy2")},
+						PolicyNames: []string{"policy1", "policy2"},
 					}, nil)
 				gomock.InOrder(
-					m.EXPECT().DeleteRolePolicy(&iam.DeleteRolePolicyInput{
+					m.EXPECT().DeleteRolePolicy(context.Background(), &iam.DeleteRolePolicyInput{
 						PolicyName: aws.String("policy1"),
 						RoleName:   aws.String("phonetool-test-CFNExecutionRole"),
 					}).Return(nil, nil),
-					m.EXPECT().DeleteRolePolicy(&iam.DeleteRolePolicyInput{
+					m.EXPECT().DeleteRolePolicy(context.Background(), &iam.DeleteRolePolicyInput{
 						PolicyName: aws.String("policy2"),
 						RoleName:   aws.String("phonetool-test-CFNExecutionRole"),
 					}).Return(nil, nil),
 				)
-				m.EXPECT().DeleteRole(&iam.DeleteRoleInput{
+				m.EXPECT().DeleteRole(context.Background(), &iam.DeleteRoleInput{
 					RoleName: aws.String("phonetool-test-CFNExecutionRole"),
 				}).Return(nil, nil)
 				return m
@@ -212,7 +213,7 @@ func TestIAM_CreateECSServiceLinkedRole(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					CreateServiceLinkedRole(gomock.Any()).
+					CreateServiceLinkedRole(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("some error"))
 				return m
 			},
@@ -254,7 +255,7 @@ func TestIAM_ListPolicies(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					ListPolicies(gomock.Any()).
+					ListPolicies(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("some error"))
 				return m
 			},
@@ -265,9 +266,9 @@ func TestIAM_ListPolicies(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.Mockapi {
 				m := mocks.NewMockapi(ctrl)
 				m.EXPECT().
-					ListPolicies(gomock.Any()).
+					ListPolicies(gomock.Any(), gomock.Any()).
 					Return(&iam.ListPoliciesOutput{
-						Policies: []*iam.Policy{
+						Policies: []types.Policy{
 							{
 								PolicyName: aws.String("myFirstPolicyName"),
 							},

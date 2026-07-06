@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/route53"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 )
 
 const (
@@ -23,8 +23,8 @@ const (
 )
 
 type api interface {
-	ListHostedZonesByName(*route53.ListHostedZonesByNameInput) (*route53.ListHostedZonesByNameOutput, error)
-	ListResourceRecordSets(*route53.ListResourceRecordSetsInput) (*route53.ListResourceRecordSetsOutput, error)
+	ListHostedZonesByName(context.Context, *route53.ListHostedZonesByNameInput, ...func(*route53.Options)) (*route53.ListHostedZonesByNameOutput, error)
+	ListResourceRecordSets(context.Context, *route53.ListResourceRecordSetsInput, ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error)
 }
 
 type nameserverResolver interface {
@@ -39,10 +39,11 @@ type Route53 struct {
 	hostedZoneIDFor map[string]string
 }
 
-// New returns a Route53 struct configured against the input session.
-func New(s *session.Session) *Route53 {
+// New returns a Route53 struct configured against the input SDK v2 config.
+func New(cfg awsv2.Config) *Route53 {
+	cfg.Region = route53Region
 	return &Route53{
-		client:          route53.New(s, aws.NewConfig().WithRegion(route53Region)),
+		client:          route53.NewFromConfig(cfg),
 		dns:             new(net.Resolver),
 		hostedZoneIDFor: make(map[string]string),
 	}
@@ -54,8 +55,8 @@ func (r53 *Route53) PublicDomainHostedZoneID(domainName string) (string, error) 
 		return id, nil
 	}
 
-	in := &route53.ListHostedZonesByNameInput{DNSName: aws.String(domainName)}
-	resp, err := r53.client.ListHostedZonesByName(in)
+	in := &route53.ListHostedZonesByNameInput{DNSName: awsv2.String(domainName)}
+	resp, err := r53.client.ListHostedZonesByName(context.Background(), in)
 	if err != nil {
 		return "", fmt.Errorf("list hosted zone for %s: %w", domainName, err)
 	}
@@ -63,17 +64,17 @@ func (r53 *Route53) PublicDomainHostedZoneID(domainName string) (string, error) 
 		hostedZones := filterHostedZones(resp.HostedZones, matchesDomain(domainName), matchesPublic())
 		if len(hostedZones) > 0 {
 			// return the first match.
-			id := strings.TrimPrefix(aws.StringValue(hostedZones[0].Id), "/hostedzone/")
+			id := strings.TrimPrefix(awsv2.ToString(hostedZones[0].Id), "/hostedzone/")
 			r53.hostedZoneIDFor[domainName] = id
 			return id, nil
 		}
-		if !aws.BoolValue(resp.IsTruncated) {
+		if !resp.IsTruncated {
 			return "", &ErrDomainHostedZoneNotFound{
 				domainName: domainName,
 			}
 		}
 		in = &route53.ListHostedZonesByNameInput{DNSName: resp.NextDNSName, HostedZoneId: resp.NextHostedZoneId}
-		resp, err = r53.client.ListHostedZonesByName(in)
+		resp, err = r53.client.ListHostedZonesByName(context.Background(), in)
 		if err != nil {
 			return "", fmt.Errorf("list hosted zone for %s: %w", domainName, err)
 		}
@@ -111,22 +112,22 @@ func (r53 *Route53) ValidateDomainOwnership(domainName string) error {
 }
 
 func (r53 *Route53) listHostedZoneNSRecords(domainName, hostedZoneID string) ([]string, error) {
-	out, err := r53.client.ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
-		HostedZoneId: aws.String(hostedZoneID),
+	out, err := r53.client.ListResourceRecordSets(context.Background(), &route53.ListResourceRecordSetsInput{
+		HostedZoneId: awsv2.String(hostedZoneID),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list resource record sets for hosted zone ID %q: %w", hostedZoneID, err)
 	}
 	var records []string
 	for _, set := range out.ResourceRecordSets {
-		if aws.StringValue(set.Type) != "NS" {
+		if set.Type != types.RRTypeNs {
 			continue
 		}
-		if name := aws.StringValue(set.Name); !(name == domainName || name == domainName+".") /* filter only for parent domain */ {
+		if name := awsv2.ToString(set.Name); !(name == domainName || name == domainName+".") /* filter only for parent domain */ {
 			continue
 		}
 		for _, record := range set.ResourceRecords {
-			records = append(records, cleanNSRecord(aws.StringValue(record.Value)))
+			records = append(records, cleanNSRecord(awsv2.ToString(record.Value)))
 		}
 	}
 	return records, nil
@@ -147,11 +148,11 @@ func (r53 *Route53) lookupNSRecords(domainName string) ([]string, error) {
 	return records, nil
 }
 
-type filterZoneFunc func(*route53.HostedZone) bool
+type filterZoneFunc func(types.HostedZone) bool
 
-func filterHostedZones(zones []*route53.HostedZone, filterFuncs ...filterZoneFunc) []*route53.HostedZone {
-	var hostedZones []*route53.HostedZone
-	passesAllFilters := func(zone *route53.HostedZone) bool {
+func filterHostedZones(zones []types.HostedZone, filterFuncs ...filterZoneFunc) []types.HostedZone {
+	var hostedZones []types.HostedZone
+	passesAllFilters := func(zone types.HostedZone) bool {
 		for _, fn := range filterFuncs {
 			if !fn(zone) {
 				return false
@@ -168,15 +169,18 @@ func filterHostedZones(zones []*route53.HostedZone, filterFuncs ...filterZoneFun
 }
 
 func matchesDomain(domain string) filterZoneFunc {
-	return func(z *route53.HostedZone) bool {
+	return func(z types.HostedZone) bool {
 		// example.com. should match example.com
-		return domain == aws.StringValue(z.Name) || domain+"." == aws.StringValue(z.Name)
+		return domain == awsv2.ToString(z.Name) || domain+"." == awsv2.ToString(z.Name)
 	}
 }
 
 func matchesPublic() filterZoneFunc {
-	return func(config *route53.HostedZone) bool {
-		return !aws.BoolValue(config.Config.PrivateZone)
+	return func(zone types.HostedZone) bool {
+		if zone.Config == nil {
+			return true
+		}
+		return !zone.Config.PrivateZone
 	}
 }
 

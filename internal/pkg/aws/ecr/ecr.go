@@ -5,18 +5,17 @@
 package ecr
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ecr"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 )
 
 const (
@@ -27,10 +26,10 @@ const (
 )
 
 type api interface {
-	DescribeImages(*ecr.DescribeImagesInput) (*ecr.DescribeImagesOutput, error)
-	GetAuthorizationToken(*ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error)
-	DescribeRepositories(*ecr.DescribeRepositoriesInput) (*ecr.DescribeRepositoriesOutput, error)
-	BatchDeleteImage(*ecr.BatchDeleteImageInput) (*ecr.BatchDeleteImageOutput, error)
+	DescribeImages(context.Context, *ecr.DescribeImagesInput, ...func(*ecr.Options)) (*ecr.DescribeImagesOutput, error)
+	GetAuthorizationToken(context.Context, *ecr.GetAuthorizationTokenInput, ...func(*ecr.Options)) (*ecr.GetAuthorizationTokenOutput, error)
+	DescribeRepositories(context.Context, *ecr.DescribeRepositoriesInput, ...func(*ecr.Options)) (*ecr.DescribeRepositoriesOutput, error)
+	BatchDeleteImage(context.Context, *ecr.BatchDeleteImageInput, ...func(*ecr.Options)) (*ecr.BatchDeleteImageOutput, error)
 }
 
 // ECR wraps an AWS ECR client.
@@ -38,16 +37,16 @@ type ECR struct {
 	client api
 }
 
-// New returns a ECR configured against the input session.
-func New(s *session.Session) ECR {
+// New returns a ECR configured against the input SDK v2 config.
+func New(cfg awsv2.Config) ECR {
 	return ECR{
-		client: ecr.New(s),
+		client: ecr.NewFromConfig(cfg),
 	}
 }
 
 // Auth returns the basic authentication credentials needed to push images.
 func (c ECR) Auth() (username string, password string, err error) {
-	response, err := c.client.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	response, err := c.client.GetAuthorizationToken(context.Background(), &ecr.GetAuthorizationTokenInput{})
 
 	if err != nil {
 		return "", "", fmt.Errorf("get ECR auth: %w", err)
@@ -65,8 +64,8 @@ func (c ECR) Auth() (username string, password string, err error) {
 
 // RepositoryURI returns the ECR repository URI.
 func (c ECR) RepositoryURI(name string) (string, error) {
-	result, err := c.client.DescribeRepositories(&ecr.DescribeRepositoriesInput{
-		RepositoryNames: aws.StringSlice([]string{name}),
+	result, err := c.client.DescribeRepositories(context.Background(), &ecr.DescribeRepositoriesInput{
+		RepositoryNames: []string{name},
 	})
 
 	if err != nil {
@@ -89,9 +88,9 @@ type Image struct {
 	Digest string
 }
 
-func (i Image) imageIdentifier() *ecr.ImageIdentifier {
-	return &ecr.ImageIdentifier{
-		ImageDigest: aws.String(i.Digest),
+func (i Image) imageIdentifier() types.ImageIdentifier {
+	return types.ImageIdentifier{
+		ImageDigest: awsv2.String(i.Digest),
 	}
 }
 
@@ -99,20 +98,20 @@ func (i Image) imageIdentifier() *ecr.ImageIdentifier {
 // Image metadata for images in the input ECR repository name.
 func (c ECR) ListImages(repoName string) ([]Image, error) {
 	var images []Image
-	resp, err := c.client.DescribeImages(&ecr.DescribeImagesInput{
-		RepositoryName: aws.String(repoName),
+	resp, err := c.client.DescribeImages(context.Background(), &ecr.DescribeImagesInput{
+		RepositoryName: awsv2.String(repoName),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("ecr repo %s describe images: %w", repoName, err)
 	}
 	for _, imageDetails := range resp.ImageDetails {
 		images = append(images, Image{
-			Digest: *imageDetails.ImageDigest,
+			Digest: awsv2.ToString(imageDetails.ImageDigest),
 		})
 	}
 	for resp.NextToken != nil {
-		resp, err = c.client.DescribeImages(&ecr.DescribeImagesInput{
-			RepositoryName: aws.String(repoName),
+		resp, err = c.client.DescribeImages(context.Background(), &ecr.DescribeImagesInput{
+			RepositoryName: awsv2.String(repoName),
 			NextToken:      resp.NextToken,
 		})
 		if err != nil {
@@ -120,7 +119,7 @@ func (c ECR) ListImages(repoName string) ([]Image, error) {
 		}
 		for _, imageDetails := range resp.ImageDetails {
 			images = append(images, Image{
-				Digest: *imageDetails.ImageDigest,
+				Digest: awsv2.ToString(imageDetails.ImageDigest),
 			})
 		}
 	}
@@ -133,18 +132,18 @@ func (c ECR) DeleteImages(images []Image, repoName string) error {
 		return nil
 	}
 
-	var imageIdentifiers []*ecr.ImageIdentifier
+	var imageIdentifiers []types.ImageIdentifier
 	for _, image := range images {
 		imageIdentifiers = append(imageIdentifiers, image.imageIdentifier())
 	}
-	var imageIdentifiersBatch [][]*ecr.ImageIdentifier
+	var imageIdentifiersBatch [][]types.ImageIdentifier
 	for batchDeleteLimit < len(imageIdentifiers) {
 		imageIdentifiers, imageIdentifiersBatch = imageIdentifiers[batchDeleteLimit:], append(imageIdentifiersBatch, imageIdentifiers[0:batchDeleteLimit])
 	}
 	imageIdentifiersBatch = append(imageIdentifiersBatch, imageIdentifiers)
 	for _, identifiers := range imageIdentifiersBatch {
-		resp, err := c.client.BatchDeleteImage(&ecr.BatchDeleteImageInput{
-			RepositoryName: aws.String(repoName),
+		resp, err := c.client.BatchDeleteImage(context.Background(), &ecr.BatchDeleteImageInput{
+			RepositoryName: awsv2.String(repoName),
 			ImageIds:       identifiers,
 		})
 		if resp != nil {
@@ -182,7 +181,7 @@ func URIFromARN(repositoryARN string) (string, error) {
 		return "", fmt.Errorf("parsing repository ARN %s: %w", repositoryARN, err)
 	}
 	urlFmtStr := urlFmtString
-	if repoARN.Partition == endpoints.AwsCnPartitionID {
+	if repoARN.Partition == "aws-cn" {
 		urlFmtStr = urlFmtStringForCN
 	}
 	// Repo ARNs look like arn:aws:ecr:region:012345678910:repository/test
@@ -195,12 +194,6 @@ func URIFromARN(repositoryARN string) (string, error) {
 }
 
 func isRepoNotFoundErr(err error) bool {
-	aerr, ok := err.(awserr.Error)
-	if !ok {
-		return false
-	}
-	if aerr.Code() == "RepositoryNotFoundException" {
-		return true
-	}
-	return false
+	var repoNotFound *types.RepositoryNotFoundException
+	return errors.As(err, &repoNotFound)
 }

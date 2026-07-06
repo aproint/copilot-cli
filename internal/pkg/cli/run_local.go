@@ -217,7 +217,7 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 			return fmt.Errorf("get application %s resources from region %s: %w", o.appName, o.envName, err)
 		}
 		repoName := clideploy.RepoName(o.appName, o.wkldName)
-		o.repository = repository.NewWithURI(ecr.New(defaultSessEnvRegion), repoName, resources.RepositoryURLs[o.wkldName])
+		o.repository = repository.NewWithURI(ecr.New(v2ConfigFromSessionRegion(defaultSessEnvRegion)), repoName, resources.RepositoryURLs[o.wkldName])
 
 		idPrefix := fmt.Sprintf("%s-%s-%s-", o.appName, o.envName, o.wkldName)
 		colorGen := termcolor.ColorGenerator()

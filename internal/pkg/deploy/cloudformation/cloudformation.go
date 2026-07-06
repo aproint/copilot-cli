@@ -213,7 +213,7 @@ func New(sess *session.Session, opts ...OptFn) CloudFormation {
 	client := CloudFormation{
 		cfnClient:      cloudformation.New(sess),
 		codeStarClient: codestar.New(v2Config),
-		cpClient:       codepipeline.New(sess, v2Config),
+		cpClient:       codepipeline.New(v2Config, v2Config),
 		ecsClient:      ecs.New(sess),
 		cwClient:       cloudwatch.New(sess, v2Config),
 		regionalClient: func(region string) cfnClient {
@@ -222,9 +222,8 @@ func New(sess *session.Session, opts ...OptFn) CloudFormation {
 			}))
 		},
 		regionalECRClient: func(region string) imageRemover {
-			return ecr.New(sess.Copy(&aws.Config{
-				Region: aws.String(region),
-			}))
+			regionalV2Config, _ := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), region)
+			return ecr.New(regionalV2Config)
 		},
 		appStackSet: stackset.New(sess),
 		s3Client:    s3.New(sess),

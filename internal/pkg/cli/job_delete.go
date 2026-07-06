@@ -93,7 +93,7 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 			return cloudformation.New(session, cloudformation.WithProgressTracker(os.Stderr))
 		},
 		newImageRemover: func(session *session.Session) imageRemover {
-			return ecr.New(session)
+			return ecr.New(v2ConfigFromSessionRegion(session))
 		},
 		newTaskStopper: func(session *session.Session) taskStopper {
 			return ecs.New(session, v2ConfigFromSessionRegion(session))

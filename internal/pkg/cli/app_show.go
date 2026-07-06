@@ -70,7 +70,7 @@ func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 		w:              log.OutputWriter,
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		deployStore:    deployStore,
-		codepipeline:   codepipeline.New(defaultSession, v2ConfigFromSessionRegion(defaultSession)),
+		codepipeline:   codepipeline.New(v2ConfigFromSessionRegion(defaultSession), v2ConfigFromSessionRegion(defaultSession)),
 		pipelineLister: deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSession))),
 		newVersionGetter: func(s string) (versionGetter, error) {
 			d, err := describe.NewAppDescriber(s)

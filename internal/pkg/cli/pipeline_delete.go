@@ -89,7 +89,7 @@ func newDeletePipelineOpts(vars deletePipelineVars) (*deletePipelineOpts, error)
 	}
 	prompter := prompt.New()
 	v2Config := v2ConfigFromSessionRegion(defaultSess)
-	codepipeline := codepipeline.New(defaultSess, v2Config)
+	codepipeline := codepipeline.New(v2Config, v2Config)
 	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
 
 	opts := &deletePipelineOpts{

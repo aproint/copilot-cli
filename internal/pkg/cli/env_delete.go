@@ -129,7 +129,8 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), sess)
 			o.deployer = cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
 			o.envDeleterFromApp = cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr))
-			o.pipelineGetter = codepipeline.New(defaultSess, v2ConfigFromSessionRegion(defaultSess))
+			defaultV2Config := v2ConfigFromSessionRegion(defaultSess)
+			o.pipelineGetter = codepipeline.New(defaultV2Config, defaultV2Config)
 			o.deployedPipelineLister = deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSess)))
 			return nil
 		},

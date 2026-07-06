@@ -96,7 +96,7 @@ func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 			return cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
 		},
 		getECR: func(sess *awssession.Session) imageRemover {
-			return ecr.New(sess)
+			return ecr.New(v2ConfigFromSessionRegion(sess))
 		},
 	}
 	opts.newSvcCleaner = func(sess *awssession.Session, env *config.Environment, manifestType string) cleaner {

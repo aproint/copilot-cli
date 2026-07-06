@@ -287,7 +287,7 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 
 	repoName := RepoName(in.App.Name, in.Name)
 	repository := repository.NewWithURI(
-		ecr.New(defaultSessEnvRegion), repoName, resources.RepositoryURLs[in.Name])
+		ecr.New(v2ConfigFromSessionRegion(defaultSessEnvRegion)), repoName, resources.RepositoryURLs[in.Name])
 	store := config.NewSSMStore(identity.New(defaultConfig), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
 	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
 		App:         in.App.Name,

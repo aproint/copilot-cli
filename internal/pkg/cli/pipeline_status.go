@@ -68,7 +68,7 @@ func newPipelineStatusOpts(vars pipelineStatusVars) (*pipelineStatusOpts, error)
 		return nil, err
 	}
 	v2Config := v2ConfigFromSessionRegion(session)
-	codepipeline := codepipeline.New(session, v2Config)
+	codepipeline := codepipeline.New(v2Config, v2Config)
 	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
 	prompter := prompt.New()
 	return &pipelineStatusOpts{

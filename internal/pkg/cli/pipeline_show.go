@@ -69,7 +69,7 @@ func newShowPipelineOpts(vars showPipelineVars) (*showPipelineOpts, error) {
 		return nil, err
 	}
 	v2Config := v2ConfigFromSessionRegion(defaultSession)
-	codepipeline := codepipeline.New(defaultSession, v2Config)
+	codepipeline := codepipeline.New(v2Config, v2Config)
 	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
 	prompter := prompt.New()
 	opts := &showPipelineOpts{

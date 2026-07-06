@@ -108,7 +108,7 @@ func newDeleteTaskOpts(vars deleteTaskVars) (*deleteTaskOpts, error) {
 			return cloudformation.New(session, cloudformation.WithProgressTracker(os.Stderr))
 		},
 		newImageRemover: func(session *session.Session) imageRemover {
-			return ecr.New(session)
+			return ecr.New(v2ConfigFromSessionRegion(session))
 		},
 		newBucketEmptier: func(session *session.Session) bucketEmptier {
 			return s3.New(session)

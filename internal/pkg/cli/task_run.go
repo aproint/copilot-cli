@@ -225,7 +225,7 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 
 	opts.configureRepository = func() error {
 		repoName := fmt.Sprintf(deploy.FmtTaskECRRepoName, opts.groupName)
-		opts.repository = repository.New(ecr.New(opts.sess), repoName)
+		opts.repository = repository.New(ecr.New(v2ConfigFromSessionRegion(opts.sess)), repoName)
 		return nil
 	}
 

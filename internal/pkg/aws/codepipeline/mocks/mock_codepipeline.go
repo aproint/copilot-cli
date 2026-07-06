@@ -5,10 +5,11 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	resourcegroups "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	codepipeline "github.com/aws/aws-sdk-go/service/codepipeline"
+	codepipeline "github.com/aws/aws-sdk-go-v2/service/codepipeline"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,63 +37,83 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // GetPipeline mocks base method.
-func (m *Mockapi) GetPipeline(arg0 *codepipeline.GetPipelineInput) (*codepipeline.GetPipelineOutput, error) {
+func (m *Mockapi) GetPipeline(arg0 context.Context, arg1 *codepipeline.GetPipelineInput, arg2 ...func(*codepipeline.Options)) (*codepipeline.GetPipelineOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPipeline", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetPipeline", varargs...)
 	ret0, _ := ret[0].(*codepipeline.GetPipelineOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPipeline indicates an expected call of GetPipeline.
-func (mr *MockapiMockRecorder) GetPipeline(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) GetPipeline(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipeline", reflect.TypeOf((*Mockapi)(nil).GetPipeline), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipeline", reflect.TypeOf((*Mockapi)(nil).GetPipeline), varargs...)
 }
 
 // GetPipelineState mocks base method.
-func (m *Mockapi) GetPipelineState(arg0 *codepipeline.GetPipelineStateInput) (*codepipeline.GetPipelineStateOutput, error) {
+func (m *Mockapi) GetPipelineState(arg0 context.Context, arg1 *codepipeline.GetPipelineStateInput, arg2 ...func(*codepipeline.Options)) (*codepipeline.GetPipelineStateOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPipelineState", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetPipelineState", varargs...)
 	ret0, _ := ret[0].(*codepipeline.GetPipelineStateOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPipelineState indicates an expected call of GetPipelineState.
-func (mr *MockapiMockRecorder) GetPipelineState(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) GetPipelineState(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineState", reflect.TypeOf((*Mockapi)(nil).GetPipelineState), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineState", reflect.TypeOf((*Mockapi)(nil).GetPipelineState), varargs...)
 }
 
 // ListPipelineExecutions mocks base method.
-func (m *Mockapi) ListPipelineExecutions(input *codepipeline.ListPipelineExecutionsInput) (*codepipeline.ListPipelineExecutionsOutput, error) {
+func (m *Mockapi) ListPipelineExecutions(arg0 context.Context, arg1 *codepipeline.ListPipelineExecutionsInput, arg2 ...func(*codepipeline.Options)) (*codepipeline.ListPipelineExecutionsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPipelineExecutions", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListPipelineExecutions", varargs...)
 	ret0, _ := ret[0].(*codepipeline.ListPipelineExecutionsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListPipelineExecutions indicates an expected call of ListPipelineExecutions.
-func (mr *MockapiMockRecorder) ListPipelineExecutions(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListPipelineExecutions(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPipelineExecutions", reflect.TypeOf((*Mockapi)(nil).ListPipelineExecutions), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPipelineExecutions", reflect.TypeOf((*Mockapi)(nil).ListPipelineExecutions), varargs...)
 }
 
 // RetryStageExecution mocks base method.
-func (m *Mockapi) RetryStageExecution(input *codepipeline.RetryStageExecutionInput) (*codepipeline.RetryStageExecutionOutput, error) {
+func (m *Mockapi) RetryStageExecution(arg0 context.Context, arg1 *codepipeline.RetryStageExecutionInput, arg2 ...func(*codepipeline.Options)) (*codepipeline.RetryStageExecutionOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetryStageExecution", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RetryStageExecution", varargs...)
 	ret0, _ := ret[0].(*codepipeline.RetryStageExecutionOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RetryStageExecution indicates an expected call of RetryStageExecution.
-func (mr *MockapiMockRecorder) RetryStageExecution(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) RetryStageExecution(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryStageExecution", reflect.TypeOf((*Mockapi)(nil).RetryStageExecution), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryStageExecution", reflect.TypeOf((*Mockapi)(nil).RetryStageExecution), varargs...)
 }
 
 // MockresourceGetter is a mock of resourceGetter interface.

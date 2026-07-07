@@ -16,7 +16,7 @@ Metadata:
             - id: 'subnet-33333'
             - id: 'subnet-44444'
         flow_logs: on
-    
+
 Parameters:
   AppName:
     Type: String
@@ -110,7 +110,7 @@ Resources:
                 - 'organizations:DescribeOrganization'
                 - 'account:ListRegions'
               Resource: '*'
-  
+
   EnvironmentManagerRole:
     Metadata:
       'aws:copilot:description': 'An IAM Role to describe resources in your environment'
@@ -410,7 +410,7 @@ Resources:
               - 'rds:DescribeDBInstances'
               - 'rds:DescribeDBClusters'
             Resource: "*"
-  
+
   # Creates a service discovery namespace with the form provided in the parameter.
   # For new environments after 1.5.0, this is "env.app.local". For upgraded environments from
   # before 1.5.0, this is app.local.
@@ -538,7 +538,7 @@ Resources:
         - Key: 'access_logs.s3.enabled'
           Value: false
       Scheme: internet-facing
-      SecurityGroups: 
+      SecurityGroups:
         - !GetAtt PublicHTTPLoadBalancerSecurityGroup.GroupId
         - !If [ExportHTTPSListener, !GetAtt PublicHTTPSLoadBalancerSecurityGroup.GroupId, !Ref "AWS::NoValue"]
       Subnets: [ subnet-11111, subnet-22222,  ]
@@ -719,7 +719,7 @@ Resources:
       SubnetId: subnet-44444
       SecurityGroups:
         - !Ref EFSSecurityGroup
-  
+
   CustomResourceRole:
     Metadata:
       'aws:copilot:description': 'An IAM role to manage certificates and Route53 hosted zones'
@@ -776,8 +776,7 @@ Resources:
       Timeout: 900
       MemorySize: 512
       Role: !GetAtt 'CustomResourceRole.Arn'
-      Runtime: nodejs20.x
-  
+      Runtime: nodejs24.x
   CustomDomainFunction:
     Condition: ManagedAliases
     Type: AWS::Lambda::Function
@@ -786,8 +785,7 @@ Resources:
       Timeout: 600
       MemorySize: 512
       Role: !GetAtt 'CustomResourceRole.Arn'
-      Runtime: nodejs20.x 
-  
+      Runtime: nodejs24.x
   DNSDelegationFunction:
     Type: AWS::Lambda::Function
     Condition: DelegateDNS
@@ -796,8 +794,7 @@ Resources:
       Timeout: 600
       MemorySize: 512
       Role: !GetAtt 'CustomResourceRole.Arn'
-      Runtime: nodejs20.x
-  
+      Runtime: nodejs24.x
   DelegateDNSAction:
     Metadata:
       'aws:copilot:description': 'Delegate DNS for environment subdomain'
@@ -812,7 +809,7 @@ Resources:
       SubdomainName: !Sub ${EnvironmentName}.${AppName}.${AppDNSName}
       NameServers: !GetAtt EnvironmentHostedZone.NameServers
       RootDNSRole: !Ref AppDNSDelegationRole
-  
+
   HTTPSCert:
     Metadata:
       'aws:copilot:description': 'Request and validate an ACM certificate for your domain'
@@ -831,7 +828,7 @@ Resources:
       EnvHostedZoneId: !Ref EnvironmentHostedZone
       Region: !Ref AWS::Region
       RootDNSRole: !Ref AppDNSDelegationRole
-  
+
   CustomDomainAction:
     Metadata:
       'aws:copilot:description': 'Add an A-record to the hosted zone for the domain alias'
@@ -852,7 +849,7 @@ Resources:
       'aws:copilot:description': 'A CloudWatch log group with 14 days retention for VPC flow log data'
     Properties:
       LogGroupName: !Join ['-', [!Ref AppName, !Ref EnvironmentName, FlowLogs]]
-      RetentionInDays: 14  
+      RetentionInDays: 14
   FlowLog:
     Metadata:
       'aws:copilot:description': 'A flow log for the VPC to capture information about the IP traffic'
@@ -862,10 +859,10 @@ Resources:
       LogDestinationType: cloud-watch-logs
       LogGroupName: !Ref VpcFlowLogGroup
       MaxAggregationInterval: 60
-      ResourceId: vpc-12345                 
+      ResourceId: vpc-12345
       ResourceType: VPC
       TrafficType:  ALL
-# Reference to IAM Role policy for flowlogs: https://go.aws/3euClbg     
+# Reference to IAM Role policy for flowlogs: https://go.aws/3euClbg
   FlowLogRole:
     Metadata:
       'aws:copilot:description': 'An IAM Role for the flow logs service to publish logs'

@@ -236,7 +236,7 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 		return ecs.New(cfg)
 	}
 	opts.configureJobDescriber = func(cfg aws.Config) ecs.JobDescriber {
-		return ecs.New(cfg)
+		return ecs.NewWithStepFunctionsConfig(cfg)
 	}
 	opts.configureUploader = func(cfg aws.Config) uploader {
 		return s3.New(cfg)

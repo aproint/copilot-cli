@@ -17,7 +17,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -344,7 +344,7 @@ func (w *WorkloadInitializer) newLoadBalancedWebServiceManifest(inProps *Service
 	}
 	// We default to "/" for the first service or if the application is initialized with a domain, but if there's another
 	// Load Balanced Web Service, we use the svc name as the default, instead.
-	if aws.StringValue(inProps.appDomain) == "" {
+	if aws.ToString(inProps.appDomain) == "" {
 		for _, existingSvc := range existingSvcs {
 			if existingSvc.Type == manifestinfo.LoadBalancedWebServiceType && existingSvc.Name != inProps.Name {
 				outProps.Path = inProps.Name

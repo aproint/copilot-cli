@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"testing"
 
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/task/mocks"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -25,10 +25,10 @@ const (
 
 var taskWithENI = ecs.Task{
 	TaskArn: aws.String("task-1"),
-	Attachments: []*awsecs.Attachment{
+	Attachments: []awsecs.Attachment{
 		{
 			Type: aws.String(attachmentTypeName),
-			Details: []*awsecs.KeyValuePair{
+			Details: []awsecs.KeyValuePair{
 				{
 					Name:  aws.String(detailsKeyName),
 					Value: aws.String("eni-1"),

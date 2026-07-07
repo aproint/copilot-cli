@@ -11,8 +11,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awsapprunner "github.com/aws/aws-sdk-go/service/apprunner"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/apprunner/types"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 type appRunnerClient interface {
-	DescribeOperation(operationId, svcARN string) (*awsapprunner.OperationSummary, error)
+	DescribeOperation(operationId, svcARN string) (*types.OperationSummary, error)
 	StartDeployment(svcARN string) (string, error)
 	DescribeService(svcARN string) (*apprunner.Service, error)
 	WaitForOperation(operationId, svcARN string) error
@@ -37,10 +37,10 @@ type Client struct {
 }
 
 // New inits a new Client.
-func New(sess *session.Session) *Client {
+func New(rgConfig awsv2.Config) *Client {
 	return &Client{
-		rgGetter:        resourcegroups.New(sess),
-		appRunnerClient: apprunner.New(sess),
+		rgGetter:        resourcegroups.New(rgConfig),
+		appRunnerClient: apprunner.New(rgConfig),
 	}
 }
 

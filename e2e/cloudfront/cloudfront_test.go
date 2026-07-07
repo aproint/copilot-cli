@@ -5,32 +5,33 @@ package cloudfront_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/aproint/copilot-cli/e2e/internal/client"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 var _ = Describe("CloudFront", func() {
 	Context("when creating an S3 bucket and upload static files", Ordered, func() {
 		It("bucket creation should succeed", func() {
-			_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+			_, err := s3Client.CreateBucket(context.Background(), &s3.CreateBucketInput{
 				Bucket:          aws.String(bucketName),
-				ObjectOwnership: aws.String(s3.ObjectOwnershipBucketOwnerEnforced),
+				ObjectOwnership: types.ObjectOwnershipBucketOwnerEnforced,
 			})
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("upload should succeed", func() {
-			_, err := s3Manager.Upload(&s3manager.UploadInput{
+			_, err := s3Manager.Upload(context.Background(), &s3.PutObjectInput{
 				Bucket: aws.String(bucketName),
 				Key:    aws.String(staticPath),
 				Body:   bytes.NewBufferString("hello static"),
@@ -141,7 +142,7 @@ var _ = Describe("CloudFront", func() {
 			}
 			Expect(accountID).ToNot(BeEmpty())
 			Expect(cfDistID).ToNot(BeEmpty())
-			_, err = s3Client.PutBucketPolicy(&s3.PutBucketPolicyInput{
+			_, err = s3Client.PutBucketPolicy(context.Background(), &s3.PutBucketPolicyInput{
 				Bucket: aws.String(bucketName),
 				Policy: aws.String(fmt.Sprintf(`{
 	"Version": "2012-10-17",

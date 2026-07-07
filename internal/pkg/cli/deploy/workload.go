@@ -42,9 +42,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/syncbuffer"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 )
@@ -196,11 +194,11 @@ type workloadDeployer struct {
 	labeledTermPrinter func(fw syncbuffer.FileWriter, bufs []*syncbuffer.LabeledSyncBuffer, opts ...syncbuffer.LabeledTermPrinterOption) LabeledTermPrinter
 
 	// Cached variables.
-	defaultSess              *session.Session
-	defaultSessWithEnvRegion *session.Session
-	envSess                  *session.Session
-	store                    *config.Store
-	envConfig                *manifest.Environment
+	defaultAWSConfig          aws.Config
+	defaultEnvRegionAWSConfig aws.Config
+	envAWSConfig              aws.Config
+	store                     *config.Store
+	envConfig                 *manifest.Environment
 }
 
 // ImagePerContainer contains the contains name and its ImageURI
@@ -254,19 +252,19 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	if err != nil {
 		return nil, err
 	}
-	defaultSession, err := in.SessionProvider.Default()
+	defaultConfig, err := in.SessionProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("create default: %w", err)
+		return nil, fmt.Errorf("create default config: %w", err)
 	}
-	envSession, err := in.SessionProvider.FromRole(in.Env.ManagerRoleARN, in.Env.Region)
+	envAWSConfig, err := in.SessionProvider.ConfigFromRole(context.Background(), in.Env.ManagerRoleARN, in.Env.Region)
 	if err != nil {
-		return nil, fmt.Errorf("create env session with region %s: %w", in.Env.Region, err)
+		return nil, fmt.Errorf("create env config with region %s: %w", in.Env.Region, err)
 	}
-	defaultSessEnvRegion, err := in.SessionProvider.DefaultWithRegion(in.Env.Region)
+	defaultEnvRegionConfig, err := in.SessionProvider.DefaultConfigWithRegion(context.Background(), in.Env.Region)
 	if err != nil {
-		return nil, fmt.Errorf("create default session with region %s: %w", in.Env.Region, err)
+		return nil, fmt.Errorf("create default config with region %s: %w", in.Env.Region, err)
 	}
-	resources, err := cloudformation.New(defaultSession, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(in.App, in.Env.Region)
+	resources, err := cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(in.App, in.Env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("get application %s resources from region %s: %w", in.App.Name, in.Env.Region, err)
 	}
@@ -283,8 +281,8 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 
 	repoName := RepoName(in.App.Name, in.Name)
 	repository := repository.NewWithURI(
-		ecr.New(defaultSessEnvRegion), repoName, resources.RepositoryURLs[in.Name])
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+		ecr.New(defaultEnvRegionConfig), repoName, resources.RepositoryURLs[in.Name])
+	store := config.NewSSMStore(identity.New(defaultConfig), config.NewSSMClient(defaultConfig), defaultConfig.Region)
 	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
 		App:         in.App.Name,
 		Env:         in.Env.Name,
@@ -303,38 +301,38 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 		return nil, fmt.Errorf("unmarshal the manifest used to deploy environment %s: %w", in.Env.Name, err)
 	}
 
-	cfn := cloudformation.New(envSession, cloudformation.WithProgressTracker(os.Stderr))
+	cfn := cloudformation.New(envAWSConfig, cloudformation.WithProgressTracker(os.Stderr))
 
 	labeledTermPrinter := func(fw syncbuffer.FileWriter, bufs []*syncbuffer.LabeledSyncBuffer, opts ...syncbuffer.LabeledTermPrinterOption) LabeledTermPrinter {
 		return syncbuffer.NewLabeledTermPrinter(fw, bufs, opts...)
 	}
 	docker := dockerengine.New(exec.NewCmd())
 	return &workloadDeployer{
-		name:                     in.Name,
-		app:                      in.App,
-		env:                      in.Env,
-		image:                    in.Image,
-		resources:                resources,
-		workspacePath:            ws.Path(),
-		fs:                       afero.NewOsFs(),
-		s3Client:                 s3.New(envSession),
-		addons:                   addons,
-		repository:               repository,
-		deployer:                 cfn,
-		tmplGetter:               cfn,
-		endpointGetter:           envDescriber,
-		spinner:                  termprogress.NewSpinner(log.DiagnosticWriter),
-		templateFS:               template.New(),
-		envVersionGetter:         in.EnvVersionGetter,
-		overrider:                in.Overrider,
-		docker:                   docker,
-		customResources:          in.customResources,
-		defaultSess:              defaultSession,
-		defaultSessWithEnvRegion: defaultSessEnvRegion,
-		envSess:                  envSession,
-		store:                    store,
-		envConfig:                envConfig,
-		labeledTermPrinter:       labeledTermPrinter,
+		name:                      in.Name,
+		app:                       in.App,
+		env:                       in.Env,
+		image:                     in.Image,
+		resources:                 resources,
+		workspacePath:             ws.Path(),
+		fs:                        afero.NewOsFs(),
+		s3Client:                  s3.New(envAWSConfig),
+		addons:                    addons,
+		repository:                repository,
+		deployer:                  cfn,
+		tmplGetter:                cfn,
+		endpointGetter:            envDescriber,
+		spinner:                   termprogress.NewSpinner(log.DiagnosticWriter),
+		templateFS:                template.New(),
+		envVersionGetter:          in.EnvVersionGetter,
+		overrider:                 in.Overrider,
+		docker:                    docker,
+		customResources:           in.customResources,
+		defaultAWSConfig:          defaultConfig,
+		defaultEnvRegionAWSConfig: defaultEnvRegionConfig,
+		envAWSConfig:              envAWSConfig,
+		store:                     store,
+		envConfig:                 envConfig,
+		labeledTermPrinter:        labeledTermPrinter,
 
 		mft:    in.Mft,
 		rawMft: in.RawMft,
@@ -587,11 +585,11 @@ func buildArgsPerContainer(name, workspacePath string, img ContainerImageIdentif
 		}
 		labels[labelForContainerName] = container
 		dArgs[container] = &dockerengine.BuildArguments{
-			Dockerfile: aws.StringValue(buildArgs.Dockerfile),
-			Context:    aws.StringValue(buildArgs.Context),
+			Dockerfile: aws.ToString(buildArgs.Dockerfile),
+			Context:    aws.ToString(buildArgs.Context),
 			Args:       buildArgs.Args,
 			CacheFrom:  buildArgs.CacheFrom,
-			Target:     aws.StringValue(buildArgs.Target),
+			Target:     aws.ToString(buildArgs.Target),
 			Platform:   mf.ContainerPlatform(),
 			Tags:       tags,
 			Labels:     labels,

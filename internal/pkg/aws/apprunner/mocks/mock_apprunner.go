@@ -5,9 +5,10 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	apprunner "github.com/aws/aws-sdk-go/service/apprunner"
+	apprunner "github.com/aws/aws-sdk-go-v2/service/apprunner"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,121 +36,161 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // DescribeObservabilityConfiguration mocks base method.
-func (m *Mockapi) DescribeObservabilityConfiguration(input *apprunner.DescribeObservabilityConfigurationInput) (*apprunner.DescribeObservabilityConfigurationOutput, error) {
+func (m *Mockapi) DescribeObservabilityConfiguration(ctx context.Context, input *apprunner.DescribeObservabilityConfigurationInput, opts ...func(*apprunner.Options)) (*apprunner.DescribeObservabilityConfigurationOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeObservabilityConfiguration", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeObservabilityConfiguration", varargs...)
 	ret0, _ := ret[0].(*apprunner.DescribeObservabilityConfigurationOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeObservabilityConfiguration indicates an expected call of DescribeObservabilityConfiguration.
-func (mr *MockapiMockRecorder) DescribeObservabilityConfiguration(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeObservabilityConfiguration(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeObservabilityConfiguration", reflect.TypeOf((*Mockapi)(nil).DescribeObservabilityConfiguration), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeObservabilityConfiguration", reflect.TypeOf((*Mockapi)(nil).DescribeObservabilityConfiguration), varargs...)
 }
 
 // DescribeService mocks base method.
-func (m *Mockapi) DescribeService(input *apprunner.DescribeServiceInput) (*apprunner.DescribeServiceOutput, error) {
+func (m *Mockapi) DescribeService(ctx context.Context, input *apprunner.DescribeServiceInput, opts ...func(*apprunner.Options)) (*apprunner.DescribeServiceOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeService", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeService", varargs...)
 	ret0, _ := ret[0].(*apprunner.DescribeServiceOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeService indicates an expected call of DescribeService.
-func (mr *MockapiMockRecorder) DescribeService(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeService(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeService", reflect.TypeOf((*Mockapi)(nil).DescribeService), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeService", reflect.TypeOf((*Mockapi)(nil).DescribeService), varargs...)
 }
 
 // DescribeVpcIngressConnection mocks base method.
-func (m *Mockapi) DescribeVpcIngressConnection(input *apprunner.DescribeVpcIngressConnectionInput) (*apprunner.DescribeVpcIngressConnectionOutput, error) {
+func (m *Mockapi) DescribeVpcIngressConnection(ctx context.Context, input *apprunner.DescribeVpcIngressConnectionInput, opts ...func(*apprunner.Options)) (*apprunner.DescribeVpcIngressConnectionOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeVpcIngressConnection", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeVpcIngressConnection", varargs...)
 	ret0, _ := ret[0].(*apprunner.DescribeVpcIngressConnectionOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeVpcIngressConnection indicates an expected call of DescribeVpcIngressConnection.
-func (mr *MockapiMockRecorder) DescribeVpcIngressConnection(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeVpcIngressConnection(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVpcIngressConnection", reflect.TypeOf((*Mockapi)(nil).DescribeVpcIngressConnection), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVpcIngressConnection", reflect.TypeOf((*Mockapi)(nil).DescribeVpcIngressConnection), varargs...)
 }
 
 // ListOperations mocks base method.
-func (m *Mockapi) ListOperations(input *apprunner.ListOperationsInput) (*apprunner.ListOperationsOutput, error) {
+func (m *Mockapi) ListOperations(ctx context.Context, input *apprunner.ListOperationsInput, opts ...func(*apprunner.Options)) (*apprunner.ListOperationsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListOperations", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListOperations", varargs...)
 	ret0, _ := ret[0].(*apprunner.ListOperationsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListOperations indicates an expected call of ListOperations.
-func (mr *MockapiMockRecorder) ListOperations(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListOperations(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOperations", reflect.TypeOf((*Mockapi)(nil).ListOperations), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOperations", reflect.TypeOf((*Mockapi)(nil).ListOperations), varargs...)
 }
 
 // ListServices mocks base method.
-func (m *Mockapi) ListServices(input *apprunner.ListServicesInput) (*apprunner.ListServicesOutput, error) {
+func (m *Mockapi) ListServices(ctx context.Context, input *apprunner.ListServicesInput, opts ...func(*apprunner.Options)) (*apprunner.ListServicesOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServices", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListServices", varargs...)
 	ret0, _ := ret[0].(*apprunner.ListServicesOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListServices indicates an expected call of ListServices.
-func (mr *MockapiMockRecorder) ListServices(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListServices(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*Mockapi)(nil).ListServices), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*Mockapi)(nil).ListServices), varargs...)
 }
 
 // PauseService mocks base method.
-func (m *Mockapi) PauseService(input *apprunner.PauseServiceInput) (*apprunner.PauseServiceOutput, error) {
+func (m *Mockapi) PauseService(ctx context.Context, input *apprunner.PauseServiceInput, opts ...func(*apprunner.Options)) (*apprunner.PauseServiceOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PauseService", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PauseService", varargs...)
 	ret0, _ := ret[0].(*apprunner.PauseServiceOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PauseService indicates an expected call of PauseService.
-func (mr *MockapiMockRecorder) PauseService(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) PauseService(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseService", reflect.TypeOf((*Mockapi)(nil).PauseService), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseService", reflect.TypeOf((*Mockapi)(nil).PauseService), varargs...)
 }
 
 // ResumeService mocks base method.
-func (m *Mockapi) ResumeService(input *apprunner.ResumeServiceInput) (*apprunner.ResumeServiceOutput, error) {
+func (m *Mockapi) ResumeService(ctx context.Context, input *apprunner.ResumeServiceInput, opts ...func(*apprunner.Options)) (*apprunner.ResumeServiceOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResumeService", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ResumeService", varargs...)
 	ret0, _ := ret[0].(*apprunner.ResumeServiceOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResumeService indicates an expected call of ResumeService.
-func (mr *MockapiMockRecorder) ResumeService(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ResumeService(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeService", reflect.TypeOf((*Mockapi)(nil).ResumeService), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeService", reflect.TypeOf((*Mockapi)(nil).ResumeService), varargs...)
 }
 
 // StartDeployment mocks base method.
-func (m *Mockapi) StartDeployment(input *apprunner.StartDeploymentInput) (*apprunner.StartDeploymentOutput, error) {
+func (m *Mockapi) StartDeployment(ctx context.Context, input *apprunner.StartDeploymentInput, opts ...func(*apprunner.Options)) (*apprunner.StartDeploymentOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartDeployment", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "StartDeployment", varargs...)
 	ret0, _ := ret[0].(*apprunner.StartDeploymentOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StartDeployment indicates an expected call of StartDeployment.
-func (mr *MockapiMockRecorder) StartDeployment(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) StartDeployment(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartDeployment", reflect.TypeOf((*Mockapi)(nil).StartDeployment), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartDeployment", reflect.TypeOf((*Mockapi)(nil).StartDeployment), varargs...)
 }

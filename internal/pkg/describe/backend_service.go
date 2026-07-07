@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -60,11 +61,11 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		sess, err := sessions.ImmutableProvider().FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
-		return elbv2.New(sess), nil
+		return elbv2.New(cfg), nil
 	}
 	describer.initECSServiceDescribers = func(env string) (ecsDescriber, error) {
 		if describer, ok := describer.ecsServiceDescribers[env]; ok {
@@ -90,11 +91,11 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		sess, err := sessions.ImmutableProvider().FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
-		return cloudwatch.New(sess), nil
+		return cloudwatch.New(cfg, cfg), nil
 	}
 	describer.initEnvDescribers = func(env string) (envDescriber, error) {
 		if describer, ok := describer.envStackDescriber[env]; ok {

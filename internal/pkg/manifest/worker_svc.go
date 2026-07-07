@@ -11,7 +11,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/imdario/mergo"
 	"gopkg.in/yaml.v3"
 )
@@ -138,7 +138,7 @@ func (f *FIFOAdvanceConfigOrBool) IsEmpty() bool {
 
 // IsEnabled returns true if the FifoAdvanceConfigOrBool struct has all nil values.
 func (f *FIFOAdvanceConfigOrBool) IsEnabled() bool {
-	return aws.BoolValue(f.Enable) || !f.Advanced.IsEmpty()
+	return aws.ToBool(f.Enable) || !f.Advanced.IsEmpty()
 }
 
 // FIFOAdvanceConfig represents the advanced fifo queue config.
@@ -242,7 +242,7 @@ func NewWorkerService(props WorkerServiceProps) *WorkerService {
 func setSubscriptionQueueDefaults(topics []TopicSubscription, eventsQueue *SQSQueue) {
 	var isFIFOEnabled bool
 	for _, topic := range topics {
-		if isFIFO(aws.StringValue(topic.Name)) {
+		if isFIFO(aws.ToString(topic.Name)) {
 			isFIFOEnabled = true
 			break
 		}
@@ -252,8 +252,8 @@ func setSubscriptionQueueDefaults(topics []TopicSubscription, eventsQueue *SQSQu
 	}
 	eventsQueue.FIFO.Enable = aws.Bool(true)
 	for idx, topic := range topics {
-		if isFIFO(aws.StringValue(topic.Name)) {
-			topics[idx].Name = aws.String(strings.TrimSuffix(aws.StringValue(topic.Name), ".fifo"))
+		if isFIFO(aws.ToString(topic.Name)) {
+			topics[idx].Name = aws.String(strings.TrimSuffix(aws.ToString(topic.Name), ".fifo"))
 		} else {
 			topics[idx].Queue.Enabled = aws.Bool(true)
 		}
@@ -286,7 +286,7 @@ func (s *WorkerService) BuildArgs(contextDir string) (map[string]*DockerBuildArg
 	// Creating an map to store buildArgs of all sidecar images and main container image.
 	buildArgsPerContainer := make(map[string]*DockerBuildArgs, len(s.Sidecars)+1)
 	if required {
-		buildArgsPerContainer[aws.StringValue(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
+		buildArgsPerContainer[aws.ToString(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
 	}
 	return buildArgs(contextDir, buildArgsPerContainer, s.Sidecars)
 }
@@ -301,7 +301,7 @@ func (s *WorkerService) EnvFiles() map[string]string {
 // ContainerDependencies returns a map of ContainerDependency objects for the WorkerService
 // including dependencies for its main container, any logging sidecar, and additional sidecars.
 func (s *WorkerService) ContainerDependencies() map[string]ContainerDependency {
-	return containerDependencies(aws.StringValue(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
+	return containerDependencies(aws.ToString(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
 }
 
 // Subscriptions returns a list of TopicSubscriotion objects which represent the SNS topics the service
@@ -312,9 +312,9 @@ func (s *WorkerService) Subscriptions() []TopicSubscription {
 		topicSubscription := topic
 		// if condition appends .fifo suffix to the topic which doesn't have topic specific queue and subscribing to default FIFO queue.
 		if topic.Queue.IsEmpty() && !s.Subscribe.Queue.IsEmpty() && s.Subscribe.Queue.FIFO.IsEnabled() {
-			topicSubscription.Name = aws.String(aws.StringValue(topic.Name) + ".fifo")
+			topicSubscription.Name = aws.String(aws.ToString(topic.Name) + ".fifo")
 		} else if !topic.Queue.IsEmpty() && !topic.Queue.Advanced.IsEmpty() && topic.Queue.Advanced.FIFO.IsEnabled() { // else if condition appends .fifo suffix to the topic which has topic specific FIFO queue configuration.
-			topicSubscription.Name = aws.String(aws.StringValue(topic.Name) + ".fifo")
+			topicSubscription.Name = aws.String(aws.ToString(topic.Name) + ".fifo")
 		}
 		subs = append(subs, topicSubscription)
 	}

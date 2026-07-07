@@ -5,12 +5,13 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
 const (
@@ -32,14 +33,14 @@ var (
 )
 
 type api interface {
-	DescribeSubnets(*ec2.DescribeSubnetsInput) (*ec2.DescribeSubnetsOutput, error)
-	DescribeSecurityGroups(*ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error)
-	DescribeVpcs(input *ec2.DescribeVpcsInput) (*ec2.DescribeVpcsOutput, error)
-	DescribeVpcAttribute(input *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error)
-	DescribeNetworkInterfaces(input *ec2.DescribeNetworkInterfacesInput) (*ec2.DescribeNetworkInterfacesOutput, error)
-	DescribeRouteTables(input *ec2.DescribeRouteTablesInput) (*ec2.DescribeRouteTablesOutput, error)
-	DescribeAvailabilityZones(input *ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error)
-	DescribeManagedPrefixLists(input *ec2.DescribeManagedPrefixListsInput) (*ec2.DescribeManagedPrefixListsOutput, error)
+	DescribeSubnets(ctx context.Context, input *ec2.DescribeSubnetsInput, opts ...func(*ec2.Options)) (*ec2.DescribeSubnetsOutput, error)
+	DescribeSecurityGroups(ctx context.Context, input *ec2.DescribeSecurityGroupsInput, opts ...func(*ec2.Options)) (*ec2.DescribeSecurityGroupsOutput, error)
+	DescribeVpcs(ctx context.Context, input *ec2.DescribeVpcsInput, opts ...func(*ec2.Options)) (*ec2.DescribeVpcsOutput, error)
+	DescribeVpcAttribute(ctx context.Context, input *ec2.DescribeVpcAttributeInput, opts ...func(*ec2.Options)) (*ec2.DescribeVpcAttributeOutput, error)
+	DescribeNetworkInterfaces(ctx context.Context, input *ec2.DescribeNetworkInterfacesInput, opts ...func(*ec2.Options)) (*ec2.DescribeNetworkInterfacesOutput, error)
+	DescribeRouteTables(ctx context.Context, input *ec2.DescribeRouteTablesInput, opts ...func(*ec2.Options)) (*ec2.DescribeRouteTablesOutput, error)
+	DescribeAvailabilityZones(ctx context.Context, input *ec2.DescribeAvailabilityZonesInput, opts ...func(*ec2.Options)) (*ec2.DescribeAvailabilityZonesOutput, error)
+	DescribeManagedPrefixLists(ctx context.Context, input *ec2.DescribeManagedPrefixListsInput, opts ...func(*ec2.Options)) (*ec2.DescribeManagedPrefixListsOutput, error)
 }
 
 // Filter contains the name and values of a filter.
@@ -67,10 +68,10 @@ type EC2 struct {
 	client api
 }
 
-// New returns a EC2 configured against the input session.
-func New(s *session.Session) *EC2 {
+// New returns a EC2 configured against the input config.
+func New(cfg awsv2.Config) *EC2 {
 	return &EC2{
-		client: ec2.New(s),
+		client: ec2.NewFromConfig(cfg),
 	}
 }
 
@@ -148,8 +149,8 @@ func extractResource(label string) (*Resource, error) {
 
 // PublicIP returns the public ip associated with the network interface.
 func (c *EC2) PublicIP(eni string) (string, error) {
-	response, err := c.client.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
-		NetworkInterfaceIds: aws.StringSlice([]string{eni}),
+	response, err := c.client.DescribeNetworkInterfaces(context.Background(), &ec2.DescribeNetworkInterfacesInput{
+		NetworkInterfaceIds: []string{eni},
 	})
 	if err != nil {
 		return "", fmt.Errorf("describe network interface with ENI %s: %w", eni, err)
@@ -162,20 +163,20 @@ func (c *EC2) PublicIP(eni string) (string, error) {
 		return "", fmt.Errorf("no association information found for ENI %s", eni)
 	}
 
-	return aws.StringValue(association.PublicIp), nil
+	return awsv2.ToString(association.PublicIp), nil
 }
 
 // ListVPCs returns names and IDs (or just IDs, if Name tag does not exist) of all VPCs.
 func (c *EC2) ListVPCs() ([]VPC, error) {
-	var ec2vpcs []*ec2.Vpc
-	response, err := c.client.DescribeVpcs(&ec2.DescribeVpcsInput{})
+	var ec2vpcs []types.Vpc
+	response, err := c.client.DescribeVpcs(context.Background(), &ec2.DescribeVpcsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("describe VPCs: %w", err)
 	}
 	ec2vpcs = append(ec2vpcs, response.Vpcs...)
 
 	for response.NextToken != nil {
-		response, err = c.client.DescribeVpcs(&ec2.DescribeVpcsInput{
+		response, err = c.client.DescribeVpcs(context.Background(), &ec2.DescribeVpcsInput{
 			NextToken: response.NextToken,
 		})
 		if err != nil {
@@ -187,13 +188,13 @@ func (c *EC2) ListVPCs() ([]VPC, error) {
 	for _, vpc := range ec2vpcs {
 		var name string
 		for _, tag := range vpc.Tags {
-			if aws.StringValue(tag.Key) == "Name" {
-				name = aws.StringValue(tag.Value)
+			if awsv2.ToString(tag.Key) == "Name" {
+				name = awsv2.ToString(tag.Value)
 			}
 		}
 		vpcs = append(vpcs, VPC{
 			Resource: Resource{
-				ID:   aws.StringValue(vpc.VpcId),
+				ID:   awsv2.ToString(vpc.VpcId),
 				Name: name,
 			},
 		})
@@ -203,15 +204,15 @@ func (c *EC2) ListVPCs() ([]VPC, error) {
 
 // ListAZs returns the list of opted-in and available availability zones.
 func (c *EC2) ListAZs() ([]AZ, error) {
-	resp, err := c.client.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
-		Filters: []*ec2.Filter{
+	resp, err := c.client.DescribeAvailabilityZones(context.Background(), &ec2.DescribeAvailabilityZonesInput{
+		Filters: []types.Filter{
 			{
-				Name:   aws.String("zone-type"),
-				Values: aws.StringSlice([]string{"availability-zone"}),
+				Name:   awsv2.String("zone-type"),
+				Values: []string{"availability-zone"},
 			},
 			{
-				Name:   aws.String("state"),
-				Values: aws.StringSlice([]string{"available"}),
+				Name:   awsv2.String("state"),
+				Values: []string{"available"},
 			},
 		},
 	})
@@ -221,8 +222,8 @@ func (c *EC2) ListAZs() ([]AZ, error) {
 	var out []AZ
 	for _, az := range resp.AvailabilityZones {
 		out = append(out, AZ{
-			ID:   aws.StringValue(az.ZoneId),
-			Name: aws.StringValue(az.ZoneName),
+			ID:   awsv2.ToString(az.ZoneId),
+			Name: awsv2.ToString(az.ZoneName),
 		})
 	}
 	return out, nil
@@ -230,14 +231,14 @@ func (c *EC2) ListAZs() ([]AZ, error) {
 
 // HasDNSSupport returns if DNS resolution is enabled for the VPC.
 func (c *EC2) HasDNSSupport(vpcID string) (bool, error) {
-	resp, err := c.client.DescribeVpcAttribute(&ec2.DescribeVpcAttributeInput{
-		VpcId:     aws.String(vpcID),
-		Attribute: aws.String(ec2.VpcAttributeNameEnableDnsSupport),
+	resp, err := c.client.DescribeVpcAttribute(context.Background(), &ec2.DescribeVpcAttributeInput{
+		VpcId:     awsv2.String(vpcID),
+		Attribute: types.VpcAttributeNameEnableDnsSupport,
 	})
 	if err != nil {
-		return false, fmt.Errorf("describe %s attribute for VPC %s: %w", ec2.VpcAttributeNameEnableDnsSupport, vpcID, err)
+		return false, fmt.Errorf("describe %s attribute for VPC %s: %w", types.VpcAttributeNameEnableDnsSupport, vpcID, err)
 	}
-	return aws.BoolValue(resp.EnableDnsSupport.Value), nil
+	return awsv2.ToBool(resp.EnableDnsSupport.Value), nil
 }
 
 // VPCSubnets are all subnets within a VPC.
@@ -268,16 +269,16 @@ func (c *EC2) ListVPCSubnets(vpcID string) (*VPCSubnets, error) {
 	for _, subnet := range respSubnets {
 		var name string
 		for _, tag := range subnet.Tags {
-			if aws.StringValue(tag.Key) == "Name" {
-				name = aws.StringValue(tag.Value)
+			if awsv2.ToString(tag.Key) == "Name" {
+				name = awsv2.ToString(tag.Value)
 			}
 		}
 		s := Subnet{
 			Resource: Resource{
-				ID:   aws.StringValue(subnet.SubnetId),
+				ID:   awsv2.ToString(subnet.SubnetId),
 				Name: name,
 			},
-			CIDRBlock: aws.StringValue(subnet.CidrBlock),
+			CIDRBlock: awsv2.ToString(subnet.CidrBlock),
 		}
 		if rtIndex.IsPublicSubnet(s.ID) {
 			publicSubnets = append(publicSubnets, s)
@@ -300,7 +301,7 @@ func (c *EC2) SubnetIDs(filters ...Filter) ([]string, error) {
 
 	subnetIDs := make([]string, len(subnets))
 	for idx, subnet := range subnets {
-		subnetIDs[idx] = aws.StringValue(subnet.SubnetId)
+		subnetIDs[idx] = awsv2.ToString(subnet.SubnetId)
 	}
 	return subnetIDs, nil
 }
@@ -309,7 +310,7 @@ func (c *EC2) SubnetIDs(filters ...Filter) ([]string, error) {
 func (c *EC2) SecurityGroups(filters ...Filter) ([]string, error) {
 	inputFilters := toEC2Filter(filters)
 
-	response, err := c.client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+	response, err := c.client.DescribeSecurityGroups(context.Background(), &ec2.DescribeSecurityGroupsInput{
 		Filters: inputFilters,
 	})
 
@@ -319,15 +320,15 @@ func (c *EC2) SecurityGroups(filters ...Filter) ([]string, error) {
 
 	securityGroups := make([]string, len(response.SecurityGroups))
 	for idx, sg := range response.SecurityGroups {
-		securityGroups[idx] = aws.StringValue(sg.GroupId)
+		securityGroups[idx] = awsv2.ToString(sg.GroupId)
 	}
 	return securityGroups, nil
 }
 
-func (c *EC2) subnets(filters ...Filter) ([]*ec2.Subnet, error) {
+func (c *EC2) subnets(filters ...Filter) ([]types.Subnet, error) {
 	inputFilters := toEC2Filter(filters)
-	var subnets []*ec2.Subnet
-	response, err := c.client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+	var subnets []types.Subnet
+	response, err := c.client.DescribeSubnets(context.Background(), &ec2.DescribeSubnetsInput{
 		Filters: inputFilters,
 	})
 	if err != nil {
@@ -335,7 +336,7 @@ func (c *EC2) subnets(filters ...Filter) ([]*ec2.Subnet, error) {
 	}
 	subnets = append(subnets, response.Subnets...)
 	for response.NextToken != nil {
-		response, err = c.client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+		response, err = c.client.DescribeSubnets(context.Background(), &ec2.DescribeSubnetsInput{
 			Filters:   inputFilters,
 			NextToken: response.NextToken,
 		})
@@ -350,13 +351,13 @@ func (c *EC2) subnets(filters ...Filter) ([]*ec2.Subnet, error) {
 	return subnets, nil
 }
 
-func (c *EC2) routeTables(filters ...Filter) ([]*ec2.RouteTable, error) {
-	var routeTables []*ec2.RouteTable
+func (c *EC2) routeTables(filters ...Filter) ([]types.RouteTable, error) {
+	var routeTables []types.RouteTable
 	input := &ec2.DescribeRouteTablesInput{
 		Filters: toEC2Filter(filters),
 	}
 	for {
-		resp, err := c.client.DescribeRouteTables(input)
+		resp, err := c.client.DescribeRouteTables(context.Background(), input)
 		if err != nil {
 			return nil, fmt.Errorf("describe route tables: %w", err)
 		}
@@ -369,24 +370,24 @@ func (c *EC2) routeTables(filters ...Filter) ([]*ec2.RouteTable, error) {
 	return routeTables, nil
 }
 
-func toEC2Filter(filters []Filter) []*ec2.Filter {
-	var ec2Filter []*ec2.Filter
+func toEC2Filter(filters []Filter) []types.Filter {
+	var ec2Filter []types.Filter
 	for _, filter := range filters {
-		ec2Filter = append(ec2Filter, &ec2.Filter{
-			Name:   aws.String(filter.Name),
-			Values: aws.StringSlice(filter.Values),
+		ec2Filter = append(ec2Filter, types.Filter{
+			Name:   awsv2.String(filter.Name),
+			Values: filter.Values,
 		})
 	}
 	return ec2Filter
 }
 
-type routeTable ec2.RouteTable
+type routeTable types.RouteTable
 
 // IsMain returns true if the route table is the default route table for the VPC.
 // If a subnet is not associated with a particular route table, then it will default to the main route table.
 func (rt *routeTable) IsMain() bool {
 	for _, association := range rt.Associations {
-		if aws.BoolValue(association.Main) {
+		if awsv2.ToBool(association.Main) {
 			return true
 		}
 	}
@@ -396,7 +397,7 @@ func (rt *routeTable) IsMain() bool {
 // HasIGW returns true if the route table has a route to an internet gateway.
 func (rt *routeTable) HasIGW() bool {
 	for _, route := range rt.Routes {
-		if strings.HasPrefix(aws.StringValue(route.GatewayId), internetGatewayIDPrefix) {
+		if strings.HasPrefix(awsv2.ToString(route.GatewayId), internetGatewayIDPrefix) {
 			return true
 		}
 	}
@@ -410,7 +411,7 @@ func (rt *routeTable) AssociatedSubnets() []string {
 		if association.SubnetId == nil {
 			continue
 		}
-		subnetIDs = append(subnetIDs, aws.StringValue(association.SubnetId))
+		subnetIDs = append(subnetIDs, awsv2.ToString(association.SubnetId))
 	}
 	return subnetIDs
 }
@@ -424,12 +425,12 @@ type routeTableIndex struct {
 	routeTableForSubnet map[string]*routeTable
 }
 
-func indexRouteTables(tables []*ec2.RouteTable) *routeTableIndex {
+func indexRouteTables(tables []types.RouteTable) *routeTableIndex {
 	index := &routeTableIndex{
 		routeTableForSubnet: make(map[string]*routeTable),
 	}
-	for _, table := range tables { // Index all properties in a single pass.
-		table := (*routeTable)(table)
+	for i := range tables { // Index all properties in a single pass.
+		table := (*routeTable)(&tables[i])
 
 		for _, subnetID := range table.AssociatedSubnets() {
 			index.routeTableForSubnet[subnetID] = table
@@ -455,11 +456,11 @@ func (idx *routeTableIndex) IsPublicSubnet(subnetID string) bool {
 
 // managedPrefixList returns the DescribeManagedPrefixListsOutput of a query by name.
 func (c *EC2) managedPrefixList(prefixListName string) (*ec2.DescribeManagedPrefixListsOutput, error) {
-	prefixListOutput, err := c.client.DescribeManagedPrefixLists(&ec2.DescribeManagedPrefixListsInput{
-		Filters: []*ec2.Filter{
+	prefixListOutput, err := c.client.DescribeManagedPrefixLists(context.Background(), &ec2.DescribeManagedPrefixListsInput{
+		Filters: []types.Filter{
 			{
-				Name:   aws.String("prefix-list-name"),
-				Values: aws.StringSlice([]string{prefixListName}),
+				Name:   awsv2.String("prefix-list-name"),
+				Values: []string{prefixListName},
 			},
 		},
 	})

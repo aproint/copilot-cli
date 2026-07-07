@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/config"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	awscfn "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"

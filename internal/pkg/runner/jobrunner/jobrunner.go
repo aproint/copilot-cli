@@ -9,7 +9,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 // StateMachineExecutor is the interface that implements the Execute method to invoke a state machine.
@@ -65,8 +65,8 @@ func (job *JobRunner) Run() error {
 
 	var arn string
 	for _, resource := range resources {
-		if aws.StringValue(resource.ResourceType) == "AWS::StepFunctions::StateMachine" {
-			arn = aws.StringValue(resource.PhysicalResourceId)
+		if aws.ToString(resource.ResourceType) == "AWS::StepFunctions::StateMachine" {
+			arn = aws.ToString(resource.PhysicalResourceId)
 			break
 		}
 	}

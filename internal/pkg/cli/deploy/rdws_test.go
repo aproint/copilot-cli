@@ -18,8 +18,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -210,7 +209,7 @@ func TestSvcDeployOpts_rdWebServiceStackConfiguration(t *testing.T) {
 						endpointGetter:   m.mockEndpointGetter,
 						envVersionGetter: m.mockEnvVersionGetter,
 					},
-					newSvcUpdater: func(f func(*session.Session) serviceForceUpdater) serviceForceUpdater {
+					newSvcUpdater: func(f func(aws.Config) serviceForceUpdater) serviceForceUpdater {
 						return nil
 					},
 				},
@@ -270,7 +269,7 @@ func mockRDWSDeployer(opts ...func(*rdwsDeployer)) *rdwsDeployer {
 				envVersionGetter: &mockEnvVersionGetter{version: "v1.0.0"},
 				overrider:        new(override.Noop),
 			},
-			newSvcUpdater: func(f func(*session.Session) serviceForceUpdater) serviceForceUpdater {
+			newSvcUpdater: func(f func(aws.Config) serviceForceUpdater) serviceForceUpdater {
 				return nil
 			},
 			now: func() time.Time {

@@ -10,7 +10,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 // DeployTask deploys a task stack, renders the deployment to out until it is done.
@@ -52,11 +52,11 @@ func (cf CloudFormation) ListTaskStacks(appName, envName string) ([]deploy.TaskS
 	for _, task := range tasks {
 
 		outputTaskStacks = append(outputTaskStacks, deploy.TaskStackInfo{
-			StackName: aws.StringValue(task.StackName),
+			StackName: aws.ToString(task.StackName),
 			App:       appName,
 			Env:       envName,
 
-			RoleARN: aws.StringValue(task.RoleARN),
+			RoleARN: aws.ToString(task.RoleARN),
 		})
 	}
 	return outputTaskStacks, nil
@@ -72,23 +72,23 @@ func (cf CloudFormation) GetTaskStack(taskName string) (*deploy.TaskStackInfo, e
 	}
 	info := deploy.TaskStackInfo{
 		StackName: stackName,
-		RoleARN:   aws.StringValue(desc.RoleARN),
+		RoleARN:   aws.ToString(desc.RoleARN),
 	}
 	var isTask bool
 	for _, tag := range desc.Tags {
-		switch aws.StringValue(tag.Key) {
+		switch aws.ToString(tag.Key) {
 		case deploy.AppTagKey:
-			info.App = aws.StringValue(tag.Value)
+			info.App = aws.ToString(tag.Value)
 		case deploy.EnvTagKey:
-			info.Env = aws.StringValue(tag.Value)
+			info.Env = aws.ToString(tag.Value)
 		case deploy.TaskTagKey:
 			isTask = true
 		}
 	}
 	for _, out := range desc.Outputs {
-		switch aws.StringValue(out.OutputKey) {
+		switch aws.ToString(out.OutputKey) {
 		case stack.TaskOutputS3Bucket:
-			info.BucketName = aws.StringValue(out.OutputValue)
+			info.BucketName = aws.ToString(out.OutputValue)
 		}
 	}
 	if !isTask {
@@ -108,10 +108,10 @@ func (cf CloudFormation) ListDefaultTaskStacks() ([]deploy.TaskStackInfo, error)
 		// Eliminate tasks which are tagged for a particular copilot app or env.
 		var hasAppTag, hasEnvTag bool
 		for _, tag := range task.Tags {
-			if aws.StringValue(tag.Key) == deploy.AppTagKey {
+			if aws.ToString(tag.Key) == deploy.AppTagKey {
 				hasAppTag = true
 			}
-			if aws.StringValue(tag.Key) == deploy.EnvTagKey {
+			if aws.ToString(tag.Key) == deploy.EnvTagKey {
 				hasEnvTag = true
 			}
 		}
@@ -119,7 +119,7 @@ func (cf CloudFormation) ListDefaultTaskStacks() ([]deploy.TaskStackInfo, error)
 			continue
 		}
 		outputTaskStacks = append(outputTaskStacks, deploy.TaskStackInfo{
-			StackName: aws.StringValue(task.StackName),
+			StackName: aws.ToString(task.StackName),
 		})
 	}
 	return outputTaskStacks, nil

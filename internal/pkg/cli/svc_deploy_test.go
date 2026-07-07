@@ -14,7 +14,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
@@ -634,7 +634,7 @@ func (m *mockWorkloadMft) Validate() error {
 	return nil
 }
 
-func (m *mockWorkloadMft) Load(sess *session.Session) error {
+func (m *mockWorkloadMft) Load(cfg aws.Config) error {
 	return nil
 }
 

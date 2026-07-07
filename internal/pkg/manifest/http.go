@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,7 +24,7 @@ func (r *HTTPOrBool) isEmpty() bool {
 
 // Disabled returns true if the routing rule configuration is explicitly disabled.
 func (r *HTTPOrBool) Disabled() bool {
-	return r.Enabled != nil && !aws.BoolValue(r.Enabled)
+	return r.Enabled != nil && !aws.ToBool(r.Enabled)
 }
 
 // UnmarshalYAML implements the yaml(v3) interface. It allows https routing rule to be specified as a
@@ -106,13 +106,13 @@ func (r *RoutingRule) IsEmpty() bool {
 func (r *RoutingRule) HealthCheckPort(mainContainerPort *uint16) uint16 {
 	// healthCheckPort is defined by RoutingRule.HealthCheck.Port, with fallback on RoutingRule.TargetPort, then image.port.
 	if r.HealthCheck.Advanced.Port != nil {
-		return uint16(aws.IntValue(r.HealthCheck.Advanced.Port))
+		return uint16(aws.ToInt(r.HealthCheck.Advanced.Port))
 	}
 	if r.TargetPort != nil {
-		return aws.Uint16Value(r.TargetPort)
+		return aws.ToUint16(r.TargetPort)
 	}
 	if mainContainerPort != nil {
-		return aws.Uint16Value(mainContainerPort)
+		return aws.ToUint16(mainContainerPort)
 	}
 	return 0
 }
@@ -188,7 +188,7 @@ func (a *Alias) ToStringSlice() ([]string, error) {
 	}
 	aliases := make([]string, len(a.AdvancedAliases))
 	for i, advancedAlias := range a.AdvancedAliases {
-		aliases[i] = aws.StringValue(advancedAlias.Alias)
+		aliases[i] = aws.ToString(advancedAlias.Alias)
 	}
 	return aliases, nil
 }
@@ -198,12 +198,12 @@ func (a *Alias) ToString() string {
 	if len(a.AdvancedAliases) != 0 {
 		aliases := make([]string, len(a.AdvancedAliases))
 		for i, advancedAlias := range a.AdvancedAliases {
-			aliases[i] = aws.StringValue(advancedAlias.Alias)
+			aliases[i] = aws.ToString(advancedAlias.Alias)
 		}
 		return strings.Join(aliases, ",")
 	}
 	if a.StringSliceOrString.String != nil {
-		return aws.StringValue(a.StringSliceOrString.String)
+		return aws.ToString(a.StringSliceOrString.String)
 	}
 	return strings.Join(a.StringSliceOrString.StringSlice, ",")
 }

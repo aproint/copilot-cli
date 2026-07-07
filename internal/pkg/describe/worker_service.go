@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"text/tabwriter"
@@ -66,11 +67,11 @@ func NewWorkerServiceDescriber(opt NewServiceConfig) (*WorkerServiceDescriber, e
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		sess, err := sessions.ImmutableProvider().FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
-		return cloudwatch.New(sess), nil
+		return cloudwatch.New(cfg, cfg), nil
 	}
 	return describer, nil
 }

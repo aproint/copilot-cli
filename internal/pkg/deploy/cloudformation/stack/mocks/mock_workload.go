@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	cloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
+	types "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -176,10 +176,10 @@ func (m *MocktemplateConfigurer) EXPECT() *MocktemplateConfigurerMockRecorder {
 }
 
 // Parameters mocks base method.
-func (m *MocktemplateConfigurer) Parameters() ([]*cloudformation.Parameter, error) {
+func (m *MocktemplateConfigurer) Parameters() ([]*types.Parameter, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Parameters")
-	ret0, _ := ret[0].([]*cloudformation.Parameter)
+	ret0, _ := ret[0].([]*types.Parameter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -191,10 +191,10 @@ func (mr *MocktemplateConfigurerMockRecorder) Parameters() *gomock.Call {
 }
 
 // Tags mocks base method.
-func (m *MocktemplateConfigurer) Tags() []*cloudformation.Tag {
+func (m *MocktemplateConfigurer) Tags() []*types.Tag {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Tags")
-	ret0, _ := ret[0].([]*cloudformation.Tag)
+	ret0, _ := ret[0].([]*types.Tag)
 	return ret0
 }
 

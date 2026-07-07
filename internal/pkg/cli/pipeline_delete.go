@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,11 +12,9 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
@@ -24,8 +23,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 
 	"github.com/spf13/cobra"
@@ -82,22 +80,22 @@ func newDeletePipelineOpts(vars deletePipelineVars) (*deletePipelineOpts, error)
 		return nil, err
 	}
 
-	defaultSess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline delete")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline delete")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	ssmStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	ssmStore := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
-	codepipeline := codepipeline.New(defaultSess)
-	pipelineLister := deploy.NewPipelineStore(rg.New(defaultSess))
+	codepipeline := codepipeline.New(defaultConfig, defaultConfig)
+	pipelineLister := deploy.NewPipelineStore(rg.New(defaultConfig))
 
 	opts := &deletePipelineOpts{
 		deletePipelineVars:     vars,
 		codepipeline:           codepipeline,
 		prog:                   termprogress.NewSpinner(log.DiagnosticWriter),
 		prompt:                 prompter,
-		secretsmanager:         secretsmanager.New(defaultSess),
-		pipelineDeployer:       cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr)),
+		secretsmanager:         secretsmanager.New(defaultConfig),
+		pipelineDeployer:       cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		deployedPipelineLister: pipelineLister,
 		ws:                     ws,
 		store:                  ssmStore,
@@ -227,7 +225,7 @@ func (o *deletePipelineOpts) getSecret() error {
 	}
 
 	for _, tag := range output.Tags {
-		if aws.StringValue(tag.Key) == deploy.AppTagKey && aws.StringValue(tag.Value) == output.CreatedDate.UTC().Format(time.UnixDate) {
+		if aws.ToString(tag.Key) == deploy.AppTagKey && aws.ToString(tag.Value) == output.CreatedDate.UTC().Format(time.UnixDate) {
 			return nil
 		}
 	}

@@ -4,13 +4,12 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
@@ -21,9 +20,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -64,7 +61,7 @@ type deleteAppOpts struct {
 	prompt                 prompter
 	pipelineLister         deployedPipelineLister
 	sel                    appSelector
-	s3                     func(session *session.Session) bucketEmptier
+	s3                     func(aws.Config) bucketEmptier
 	svcDeleteExecutor      func(appName, svcName string) (executor, error)
 	jobDeleteExecutor      func(appName, jobName string) (executor, error)
 	envDeleteExecutor      func(appName, envName string) (executeAsker, error)
@@ -75,23 +72,23 @@ type deleteAppOpts struct {
 
 func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 	provider := sessions.ImmutableProvider(sessions.UserAgentExtras("app delete"))
-	defaultSession, err := provider.Default()
+	defaultConfig, err := provider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
 	prompter := prompt.New()
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	return &deleteAppOpts{
 		deleteAppVars: vars,
 		spinner:       termprogress.NewSpinner(log.DiagnosticWriter),
 		store:         store,
 		sessProvider:  provider,
-		cfn:           cloudformation.New(defaultSession, cloudformation.WithProgressTracker(os.Stderr)),
+		cfn:           cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:        prompter,
-		s3: func(session *session.Session) bucketEmptier {
-			return s3.New(session)
+		s3: func(cfg aws.Config) bucketEmptier {
+			return s3.New(cfg)
 		},
-		pipelineLister: deploy.NewPipelineStore(rg.New(defaultSession)),
+		pipelineLister: deploy.NewPipelineStore(rg.New(defaultConfig)),
 		sel:            selector.NewAppEnvSelector(prompter, store),
 		svcDeleteExecutor: func(appName, svcName string) (executor, error) {
 			opts, err := newDeleteSvcOpts(deleteSvcVars{
@@ -322,13 +319,13 @@ func (o *deleteAppOpts) emptyS3Bucket() error {
 	}
 	o.spinner.Start(deleteAppCleanResourcesStartMsg)
 	for _, resource := range appResources {
-		sess, err := o.sessProvider.DefaultWithRegion(resource.Region)
+		cfg, err := o.sessProvider.DefaultConfigWithRegion(context.Background(), resource.Region)
 		if err != nil {
-			return fmt.Errorf("default session with region %s: %w", resource.Region, err)
+			return fmt.Errorf("default config with region %s: %w", resource.Region, err)
 		}
 
 		// Empty pipeline buckets.
-		s3Client := o.s3(sess)
+		s3Client := o.s3(cfg)
 		if err := s3Client.EmptyBucket(resource.S3Bucket); err != nil {
 			o.spinner.Stop(log.Serrorln("Error cleaning up deployment resources."))
 			return fmt.Errorf("empty bucket %s: %w", resource.S3Bucket, err)

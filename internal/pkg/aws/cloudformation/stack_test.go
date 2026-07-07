@@ -6,8 +6,8 @@ package cloudformation
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,13 +25,13 @@ func TestNewStack(t *testing.T) {
 	// THEN
 	require.Equal(t, "hello", s.Name)
 	require.Equal(t, "world", s.TemplateBody)
-	require.Equal(t, []*cloudformation.Parameter{
+	require.Equal(t, []types.Parameter{
 		{
 			ParameterKey:   aws.String("Port"),
 			ParameterValue: aws.String("80"),
 		},
 	}, s.Parameters)
-	require.Equal(t, []*cloudformation.Tag{
+	require.Equal(t, []types.Tag{
 		{
 			Key:   aws.String("copilot-application"),
 			Value: aws.String("phonetool"),
@@ -54,13 +54,13 @@ func TestNewStackWithURL(t *testing.T) {
 	// THEN
 	require.Equal(t, "hello", s.Name)
 	require.Equal(t, "worldlyURL", s.TemplateURL)
-	require.Equal(t, []*cloudformation.Parameter{
+	require.Equal(t, []types.Parameter{
 		{
 			ParameterKey:   aws.String("Port"),
 			ParameterValue: aws.String("80"),
 		},
 	}, s.Parameters)
-	require.Equal(t, []*cloudformation.Tag{
+	require.Equal(t, []types.Tag{
 		{
 			Key:   aws.String("copilot-application"),
 			Value: aws.String("phonetool"),

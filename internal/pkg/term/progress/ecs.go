@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/dustin/go-humanize/english"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
@@ -221,25 +221,25 @@ func (c *rollingUpdateComponent) renderStoppedTasks(out io.Writer) (numLines int
 	}
 	stopReason2Tasks := make(map[string]*stoppedTasksInfo, len(c.stoppedTasks))
 	for _, st := range c.stoppedTasks {
-		id, err := ecs.TaskID(aws.StringValue(st.TaskArn))
+		id, err := ecs.TaskID(aws.ToString(st.TaskArn))
 		if err != nil {
 			return 0, err
 		}
-		tasks, ok := stopReason2Tasks[aws.StringValue(st.StoppedReason)]
+		tasks, ok := stopReason2Tasks[aws.ToString(st.StoppedReason)]
 		if ok {
 			tasks.ids = append(tasks.ids, ecs.ShortTaskID(id))
-			tasks.latestStoppingAt = aws.TimeValue(st.StoppingAt)
-			stopReason2Tasks[aws.StringValue(st.StoppedReason)] = tasks
+			tasks.latestStoppingAt = aws.ToTime(st.StoppingAt)
+			stopReason2Tasks[aws.ToString(st.StoppedReason)] = tasks
 		} else {
-			stopReason2Tasks[aws.StringValue(st.StoppedReason)] = &stoppedTasksInfo{
+			stopReason2Tasks[aws.ToString(st.StoppedReason)] = &stoppedTasksInfo{
 				ids:              []string{ecs.ShortTaskID(id)},
-				latestStoppingAt: aws.TimeValue(st.StoppingAt),
+				latestStoppingAt: aws.ToTime(st.StoppingAt),
 			}
 		}
 		rows = append(rows, []string{
 			ecs.ShortTaskID(id),
-			aws.StringValue(st.LastStatus),
-			aws.StringValue(st.DesiredStatus),
+			aws.ToString(st.LastStatus),
+			aws.ToString(st.DesiredStatus),
 		})
 	}
 	var sortedReasons []string

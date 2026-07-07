@@ -12,7 +12,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/initialize/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -366,10 +366,10 @@ func TestAppInitOpts_createLoadBalancedAppManifest(t *testing.T) {
 			// THEN
 			if tc.wantedErr == nil {
 				require.NoError(t, err)
-				require.Equal(t, tc.inSvcName, aws.StringValue(manifest.Workload.Name))
-				require.Equal(t, tc.inSvcPort, aws.Uint16Value(manifest.ImageConfig.Port))
-				require.Contains(t, tc.inDockerfilePath, aws.StringValue(manifest.ImageConfig.Image.Build.BuildArgs.Dockerfile))
-				require.Equal(t, tc.wantedPath, aws.StringValue(manifest.HTTPOrBool.Main.Path))
+				require.Equal(t, tc.inSvcName, aws.ToString(manifest.Workload.Name))
+				require.Equal(t, tc.inSvcPort, aws.ToUint16(manifest.ImageConfig.Port))
+				require.Contains(t, tc.inDockerfilePath, aws.ToString(manifest.ImageConfig.Image.Build.BuildArgs.Dockerfile))
+				require.Equal(t, tc.wantedPath, aws.ToString(manifest.HTTPOrBool.Main.Path))
 			} else {
 				require.EqualError(t, err, tc.wantedErr.Error())
 			}

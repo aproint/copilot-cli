@@ -7,7 +7,7 @@ package apprunner
 import (
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/apprunner"
+	"github.com/aws/aws-sdk-go-v2/service/apprunner/types"
 )
 
 // Service wraps up AppRunner Service struct.
@@ -46,4 +46,4 @@ type ObservabilityConfiguration struct {
 }
 
 // TraceConfiguration wraps AppRunner TraceConfiguration.
-type TraceConfiguration apprunner.TraceConfiguration
+type TraceConfiguration types.TraceConfiguration

@@ -4,12 +4,12 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ssm"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -21,8 +21,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	awsssm "github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/dustin/go-humanize/english"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -75,7 +73,7 @@ type secretInitOpts struct {
 
 func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("secret init"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +83,7 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 		return nil, err
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSession), awsssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	opts := secretInitOpts{
 		secretInitVars: vars,
@@ -115,11 +113,11 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 		if err != nil {
 			return err
 		}
-		sess, err := sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
-			return fmt.Errorf("create session from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
+			return fmt.Errorf("create config from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
 		}
-		opts.secretPutters[envName] = ssm.New(sess)
+		opts.secretPutters[envName] = ssm.New(cfg)
 
 		return nil
 	}
@@ -316,7 +314,7 @@ func (o *secretInitOpts) putSecretInEnv(secretName, envName, value string) error
 		return err
 	}
 
-	version := aws.Int64Value(out.Version)
+	version := out.Version
 	if version != 1 {
 		log.Successln(fmt.Sprintf("Secret %s already exists in environment %s. Overwritten.", name, color.HighlightUserInput(envName)))
 		return nil

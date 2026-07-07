@@ -5,6 +5,7 @@
 package s3
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,20 +13,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	awsarn "github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/dustin/go-humanize"
 	"github.com/xlab/treeprint"
 )
 
 const (
 	// EndpointsID is the ID to look up the S3 service endpoint.
-	EndpointsID = s3.EndpointsID
+	EndpointsID = "s3"
 
 	// Error codes.
 	errCodeNotFound = "NotFound"
@@ -38,14 +38,14 @@ const (
 )
 
 type s3ManagerAPI interface {
-	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	Upload(context.Context, *s3.PutObjectInput, ...func(*manager.Uploader)) (*manager.UploadOutput, error)
 }
 
 type s3API interface {
-	ListObjectVersions(input *s3.ListObjectVersionsInput) (*s3.ListObjectVersionsOutput, error)
-	ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
-	DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
-	HeadBucket(input *s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
+	ListObjectVersions(context.Context, *s3.ListObjectVersionsInput, ...func(*s3.Options)) (*s3.ListObjectVersionsOutput, error)
+	ListObjectsV2(context.Context, *s3.ListObjectsV2Input, ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+	DeleteObjects(context.Context, *s3.DeleteObjectsInput, ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
+	HeadBucket(context.Context, *s3.HeadBucketInput, ...func(*s3.Options)) (*s3.HeadBucketOutput, error)
 }
 
 // NamedBinary is a named binary to be uploaded.
@@ -63,11 +63,12 @@ type S3 struct {
 	s3Client  s3API
 }
 
-// New returns an S3 client configured against the input session.
-func New(s *session.Session) *S3 {
+// New returns an S3 client configured against the input SDK v2 config.
+func New(cfg aws.Config) *S3 {
+	client := s3.NewFromConfig(cfg)
 	return &S3{
-		s3Manager: s3manager.NewUploader(s),
-		s3Client:  s3.New(s),
+		s3Manager: manager.NewUploader(client),
+		s3Client:  client,
 	}
 }
 
@@ -97,13 +98,13 @@ func (s *S3) EmptyBucket(bucket string) error {
 	}
 	// Remove all versions of all objects.
 	for {
-		listResp, err = s.s3Client.ListObjectVersions(listParams)
+		listResp, err = s.s3Client.ListObjectVersions(context.Background(), listParams)
 		if err != nil {
 			return fmt.Errorf("list objects for bucket %s: %w", bucket, err)
 		}
-		var objectsToDelete []*s3.ObjectIdentifier
+		var objectsToDelete []types.ObjectIdentifier
 		for _, object := range listResp.Versions {
-			objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+			objectsToDelete = append(objectsToDelete, types.ObjectIdentifier{
 				Key:       object.Key,
 				VersionId: object.VersionId,
 			})
@@ -111,7 +112,7 @@ func (s *S3) EmptyBucket(bucket string) error {
 		// After deleting other versions, remove delete markers version.
 		// For info on "delete marker": https://docs.aws.amazon.com/AmazonS3/latest/dev/DeleteMarker.html
 		for _, deleteMarker := range listResp.DeleteMarkers {
-			objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+			objectsToDelete = append(objectsToDelete, types.ObjectIdentifier{
 				Key:       deleteMarker.Key,
 				VersionId: deleteMarker.VersionId,
 			})
@@ -119,9 +120,9 @@ func (s *S3) EmptyBucket(bucket string) error {
 		if len(objectsToDelete) == 0 {
 			return nil
 		}
-		delResp, err := s.s3Client.DeleteObjects(&s3.DeleteObjectsInput{
+		delResp, err := s.s3Client.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
 			Bucket: aws.String(bucket),
-			Delete: &s3.Delete{
+			Delete: &types.Delete{
 				Objects: objectsToDelete,
 				Quiet:   aws.Bool(true), // we don't care about success values
 			},
@@ -132,10 +133,10 @@ func (s *S3) EmptyBucket(bucket string) error {
 		case len(delResp.Errors) > 0:
 			return errors.Join(
 				fmt.Errorf("%d/%d objects failed to delete", len(delResp.Errors), len(objectsToDelete)),
-				fmt.Errorf("first failed on key %q: %s", aws.StringValue(delResp.Errors[0].Key), aws.StringValue(delResp.Errors[0].Message)),
+				fmt.Errorf("first failed on key %q: %s", aws.ToString(delResp.Errors[0].Key), aws.ToString(delResp.Errors[0].Message)),
 			)
 		}
-		if !aws.BoolValue(listResp.IsTruncated) {
+		if !aws.ToBool(listResp.IsTruncated) {
 			return nil
 		}
 		listParams.KeyMarker = listResp.NextKeyMarker
@@ -172,11 +173,8 @@ func ParseARN(arn string) (bucket, key string, err error) {
 // URL returns a virtual-hosted–style S3 url for the object stored at key in a bucket created in the specified region.
 func URL(region, bucket, key string) string {
 	tld := "com"
-	for cn := range endpoints.AwsCnPartition().Regions() {
-		if cn == region {
-			tld = "cn"
-			break
-		}
+	if strings.HasPrefix(region, "cn-") {
+		tld = "cn"
 	}
 	if key != "" {
 		return fmt.Sprintf("https://%s.s3.%s.amazonaws.%s/%s", bucket, region, tld, key)
@@ -201,8 +199,8 @@ func (s *S3) BucketTree(bucket string) (string, error) {
 	if err != nil || outputs == nil {
 		return "", err
 	}
-	var contents []*s3.Object
-	var prefixes []*s3.CommonPrefix
+	var contents []types.Object
+	var prefixes []types.CommonPrefix
 	for _, output := range outputs {
 		contents = append(contents, output.Contents...)
 		prefixes = append(prefixes, output.CommonPrefixes...)
@@ -210,7 +208,7 @@ func (s *S3) BucketTree(bucket string) (string, error) {
 	tree := treeprint.New()
 	// Add top-level files.
 	for _, object := range contents {
-		tree.AddNode(aws.StringValue(object.Key))
+		tree.AddNode(aws.ToString(object.Key))
 	}
 	// Recursively add folders and their children.
 	if err := s.addNodes(tree, prefixes, bucket); err != nil {
@@ -229,7 +227,7 @@ func (s *S3) BucketSizeAndCount(bucket string) (string, int, error) {
 	var count int
 	for _, output := range outputs {
 		for _, object := range output.Contents {
-			size += aws.Int64Value(object.Size)
+			size += aws.ToInt64(object.Size)
 			count++
 		}
 	}
@@ -249,7 +247,7 @@ func (s *S3) listObjects(bucket, delimiter string) ([]s3.ListObjectsV2Output, er
 			Delimiter:         aws.String(delimiter),
 			ContinuationToken: listResp.NextContinuationToken,
 		}
-		listResp, err = s.s3Client.ListObjectsV2(listParams)
+		listResp, err = s.s3Client.ListObjectsV2(context.Background(), listParams)
 		if err != nil {
 			return nil, fmt.Errorf("list objects for bucket %s: %w", bucket, err)
 		}
@@ -265,10 +263,10 @@ func (s *S3) bucketExists(bucket string) (bool, error) {
 	input := &s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	}
-	_, err := s.s3Client.HeadBucket(input)
+	_, err := s.s3Client.HeadBucket(context.Background(), input)
 	if err != nil {
-		var aerr awserr.Error
-		if errors.As(err, &aerr) && aerr.Code() == errCodeNotFound {
+		var aerr smithy.APIError
+		if errors.As(err, &aerr) && aerr.ErrorCode() == errCodeNotFound {
 			return false, nil
 		}
 		return false, err
@@ -276,16 +274,16 @@ func (s *S3) bucketExists(bucket string) (bool, error) {
 	return true, nil
 }
 
-func (s *S3) addNodes(tree treeprint.Tree, prefixes []*s3.CommonPrefix, bucket string) error {
+func (s *S3) addNodes(tree treeprint.Tree, prefixes []types.CommonPrefix, bucket string) error {
 	if len(prefixes) == 0 {
 		return nil
 	}
 	listResp := &s3.ListObjectsV2Output{}
 	var err error
 	for _, prefix := range prefixes {
-		var respContents []*s3.Object
-		var respPrefixes []*s3.CommonPrefix
-		branch := tree.AddBranch(filepath.Base(aws.StringValue(prefix.Prefix)))
+		var respContents []types.Object
+		var respPrefixes []types.CommonPrefix
+		branch := tree.AddBranch(filepath.Base(aws.ToString(prefix.Prefix)))
 		for {
 			listParams := &s3.ListObjectsV2Input{
 				Bucket:            aws.String(bucket),
@@ -293,7 +291,7 @@ func (s *S3) addNodes(tree treeprint.Tree, prefixes []*s3.CommonPrefix, bucket s
 				ContinuationToken: listResp.ContinuationToken,
 				Prefix:            prefix.Prefix,
 			}
-			listResp, err = s.s3Client.ListObjectsV2(listParams)
+			listResp, err = s.s3Client.ListObjectsV2(context.Background(), listParams)
 			if err != nil {
 				return fmt.Errorf("list objects for bucket %s: %w", bucket, err)
 			}
@@ -304,7 +302,7 @@ func (s *S3) addNodes(tree treeprint.Tree, prefixes []*s3.CommonPrefix, bucket s
 			}
 		}
 		for _, file := range respContents {
-			fileName := filepath.Base(aws.StringValue(file.Key))
+			fileName := filepath.Base(aws.ToString(file.Key))
 			branch.AddNode(fileName)
 		}
 		if err := s.addNodes(branch, respPrefixes, bucket); err != nil {
@@ -315,14 +313,14 @@ func (s *S3) addNodes(tree treeprint.Tree, prefixes []*s3.CommonPrefix, bucket s
 }
 
 func (s *S3) upload(bucket, key string, buf io.Reader) (string, error) {
-	in := &s3manager.UploadInput{
+	in := &s3.PutObjectInput{
 		Body:        buf,
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
-		ACL:         aws.String(s3.ObjectCannedACLBucketOwnerFullControl),
+		ACL:         types.ObjectCannedACLBucketOwnerFullControl,
 		ContentType: defaultContentTypeFromExt(key),
 	}
-	resp, err := s.s3Manager.Upload(in)
+	resp, err := s.s3Manager.Upload(context.Background(), in)
 	if err != nil {
 		return "", fmt.Errorf("upload %s to bucket %s: %w", key, bucket, err)
 	}

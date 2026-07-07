@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -336,7 +334,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 					// appEnvironments
 					mocks.store.EXPECT().ListEnvironments(gomock.Eq(mockAppName)).Times(1).Return(mockEnvs, nil),
 
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
 					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
 					// delete orphan tasks
@@ -344,7 +342,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 					mocks.ecs.EXPECT().StopWorkloadTasks(mockAppName, mockEnvName, mockJobName).Return(nil),
 					mocks.spinner.EXPECT().Stop(log.Ssuccessf(fmtJobTasksStopComplete, mockJobName, mockEnvName)),
 
-					mocks.sessProvider.EXPECT().DefaultWithRegion(gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().DefaultConfigWithRegion(gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// emptyECRRepos
 					mocks.ecr.EXPECT().ClearRepository(mockRepo).Return(nil),
 					// removeJobFromApp
@@ -368,7 +366,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 				gomock.InOrder(
 					// appEnvironments
 					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
 					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
 					// delete orphan tasks
@@ -396,11 +394,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 				gomock.InOrder(
 					// appEnvironments
 					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{
-						Config: &aws.Config{
-							Region: aws.String("mockRegion"),
-						},
-					}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					// deleteStacks
 					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(testError),
 				)
@@ -415,11 +409,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 				gomock.InOrder(
 					// appEnvironments
 					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{
-						Config: &aws.Config{
-							Region: aws.String("mockRegion"),
-						},
-					}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					// deleteStacks
 					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
 					// delete orphan tasks
@@ -446,13 +436,13 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 			mockSpinner := mocks.NewMockprogress(ctrl)
 			mockImageRemover := mocks.NewMockimageRemover(ctrl)
 			mockTaskStopper := mocks.NewMocktaskStopper(ctrl)
-			mockGetJobCFN := func(_ *session.Session) wlDeleter {
+			mockGetJobCFN := func(_ aws.Config) wlDeleter {
 				return mockJobCFN
 			}
-			mockGetImageRemover := func(_ *session.Session) imageRemover {
+			mockGetImageRemover := func(_ aws.Config) imageRemover {
 				return mockImageRemover
 			}
-			mockNewTaskStopper := func(_ *session.Session) taskStopper {
+			mockNewTaskStopper := func(_ aws.Config) taskStopper {
 				return mockTaskStopper
 			}
 

@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline/mocks"
-	"github.com/aws/aws-sdk-go/aws"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/codepipeline"
+	"github.com/aws/aws-sdk-go-v2/service/codepipeline/types"
 	"github.com/golang/mock/gomock"
-
-	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,104 +27,104 @@ func TestCodePipeline_GetPipeline(t *testing.T) {
 	mockError := errors.New("mockError")
 	mockTime := time.Now()
 	mockArn := "arn:aws:codepipeline:us-west-2:1234567890:pipeline-dinder-badgoose-repo"
-	mockSourceStage := &codepipeline.StageDeclaration{
-		Name: aws.String("Source"),
-		Actions: []*codepipeline.ActionDeclaration{
+	mockSourceStage := types.StageDeclaration{
+		Name: awsv2.String("Source"),
+		Actions: []types.ActionDeclaration{
 			{
-				ActionTypeId: &codepipeline.ActionTypeId{
-					Category: aws.String("Source"),
-					Owner:    aws.String("ThirdParty"),
-					Provider: aws.String("GitHub"),
-					Version:  aws.String("1"),
+				ActionTypeId: &types.ActionTypeId{
+					Category: types.ActionCategorySource,
+					Owner:    types.ActionOwnerThirdParty,
+					Provider: awsv2.String("GitHub"),
+					Version:  awsv2.String("1"),
 				},
-				Configuration: map[string]*string{
-					"Owner":      aws.String("badgoose"),
-					"Repo":       aws.String("repo"),
-					"Branch":     aws.String("main"),
-					"OAuthToken": aws.String("****"),
+				Configuration: map[string]string{
+					"Owner":      "badgoose",
+					"Repo":       "repo",
+					"Branch":     "main",
+					"OAuthToken": "****",
 				},
-				Name: aws.String("SourceCodeFor-dinder"),
-				OutputArtifacts: []*codepipeline.OutputArtifact{
+				Name: awsv2.String("SourceCodeFor-dinder"),
+				OutputArtifacts: []types.OutputArtifact{
 					{
-						Name: aws.String("SCCheckoutArtifact"),
+						Name: awsv2.String("SCCheckoutArtifact"),
 					},
 				},
-				RunOrder: aws.Int64(1),
+				RunOrder: awsv2.Int32(1),
 			},
 		},
 	}
-	mockBuildStage := &codepipeline.StageDeclaration{
-		Name: aws.String("Build"),
-		Actions: []*codepipeline.ActionDeclaration{
+	mockBuildStage := types.StageDeclaration{
+		Name: awsv2.String("Build"),
+		Actions: []types.ActionDeclaration{
 			{
-				ActionTypeId: &codepipeline.ActionTypeId{
-					Category: aws.String("Build"),
-					Owner:    aws.String("AWS"),
-					Provider: aws.String("CodeBuild"),
-					Version:  aws.String("1"),
+				ActionTypeId: &types.ActionTypeId{
+					Category: types.ActionCategoryBuild,
+					Owner:    types.ActionOwnerAws,
+					Provider: awsv2.String("CodeBuild"),
+					Version:  awsv2.String("1"),
 				},
-				Configuration: map[string]*string{
-					"ProjectName": aws.String("pipeline-dinder-badgoose-repo-BuildProject"),
+				Configuration: map[string]string{
+					"ProjectName": "pipeline-dinder-badgoose-repo-BuildProject",
 				},
-				InputArtifacts: []*codepipeline.InputArtifact{
+				InputArtifacts: []types.InputArtifact{
 					{
-						Name: aws.String("SCCheckoutArtifact"),
+						Name: awsv2.String("SCCheckoutArtifact"),
 					},
 				},
-				Name: aws.String("Build"),
-				OutputArtifacts: []*codepipeline.OutputArtifact{
+				Name: awsv2.String("Build"),
+				OutputArtifacts: []types.OutputArtifact{
 					{
-						Name: aws.String("BuildOutput"),
+						Name: awsv2.String("BuildOutput"),
 					},
 				},
-				RunOrder: aws.Int64(1),
+				RunOrder: awsv2.Int32(1),
 			},
 		},
 	}
-	mockTestStage := &codepipeline.StageDeclaration{
-		Name: aws.String("DeployTo-test"),
-		Actions: []*codepipeline.ActionDeclaration{
+	mockTestStage := types.StageDeclaration{
+		Name: awsv2.String("DeployTo-test"),
+		Actions: []types.ActionDeclaration{
 			{
-				ActionTypeId: &codepipeline.ActionTypeId{
-					Category: aws.String("Deploy"),
-					Owner:    aws.String("AWS"),
-					Provider: aws.String("CloudFormation"),
-					Version:  aws.String("1"),
+				ActionTypeId: &types.ActionTypeId{
+					Category: types.ActionCategoryDeploy,
+					Owner:    types.ActionOwnerAws,
+					Provider: awsv2.String("CloudFormation"),
+					Version:  awsv2.String("1"),
 				},
-				Configuration: map[string]*string{
-					"TemplatePath":          aws.String("BuildOutput::infrastructure/test.stack.yml"),
-					"ActionMode":            aws.String("CREATE_UPDATE"),
-					"Capabilities":          aws.String("CAPABILITY_NAMED_IAM"),
-					"ChangeSetName":         aws.String("dinder-test-test"),
-					"RoleArn":               aws.String("arn:aws:iam::1234567890:role/trivia-test-CFNExecutionRole"),
-					"StackName":             aws.String("dinder-test-test"),
-					"TemplateConfiguration": aws.String("BuildOutput::infrastructure/test-test.params.json"),
+				Configuration: map[string]string{
+					"TemplatePath":          "BuildOutput::infrastructure/test.stack.yml",
+					"ActionMode":            "CREATE_UPDATE",
+					"Capabilities":          "CAPABILITY_NAMED_IAM",
+					"ChangeSetName":         "dinder-test-test",
+					"RoleArn":               "arn:aws:iam::1234567890:role/trivia-test-CFNExecutionRole",
+					"StackName":             "dinder-test-test",
+					"TemplateConfiguration": "BuildOutput::infrastructure/test-test.params.json",
 				},
-				InputArtifacts: []*codepipeline.InputArtifact{
-					{Name: aws.String("BuildOutput")},
+				InputArtifacts: []types.InputArtifact{
+					{Name: awsv2.String("BuildOutput")},
 				},
-				Name:     aws.String("CreateOrUpdate-test-test"),
-				Region:   aws.String("us-west-2"),
-				RoleArn:  aws.String("arn:aws:iam::12344567890:role/dinder-test-EnvManagerRole"),
-				RunOrder: aws.Int64(2),
+				Name:     awsv2.String("CreateOrUpdate-test-test"),
+				Region:   awsv2.String("us-west-2"),
+				RoleArn:  awsv2.String("arn:aws:iam::12344567890:role/dinder-test-EnvManagerRole"),
+				RunOrder: awsv2.Int32(2),
 			},
 		},
 	}
-	mockStages := []*codepipeline.StageDeclaration{mockSourceStage, mockBuildStage, mockTestStage}
+	mockStages := []types.StageDeclaration{mockSourceStage, mockBuildStage, mockTestStage}
 
-	mockStageWithNoAction := &codepipeline.StageDeclaration{
-		Name:    aws.String("DummyStage"),
-		Actions: []*codepipeline.ActionDeclaration{},
+	mockStageWithNoAction := types.StageDeclaration{
+		Name:    awsv2.String("DummyStage"),
+		Actions: []types.ActionDeclaration{},
 	}
 	mockOutput := &codepipeline.GetPipelineOutput{
-		Pipeline: &codepipeline.PipelineDeclaration{
-			Name:   aws.String(mockPipelineName),
+		Pipeline: &types.PipelineDeclaration{
+			Name:   awsv2.String(mockPipelineName),
 			Stages: mockStages,
 		},
-		Metadata: &codepipeline.PipelineMetadata{
+		Metadata: &types.PipelineMetadata{
 			Created:     &mockTime,
 			Updated:     &mockTime,
-			PipelineArn: aws.String(mockArn),
+			PipelineArn: awsv2.String(mockArn),
 		},
 	}
 
@@ -138,8 +138,8 @@ func TestCodePipeline_GetPipeline(t *testing.T) {
 		"happy path": {
 			inPipelineName: mockPipelineName,
 			callMocks: func(m codepipelineMocks) {
-				m.cp.EXPECT().GetPipeline(&codepipeline.GetPipelineInput{
-					Name: aws.String(mockPipelineName),
+				m.cp.EXPECT().GetPipeline(gomock.Any(), &codepipeline.GetPipelineInput{
+					Name: awsv2.String(mockPipelineName),
 				}).Return(mockOutput, nil)
 
 			},
@@ -175,18 +175,18 @@ func TestCodePipeline_GetPipeline(t *testing.T) {
 		"should only populate stage name if stage has no actions": {
 			inPipelineName: mockPipelineName,
 			callMocks: func(m codepipelineMocks) {
-				m.cp.EXPECT().GetPipeline(&codepipeline.GetPipelineInput{
-					Name: aws.String(mockPipelineName),
+				m.cp.EXPECT().GetPipeline(gomock.Any(), &codepipeline.GetPipelineInput{
+					Name: awsv2.String(mockPipelineName),
 				}).Return(
 					&codepipeline.GetPipelineOutput{
-						Pipeline: &codepipeline.PipelineDeclaration{
-							Name:   aws.String(mockPipelineName),
-							Stages: []*codepipeline.StageDeclaration{mockSourceStage, mockStageWithNoAction},
+						Pipeline: &types.PipelineDeclaration{
+							Name:   awsv2.String(mockPipelineName),
+							Stages: []types.StageDeclaration{mockSourceStage, mockStageWithNoAction},
 						},
-						Metadata: &codepipeline.PipelineMetadata{
+						Metadata: &types.PipelineMetadata{
 							Created:     &mockTime,
 							Updated:     &mockTime,
-							PipelineArn: aws.String(mockArn),
+							PipelineArn: awsv2.String(mockArn),
 						},
 					}, nil)
 
@@ -217,8 +217,8 @@ func TestCodePipeline_GetPipeline(t *testing.T) {
 		"should wrap error from codepipeline client": {
 			inPipelineName: mockPipelineName,
 			callMocks: func(m codepipelineMocks) {
-				m.cp.EXPECT().GetPipeline(&codepipeline.GetPipelineInput{
-					Name: aws.String(mockPipelineName),
+				m.cp.EXPECT().GetPipeline(gomock.Any(), &codepipeline.GetPipelineInput{
+					Name: awsv2.String(mockPipelineName),
 				}).Return(nil, mockError)
 
 			},
@@ -260,56 +260,56 @@ func TestCodePipeline_GetPipelineState(t *testing.T) {
 	mockPipelineName := "pipeline-dinder-badgoose-repo"
 	mockTime := time.Now()
 	mockOutput := &codepipeline.GetPipelineStateOutput{
-		PipelineName: aws.String(mockPipelineName),
-		StageStates: []*codepipeline.StageState{
+		PipelineName: awsv2.String(mockPipelineName),
+		StageStates: []types.StageState{
 			{
-				ActionStates: []*codepipeline.ActionState{
+				ActionStates: []types.ActionState{
 					{
-						ActionName:      aws.String("action1"),
-						LatestExecution: &codepipeline.ActionExecution{Status: aws.String(codepipeline.ActionExecutionStatusSucceeded)},
+						ActionName:      awsv2.String("action1"),
+						LatestExecution: &types.ActionExecution{Status: types.ActionExecutionStatusSucceeded},
 					},
 					{
-						ActionName:      aws.String("action2"),
-						LatestExecution: &codepipeline.ActionExecution{Status: aws.String(codepipeline.ActionExecutionStatusSucceeded)},
+						ActionName:      awsv2.String("action2"),
+						LatestExecution: &types.ActionExecution{Status: types.ActionExecutionStatusSucceeded},
 					},
 				},
-				StageName: aws.String("Source"),
+				StageName: awsv2.String("Source"),
 			},
 			{
-				InboundTransitionState: &codepipeline.TransitionState{Enabled: aws.Bool(true)},
-				ActionStates: []*codepipeline.ActionState{
+				InboundTransitionState: &types.TransitionState{Enabled: true},
+				ActionStates: []types.ActionState{
 					{
-						ActionName:      aws.String("action1"),
-						LatestExecution: &codepipeline.ActionExecution{Status: aws.String(codepipeline.ActionExecutionStatusFailed)},
+						ActionName:      awsv2.String("action1"),
+						LatestExecution: &types.ActionExecution{Status: types.ActionExecutionStatusFailed},
 					},
 					{
-						ActionName:      aws.String("action2"),
-						LatestExecution: &codepipeline.ActionExecution{Status: aws.String(codepipeline.ActionExecutionStatusInProgress)},
+						ActionName:      awsv2.String("action2"),
+						LatestExecution: &types.ActionExecution{Status: types.ActionExecutionStatusInProgress},
 					},
 					{
-						ActionName:      aws.String("action3"),
-						LatestExecution: &codepipeline.ActionExecution{Status: aws.String(codepipeline.ActionExecutionStatusSucceeded)},
+						ActionName:      awsv2.String("action3"),
+						LatestExecution: &types.ActionExecution{Status: types.ActionExecutionStatusSucceeded},
 					},
 				},
-				StageName: aws.String("Build"),
+				StageName: awsv2.String("Build"),
 			},
 			{
-				InboundTransitionState: &codepipeline.TransitionState{Enabled: aws.Bool(true)},
-				ActionStates: []*codepipeline.ActionState{
+				InboundTransitionState: &types.TransitionState{Enabled: true},
+				ActionStates: []types.ActionState{
 					{
-						ActionName:      aws.String("action1"),
-						LatestExecution: &codepipeline.ActionExecution{Status: aws.String(codepipeline.ActionExecutionStatusSucceeded)},
+						ActionName:      awsv2.String("action1"),
+						LatestExecution: &types.ActionExecution{Status: types.ActionExecutionStatusSucceeded},
 					},
 					{
-						ActionName:      aws.String("TestCommands"),
-						LatestExecution: &codepipeline.ActionExecution{Status: aws.String(codepipeline.ActionExecutionStatusFailed)},
+						ActionName:      awsv2.String("TestCommands"),
+						LatestExecution: &types.ActionExecution{Status: types.ActionExecutionStatusFailed},
 					},
 				},
-				StageName: aws.String("DeployTo-test"),
+				StageName: awsv2.String("DeployTo-test"),
 			},
 			{
-				InboundTransitionState: &codepipeline.TransitionState{Enabled: aws.Bool(false)},
-				StageName:              aws.String("DeployTo-prod"),
+				InboundTransitionState: &types.TransitionState{Enabled: false},
+				StageName:              awsv2.String("DeployTo-prod"),
 			},
 		},
 		Updated: &mockTime,
@@ -326,8 +326,8 @@ func TestCodePipeline_GetPipelineState(t *testing.T) {
 		"happy path": {
 			inPipelineName: mockPipelineName,
 			callMocks: func(m codepipelineMocks) {
-				m.cp.EXPECT().GetPipelineState(&codepipeline.GetPipelineStateInput{
-					Name: aws.String(mockPipelineName),
+				m.cp.EXPECT().GetPipelineState(gomock.Any(), &codepipeline.GetPipelineStateInput{
+					Name: awsv2.String(mockPipelineName),
 				}).Return(mockOutput, nil)
 
 			},
@@ -392,8 +392,8 @@ func TestCodePipeline_GetPipelineState(t *testing.T) {
 		"should wrap error from CodePipeline client": {
 			inPipelineName: mockPipelineName,
 			callMocks: func(m codepipelineMocks) {
-				m.cp.EXPECT().GetPipelineState(&codepipeline.GetPipelineStateInput{
-					Name: aws.String(mockPipelineName),
+				m.cp.EXPECT().GetPipelineState(gomock.Any(), &codepipeline.GetPipelineStateInput{
+					Name: awsv2.String(mockPipelineName),
 				}).Return(nil, mockError)
 
 			},
@@ -431,15 +431,15 @@ func TestCodePipeline_GetPipelineState(t *testing.T) {
 func TestCodePipeline_RetryStageExecution(t *testing.T) {
 	mockPipelineName := "pipeline-dinder-badgoose-repo"
 	mockStageName := "Source"
-	failedActions := codepipeline.StageRetryModeFailedActions
-	notRetryable := codepipeline.StageNotRetryableException{}
-	mockPipelineExecutionID := aws.String("12345678-fake-exec-utio-nid987654321")
+	failedActions := types.StageRetryModeFailedActions
+	notRetryable := &types.StageNotRetryableException{}
+	mockPipelineExecutionID := awsv2.String("12345678-fake-exec-utio-nid987654321")
 	mockBadOutput := &codepipeline.ListPipelineExecutionsOutput{
-		PipelineExecutionSummaries: []*codepipeline.PipelineExecutionSummary{},
+		PipelineExecutionSummaries: []types.PipelineExecutionSummary{},
 	}
 	mockErr := errors.New("some error")
 	mockOutput := &codepipeline.RetryStageExecutionOutput{
-		PipelineExecutionId: aws.String("12345678-fake-exec-utio-nid987654321"),
+		PipelineExecutionId: awsv2.String("12345678-fake-exec-utio-nid987654321"),
 	}
 
 	tests := map[string]struct {
@@ -450,21 +450,23 @@ func TestCodePipeline_RetryStageExecution(t *testing.T) {
 		"returns nil when executes as expected": {
 			callMocks: func(m codepipelineMocks) {
 				m.cp.EXPECT().ListPipelineExecutions(
+					gomock.Any(),
 					&codepipeline.ListPipelineExecutionsInput{
-						MaxResults:   aws.Int64(1),
-						PipelineName: aws.String(mockPipelineName)}).Return(&codepipeline.ListPipelineExecutionsOutput{
-					PipelineExecutionSummaries: []*codepipeline.PipelineExecutionSummary{
+						MaxResults:   awsv2.Int32(1),
+						PipelineName: awsv2.String(mockPipelineName)}).Return(&codepipeline.ListPipelineExecutionsOutput{
+					PipelineExecutionSummaries: []types.PipelineExecutionSummary{
 						{
-							PipelineExecutionId: aws.String("12345678-fake-exec-utio-nid987654321"),
+							PipelineExecutionId: awsv2.String("12345678-fake-exec-utio-nid987654321"),
 						},
 					},
 				}, nil)
 				m.cp.EXPECT().RetryStageExecution(
+					gomock.Any(),
 					&codepipeline.RetryStageExecutionInput{
 						PipelineExecutionId: mockPipelineExecutionID,
-						PipelineName:        aws.String(mockPipelineName),
-						RetryMode:           aws.String(failedActions),
-						StageName:           aws.String(mockStageName),
+						PipelineName:        awsv2.String(mockPipelineName),
+						RetryMode:           failedActions,
+						StageName:           awsv2.String(mockStageName),
 					}).Return(mockOutput, nil)
 			},
 			expectedOut: nil,
@@ -472,37 +474,41 @@ func TestCodePipeline_RetryStageExecution(t *testing.T) {
 		"catches error and returns nil if pipeline succeeds before failing so not a 'retry'": {
 			callMocks: func(m codepipelineMocks) {
 				m.cp.EXPECT().ListPipelineExecutions(
+					gomock.Any(),
 					&codepipeline.ListPipelineExecutionsInput{
-						MaxResults:   aws.Int64(1),
-						PipelineName: aws.String(mockPipelineName)}).Return(&codepipeline.ListPipelineExecutionsOutput{
-					PipelineExecutionSummaries: []*codepipeline.PipelineExecutionSummary{
+						MaxResults:   awsv2.Int32(1),
+						PipelineName: awsv2.String(mockPipelineName)}).Return(&codepipeline.ListPipelineExecutionsOutput{
+					PipelineExecutionSummaries: []types.PipelineExecutionSummary{
 						{
-							PipelineExecutionId: aws.String("12345678-fake-exec-utio-nid987654321"),
+							PipelineExecutionId: awsv2.String("12345678-fake-exec-utio-nid987654321"),
 						},
 					},
 				}, nil)
 				m.cp.EXPECT().RetryStageExecution(
+					gomock.Any(),
 					&codepipeline.RetryStageExecutionInput{
 						PipelineExecutionId: mockPipelineExecutionID,
-						PipelineName:        aws.String(mockPipelineName),
-						RetryMode:           aws.String(failedActions),
-						StageName:           aws.String(mockStageName),
-					}).Return(nil, notRetryable.OrigErr()) // OrigErr always returns nil, so may not actually catch the StageNotRetryableException
+						PipelineName:        awsv2.String(mockPipelineName),
+						RetryMode:           failedActions,
+						StageName:           awsv2.String(mockStageName),
+					}).Return(nil, notRetryable)
 			},
 			expectedOut: nil,
 		},
 		"returns wrapped error if ListPipelineExecutions fails": {
 			callMocks: func(m codepipelineMocks) {
 				m.cp.EXPECT().ListPipelineExecutions(
+					gomock.Any(),
 					&codepipeline.ListPipelineExecutionsInput{
-						MaxResults:   aws.Int64(1),
-						PipelineName: aws.String(mockPipelineName)}).Return(nil, mockErr)
+						MaxResults:   awsv2.Int32(1),
+						PipelineName: awsv2.String(mockPipelineName)}).Return(nil, mockErr)
 				m.cp.EXPECT().RetryStageExecution(
+					gomock.Any(),
 					&codepipeline.RetryStageExecutionInput{
 						PipelineExecutionId: mockPipelineExecutionID,
-						PipelineName:        aws.String(mockPipelineName),
-						RetryMode:           aws.String(failedActions),
-						StageName:           aws.String(mockStageName),
+						PipelineName:        awsv2.String(mockPipelineName),
+						RetryMode:           failedActions,
+						StageName:           awsv2.String(mockStageName),
 					}).Times(0)
 			},
 			expectedOut:   nil,
@@ -511,15 +517,17 @@ func TestCodePipeline_RetryStageExecution(t *testing.T) {
 		"returns wrapped error if no pipeline execution IDs are returned": {
 			callMocks: func(m codepipelineMocks) {
 				m.cp.EXPECT().ListPipelineExecutions(
+					gomock.Any(),
 					&codepipeline.ListPipelineExecutionsInput{
-						MaxResults:   aws.Int64(1),
-						PipelineName: aws.String(mockPipelineName)}).Return(mockBadOutput, nil)
+						MaxResults:   awsv2.Int32(1),
+						PipelineName: awsv2.String(mockPipelineName)}).Return(mockBadOutput, nil)
 				m.cp.EXPECT().RetryStageExecution(
+					gomock.Any(),
 					&codepipeline.RetryStageExecutionInput{
 						PipelineExecutionId: mockPipelineExecutionID,
-						PipelineName:        aws.String(mockPipelineName),
-						RetryMode:           aws.String(failedActions),
-						StageName:           aws.String(mockStageName),
+						PipelineName:        awsv2.String(mockPipelineName),
+						RetryMode:           failedActions,
+						StageName:           awsv2.String(mockStageName),
 					}).Times(0)
 			},
 			expectedOut:   nil,
@@ -528,21 +536,23 @@ func TestCodePipeline_RetryStageExecution(t *testing.T) {
 		"returns wrapped error if RetryStageExecution fails": {
 			callMocks: func(m codepipelineMocks) {
 				m.cp.EXPECT().ListPipelineExecutions(
+					gomock.Any(),
 					&codepipeline.ListPipelineExecutionsInput{
-						MaxResults:   aws.Int64(1),
-						PipelineName: aws.String(mockPipelineName)}).Return(&codepipeline.ListPipelineExecutionsOutput{
-					PipelineExecutionSummaries: []*codepipeline.PipelineExecutionSummary{
+						MaxResults:   awsv2.Int32(1),
+						PipelineName: awsv2.String(mockPipelineName)}).Return(&codepipeline.ListPipelineExecutionsOutput{
+					PipelineExecutionSummaries: []types.PipelineExecutionSummary{
 						{
-							PipelineExecutionId: aws.String("12345678-fake-exec-utio-nid987654321"),
+							PipelineExecutionId: awsv2.String("12345678-fake-exec-utio-nid987654321"),
 						},
 					},
 				}, nil)
 				m.cp.EXPECT().RetryStageExecution(
+					gomock.Any(),
 					&codepipeline.RetryStageExecutionInput{
 						PipelineExecutionId: mockPipelineExecutionID,
-						PipelineName:        aws.String(mockPipelineName),
-						RetryMode:           aws.String(failedActions),
-						StageName:           aws.String(mockStageName),
+						PipelineName:        awsv2.String(mockPipelineName),
+						RetryMode:           failedActions,
+						StageName:           awsv2.String(mockStageName),
 					}).Return(nil, mockErr)
 			},
 			expectedOut:   nil,

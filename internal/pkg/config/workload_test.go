@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +39,7 @@ func TestStore_ListServices(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, servicePath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(frontendServicePath),
 							Value: aws.String(frontendServiceString),
@@ -59,7 +59,7 @@ func TestStore_ListServices(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, servicePath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(apiServicePath),
 							Value: aws.String("oops"),
@@ -83,7 +83,7 @@ func TestStore_ListServices(t *testing.T) {
 				if !lastPageInPaginatedResp {
 					lastPageInPaginatedResp = true
 					return &ssm.GetParametersByPathOutput{
-						Parameters: []*ssm.Parameter{
+						Parameters: []types.Parameter{
 							{
 								Name:  aws.String(frontendServicePath),
 								Value: aws.String(frontendServiceString),
@@ -94,7 +94,7 @@ func TestStore_ListServices(t *testing.T) {
 				}
 
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(apiServicePath),
 							Value: aws.String(apiServiceString),
@@ -158,7 +158,7 @@ func TestStore_ListWorkloads(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(mailerJobPath),
 							Value: aws.String(mailerJobString),
@@ -177,7 +177,7 @@ func TestStore_ListWorkloads(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(mailerJobPath),
 							Value: aws.String(mailerJobString),
@@ -243,7 +243,7 @@ func TestStore_ListJobs(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(mailerJobPath),
 							Value: aws.String(mailerJobString),
@@ -262,7 +262,7 @@ func TestStore_ListJobs(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(mailerJobPath),
 							Value: aws.String(mailerJobString),
@@ -319,7 +319,7 @@ func TestStore_GetService(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testServicePath),
 						Value: aws.String(testServiceString),
 					},
@@ -331,7 +331,7 @@ func TestStore_GetService(t *testing.T) {
 		"with no existing svc": {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "bloop", nil)
+				return nil, &types.ParameterNotFound{}
 			},
 			wantedErr: errors.New("couldn't find service api in the application chicken"),
 		},
@@ -339,7 +339,7 @@ func TestStore_GetService(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testServicePath),
 						Value: aws.String("oops"),
 					},
@@ -398,7 +398,7 @@ func TestStore_GetJob(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, mailerJobPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(mailerJobPath),
 						Value: aws.String(mailerJobString),
 					},
@@ -410,7 +410,7 @@ func TestStore_GetJob(t *testing.T) {
 		"with no existing job": {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, mailerJobPath, *param.Name)
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "bloop", nil)
+				return nil, &types.ParameterNotFound{}
 			},
 			wantedErr: errors.New("couldn't find job mailer in the application chicken"),
 		},
@@ -418,7 +418,7 @@ func TestStore_GetJob(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, mailerJobPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testServicePath),
 						Value: aws.String(testServiceString),
 					},
@@ -463,7 +463,7 @@ func TestStore_CreateService(t *testing.T) {
 	testServiceString, err := marshal(testService)
 	testServicePath := fmt.Sprintf(fmtWkldParamPath, testService.App, testService.Name)
 	require.NoError(t, err, "Marshal svc should not fail")
-	tagsForServiceParam := []*ssm.Tag{
+	tagsForServiceParam := []types.Tag{
 		{
 			Key:   aws.String("copilot-application"),
 			Value: aws.String(testApplication.Name),
@@ -484,13 +484,13 @@ func TestStore_CreateService(t *testing.T) {
 				require.Equal(t, testServiceString, *param.Value)
 				require.Equal(t, tagsForServiceParam, param.Tags)
 				return &ssm.PutParameterOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil
 			},
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String(testApplicationString),
 					},
@@ -501,12 +501,12 @@ func TestStore_CreateService(t *testing.T) {
 			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				require.Equal(t, tagsForServiceParam, param.Tags)
-				return nil, awserr.New(ssm.ErrCodeParameterAlreadyExists, "Already exists", fmt.Errorf("Already Exists"))
+				return nil, &types.ParameterAlreadyExists{}
 			},
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String(testApplicationString),
 					},
@@ -522,7 +522,7 @@ func TestStore_CreateService(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String(testApplicationString),
 					},
@@ -569,7 +569,7 @@ func TestDeleteService(t *testing.T) {
 	}{
 		"parameter is already deleted": {
 			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "Not found", nil)
+				return nil, &types.ParameterNotFound{}
 			},
 		},
 		"unexpected error": {

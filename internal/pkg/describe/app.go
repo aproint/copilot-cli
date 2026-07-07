@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -108,14 +109,14 @@ type AppDescriber struct {
 
 // NewAppDescriber instantiates an application describer.
 func NewAppDescriber(appName string) (*AppDescriber, error) {
-	sess, err := sessions.ImmutableProvider().Default()
+	cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("assume default role for app %s: %w", appName, err)
 	}
 	return &AppDescriber{
 		app:               appName,
-		stackDescriber:    stack.NewStackDescriber(cfnstack.NameForAppStack(appName), sess),
-		stackSetDescriber: stack.NewStackDescriber(cfnstack.NameForAppStackSet(appName), sess),
+		stackDescriber:    stack.NewStackDescriber(cfnstack.NameForAppStack(appName), cfg),
+		stackSetDescriber: stack.NewStackDescriber(cfnstack.NameForAppStackSet(appName), cfg),
 	}, nil
 }
 

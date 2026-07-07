@@ -10,8 +10,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -76,11 +75,11 @@ func TestDynamicWorkloadManifest_Load(t *testing.T) {
 
 			dyn := &DynamicWorkloadManifest{
 				mft: tc.inMft,
-				newSubnetIDsGetter: func(s *session.Session) subnetIDsGetter {
+				newSubnetIDsGetter: func(cfg aws.Config) subnetIDsGetter {
 					return m.mockSubnetGetter
 				},
 			}
-			err := dyn.Load(nil)
+			err := dyn.Load(aws.Config{})
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
 			} else {

@@ -4,12 +4,13 @@
 package selector
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -26,9 +27,9 @@ type Names interface {
 
 // SessionProvider wraps the methods to create AWS sessions.
 type SessionProvider interface {
-	Default() (*session.Session, error)
-	FromProfile(name string) (*session.Session, error)
-	FromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (*session.Session, error)
+	DefaultConfig(ctx context.Context) (aws.Config, error)
+	ConfigFromProfile(ctx context.Context, name string) (aws.Config, error)
+	ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (aws.Config, error)
 }
 
 // CredsSelect prompts users for credentials.
@@ -39,7 +40,7 @@ type CredsSelect struct {
 }
 
 // Creds prompts users to choose either use temporary credentials or choose from one of their existing AWS named profiles.
-func (s *CredsSelect) Creds(msg, help string) (*session.Session, error) {
+func (s *CredsSelect) Creds(msg, help string) (aws.Config, error) {
 	profileFrom := make(map[string]string)
 	options := []string{tempCredsOption}
 	for _, name := range s.Profile.Names() {
@@ -54,40 +55,40 @@ func (s *CredsSelect) Creds(msg, help string) (*session.Session, error) {
 		options,
 		prompt.WithFinalMessage("Credential source:"))
 	if err != nil {
-		return nil, fmt.Errorf("select credential source: %w", err)
+		return aws.Config{}, fmt.Errorf("select credential source: %w", err)
 	}
 
 	if selected == tempCredsOption {
 		return s.askTempCreds()
 	}
-	sess, err := s.Session.FromProfile(profileFrom[selected])
+	cfg, err := s.Session.ConfigFromProfile(context.Background(), profileFrom[selected])
 	if err != nil {
-		return nil, fmt.Errorf("create session from profile %s: %w", profileFrom[selected], err)
+		return aws.Config{}, fmt.Errorf("create config from profile %s: %w", profileFrom[selected], err)
 	}
-	return sess, nil
+	return cfg, nil
 }
 
-func (s *CredsSelect) askTempCreds() (*session.Session, error) {
+func (s *CredsSelect) askTempCreds() (aws.Config, error) {
 	defaultAccessKey, defaultSecretAccessKey, defaultSessToken := defaultCreds(s.Session)
 
 	accessKeyID, err := s.askWithMaskedDefault(accessKeyIDPrompt, defaultAccessKey, prompt.RequireNonEmpty, prompt.WithFinalMessage("AWS Access Key ID:"))
 	if err != nil {
-		return nil, fmt.Errorf("get access key id: %w", err)
+		return aws.Config{}, fmt.Errorf("get access key id: %w", err)
 	}
 	secretAccessKey, err := s.askWithMaskedDefault(secretAccessKeyPrompt, defaultSecretAccessKey, prompt.RequireNonEmpty, prompt.WithFinalMessage("AWS Secret Access Key:"))
 	if err != nil {
-		return nil, fmt.Errorf("get secret access key: %w", err)
+		return aws.Config{}, fmt.Errorf("get secret access key: %w", err)
 	}
 	sessionToken, err := s.askWithMaskedDefault(sessionTokenPrompt, defaultSessToken, nil, prompt.WithFinalMessage("AWS Session Token:"))
 	if err != nil {
-		return nil, fmt.Errorf("get session token: %w", err)
+		return aws.Config{}, fmt.Errorf("get session token: %w", err)
 	}
 
-	sess, err := s.Session.FromStaticCreds(accessKeyID, secretAccessKey, sessionToken)
+	cfg, err := s.Session.ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken)
 	if err != nil {
-		return nil, fmt.Errorf("create session from temporary credentials: %w", err)
+		return aws.Config{}, fmt.Errorf("create config from temporary credentials: %w", err)
 	}
-	return sess, nil
+	return cfg, nil
 }
 
 func (s *CredsSelect) askWithMaskedDefault(msg, defaultValue string, f prompt.ValidatorFunc, opts ...prompt.PromptConfig) (string, error) {
@@ -106,11 +107,11 @@ func (s *CredsSelect) askWithMaskedDefault(msg, defaultValue string, f prompt.Va
 // If an error occurs, returns empty strings.
 func defaultCreds(session SessionProvider) (accessKeyID, secretAccessKey, sessionToken string) {
 	// If we cannot retrieve default creds, return empty credentials as default instead of an error.
-	defaultSess, err := session.Default()
+	defaultConfig, err := session.DefaultConfig(context.Background())
 	if err != nil {
 		return
 	}
-	v, err := sessions.Creds(defaultSess)
+	v, err := sessions.V2Creds(context.Background(), defaultConfig)
 	if err != nil {
 		return
 	}

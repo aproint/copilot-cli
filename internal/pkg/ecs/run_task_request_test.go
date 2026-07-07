@@ -12,8 +12,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/ecs/mocks"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/aws-sdk-go/aws"
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -37,13 +37,13 @@ func Test_RunTaskRequestFromECSService(t *testing.T) {
 				m.EXPECT().TaskDefinition("task-def").Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
-					ContainerDefinitions: []*awsecs.ContainerDefinition{
+					ContainerDefinitions: []awsecs.ContainerDefinition{
 						{
 							Name:       aws.String("the-one-and-only-one-container"),
 							Image:      aws.String("beautiful-image"),
-							EntryPoint: aws.StringSlice([]string{"enter", "here"}),
-							Command:    aws.StringSlice([]string{"do", "not", "enter", "here"}),
-							Environment: []*awsecs.KeyValuePair{
+							EntryPoint: []string{"enter", "here"},
+							Command:    []string{"do", "not", "enter", "here"},
+							Environment: []awsecs.KeyValuePair{
 								{
 									Name:  aws.String("enter"),
 									Value: aws.String("no"),
@@ -53,7 +53,7 @@ func Test_RunTaskRequestFromECSService(t *testing.T) {
 									Value: aws.String("yes"),
 								},
 							},
-							Secrets: []*awsecs.Secret{
+							Secrets: []awsecs.Secret{
 								{
 									Name:      aws.String("truth"),
 									ValueFrom: aws.String("go-ask-the-wise"),
@@ -127,7 +127,7 @@ func Test_RunTaskRequestFromECSService(t *testing.T) {
 				m.EXPECT().TaskDefinition("task-def").Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
-					ContainerDefinitions: []*awsecs.ContainerDefinition{
+					ContainerDefinitions: []awsecs.ContainerDefinition{
 						{
 							Name: aws.String("the-first-container"),
 						},
@@ -178,13 +178,13 @@ func Test_RunTaskRequestFromService(t *testing.T) {
 				m.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
-					ContainerDefinitions: []*awsecs.ContainerDefinition{
+					ContainerDefinitions: []awsecs.ContainerDefinition{
 						{
 							Name:       aws.String(testSvc),
 							Image:      aws.String("beautiful-image"),
-							EntryPoint: aws.StringSlice([]string{"enter", "here"}),
-							Command:    aws.StringSlice([]string{"do", "not", "enter", "here"}),
-							Environment: []*awsecs.KeyValuePair{
+							EntryPoint: []string{"enter", "here"},
+							Command:    []string{"do", "not", "enter", "here"},
+							Environment: []awsecs.KeyValuePair{
 								{
 									Name:  aws.String("enter"),
 									Value: aws.String("no"),
@@ -194,7 +194,7 @@ func Test_RunTaskRequestFromService(t *testing.T) {
 									Value: aws.String("yes"),
 								},
 							},
-							Secrets: []*awsecs.Secret{
+							Secrets: []awsecs.Secret{
 								{
 									Name:      aws.String("truth"),
 									ValueFrom: aws.String("go-ask-the-wise"),
@@ -292,13 +292,13 @@ func Test_RunTaskRequestFromJob(t *testing.T) {
 				m.EXPECT().TaskDefinition(testApp, testEnv, testJob).Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
-					ContainerDefinitions: []*awsecs.ContainerDefinition{
+					ContainerDefinitions: []awsecs.ContainerDefinition{
 						{
 							Name:       aws.String(testJob),
 							Image:      aws.String("beautiful-image"),
-							EntryPoint: aws.StringSlice([]string{"enter", "here"}),
-							Command:    aws.StringSlice([]string{"do", "not", "enter", "here"}),
-							Environment: []*awsecs.KeyValuePair{
+							EntryPoint: []string{"enter", "here"},
+							Command:    []string{"do", "not", "enter", "here"},
+							Environment: []awsecs.KeyValuePair{
 								{
 									Name:  aws.String("enter"),
 									Value: aws.String("no"),
@@ -308,7 +308,7 @@ func Test_RunTaskRequestFromJob(t *testing.T) {
 									Value: aws.String("yes"),
 								},
 							},
-							Secrets: []*awsecs.Secret{
+							Secrets: []awsecs.Secret{
 								{
 									Name:      aws.String("truth"),
 									ValueFrom: aws.String("go-ask-the-wise"),

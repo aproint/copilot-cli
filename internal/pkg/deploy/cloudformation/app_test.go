@@ -17,9 +17,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/aws-sdk-go/aws"
-	awscfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscfn "github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	awscfntypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -218,11 +218,11 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 						DescribeStackEventsFn: func(input *awscfn.DescribeStackEventsInput) (*awscfn.DescribeStackEventsOutput, error) {
 							// just finish the renderer on the first Describe call
 							return &awscfn.DescribeStackEventsOutput{
-								StackEvents: []*awscfn.StackEvent{
+								StackEvents: []awscfntypes.StackEvent{
 									{
 										Timestamp:         aws.Time(time.Now().Add(1 * time.Hour)),
 										LogicalResourceId: aws.String("phonetool-infrastructure-roles"),
-										ResourceStatus:    aws.String(awscfn.StackStatusUpdateComplete),
+										ResourceStatus:    awscfntypes.ResourceStatusUpdateComplete,
 									},
 								},
 							}, nil
@@ -258,11 +258,11 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 						},
 						DescribeStackEventsFn: func(input *awscfn.DescribeStackEventsInput) (*awscfn.DescribeStackEventsOutput, error) {
 							return &awscfn.DescribeStackEventsOutput{
-								StackEvents: []*awscfn.StackEvent{
+								StackEvents: []awscfntypes.StackEvent{
 									{
 										Timestamp:         aws.Time(time.Now().Add(1 * time.Hour)),
 										LogicalResourceId: aws.String("phonetool-infrastructure-roles"),
-										ResourceStatus:    aws.String(awscfn.StackStatusUpdateComplete),
+										ResourceStatus:    awscfntypes.ResourceStatusUpdateComplete,
 									},
 								},
 							}, nil
@@ -306,11 +306,11 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 						},
 						DescribeStackEventsFn: func(input *awscfn.DescribeStackEventsInput) (*awscfn.DescribeStackEventsOutput, error) {
 							return &awscfn.DescribeStackEventsOutput{
-								StackEvents: []*awscfn.StackEvent{
+								StackEvents: []awscfntypes.StackEvent{
 									{
 										Timestamp:         aws.Time(time.Now().Add(1 * time.Hour)),
 										LogicalResourceId: aws.String("phonetool-infrastructure-roles"),
-										ResourceStatus:    aws.String(awscfn.StackStatusUpdateComplete),
+										ResourceStatus:    awscfntypes.ResourceStatusUpdateComplete,
 									},
 								},
 							}, nil
@@ -482,7 +482,7 @@ func TestCloudFormation_AddPipelineResourcesToApp(t *testing.T) {
 	testCases := map[string]struct {
 		app                 *config.Application
 		mockStackSet        func(t *testing.T, ctrl *gomock.Controller) stackSetClient
-		getRegionFromClient func(client cloudformationiface.CloudFormationAPI) (string, error)
+		getRegionFromClient func(client any) (string, error)
 		expectedErr         error
 	}{
 		"with no existing account nor environment, add pipeline supporting resources": {
@@ -498,7 +498,7 @@ func TestCloudFormation_AddPipelineResourcesToApp(t *testing.T) {
 				m.EXPECT().CreateInstances(gomock.Any(), []string{"1234"}, []string{"us-west-2"}).Return("1", nil)
 				return m
 			},
-			getRegionFromClient: func(client cloudformationiface.CloudFormationAPI) (string, error) {
+			getRegionFromClient: func(client any) (string, error) {
 				return "us-west-2", nil
 			},
 		},
@@ -520,7 +520,7 @@ func TestCloudFormation_AddPipelineResourcesToApp(t *testing.T) {
 				m.EXPECT().CreateInstances(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
-			getRegionFromClient: func(client cloudformationiface.CloudFormationAPI) (string, error) {
+			getRegionFromClient: func(client any) (string, error) {
 				return "us-west-2", nil
 			},
 		},
@@ -1025,9 +1025,9 @@ func mockValidAppResourceStack() *cloudformation.StackDescription {
 }
 
 func mockAppResourceStack(stackArn string, outputs map[string]string) *cloudformation.StackDescription {
-	outputList := []*awscfn.Output{}
+	outputList := []awscfntypes.Output{}
 	for key, val := range outputs {
-		outputList = append(outputList, &awscfn.Output{
+		outputList = append(outputList, awscfntypes.Output{
 			OutputKey:   aws.String(key),
 			OutputValue: aws.String(val),
 		})
@@ -1040,9 +1040,9 @@ func mockAppResourceStack(stackArn string, outputs map[string]string) *cloudform
 }
 
 func mockAppRolesStack(stackArn string, parameters map[string]string) *cloudformation.StackDescription {
-	parametersList := []*awscfn.Parameter{}
+	parametersList := []awscfntypes.Parameter{}
 	for key, val := range parameters {
-		parametersList = append(parametersList, &awscfn.Parameter{
+		parametersList = append(parametersList, awscfntypes.Parameter{
 			ParameterKey:   aws.String(key),
 			ParameterValue: aws.String(val),
 		})
@@ -1050,7 +1050,7 @@ func mockAppRolesStack(stackArn string, parameters map[string]string) *cloudform
 
 	return &cloudformation.StackDescription{
 		StackId:     aws.String(stackArn),
-		StackStatus: aws.String("UPDATE_COMPLETE"),
+		StackStatus: awscfntypes.StackStatusUpdateComplete,
 		Parameters:  parametersList,
 	}
 }
@@ -1285,7 +1285,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1347,7 +1347,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 				appStackSet.EXPECT().DeleteInstance("phonetool-infrastructure", "1234", "us-west-2").Return("123", nil)
 				appStackSet.EXPECT().WaitForOperation("phonetool-infrastructure", "123").Return(nil)
 				cfn.EXPECT().Describe(stack.NameForAppStack("phonetool")).Return(&cloudformation.StackDescription{
-					Parameters: []*awscfn.Parameter{
+					Parameters: []awscfntypes.Parameter{
 						{
 							ParameterKey:   aws.String("AppDNSDelegatedAccounts"),
 							ParameterValue: aws.String("1234,5678"),
@@ -1375,7 +1375,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1445,7 +1445,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1499,7 +1499,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 				appStackSet.EXPECT().DeleteInstance(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				appStackSet.EXPECT().WaitForOperation(gomock.Any(), gomock.Any()).Times(0)
 				cfn.EXPECT().Describe(stack.NameForAppStack("phonetool")).Return(&cloudformation.StackDescription{
-					Parameters: []*awscfn.Parameter{
+					Parameters: []awscfntypes.Parameter{
 						{
 							ParameterKey:   aws.String("AppDNSDelegatedAccounts"),
 							ParameterValue: aws.String("1234,5678"),
@@ -1527,7 +1527,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1596,7 +1596,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1656,7 +1656,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 				appStackSet.EXPECT().DeleteInstance("phonetool-infrastructure", "1234", "us-west-2").Return("123", nil)
 				appStackSet.EXPECT().WaitForOperation("phonetool-infrastructure", "123").Return(nil)
 				cfn.EXPECT().Describe(stack.NameForAppStack("phonetool")).Return(&cloudformation.StackDescription{
-					Parameters: []*awscfn.Parameter{
+					Parameters: []awscfntypes.Parameter{
 						{
 							ParameterKey:   aws.String("AppDNSDelegatedAccounts"),
 							ParameterValue: aws.String("1234,5678"),
@@ -1684,7 +1684,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1756,7 +1756,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1819,7 +1819,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {
@@ -1880,7 +1880,7 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					region:    "us-east-1",
 
 					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfn.Stack) []string {
+					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
 					renderStackSet: func(in renderStackSetInput) error {

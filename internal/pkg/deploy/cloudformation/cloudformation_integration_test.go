@@ -6,6 +6,8 @@
 package cloudformation_test
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -18,6 +20,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/iam"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	awss3 "github.com/aproint/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
@@ -26,12 +29,11 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awsCF "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsCF "github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,19 +43,55 @@ const (
 	fmtEnvManagerRoleID   = "%s-%s-EnvManagerRole"
 )
 
+type cfnClient struct {
+	client *awsCF.Client
+}
+
+func newCFNClient(cfg aws.Config) *cfnClient {
+	return &cfnClient{client: awsCF.NewFromConfig(cfg)}
+}
+
+func (c *cfnClient) DescribeStacks(input *awsCF.DescribeStacksInput) (*awsCF.DescribeStacksOutput, error) {
+	return c.client.DescribeStacks(context.Background(), input)
+}
+
+func (c *cfnClient) DeleteStack(input *awsCF.DeleteStackInput) (*awsCF.DeleteStackOutput, error) {
+	return c.client.DeleteStack(context.Background(), input)
+}
+
+func (c *cfnClient) DeleteStackSet(input *awsCF.DeleteStackSetInput) (*awsCF.DeleteStackSetOutput, error) {
+	return c.client.DeleteStackSet(context.Background(), input)
+}
+
+func (c *cfnClient) DescribeStackSet(input *awsCF.DescribeStackSetInput) (*awsCF.DescribeStackSetOutput, error) {
+	return c.client.DescribeStackSet(context.Background(), input)
+}
+
+func (c *cfnClient) ListStackInstances(input *awsCF.ListStackInstancesInput) (*awsCF.ListStackInstancesOutput, error) {
+	return c.client.ListStackInstances(context.Background(), input)
+}
+
+func (c *cfnClient) DeleteStackInstances(input *awsCF.DeleteStackInstancesInput) (*awsCF.DeleteStackInstancesOutput, error) {
+	return c.client.DeleteStackInstances(context.Background(), input)
+}
+
+func (c *cfnClient) WaitUntilStackDeleteComplete(input *awsCF.DescribeStacksInput) error {
+	return awsCF.NewStackDeleteCompleteWaiter(c.client).Wait(context.Background(), input, 10*time.Minute)
+}
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
 func Test_App_Infrastructure(t *testing.T) {
-	sess, err := testSession(nil)
+	cfg, err := testConfig(nil)
 	require.NoError(t, err)
-	identity := identity.New(sess)
+	identity := identity.New(cfg)
 	callerInfo, err := identity.Get()
 	require.NoError(t, err)
 	require.NoError(t, err)
-	deployer := cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
-	cfClient := awsCF.New(sess)
+	deployer := cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
+	cfClient := newCFNClient(cfg)
 	require.NoError(t, err)
 	version.Version = "v1.28.0"
 
@@ -110,18 +148,18 @@ func Test_App_Infrastructure(t *testing.T) {
 
 		require.True(t, len(roleStackOutput.Stacks) == 1, "Stack %s should have been deployed.", appRoleStackName)
 		deployedStack := roleStackOutput.Stacks[0]
-		expectedResultsForKey := map[string]func(*awsCF.Output){
-			"ExecutionRoleARN": func(output *awsCF.Output) {
+		expectedResultsForKey := map[string]func(types.Output){
+			"ExecutionRoleARN": func(output types.Output) {
 				require.True(t,
 					strings.HasSuffix(*output.OutputValue, fmt.Sprintf("role/%s-executionrole", app.Name)),
 					fmt.Sprintf("ExecutionRoleARN should be named {app}-executionrole but was %s", *output.OutputValue))
 			},
-			"AdministrationRoleARN": func(output *awsCF.Output) {
+			"AdministrationRoleARN": func(output types.Output) {
 				require.True(t,
 					strings.HasSuffix(*output.OutputValue, fmt.Sprintf("role/%s-adminrole", app.Name)),
 					fmt.Sprintf("AdministrationRoleARN should be named {app}-adminrole but was %s", *output.OutputValue))
 			},
-			"TemplateVersion": func(output *awsCF.Output) {
+			"TemplateVersion": func(output types.Output) {
 				require.Equal(t, *output.OutputValue, version.LatestTemplateVersion(),
 					fmt.Sprintf("TemplateVersion should be %s but was %s", version.LatestTemplateVersion(), *output.OutputValue))
 			},
@@ -130,7 +168,7 @@ func Test_App_Infrastructure(t *testing.T) {
 			"There should have been %d output values - instead there were %d. The value of the CF stack was %s",
 			len(expectedResultsForKey),
 			len(deployedStack.Outputs),
-			deployedStack.GoString(),
+			fmt.Sprintf("%+v", deployedStack),
 		)
 		for _, output := range deployedStack.Outputs {
 			key := *output.OutputKey
@@ -150,11 +188,11 @@ func Test_App_Infrastructure(t *testing.T) {
 			// Clean up any StackInstances we may have created.
 			if stackInstances, err := cfClient.ListStackInstances(&awsCF.ListStackInstancesInput{
 				StackSetName: aws.String(appStackSetName),
-			}); err == nil && stackInstances.Summaries != nil && stackInstances.Summaries[0] != nil {
+			}); err == nil && len(stackInstances.Summaries) > 0 {
 				appStackInstance := stackInstances.Summaries[0]
 				cfClient.DeleteStackInstances(&awsCF.DeleteStackInstancesInput{
-					Accounts:     []*string{appStackInstance.Account},
-					Regions:      []*string{appStackInstance.Region},
+					Accounts:     []string{aws.ToString(appStackInstance.Account)},
+					Regions:      []string{aws.ToString(appStackInstance.Region)},
 					RetainStacks: aws.Bool(false),
 					StackSetName: appStackInstance.StackSetId,
 				})
@@ -216,7 +254,7 @@ func Test_App_Infrastructure(t *testing.T) {
 				App:          &app,
 				EnvName:      "test",
 				EnvAccountID: callerInfo.Account,
-				EnvRegion:    *sess.Config.Region,
+				EnvRegion:    cfg.Region,
 			},
 		)
 		require.NoError(t, err)
@@ -246,33 +284,33 @@ func Test_App_Infrastructure(t *testing.T) {
 		require.NoError(t, err)
 
 		deployedStack := appInfraStacks.Stacks[0]
-		expectedResultsForKey := map[string]func(*awsCF.Output){
-			"KMSKeyARN": func(output *awsCF.Output) {
+		expectedResultsForKey := map[string]func(types.Output){
+			"KMSKeyARN": func(output types.Output) {
 				require.NotNil(t,
 					*output.OutputValue,
 					"KMSKeyARN should not be nil")
 			},
-			"PipelineBucket": func(output *awsCF.Output) {
+			"PipelineBucket": func(output types.Output) {
 				require.NotNil(t,
 					*output.OutputValue,
 					"PipelineBucket should not be nil")
 			},
-			"TemplateVersion": func(output *awsCF.Output) {
+			"TemplateVersion": func(output types.Output) {
 				require.Equal(t, *output.OutputValue, version.LatestTemplateVersion(),
 					fmt.Sprintf("TemplateVersion should be %s but was %s", version.LatestTemplateVersion(), *output.OutputValue))
 			},
-			"ECRRepomysvc": func(output *awsCF.Output) {
+			"ECRRepomysvc": func(output types.Output) {
 				require.True(t,
 					strings.HasSuffix(*output.OutputValue, fmt.Sprintf("repository/%s/mysvc", app.Name)),
 					fmt.Sprintf("ECRRepomysvc should be suffixed with repository/{app}/mysvc but was %s", *output.OutputValue))
 			},
 			// We replace dashes with the word DASH for logical IDss
-			"ECRRepomysvcDASHfrontend": func(output *awsCF.Output) {
+			"ECRRepomysvcDASHfrontend": func(output types.Output) {
 				require.True(t,
 					strings.HasSuffix(*output.OutputValue, fmt.Sprintf("repository/%s/mysvc-frontend", app.Name)),
 					fmt.Sprintf("ECRRepomysvcDASHfrontend should be suffixed with repository/{app}/mysvc but was %s", *output.OutputValue))
 			},
-			"StackSetOpId": func(output *awsCF.Output) {
+			"StackSetOpId": func(output types.Output) {
 				opID, err := strconv.Atoi(*output.OutputValue)
 				require.NoError(t, err)
 				require.GreaterOrEqual(t, opID, 1,
@@ -283,7 +321,7 @@ func Test_App_Infrastructure(t *testing.T) {
 			"There should have been %d output values - instead there were %d. The value of the CF stack was %s",
 			len(expectedResultsForKey),
 			len(deployedStack.Outputs),
-			deployedStack.GoString(),
+			fmt.Sprintf("%+v", deployedStack),
 		)
 		for _, output := range deployedStack.Outputs {
 			key := *output.OutputKey
@@ -303,11 +341,11 @@ func Test_App_Infrastructure(t *testing.T) {
 			// Clean up any StackInstances we may have created.
 			if stackInstances, err := cfClient.ListStackInstances(&awsCF.ListStackInstancesInput{
 				StackSetName: aws.String(appStackSetName),
-			}); err == nil && stackInstances.Summaries != nil && stackInstances.Summaries[0] != nil {
+			}); err == nil && len(stackInstances.Summaries) > 0 {
 				appStackInstance := stackInstances.Summaries[0]
 				cfClient.DeleteStackInstances(&awsCF.DeleteStackInstancesInput{
-					Accounts:     []*string{appStackInstance.Account},
-					Regions:      []*string{appStackInstance.Region},
+					Accounts:     []string{aws.ToString(appStackInstance.Account)},
+					Regions:      []string{aws.ToString(appStackInstance.Region)},
 					RetainStacks: aws.Bool(false),
 					StackSetName: appStackInstance.StackSetId,
 				})
@@ -331,10 +369,10 @@ func Test_App_Infrastructure(t *testing.T) {
 			StackName: aws.String(appRoleStackName),
 		})
 		require.Error(t, err, "DescribeStacks should return an error because the stack does not exist")
-		awsErr, ok := err.(awserr.Error)
-		require.True(t, ok, "the returned error should be an awserr")
-		require.Equal(t, awsErr.Code(), "ValidationError")
-		require.Contains(t, awsErr.Message(), "does not exist", "the returned error should indicate that the stack does not exist")
+		var apiErr smithy.APIError
+		require.True(t, errors.As(err, &apiErr), "the returned error should be an API error")
+		require.Equal(t, "ValidationError", apiErr.ErrorCode())
+		require.Contains(t, apiErr.ErrorMessage(), "does not exist", "the returned error should indicate that the stack does not exist")
 
 		// create a stackset
 		err = deployer.DeployApp(&deploy.CreateAppInput{
@@ -345,12 +383,12 @@ func Test_App_Infrastructure(t *testing.T) {
 		require.NoError(t, err)
 
 		// Add resources needed to support a pipeline in a region
-		err = deployer.AddPipelineResourcesToApp(&app, *sess.Config.Region)
+		err = deployer.AddPipelineResourcesToApp(&app, cfg.Region)
 		require.NoError(t, err)
 
 		// Add another pipeline to the same application and region. This should not create
 		// Additional stack instance
-		err = deployer.AddPipelineResourcesToApp(&app, *sess.Config.Region)
+		err = deployer.AddPipelineResourcesToApp(&app, cfg.Region)
 		require.NoError(t, err)
 
 		stackInstances, err := cfClient.ListStackInstances(&awsCF.ListStackInstancesInput{
@@ -364,7 +402,7 @@ func Test_App_Infrastructure(t *testing.T) {
 			App:          &app,
 			EnvName:      "test",
 			EnvAccountID: callerInfo.Account,
-			EnvRegion:    *sess.Config.Region,
+			EnvRegion:    cfg.Region,
 		})
 		require.NoError(t, err)
 
@@ -390,14 +428,14 @@ func Test_App_Infrastructure(t *testing.T) {
 // switching your default region by running aws configure.
 func Test_Environment_Deployment_Integration(t *testing.T) {
 	version.Version = "v1.28.0"
-	sess, err := testSession(nil)
+	cfg, err := testConfig(nil)
 	require.NoError(t, err)
-	deployer := cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
-	cfClient := awsCF.New(sess)
-	identity := identity.New(sess)
-	s3ManagerClient := s3manager.NewUploader(sess)
-	s3Client := awss3.New(sess)
-	iamClient := iam.New(sess)
+	deployer := cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
+	cfClient := newCFNClient(cfg)
+	identity := identity.New(cfg)
+	s3APIClient := s3.NewFromConfig(cfg)
+	s3Client := awss3.New(cfg)
+	iamClient := iam.New(cfg)
 	id, err := identity.Get()
 	require.NoError(t, err)
 
@@ -422,7 +460,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 	require.True(t, len(output.Stacks) == 0, "Stack %s should not exist.", envStackName)
 
 	// Create a temporary S3 bucket to store custom resource scripts.
-	_, err = s3ManagerClient.S3.CreateBucket(&s3.CreateBucketInput{
+	_, err = s3APIClient.CreateBucket(context.Background(), &s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 	require.NoError(t, err)
@@ -439,7 +477,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 
 		err = s3Client.EmptyBucket(bucketName)
 		require.NoError(t, err)
-		_, err = s3ManagerClient.S3.DeleteBucket(&s3.DeleteBucketInput{
+		_, err = s3APIClient.DeleteBucket(context.Background(), &s3.DeleteBucketInput{
 			Bucket: aws.String(bucketName),
 		})
 		require.NoError(t, err)
@@ -461,8 +499,8 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 		require.True(t, len(output.Stacks) == 1, "Stack %s should have been deployed.", envStackName)
 
 		deployedStack := output.Stacks[0]
-		expectedResultsForKey := map[string]func(*awsCF.Output){
-			"EnvironmentManagerRoleARN": func(output *awsCF.Output) {
+		expectedResultsForKey := map[string]func(types.Output){
+			"EnvironmentManagerRoleARN": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-EnvironmentManagerRoleARN", envStackName),
 					*output.ExportName,
@@ -472,7 +510,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					strings.HasSuffix(*output.OutputValue, fmt.Sprintf("role/%s-EnvManagerRole", envStackName)),
 					"EnvironmentManagerRole ARN value should not be nil.")
 			},
-			"CFNExecutionRoleARN": func(output *awsCF.Output) {
+			"CFNExecutionRoleARN": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-CFNExecutionRoleARN", envStackName),
 					*output.ExportName,
@@ -487,7 +525,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 			"There should have been %d output values - instead there were %d. The value of the CF stack was %s",
 			len(expectedResultsForKey),
 			len(deployedStack.Outputs),
-			deployedStack.GoString(),
+			fmt.Sprintf("%+v", deployedStack),
 		)
 		for _, output := range deployedStack.Outputs {
 			key := *output.OutputKey
@@ -519,7 +557,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 		require.NoError(t, err)
 		lastForceUpdateID, err := deployer.ForceUpdateOutputID(environmentToDeploy.App.Name, environmentToDeploy.Name)
 		require.NoError(t, err)
-		conf, err := stack.NewEnvConfigFromExistingStack(&environmentToDeploy, lastForceUpdateID, oldParams)
+		conf, err := stack.NewEnvConfigFromExistingStack(&environmentToDeploy, lastForceUpdateID, parameterPtrs(oldParams))
 		require.NoError(t, err)
 		// Deploy the environment and wait for it to be complete.
 		require.NoError(t, deployer.UpdateAndRenderEnvironment(conf, environmentToDeploy.ArtifactBucketARN, false))
@@ -532,11 +570,11 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 		require.True(t, len(output.Stacks) == 1, "Stack %s should have been deployed.", envStackName)
 
 		deployedStack := output.Stacks[0]
-		expectedResultsForKey := map[string]func(*awsCF.Output){
-			"EnabledFeatures": func(output *awsCF.Output) {
-				require.Equal(t, ",,,,,", aws.StringValue(output.OutputValue), "no env features enabled by default")
+		expectedResultsForKey := map[string]func(types.Output){
+			"EnabledFeatures": func(output types.Output) {
+				require.Equal(t, ",,,,,", aws.ToString(output.OutputValue), "no env features enabled by default")
 			},
-			"EnvironmentManagerRoleARN": func(output *awsCF.Output) {
+			"EnvironmentManagerRoleARN": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-EnvironmentManagerRoleARN", envStackName),
 					*output.ExportName,
@@ -546,7 +584,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					strings.HasSuffix(*output.OutputValue, fmt.Sprintf("role/%s-EnvManagerRole", envStackName)),
 					"EnvironmentManagerRole ARN value should not be nil.")
 			},
-			"CFNExecutionRoleARN": func(output *awsCF.Output) {
+			"CFNExecutionRoleARN": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-CFNExecutionRoleARN", envStackName),
 					*output.ExportName,
@@ -556,7 +594,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					strings.HasSuffix(*output.OutputValue, fmt.Sprintf("role/%s-CFNExecutionRole", envStackName)),
 					"CRNExecutionRole ARN value should not be nil.")
 			},
-			"ClusterId": func(output *awsCF.Output) {
+			"ClusterId": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-ClusterId", envStackName),
 					*output.ExportName,
@@ -566,7 +604,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"Cluster value should not be nil")
 			},
-			"PrivateSubnets": func(output *awsCF.Output) {
+			"PrivateSubnets": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-PrivateSubnets", envStackName),
 					*output.ExportName,
@@ -576,7 +614,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"Private Subnet values should not be nil")
 			},
-			"VpcId": func(output *awsCF.Output) {
+			"VpcId": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-VpcId", envStackName),
 					*output.ExportName,
@@ -586,7 +624,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"VpcId value should not be nil")
 			},
-			"PublicSubnets": func(output *awsCF.Output) {
+			"PublicSubnets": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-PublicSubnets", envStackName),
 					*output.ExportName,
@@ -596,7 +634,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"PublicSubnets value should not be nil")
 			},
-			"ServiceDiscoveryNamespaceID": func(output *awsCF.Output) {
+			"ServiceDiscoveryNamespaceID": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-ServiceDiscoveryNamespaceID", envStackName),
 					*output.ExportName,
@@ -606,7 +644,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"ServiceDiscoveryNamespaceID value should not be nil")
 			},
-			"InternetGatewayID": func(output *awsCF.Output) {
+			"InternetGatewayID": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-InternetGatewayID", envStackName),
 					*output.ExportName,
@@ -616,7 +654,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"InternetGatewayID value should not be nil")
 			},
-			"PublicRouteTableID": func(output *awsCF.Output) {
+			"PublicRouteTableID": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-PublicRouteTableID", envStackName),
 					*output.ExportName,
@@ -626,7 +664,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"PublicRouteTableID value should not be nil")
 			},
-			"EnvironmentSecurityGroup": func(output *awsCF.Output) {
+			"EnvironmentSecurityGroup": func(output types.Output) {
 				require.Equal(t,
 					fmt.Sprintf("%s-EnvironmentSecurityGroup", envStackName),
 					*output.ExportName,
@@ -636,15 +674,15 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					output.OutputValue,
 					"EnvironmentSecurityGroup value should not be nil")
 			},
-			"LastForceDeployID": func(output *awsCF.Output) {
-				require.Equal(t, lastForceUpdateID, aws.StringValue(output.OutputValue), "last force update id does not change by default")
+			"LastForceDeployID": func(output types.Output) {
+				require.Equal(t, lastForceUpdateID, aws.ToString(output.OutputValue), "last force update id does not change by default")
 			},
 		}
 		require.True(t, len(deployedStack.Outputs) == len(expectedResultsForKey),
 			"There should have been %d output values - instead there were %d. The value of the CF stack was %s",
 			len(expectedResultsForKey),
 			len(deployedStack.Outputs),
-			deployedStack.GoString(),
+			fmt.Sprintf("%+v", deployedStack),
 		)
 		for _, output := range deployedStack.Outputs {
 			key := *output.OutputKey
@@ -657,21 +695,21 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz"
 
-func testSession(region *string) (*session.Session, error) {
+func testConfig(region *string) (aws.Config, error) {
 	if region == nil {
-		return session.NewSessionWithOptions(session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-		})
+		return sessions.ImmutableProvider().DefaultConfig(context.Background())
 	}
 
 	// override with the provided region
-	return session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			CredentialsChainVerboseErrors: aws.Bool(true),
-			Region:                        region,
-		},
-		SharedConfigState: session.SharedConfigEnable,
-	})
+	return sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), aws.ToString(region))
+}
+
+func parameterPtrs(params []types.Parameter) []*types.Parameter {
+	ptrs := make([]*types.Parameter, 0, len(params))
+	for i := range params {
+		ptrs = append(ptrs, &params[i])
+	}
+	return ptrs
 }
 
 func randStringBytes(n int) string {

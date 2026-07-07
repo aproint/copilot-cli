@@ -16,9 +16,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/stepfunctions"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 )
 
 const (
@@ -78,12 +77,18 @@ type Client struct {
 }
 
 // New creates a new Client.
-func New(sess *session.Session) *Client {
+func New(rgConfig aws.Config) *Client {
 	return &Client{
-		rgGetter:       resourcegroups.New(sess),
-		ecsClient:      ecs.New(sess),
-		StepFuncClient: stepfunctions.New(sess),
+		rgGetter:  resourcegroups.New(rgConfig),
+		ecsClient: ecs.New(rgConfig),
 	}
+}
+
+// NewWithStepFunctionsConfig creates a new Client with a Step Functions client configured from SDK v2 config.
+func NewWithStepFunctionsConfig(cfg aws.Config) *Client {
+	client := New(cfg)
+	client.StepFuncClient = stepfunctions.New(cfg)
+	return client
 }
 
 // ClusterARN returns the ARN of the cluster in an environment.
@@ -147,17 +152,17 @@ func (c Client) ServiceConnectServices(app, env, svc string) ([]*ecs.Service, er
 		return nil, nil
 	}
 
-	arns, err := c.ecsClient.ListServicesByNamespace(aws.StringValue(s.Deployments[0].ServiceConnectConfiguration.Namespace))
+	arns, err := c.ecsClient.ListServicesByNamespace(aws.ToString(s.Deployments[0].ServiceConnectConfiguration.Namespace))
 	if err != nil {
 		return nil, fmt.Errorf("get services in the same namespace: %w", err)
 	}
 
 	// remove this service's arn
 	arns = slices.DeleteFunc(arns, func(arn string) bool {
-		return arn == aws.StringValue(s.ServiceArn)
+		return arn == aws.ToString(s.ServiceArn)
 	})
 
-	svcs, err := c.ecsClient.Services(aws.StringValue(s.ClusterArn), arns...)
+	svcs, err := c.ecsClient.Services(aws.ToString(s.ClusterArn), arns...)
 	if err != nil {
 		return nil, fmt.Errorf("get services: %w", err)
 	}
@@ -243,7 +248,7 @@ func (c Client) stopTasks(app, env string, filter ListTasksFilter) error {
 	}
 	taskIDs := make([]string, len(tasks))
 	for n, task := range tasks {
-		taskIDs[n] = aws.StringValue(task.TaskArn)
+		taskIDs[n] = aws.ToString(task.TaskArn)
 	}
 	clusterARN, err := c.ClusterARN(app, env)
 	if err != nil {
@@ -264,7 +269,7 @@ func (c Client) StopDefaultClusterTasks(familyName string) error {
 	}
 	taskIDs := make([]string, len(tasks))
 	for n, task := range tasks {
-		taskIDs[n] = aws.StringValue(task.TaskArn)
+		taskIDs[n] = aws.ToString(task.TaskArn)
 	}
 	return c.ecsClient.StopTasks(taskIDs, ecs.WithStopTaskReason(taskStopReason))
 }
@@ -394,7 +399,7 @@ func (c Client) listActiveCopilotTasks(opts listActiveCopilotTasksOpts) ([]*ecs.
 func filterTasksByID(tasks []*ecs.Task, taskID string) []*ecs.Task {
 	var filteredTasks []*ecs.Task
 	for _, task := range tasks {
-		id, _ := ecs.TaskID(aws.StringValue(task.TaskArn))
+		id, _ := ecs.TaskID(aws.ToString(task.TaskArn))
 		if strings.Contains(id, taskID) {
 			filteredTasks = append(filteredTasks, task)
 		}
@@ -408,7 +413,7 @@ func filterCopilotTasks(tasks []*ecs.Task, taskID string) []*ecs.Task {
 	for _, task := range filterTasksByID(tasks, taskID) {
 		var copilotTask bool
 		for _, tag := range task.Tags {
-			if aws.StringValue(tag.Key) == deploy.TaskTagKey {
+			if aws.ToString(tag.Key) == deploy.TaskTagKey {
 				copilotTask = true
 				break
 			}
@@ -554,7 +559,7 @@ func (c Client) HasNonZeroExitCode(taskARNs []string, cluster string) error {
 		return fmt.Errorf("cannot find tasks %s", strings.Join(taskARNs, ", "))
 	}
 
-	taskDefinitonARN := aws.StringValue(tasks[0].TaskDefinitionArn)
+	taskDefinitonARN := aws.ToString(tasks[0].TaskDefinitionArn)
 	taskDefinition, err := c.ecsClient.TaskDefinition(taskDefinitonARN)
 	if err != nil {
 		return fmt.Errorf("get task definition %s: %w", taskDefinitonARN, err)
@@ -562,19 +567,19 @@ func (c Client) HasNonZeroExitCode(taskARNs []string, cluster string) error {
 
 	isContainerEssential := make(map[string]bool)
 	for _, container := range taskDefinition.ContainerDefinitions {
-		isContainerEssential[aws.StringValue(container.Name)] = aws.BoolValue(container.Essential)
+		isContainerEssential[aws.ToString(container.Name)] = aws.ToBool(container.Essential)
 	}
 
 	for _, describedTask := range tasks {
 		for _, container := range describedTask.Containers {
-			if isContainerEssential[aws.StringValue(container.Name)] && aws.Int64Value(container.ExitCode) != 0 {
-				taskID, err := ecs.TaskID(aws.StringValue(describedTask.TaskArn))
+			if isContainerEssential[aws.ToString(container.Name)] && aws.ToInt32(container.ExitCode) != 0 {
+				taskID, err := ecs.TaskID(aws.ToString(describedTask.TaskArn))
 				if err != nil {
 					return err
 				}
-				return &ErrExitCode{aws.StringValue(container.Name),
+				return &ErrExitCode{aws.ToString(container.Name),
 					taskID,
-					int(aws.Int64Value(container.ExitCode))}
+					int(aws.ToInt32(container.ExitCode))}
 			}
 		}
 	}

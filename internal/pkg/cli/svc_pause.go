@@ -4,13 +4,11 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
@@ -59,12 +57,12 @@ type svcPauseOpts struct {
 
 func newSvcPauseOpts(vars svcPauseVars) (*svcPauseOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc pause"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)
@@ -89,11 +87,11 @@ func newSvcPauseOpts(vars svcPauseVars) (*svcPauseOpts, error) {
 		if wl.Type != manifestinfo.RequestDrivenWebServiceType {
 			return fmt.Errorf("pausing a service is only supported for services with type: %s", manifestinfo.RequestDrivenWebServiceType)
 		}
-		sess, err := sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
-		opts.client = apprunner.New(sess)
+		opts.client = apprunner.New(cfg)
 		d, err := describe.NewRDWebServiceDescriber(describe.NewServiceConfig{
 			App:         opts.appName,
 			Svc:         opts.svcName,

@@ -8,7 +8,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/imdario/mergo"
 )
 
@@ -115,7 +115,7 @@ func (s *BackendService) Port() (port uint16, ok bool) {
 	if value == nil {
 		return 0, false
 	}
-	return aws.Uint16Value(value), true
+	return aws.ToUint16(value), true
 }
 
 // Publish returns the list of topics where notifications can be published.
@@ -132,7 +132,7 @@ func (s *BackendService) BuildArgs(contextDir string) (map[string]*DockerBuildAr
 	// Creating an map to store buildArgs of all sidecar images and main container image.
 	buildArgsPerContainer := make(map[string]*DockerBuildArgs, len(s.Sidecars)+1)
 	if required {
-		buildArgsPerContainer[aws.StringValue(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
+		buildArgsPerContainer[aws.ToString(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
 	}
 	return buildArgs(contextDir, buildArgsPerContainer, s.Sidecars)
 }
@@ -147,7 +147,7 @@ func (s *BackendService) EnvFiles() map[string]string {
 // ContainerDependencies returns a map of ContainerDependency objects for the BackendService
 // including dependencies for its main container, any logging sidecar, and additional sidecars.
 func (s *BackendService) ContainerDependencies() map[string]ContainerDependency {
-	return containerDependencies(aws.StringValue(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
+	return containerDependencies(aws.ToString(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
 }
 
 func (s *BackendService) subnets() *SubnetListOrArgs {
@@ -214,7 +214,7 @@ func newDefaultBackendService() *BackendService {
 func (b *BackendService) ExposedPorts() (ExposedPortsIndex, error) {
 	exposedPorts := make(map[uint16]ExposedPort)
 
-	workloadName := aws.StringValue(b.Name)
+	workloadName := aws.ToString(b.Name)
 	for name, sidecar := range b.Sidecars {
 		newExposedPorts, err := sidecar.exposePorts(exposedPorts, name)
 		if err != nil {

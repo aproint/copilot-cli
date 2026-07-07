@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 const (
 	// DesiredStatusStopped represents the desired status "STOPPED" for a task.
-	DesiredStatusStopped = ecs.DesiredStatusStopped
+	DesiredStatusStopped = string(types.DesiredStatusStopped)
 
 	fmtErrTaskStopped = "task %s: %s"
 )
@@ -43,23 +43,23 @@ type ErrWaiterResourceNotReadyForTasks struct {
 
 func (e *ErrWaiterResourceNotReadyForTasks) Error() string {
 	for _, task := range e.tasks {
-		if aws.StringValue(task.LastStatus) != DesiredStatusStopped {
+		if awsv2.ToString(task.LastStatus) != DesiredStatusStopped {
 			continue
 		}
-		taskID, err := TaskID(aws.StringValue(task.TaskArn))
+		taskID, err := TaskID(awsv2.ToString(task.TaskArn))
 		if err != nil {
 			return err.Error()
 		}
 		// Combine both task stop reason and container stop reason.
 		var errMsg string
 		if task.StoppedReason != nil {
-			errMsg = aws.StringValue(task.StoppedReason)
+			errMsg = awsv2.ToString(task.StoppedReason)
 		}
 		// TODO: generalize this to be any essential container.
 		container := task.Containers[0] // NOTE: right now we only support one container per task
-		if aws.StringValue(container.LastStatus) == DesiredStatusStopped {
+		if awsv2.ToString(container.LastStatus) == DesiredStatusStopped {
 			if container.Reason != nil {
-				errMsg = fmt.Sprintf("%s: %s", errMsg, aws.StringValue(container.Reason))
+				errMsg = fmt.Sprintf("%s: %s", errMsg, awsv2.ToString(container.Reason))
 			}
 		}
 		if errMsg != "" {

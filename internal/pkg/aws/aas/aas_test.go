@@ -4,13 +4,15 @@
 package aas
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/aas/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	aas "github.com/aws/aws-sdk-go/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	aas "github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -36,20 +38,20 @@ func TestCloudWatch_ECSServiceAutoscalingAlarms(t *testing.T) {
 	}{
 		"errors if failed to retrieve auto scaling alarm names": {
 			setupMocks: func(m aasMocks) {
-				m.client.EXPECT().DescribeScalingPolicies(gomock.Any()).Return(nil, mockError)
+				m.client.EXPECT().DescribeScalingPolicies(gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 
 			wantErr: fmt.Errorf("describe scaling policies for ECS service mockCluster/mockService: some error"),
 		},
 		"success": {
 			setupMocks: func(m aasMocks) {
-				m.client.EXPECT().DescribeScalingPolicies(&aas.DescribeScalingPoliciesInput{
+				m.client.EXPECT().DescribeScalingPolicies(context.Background(), &aas.DescribeScalingPoliciesInput{
 					ResourceId:       aws.String(mockResourceID),
-					ServiceNamespace: aws.String(ecsServiceNamespace),
+					ServiceNamespace: types.ServiceNamespaceEcs,
 				}).Return(&aas.DescribeScalingPoliciesOutput{
-					ScalingPolicies: []*aas.ScalingPolicy{
+					ScalingPolicies: []types.ScalingPolicy{
 						{
-							Alarms: []*aas.Alarm{
+							Alarms: []types.Alarm{
 								{
 									AlarmName: aws.String("mockAlarm1"),
 								},
@@ -59,7 +61,7 @@ func TestCloudWatch_ECSServiceAutoscalingAlarms(t *testing.T) {
 							},
 						},
 						{
-							Alarms: []*aas.Alarm{
+							Alarms: []types.Alarm{
 								{
 									AlarmName: aws.String("mockAlarm3"),
 								},
@@ -74,13 +76,13 @@ func TestCloudWatch_ECSServiceAutoscalingAlarms(t *testing.T) {
 		"success with pagination": {
 			setupMocks: func(m aasMocks) {
 				gomock.InOrder(
-					m.client.EXPECT().DescribeScalingPolicies(&aas.DescribeScalingPoliciesInput{
+					m.client.EXPECT().DescribeScalingPolicies(context.Background(), &aas.DescribeScalingPoliciesInput{
 						ResourceId:       aws.String(mockResourceID),
-						ServiceNamespace: aws.String(ecsServiceNamespace),
+						ServiceNamespace: types.ServiceNamespaceEcs,
 					}).Return(&aas.DescribeScalingPoliciesOutput{
-						ScalingPolicies: []*aas.ScalingPolicy{
+						ScalingPolicies: []types.ScalingPolicy{
 							{
-								Alarms: []*aas.Alarm{
+								Alarms: []types.Alarm{
 									{
 										AlarmName: aws.String("mockAlarm1"),
 									},
@@ -89,14 +91,14 @@ func TestCloudWatch_ECSServiceAutoscalingAlarms(t *testing.T) {
 						},
 						NextToken: aws.String(mockNextToken),
 					}, nil),
-					m.client.EXPECT().DescribeScalingPolicies(&aas.DescribeScalingPoliciesInput{
+					m.client.EXPECT().DescribeScalingPolicies(context.Background(), &aas.DescribeScalingPoliciesInput{
 						ResourceId:       aws.String(mockResourceID),
-						ServiceNamespace: aws.String(ecsServiceNamespace),
+						ServiceNamespace: types.ServiceNamespaceEcs,
 						NextToken:        aws.String(mockNextToken),
 					}).Return(&aas.DescribeScalingPoliciesOutput{
-						ScalingPolicies: []*aas.ScalingPolicy{
+						ScalingPolicies: []types.ScalingPolicy{
 							{
-								Alarms: []*aas.Alarm{
+								Alarms: []types.Alarm{
 									{
 										AlarmName: aws.String("mockAlarm2"),
 									},

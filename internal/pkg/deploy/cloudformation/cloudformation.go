@@ -31,9 +31,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/cursor"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/progress"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sdkcloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -55,8 +55,8 @@ var (
 type StackConfiguration interface {
 	StackName() string
 	Template() (string, error)
-	Parameters() ([]*sdkcloudformation.Parameter, error)
-	Tags() []*sdkcloudformation.Tag
+	Parameters() ([]*types.Parameter, error)
+	Tags() []*types.Tag
 	SerializedParameters() (string, error)
 }
 
@@ -202,36 +202,36 @@ type CloudFormation struct {
 
 	// Overridden in tests.
 	renderStackSet               func(input renderStackSetInput) error
-	dnsDelegatedAccountsForStack func(stack *sdkcloudformation.Stack) []string
+	dnsDelegatedAccountsForStack func(stack *types.Stack) []string
 	notifySignals                func() chan os.Signal
 }
 
 // New returns a configured CloudFormation client.
-func New(sess *session.Session, opts ...OptFn) CloudFormation {
+func New(v2Config aws.Config, opts ...OptFn) CloudFormation {
 	client := CloudFormation{
-		cfnClient:      cloudformation.New(sess),
-		codeStarClient: codestar.New(sess),
-		cpClient:       codepipeline.New(sess),
-		ecsClient:      ecs.New(sess),
-		cwClient:       cloudwatch.New(sess),
+		cfnClient:      cloudformation.New(v2Config),
+		codeStarClient: codestar.New(v2Config),
+		cpClient:       codepipeline.New(v2Config, v2Config),
+		ecsClient:      ecs.New(v2Config),
+		cwClient:       cloudwatch.New(v2Config, v2Config),
 		regionalClient: func(region string) cfnClient {
-			return cloudformation.New(sess.Copy(&aws.Config{
-				Region: aws.String(region),
-			}))
+			regionalV2Config := v2Config
+			regionalV2Config.Region = region
+			return cloudformation.New(regionalV2Config)
 		},
 		regionalECRClient: func(region string) imageRemover {
-			return ecr.New(sess.Copy(&aws.Config{
-				Region: aws.String(region),
-			}))
+			regionalV2Config := v2Config
+			regionalV2Config.Region = region
+			return ecr.New(regionalV2Config)
 		},
-		appStackSet: stackset.New(sess),
-		s3Client:    s3.New(sess),
+		appStackSet: stackset.New(v2Config),
+		s3Client:    s3.New(v2Config),
 		regionalS3Client: func(region string) s3Client {
-			return s3.New(sess.Copy(&aws.Config{
-				Region: aws.String(region),
-			}))
+			regionalV2Config := v2Config
+			regionalV2Config.Region = region
+			return s3.New(regionalV2Config)
 		},
-		region:  aws.StringValue(sess.Config.Region),
+		region:  v2Config.Region,
 		console: new(discardFile),
 	}
 	for _, opt := range opts {
@@ -267,7 +267,7 @@ func (cf CloudFormation) errorEvents(stackName string) ([]string, error) {
 	var reasons []string
 	for _, event := range events {
 		// CFN error messages end with a '. (Service' and only the first sentence is useful, the rest is error codes.
-		reasons = append(reasons, strings.Split(aws.StringValue(event.ResourceStatusReason), ". (Service")[0])
+		reasons = append(reasons, strings.Split(aws.ToString(event.ResourceStatusReason), ". (Service")[0])
 	}
 	return reasons, nil
 }
@@ -451,8 +451,8 @@ func (cf CloudFormation) waitForSignalAndHandleInterrupt(in signalHandlerInput) 
 			if err != nil {
 				return fmt.Errorf("describe stack %s: %w", in.stackName, err)
 			}
-			switch aws.StringValue(stackDescr.StackStatus) {
-			case sdkcloudformation.StackStatusCreateInProgress:
+			switch stackDescr.StackStatus {
+			case types.StackStatusCreateInProgress:
 				log.Infoln()
 				log.Infof(`Received Interrupt for Ctrl-C.
 Pressing Ctrl-C again will exit immediately but the deletion of stack %s will continue
@@ -469,7 +469,7 @@ Pressing Ctrl-C again will exit immediately but the deletion of stack %s will co
 					return err
 				}
 				return &ErrStackDeletedOnInterrupt{stackName: in.stackName}
-			case sdkcloudformation.StackStatusUpdateInProgress:
+			case types.StackStatusUpdateInProgress:
 				log.Infoln()
 				log.Infof(`Received Interrupt for Ctrl-C.
 Pressing Ctrl-C again will exit immediately but stack %s rollback will continue
@@ -514,7 +514,7 @@ func (cf CloudFormation) cancelUpdateAndRender(in *cancelUpdateAndRenderInput) e
 	ctx, cancel := context.WithTimeout(context.Background(), waitForStackTimeout)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
-	renderer, err := cf.createChangeSetRenderer(g, ctx, aws.StringValue(stackDescr.ChangeSetId), in.stackName, in.description, progress.RenderOptions{})
+	renderer, err := cf.createChangeSetRenderer(g, ctx, aws.ToString(stackDescr.ChangeSetId), in.stackName, in.description, progress.RenderOptions{})
 	if err != nil {
 		return err
 	}
@@ -536,8 +536,8 @@ func (cf CloudFormation) errOnFailedCancelUpdate(stackName string) error {
 	if err != nil {
 		return fmt.Errorf("describe stack %s: %w", stackName, err)
 	}
-	status := aws.StringValue(stack.StackStatus)
-	if status != sdkcloudformation.StackStatusUpdateRollbackComplete {
+	status := string(stack.StackStatus)
+	if status != string(types.StackStatusUpdateRollbackComplete) {
 		return fmt.Errorf("stack %s did not rollback successfully and exited with status %s", stackName, status)
 	}
 	return nil
@@ -608,34 +608,35 @@ func (cf CloudFormation) createChangeSetRenderer(group *errgroup.Group, ctx cont
 }
 
 type changeRenderersInput struct {
-	g                  *errgroup.Group             // Group that all goroutines belong.
-	ctx                context.Context             // Context associated with the group.
-	stackName          string                      // Name of the stack.
-	stackStreamer      progress.StackSubscriber    // Streamer for the stack where changes belong.
-	changes            []*sdkcloudformation.Change // List of changes that will be applied to the stack.
-	changeSetTimestamp time.Time                   // ChangeSet creation time.
-	descriptions       map[string]string           // Descriptions for the logical IDs of the changes.
-	opts               progress.RenderOptions      // Display options that should be applied to the changes.
+	g                  *errgroup.Group          // Group that all goroutines belong.
+	ctx                context.Context          // Context associated with the group.
+	stackName          string                   // Name of the stack.
+	stackStreamer      progress.StackSubscriber // Streamer for the stack where changes belong.
+	changes            []types.Change           // List of changes that will be applied to the stack.
+	changeSetTimestamp time.Time                // ChangeSet creation time.
+	descriptions       map[string]string        // Descriptions for the logical IDs of the changes.
+	opts               progress.RenderOptions   // Display options that should be applied to the changes.
 }
 
 // changeRenderers filters changes by resources that have a description and returns the appropriate progress.Renderer for each resource type.
 func (cf CloudFormation) changeRenderers(in changeRenderersInput) ([]progress.Renderer, error) {
 	var resources []progress.Renderer
 	for _, change := range in.changes {
-		logicalID := aws.StringValue(change.ResourceChange.LogicalResourceId)
+		change := change
+		logicalID := aws.ToString(change.ResourceChange.LogicalResourceId)
 		description, ok := in.descriptions[logicalID]
 		if !ok {
 			continue
 		}
 		var renderer progress.Renderer
 		switch {
-		case aws.StringValue(change.ResourceChange.ResourceType) == envControllerResourceType:
+		case aws.ToString(change.ResourceChange.ResourceType) == envControllerResourceType:
 			r, err := cf.createEnvControllerRenderer(&envControllerRendererInput{
 				g:                 in.g,
 				ctx:               in.ctx,
 				workloadStackName: in.stackName,
 				workloadTimestamp: in.changeSetTimestamp,
-				change:            change,
+				change:            &change,
 				description:       description,
 				serviceStack:      in.stackStreamer,
 				renderOpts:        in.opts,
@@ -644,7 +645,7 @@ func (cf CloudFormation) changeRenderers(in changeRenderersInput) ([]progress.Re
 				return nil, err
 			}
 			renderer = r
-		case aws.StringValue(change.ResourceChange.ResourceType) == ecsServiceResourceType:
+		case aws.ToString(change.ResourceChange.ResourceType) == ecsServiceResourceType:
 			renderer = progress.ListeningECSServiceResourceRenderer(progress.ECSServiceRendererCfg{
 				Streamer:    in.stackStreamer,
 				ECSClient:   cf.ecsClient,
@@ -659,8 +660,8 @@ func (cf CloudFormation) changeRenderers(in changeRenderersInput) ([]progress.Re
 				})
 		case change.ResourceChange.ChangeSetId != nil:
 			// The resource change is a nested stack.
-			changeSetID := aws.StringValue(change.ResourceChange.ChangeSetId)
-			stackName := parseStackNameFromARN(aws.StringValue(change.ResourceChange.PhysicalResourceId))
+			changeSetID := aws.ToString(change.ResourceChange.ChangeSetId)
+			stackName := parseStackNameFromARN(aws.ToString(change.ResourceChange.PhysicalResourceId))
 
 			r, err := cf.createChangeSetRenderer(in.g, in.ctx, changeSetID, stackName, description, in.opts)
 			if err != nil {
@@ -682,7 +683,7 @@ type envControllerRendererInput struct {
 	ctx               context.Context
 	workloadStackName string
 	workloadTimestamp time.Time
-	change            *sdkcloudformation.Change
+	change            *types.Change
 	description       string
 	serviceStack      progress.StackSubscriber
 	renderOpts        progress.RenderOptions
@@ -719,7 +720,7 @@ func (cf CloudFormation) createEnvControllerRenderer(in *envControllerRendererIn
 		Description:     in.description,
 		RenderOpts:      in.renderOpts,
 		ActionStreamer:  in.serviceStack,
-		ActionLogicalID: aws.StringValue(in.change.ResourceChange.LogicalResourceId),
+		ActionLogicalID: aws.ToString(in.change.ResourceChange.LogicalResourceId),
 		EnvStreamer:     envStreamer,
 		CancelEnvStream: cancel,
 		EnvStackName:    envStackName,
@@ -782,7 +783,7 @@ func (cf CloudFormation) deleteAndRenderStack(in deleteAndRenderInput) error {
 	g.Go(in.deleteFn)
 	renderer := cf.stackRenderer(ctx, renderStackInput{
 		group:          g,
-		stackID:        aws.StringValue(stack.StackId),
+		stackID:        aws.ToString(stack.StackId),
 		stackName:      in.stackName,
 		description:    in.description,
 		descriptionFor: descriptionFor,
@@ -833,12 +834,12 @@ func (cf CloudFormation) errOnFailedStack(stackName string) error {
 	if err != nil {
 		return err
 	}
-	status := aws.StringValue(stack.StackStatus)
+	status := string(stack.StackStatus)
 	if cloudformation.StackStatus(status).IsFailure() {
 		events, _ := cf.cfnClient.ErrorEvents(stackName)
 		var failedResourceType string
 		if len(events) > 0 {
-			failedResourceType = aws.StringValue(events[0].ResourceType)
+			failedResourceType = aws.ToString(events[0].ResourceType)
 		}
 		return &errFailedService{
 			stackName:    stackName,
@@ -855,31 +856,66 @@ func toStack(config StackConfiguration) (*cloudformation.Stack, error) {
 		return nil, err
 	}
 	stack := cloudformation.NewStack(config.StackName(), template)
-	stack.Parameters, err = config.Parameters()
+	params, err := config.Parameters()
 	if err != nil {
 		return nil, err
 	}
-	stack.Tags = config.Tags()
+	stack.Parameters = flattenParameters(params)
+	stack.Tags = flattenTags(config.Tags())
 	return stack, nil
 }
 
 func toStackFromS3(config StackConfiguration, s3url string) (*cloudformation.Stack, error) {
 	stack := cloudformation.NewStackWithURL(config.StackName(), s3url)
 	var err error
-	stack.Parameters, err = config.Parameters()
+	params, err := config.Parameters()
 	if err != nil {
 		return nil, err
 	}
-	stack.Tags = config.Tags()
+	stack.Parameters = flattenParameters(params)
+	stack.Tags = flattenTags(config.Tags())
 	return stack, nil
 }
 
-func toMap(tags []*sdkcloudformation.Tag) map[string]string {
+func toMap(tags []types.Tag) map[string]string {
 	m := make(map[string]string)
 	for _, t := range tags {
-		m[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
+		m[aws.ToString(t.Key)] = aws.ToString(t.Value)
 	}
 	return m
+}
+
+func toMapPtr(tags []*types.Tag) map[string]string {
+	m := make(map[string]string)
+	for _, t := range tags {
+		if t == nil {
+			continue
+		}
+		m[aws.ToString(t.Key)] = aws.ToString(t.Value)
+	}
+	return m
+}
+
+func flattenParameters(params []*types.Parameter) []types.Parameter {
+	flat := make([]types.Parameter, 0, len(params))
+	for _, param := range params {
+		if param == nil {
+			continue
+		}
+		flat = append(flat, *param)
+	}
+	return flat
+}
+
+func flattenTags(tags []*types.Tag) []types.Tag {
+	flat := make([]types.Tag, 0, len(tags))
+	for _, tag := range tags {
+		if tag == nil {
+			continue
+		}
+		flat = append(flat, *tag)
+	}
+	return flat
 }
 
 // parseStackNameFromARN retrieves "my-nested-stack" from an input like:
@@ -888,19 +924,19 @@ func parseStackNameFromARN(stackARN string) string {
 	return strings.Split(stackARN, "/")[1]
 }
 
-func parseAppNameFromTags(tags []*sdkcloudformation.Tag) string {
+func parseAppNameFromTags(tags []types.Tag) string {
 	for _, t := range tags {
-		if aws.StringValue(t.Key) == deploy.AppTagKey {
-			return aws.StringValue(t.Value)
+		if aws.ToString(t.Key) == deploy.AppTagKey {
+			return aws.ToString(t.Value)
 		}
 	}
 	return ""
 }
 
-func parseEnvNameFromTags(tags []*sdkcloudformation.Tag) string {
+func parseEnvNameFromTags(tags []types.Tag) string {
 	for _, t := range tags {
-		if aws.StringValue(t.Key) == deploy.EnvTagKey {
-			return aws.StringValue(t.Value)
+		if aws.ToString(t.Key) == deploy.EnvTagKey {
+			return aws.ToString(t.Value)
 		}
 	}
 	return ""

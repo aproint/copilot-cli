@@ -4,17 +4,14 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 
 	"github.com/aproint/copilot-cli/internal/pkg/cli/list"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
@@ -41,12 +38,12 @@ func newListSvcOpts(vars listWkldVars) (*listSvcOpts, error) {
 		return nil, err
 	}
 
-	sess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("svc ls")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("svc ls")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	store := config.NewSSMStore(identity.New(sess), ssm.New(sess), aws.StringValue(sess.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	svcLister := &list.SvcListWriter{
 		Ws:    ws,
 		Store: store,

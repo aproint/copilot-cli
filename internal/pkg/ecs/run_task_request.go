@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -72,7 +72,7 @@ func RunTaskRequestFromECSService(client ECSServiceDescriber, cluster, service s
 		return nil, fmt.Errorf("retrieve service %s in cluster %s: %w", service, cluster, err)
 	}
 
-	taskDefNameOrARN := aws.StringValue(svc.TaskDefinition)
+	taskDefNameOrARN := aws.ToString(svc.TaskDefinition)
 	taskDef, err := client.TaskDefinition(taskDefNameOrARN)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve task definition %s: %w", taskDefNameOrARN, err)
@@ -84,7 +84,7 @@ func RunTaskRequestFromECSService(client ECSServiceDescriber, cluster, service s
 		}
 	}
 
-	containerName := aws.StringValue(taskDef.ContainerDefinitions[0].Name)
+	containerName := aws.ToString(taskDef.ContainerDefinitions[0].Name)
 	containerInfo, err := containerInformation(taskDef, containerName)
 	if err != nil {
 		return nil, err
@@ -92,8 +92,8 @@ func RunTaskRequestFromECSService(client ECSServiceDescriber, cluster, service s
 
 	return &RunTaskRequest{
 		networkConfiguration: *networkConfig,
-		executionRole:        aws.StringValue(taskDef.ExecutionRoleArn),
-		taskRole:             aws.StringValue(taskDef.TaskRoleArn),
+		executionRole:        aws.ToString(taskDef.ExecutionRoleArn),
+		taskRole:             aws.ToString(taskDef.TaskRoleArn),
 		containerInfo:        *containerInfo,
 		cluster:              cluster,
 	}, nil
@@ -125,8 +125,8 @@ func RunTaskRequestFromService(client ServiceDescriber, app, env, svc string) (*
 
 	return &RunTaskRequest{
 		networkConfiguration: *networkConfig,
-		executionRole:        aws.StringValue(taskDef.ExecutionRoleArn),
-		taskRole:             aws.StringValue(taskDef.TaskRoleArn),
+		executionRole:        aws.ToString(taskDef.ExecutionRoleArn),
+		taskRole:             aws.ToString(taskDef.TaskRoleArn),
 		containerInfo:        *containerInfo,
 		appName:              app,
 		envName:              env,
@@ -159,8 +159,8 @@ func RunTaskRequestFromJob(client JobDescriber, app, env, job string) (*RunTaskR
 
 	return &RunTaskRequest{
 		networkConfiguration: *config,
-		executionRole:        aws.StringValue(taskDef.ExecutionRoleArn),
-		taskRole:             aws.StringValue(taskDef.TaskRoleArn),
+		executionRole:        aws.ToString(taskDef.ExecutionRoleArn),
+		taskRole:             aws.ToString(taskDef.TaskRoleArn),
 		containerInfo:        *containerInfo,
 		appName:              app,
 		envName:              env,

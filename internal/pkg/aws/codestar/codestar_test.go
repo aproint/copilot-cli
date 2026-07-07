@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/codestarconnections"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/codestarconnections"
+	"github.com/aws/aws-sdk-go-v2/service/codestarconnections/types"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codestar/mocks"
 
@@ -28,9 +29,9 @@ func TestCodestar_WaitUntilStatusAvailable(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		m := mocks.NewMockapi(ctrl)
-		m.EXPECT().GetConnection(gomock.Any()).Return(
-			&codestarconnections.GetConnectionOutput{Connection: &codestarconnections.Connection{
-				ConnectionStatus: aws.String(codestarconnections.ConnectionStatusPending),
+		m.EXPECT().GetConnection(gomock.Any(), gomock.Any()).Return(
+			&codestarconnections.GetConnectionOutput{Connection: &types.Connection{
+				ConnectionStatus: types.ConnectionStatusPending,
 			},
 			}, nil).AnyTimes()
 
@@ -51,7 +52,7 @@ func TestCodestar_WaitUntilStatusAvailable(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		m := mocks.NewMockapi(ctrl)
-		m.EXPECT().GetConnection(gomock.Any()).Return(nil, errors.New("some error"))
+		m.EXPECT().GetConnection(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 
 		connection := &CodeStar{
 			client: m,
@@ -74,11 +75,11 @@ func TestCodestar_WaitUntilStatusAvailable(t *testing.T) {
 			client: m,
 		}
 		connectionARN := "mockConnectionARN"
-		m.EXPECT().GetConnection(&codestarconnections.GetConnectionInput{
-			ConnectionArn: aws.String(connectionARN),
+		m.EXPECT().GetConnection(gomock.Any(), &codestarconnections.GetConnectionInput{
+			ConnectionArn: awsv2.String(connectionARN),
 		}).Return(
-			&codestarconnections.GetConnectionOutput{Connection: &codestarconnections.Connection{
-				ConnectionStatus: aws.String(codestarconnections.ConnectionStatusAvailable),
+			&codestarconnections.GetConnectionOutput{Connection: &types.Connection{
+				ConnectionStatus: types.ConnectionStatusAvailable,
 			},
 			}, nil)
 
@@ -95,7 +96,7 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		// GIVEN
 		ctrl := gomock.NewController(t)
 		m := mocks.NewMockapi(ctrl)
-		m.EXPECT().ListConnections(gomock.Any()).Return(nil, errors.New("some error"))
+		m.EXPECT().ListConnections(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 
 		connection := &CodeStar{
 			client: m,
@@ -114,12 +115,12 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		connectionName := "string cheese"
 		ctrl := gomock.NewController(t)
 		m := mocks.NewMockapi(ctrl)
-		m.EXPECT().ListConnections(gomock.Any()).Return(
+		m.EXPECT().ListConnections(gomock.Any(), gomock.Any()).Return(
 			&codestarconnections.ListConnectionsOutput{
-				Connections: []*codestarconnections.Connection{
-					{ConnectionName: aws.String("gouda")},
-					{ConnectionName: aws.String("fontina")},
-					{ConnectionName: aws.String("brie")},
+				Connections: []types.Connection{
+					{ConnectionName: awsv2.String("gouda")},
+					{ConnectionName: awsv2.String("fontina")},
+					{ConnectionName: awsv2.String("brie")},
 				},
 			}, nil)
 
@@ -140,20 +141,20 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		connectionName := "string cheese"
 		ctrl := gomock.NewController(t)
 		m := mocks.NewMockapi(ctrl)
-		m.EXPECT().ListConnections(gomock.Any()).Return(
+		m.EXPECT().ListConnections(gomock.Any(), gomock.Any()).Return(
 			&codestarconnections.ListConnectionsOutput{
-				Connections: []*codestarconnections.Connection{
+				Connections: []types.Connection{
 					{
-						ConnectionName: aws.String("gouda"),
-						ConnectionArn:  aws.String("notThisOne"),
+						ConnectionName: awsv2.String("gouda"),
+						ConnectionArn:  awsv2.String("notThisOne"),
 					},
 					{
-						ConnectionName: aws.String("string cheese"),
-						ConnectionArn:  aws.String("thisCheesyFakeARN"),
+						ConnectionName: awsv2.String("string cheese"),
+						ConnectionArn:  awsv2.String("thisCheesyFakeARN"),
 					},
 					{
-						ConnectionName: aws.String("fontina"),
-						ConnectionArn:  aws.String("norThisOne"),
+						ConnectionName: awsv2.String("fontina"),
+						ConnectionArn:  awsv2.String("norThisOne"),
 					},
 				},
 			}, nil)
@@ -176,28 +177,28 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		mockNextToken := "next"
 		ctrl := gomock.NewController(t)
 		m := mocks.NewMockapi(ctrl)
-		m.EXPECT().ListConnections(gomock.Any()).Return(
+		m.EXPECT().ListConnections(gomock.Any(), gomock.Any()).Return(
 			&codestarconnections.ListConnectionsOutput{
-				Connections: []*codestarconnections.Connection{
+				Connections: []types.Connection{
 					{
-						ConnectionName: aws.String("gouda"),
-						ConnectionArn:  aws.String("notThisOne"),
+						ConnectionName: awsv2.String("gouda"),
+						ConnectionArn:  awsv2.String("notThisOne"),
 					},
 					{
-						ConnectionName: aws.String("fontina"),
-						ConnectionArn:  aws.String("thisCheesyFakeARN"),
+						ConnectionName: awsv2.String("fontina"),
+						ConnectionArn:  awsv2.String("thisCheesyFakeARN"),
 					},
 				},
 				NextToken: &mockNextToken,
 			}, nil)
-		m.EXPECT().ListConnections(&codestarconnections.ListConnectionsInput{
+		m.EXPECT().ListConnections(gomock.Any(), &codestarconnections.ListConnectionsInput{
 			NextToken: &mockNextToken,
 		}).Return(
 			&codestarconnections.ListConnectionsOutput{
-				Connections: []*codestarconnections.Connection{
+				Connections: []types.Connection{
 					{
-						ConnectionName: aws.String("string cheese"),
-						ConnectionArn:  aws.String("thisOne"),
+						ConnectionName: awsv2.String("string cheese"),
+						ConnectionArn:  awsv2.String("thisOne"),
 					},
 				},
 			}, nil)

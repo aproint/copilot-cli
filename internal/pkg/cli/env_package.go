@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -27,8 +28,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/cobra"
 )
 
@@ -86,9 +85,9 @@ type packageEnvOpts struct {
 
 func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env package"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
 	fs := afero.NewOsFs()
@@ -96,7 +95,7 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfgStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	cfgStore := newSSMConfigStoreFromConfig(defaultConfig)
 
 	opts := &packageEnvOpts{
 		packageEnvVars: vars,
@@ -104,7 +103,7 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 		cfgStore:        cfgStore,
 		ws:              ws,
 		sel:             selector.NewLocalEnvironmentSelector(prompt.New(), cfgStore, ws),
-		caller:          identity.New(defaultSess),
+		caller:          identity.New(defaultConfig),
 		fs:              fs,
 		tplWriter:       os.Stdout,
 		paramsWriter:    discardFile{},

@@ -12,8 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
@@ -811,7 +810,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 	}{
 		"check if default cluster exists if deploying to default cluster": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any()).Return(nil).AnyTimes()
@@ -828,7 +827,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 					Return(&config.Environment{
 						ExecutionRoleARN: "env execution role",
 					}, nil)
-				m.provider.EXPECT().FromRole(gomock.Any(), gomock.Any())
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockRepositoryAnytime(m)
 				m.runner.EXPECT().Run().AnyTimes()
@@ -836,7 +835,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		},
 		"error deploying resources": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
@@ -850,7 +849,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		},
 		"error performing docker login": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
@@ -865,7 +864,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		},
 		"error updating resources": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
@@ -887,7 +886,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		},
 		"error running tasks": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(gomock.Any()).Return(nil).Times(2)
 				mockRepositoryAnytime(m)
@@ -903,7 +902,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 					Return(&config.Environment{
 						ExecutionRoleARN: "env execution role",
 					}, nil)
-				m.provider.EXPECT().FromRole(gomock.Any(), gomock.Any())
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Len(1)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
 				m.runner.EXPECT().Run().AnyTimes()
@@ -912,7 +911,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		},
 		"deploy without execution role option if env is empty": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Len(0)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
@@ -923,7 +922,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"append 'latest' to image tag": {
 			inTag: tag,
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(gomock.Any()).AnyTimes()
 				m.repository.EXPECT().Login().Return(mockRepoURI, nil)
@@ -941,7 +940,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"should use provided docker build context instead of dockerfile path": {
 			inDockerCtx: "../../other",
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(gomock.Any()).AnyTimes()
 				m.repository.EXPECT().Login().Return(mockRepoURI, nil)
@@ -960,7 +959,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			inCommand:    `/bin/sh -c "curl $ECS_CONTAINER_METADATA_URI_V4"`,
 			inEntryPoint: `exec "some command"`,
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
@@ -982,7 +981,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		},
 		"fail to get ENI information for some tasks": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any()).AnyTimes()
 				m.runner.EXPECT().Run().Return([]*task.Task{
 					{
@@ -1003,7 +1002,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		},
 		"fail to get public ips": {
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any()).AnyTimes()
 				m.runner.EXPECT().Run().Return([]*task.Task{
 					{
@@ -1021,7 +1020,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			inFollow: true,
 			inImage:  "image",
 			setupMocks: func(m runTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any()).AnyTimes()
 				m.runner.EXPECT().Run().Return([]*task.Task{
 					{
@@ -1044,7 +1043,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 					Return(&config.Environment{
 						ExecutionRoleARN: "env execution role",
 					}, nil)
-				m.provider.EXPECT().FromRole(gomock.Any(), gomock.Any())
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetApplication("my-app").Return(nil, errors.New("some error"))
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Len(1)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
@@ -1064,12 +1063,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				region := "us-east-35"
 
-				m.provider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						// uh oh, new leaked region
-						Region: aws.String(region),
-					},
-				}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
 				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil).Times(2)
@@ -1089,12 +1083,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				region := "us-east-35"
 
-				m.provider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						// uh oh, new leaked region
-						Region: aws.String(region),
-					},
-				}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
 				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil)
@@ -1114,12 +1103,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				region := "us-east-35"
 
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).Return(nil)
-				m.provider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						// uh oh, new leaked region
-						Region: aws.String(region),
-					},
-				}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil)
 				m.deployer.EXPECT().GetTaskStack(inGroupName).Return(nil, errors.New("hull breach in sector 3"))
@@ -1137,12 +1121,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				region := "us-east-35"
 
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).Return(nil)
-				m.provider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						// uh oh, new leaked region
-						Region: aws.String(region),
-					},
-				}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
 				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil)
@@ -1216,7 +1195,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			opts.configureEventsWriter = func(tasks []*task.Task) {
 				opts.eventsWriter = mocks.eventsWriter
 			}
-			opts.configureUploader = func(session *session.Session) uploader {
+			opts.configureUploader = func(aws.Config) uploader {
 				return mocks.uploader
 			}
 
@@ -1257,7 +1236,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"should generate a command given an service ARN": {
 			inGenerateCommandTarget: "arn:aws:ecs:us-east-1:123456789012:service/crowded-cluster/good-service",
 			setUpMocks: func(m *taskRunMocks) {
-				m.provider.EXPECT().Default()
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
 				mockRunTaskRequestFromECSService: func(client ecs.ECSServiceDescriber, cluster string, service string) (*ecs.RunTaskRequest, error) {
@@ -1269,7 +1248,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"fail to generate a command given a service ARN": {
 			inGenerateCommandTarget: "arn:aws:ecs:us-east-1:123456789012:service/crowded-cluster/good-service",
 			setUpMocks: func(m *taskRunMocks) {
-				m.provider.EXPECT().Default()
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
 				mockRunTaskRequestFromECSService: func(client ecs.ECSServiceDescriber, cluster string, service string) (*ecs.RunTaskRequest, error) {
@@ -1281,7 +1260,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"should generate a command given a cluster/service target": {
 			inGenerateCommandTarget: "crowded-cluster/good-service",
 			setUpMocks: func(m *taskRunMocks) {
-				m.provider.EXPECT().Default()
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
 				mockRunTaskRequestFromECSService: func(client ecs.ECSServiceDescriber, cluster string, service string) (*ecs.RunTaskRequest, error) {
@@ -1293,7 +1272,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"fail to generate a command given a cluster/service target": {
 			inGenerateCommandTarget: "crowded-cluster/good-service",
 			setUpMocks: func(m *taskRunMocks) {
-				m.provider.EXPECT().Default()
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
 				mockRunTaskRequestFromECSService: func(client ecs.ECSServiceDescriber, cluster string, service string) (*ecs.RunTaskRequest, error) {
@@ -1309,7 +1288,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "good-service").Return(nil, &config.ErrNoSuchJob{})
 				m.store.EXPECT().GetService("good-app", "good-service").Return(&config.Workload{}, nil)
 			},
@@ -1327,7 +1306,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "good-service").Return(nil, &config.ErrNoSuchJob{})
 				m.store.EXPECT().GetService("good-app", "good-service").Return(&config.Workload{}, nil)
 			},
@@ -1345,7 +1324,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("v1.12.2", nil)
 			},
@@ -1363,7 +1342,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("v1.12.2", nil)
 			},
@@ -1381,7 +1360,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("", errors.New("some error"))
 			},
@@ -1395,7 +1374,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("v1.9.0", nil)
 			},
@@ -1409,7 +1388,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "bad-workload").Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("determine whether workload bad-workload is a job: some error"),
@@ -1421,7 +1400,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "bad-workload").Return(nil, &config.ErrNoSuchJob{})
 				m.store.EXPECT().GetService("good-app", "bad-workload").Return(nil, errors.New("some error"))
 			},
@@ -1434,7 +1413,7 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
-				m.provider.EXPECT().FromRole("mock-role", "mock-region")
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
 				m.store.EXPECT().GetJob("good-app", "bad-workload").Return(nil, &config.ErrNoSuchJob{})
 				m.store.EXPECT().GetService("good-app", "bad-workload").Return(nil, &config.ErrNoSuchService{})
 			},
@@ -1466,13 +1445,13 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 				store:    m.store,
 				provider: m.provider,
 
-				configureECSServiceDescriber: func(session *session.Session) ecs.ECSServiceDescriber {
+				configureECSServiceDescriber: func(aws.Config) ecs.ECSServiceDescriber {
 					return ecsMocks.NewMockECSServiceDescriber(ctrl)
 				},
-				configureJobDescriber: func(session *session.Session) ecs.JobDescriber {
+				configureJobDescriber: func(aws.Config) ecs.JobDescriber {
 					return ecsMocks.NewMockJobDescriber(ctrl)
 				},
-				configureServiceDescriber: func(session *session.Session) ecs.ServiceDescriber {
+				configureServiceDescriber: func(aws.Config) ecs.ServiceDescriber {
 					return ecsMocks.NewMockServiceDescriber(ctrl)
 				},
 				runTaskRequestFromECSService: tc.mockRunTaskRequester.mockRunTaskRequestFromECSService,

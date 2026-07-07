@@ -6,7 +6,7 @@ package stackset
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,24 +16,24 @@ func TestOpStatus_IsCompleted(t *testing.T) {
 		wanted bool
 	}{
 		"false when queued": {
-			status: cloudformation.StackSetOperationStatusQueued,
+			status: string(types.StackSetOperationStatusQueued),
 		},
 		"false when running": {
-			status: cloudformation.StackSetOperationStatusRunning,
+			status: string(types.StackSetOperationStatusRunning),
 		},
 		"false when stopping": {
-			status: cloudformation.StackSetOperationStatusStopping,
+			status: string(types.StackSetOperationStatusStopping),
 		},
 		"true when succeeded": {
-			status: cloudformation.StackSetOperationStatusSucceeded,
+			status: string(types.StackSetOperationStatusSucceeded),
 			wanted: true,
 		},
 		"true when stopped": {
-			status: cloudformation.StackSetOperationStatusStopped,
+			status: string(types.StackSetOperationStatusStopped),
 			wanted: true,
 		},
 		"true when failed": {
-			status: cloudformation.StackSetOperationStatusFailed,
+			status: string(types.StackSetOperationStatusFailed),
 			wanted: true,
 		},
 	}
@@ -51,23 +51,23 @@ func TestOpStatus_IsSuccess(t *testing.T) {
 		wanted bool
 	}{
 		"false when queued": {
-			status: cloudformation.StackSetOperationStatusQueued,
+			status: string(types.StackSetOperationStatusQueued),
 		},
 		"false when running": {
-			status: cloudformation.StackSetOperationStatusRunning,
+			status: string(types.StackSetOperationStatusRunning),
 		},
 		"false when stopping": {
-			status: cloudformation.StackSetOperationStatusStopping,
+			status: string(types.StackSetOperationStatusStopping),
 		},
 		"true when succeeded": {
-			status: cloudformation.StackSetOperationStatusSucceeded,
+			status: string(types.StackSetOperationStatusSucceeded),
 			wanted: true,
 		},
 		"false when stopped": {
-			status: cloudformation.StackSetOperationStatusStopped,
+			status: string(types.StackSetOperationStatusStopped),
 		},
 		"false when failed": {
-			status: cloudformation.StackSetOperationStatusFailed,
+			status: string(types.StackSetOperationStatusFailed),
 		},
 	}
 
@@ -84,25 +84,25 @@ func TestOpStatus_InProgress(t *testing.T) {
 		wanted bool
 	}{
 		"true when queued": {
-			status: cloudformation.StackSetOperationStatusQueued,
+			status: string(types.StackSetOperationStatusQueued),
 			wanted: true,
 		},
 		"true when running": {
-			status: cloudformation.StackSetOperationStatusRunning,
+			status: string(types.StackSetOperationStatusRunning),
 			wanted: true,
 		},
 		"true when stopping": {
-			status: cloudformation.StackSetOperationStatusStopping,
+			status: string(types.StackSetOperationStatusStopping),
 			wanted: true,
 		},
 		"false when succeeded": {
-			status: cloudformation.StackSetOperationStatusSucceeded,
+			status: string(types.StackSetOperationStatusSucceeded),
 		},
 		"false when stopped": {
-			status: cloudformation.StackSetOperationStatusStopped,
+			status: string(types.StackSetOperationStatusStopped),
 		},
 		"false when failed": {
-			status: cloudformation.StackSetOperationStatusFailed,
+			status: string(types.StackSetOperationStatusFailed),
 		},
 	}
 
@@ -119,23 +119,23 @@ func TestOpStatus_IsFailure(t *testing.T) {
 		wanted bool
 	}{
 		"false when queued": {
-			status: cloudformation.StackSetOperationStatusQueued,
+			status: string(types.StackSetOperationStatusQueued),
 		},
 		"false when running": {
-			status: cloudformation.StackSetOperationStatusRunning,
+			status: string(types.StackSetOperationStatusRunning),
 		},
 		"false when stopping": {
-			status: cloudformation.StackSetOperationStatusStopping,
+			status: string(types.StackSetOperationStatusStopping),
 		},
 		"false when succeeded": {
-			status: cloudformation.StackSetOperationStatusSucceeded,
+			status: string(types.StackSetOperationStatusSucceeded),
 		},
 		"true when stopped": {
-			status: cloudformation.StackSetOperationStatusStopped,
+			status: string(types.StackSetOperationStatusStopped),
 			wanted: true,
 		},
 		"true when failed": {
-			status: cloudformation.StackSetOperationStatusFailed,
+			status: string(types.StackSetOperationStatusFailed),
 			wanted: true,
 		},
 	}
@@ -158,25 +158,25 @@ func TestInstanceStatus_IsCompleted(t *testing.T) {
 		wanted bool
 	}{
 		"false when pending": {
-			status: cloudformation.StackInstanceDetailedStatusPending,
+			status: string(types.StackInstanceDetailedStatusPending),
 		},
 		"false when running": {
-			status: cloudformation.StackInstanceDetailedStatusRunning,
+			status: string(types.StackInstanceDetailedStatusRunning),
 		},
 		"true when succeeded": {
-			status: cloudformation.StackInstanceDetailedStatusSucceeded,
+			status: string(types.StackInstanceDetailedStatusSucceeded),
 			wanted: true,
 		},
 		"true when failed": {
-			status: cloudformation.StackInstanceDetailedStatusFailed,
+			status: string(types.StackInstanceDetailedStatusFailed),
 			wanted: true,
 		},
 		"true when cancelled": {
-			status: cloudformation.StackInstanceDetailedStatusCancelled,
+			status: string(types.StackInstanceDetailedStatusCancelled),
 			wanted: true,
 		},
 		"true when inoperable": {
-			status: cloudformation.StackInstanceDetailedStatusInoperable,
+			status: string(types.StackInstanceDetailedStatusInoperable),
 			wanted: true,
 		},
 	}
@@ -194,24 +194,24 @@ func TestInstanceStatus_InProgress(t *testing.T) {
 		wanted bool
 	}{
 		"true when pending": {
-			status: cloudformation.StackInstanceDetailedStatusPending,
+			status: string(types.StackInstanceDetailedStatusPending),
 			wanted: true,
 		},
 		"true when running": {
-			status: cloudformation.StackInstanceDetailedStatusRunning,
+			status: string(types.StackInstanceDetailedStatusRunning),
 			wanted: true,
 		},
 		"false when succeeded": {
-			status: cloudformation.StackInstanceDetailedStatusSucceeded,
+			status: string(types.StackInstanceDetailedStatusSucceeded),
 		},
 		"false when failed": {
-			status: cloudformation.StackInstanceDetailedStatusFailed,
+			status: string(types.StackInstanceDetailedStatusFailed),
 		},
 		"false when cancelled": {
-			status: cloudformation.StackInstanceDetailedStatusCancelled,
+			status: string(types.StackInstanceDetailedStatusCancelled),
 		},
 		"false when inoperable": {
-			status: cloudformation.StackInstanceDetailedStatusInoperable,
+			status: string(types.StackInstanceDetailedStatusInoperable),
 		},
 	}
 
@@ -228,23 +228,23 @@ func TestInstanceStatus_IsSuccess(t *testing.T) {
 		wanted bool
 	}{
 		"false when pending": {
-			status: cloudformation.StackInstanceDetailedStatusPending,
+			status: string(types.StackInstanceDetailedStatusPending),
 		},
 		"false when running": {
-			status: cloudformation.StackInstanceDetailedStatusRunning,
+			status: string(types.StackInstanceDetailedStatusRunning),
 		},
 		"true when succeeded": {
-			status: cloudformation.StackInstanceDetailedStatusSucceeded,
+			status: string(types.StackInstanceDetailedStatusSucceeded),
 			wanted: true,
 		},
 		"false when failed": {
-			status: cloudformation.StackInstanceDetailedStatusFailed,
+			status: string(types.StackInstanceDetailedStatusFailed),
 		},
 		"false when cancelled": {
-			status: cloudformation.StackInstanceDetailedStatusCancelled,
+			status: string(types.StackInstanceDetailedStatusCancelled),
 		},
 		"false when inoperable": {
-			status: cloudformation.StackInstanceDetailedStatusInoperable,
+			status: string(types.StackInstanceDetailedStatusInoperable),
 		},
 	}
 
@@ -261,24 +261,24 @@ func TestInstanceStatus_IsFailure(t *testing.T) {
 		wanted bool
 	}{
 		"false when pending": {
-			status: cloudformation.StackInstanceDetailedStatusPending,
+			status: string(types.StackInstanceDetailedStatusPending),
 		},
 		"false when running": {
-			status: cloudformation.StackInstanceDetailedStatusRunning,
+			status: string(types.StackInstanceDetailedStatusRunning),
 		},
 		"false when succeeded": {
-			status: cloudformation.StackInstanceDetailedStatusSucceeded,
+			status: string(types.StackInstanceDetailedStatusSucceeded),
 		},
 		"true when failed": {
-			status: cloudformation.StackInstanceDetailedStatusFailed,
+			status: string(types.StackInstanceDetailedStatusFailed),
 			wanted: true,
 		},
 		"true when cancelled": {
-			status: cloudformation.StackInstanceDetailedStatusCancelled,
+			status: string(types.StackInstanceDetailedStatusCancelled),
 			wanted: true,
 		},
 		"true when inoperable": {
-			status: cloudformation.StackInstanceDetailedStatusInoperable,
+			status: string(types.StackInstanceDetailedStatusInoperable),
 			wanted: true,
 		},
 	}

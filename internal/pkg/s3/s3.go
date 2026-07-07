@@ -12,7 +12,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/aws-sdk-go/aws/session"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -29,9 +29,9 @@ type Client struct {
 }
 
 // New inits a new Client.
-func New(sess *session.Session) *Client {
+func New(rgConfig awsv2.Config) *Client {
 	return &Client{
-		rgGetter: resourcegroups.New(sess),
+		rgGetter: resourcegroups.New(rgConfig),
 	}
 }
 

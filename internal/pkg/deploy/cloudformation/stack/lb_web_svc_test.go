@@ -20,8 +20,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/template/override"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -893,12 +893,12 @@ func TestLoadBalancedWebService_Parameters(t *testing.T) {
 			conf := &LoadBalancedWebService{
 				ecsWkld: &ecsWkld{
 					wkld: &wkld{
-						name: aws.StringValue(testManifest.Name),
+						name: aws.ToString(testManifest.Name),
 						env:  testEnvName,
 						app:  testAppName,
 						rc: RuntimeConfig{
 							PushedImages: map[string]ECRImage{
-								aws.StringValue(testManifest.Name): {
+								aws.ToString(testManifest.Name): {
 									RepoURL:  testImageRepoURL,
 									ImageTag: testImageTag,
 								},
@@ -1002,7 +1002,7 @@ func TestLoadBalancedWebService_Tags(t *testing.T) {
 	conf := &LoadBalancedWebService{
 		ecsWkld: &ecsWkld{
 			wkld: &wkld{
-				name: aws.StringValue(testLBWebServiceManifest.Name),
+				name: aws.ToString(testLBWebServiceManifest.Name),
 				env:  testEnvName,
 				app:  testAppName,
 				rc: RuntimeConfig{

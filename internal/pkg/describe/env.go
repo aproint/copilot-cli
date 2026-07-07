@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -73,7 +74,7 @@ func NewEnvDescriber(opt NewEnvDescriberConfig) (*EnvDescriber, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get environment: %w", err)
 	}
-	sess, err := sessions.ImmutableProvider().FromRole(env.ManagerRoleARN, env.Region)
+	cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("assume role for environment %s: %w", env.ManagerRoleARN, err)
 	}
@@ -84,7 +85,7 @@ func NewEnvDescriber(opt NewEnvDescriberConfig) (*EnvDescriber, error) {
 
 		configStore: opt.ConfigStore,
 		deployStore: opt.DeployStore,
-		cfn:         stack.NewStackDescriber(cfnstack.NameForEnv(opt.App, opt.Env), sess),
+		cfn:         stack.NewStackDescriber(cfnstack.NameForEnv(opt.App, opt.Env), cfg),
 	}, nil
 }
 

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 )
 
 const (
@@ -30,42 +30,42 @@ type comparisonOperator string
 
 func (c comparisonOperator) humanString() string {
 	switch c {
-	case cloudwatch.ComparisonOperatorGreaterThanOrEqualToThreshold:
+	case comparisonOperator(types.ComparisonOperatorGreaterThanOrEqualToThreshold):
 		return "≥"
-	case cloudwatch.ComparisonOperatorGreaterThanThreshold:
+	case comparisonOperator(types.ComparisonOperatorGreaterThanThreshold):
 		return ">"
-	case cloudwatch.ComparisonOperatorLessThanThreshold:
+	case comparisonOperator(types.ComparisonOperatorLessThanThreshold):
 		return "<"
-	case cloudwatch.ComparisonOperatorLessThanOrEqualToThreshold:
+	case comparisonOperator(types.ComparisonOperatorLessThanOrEqualToThreshold):
 		return "≤"
-	case cloudwatch.ComparisonOperatorLessThanLowerOrGreaterThanUpperThreshold:
+	case comparisonOperator(types.ComparisonOperatorLessThanLowerOrGreaterThanUpperThreshold):
 		return "outside"
-	case cloudwatch.ComparisonOperatorLessThanLowerThreshold:
+	case comparisonOperator(types.ComparisonOperatorLessThanLowerThreshold):
 		return "<"
-	case cloudwatch.ComparisonOperatorGreaterThanUpperThreshold:
+	case comparisonOperator(types.ComparisonOperatorGreaterThanUpperThreshold):
 		return ">"
 	default:
 		return ""
 	}
 }
 
-type metricAlarm cloudwatch.MetricAlarm
+type metricAlarm types.MetricAlarm
 
 func (a metricAlarm) condition() string {
 	thresholdType := a.alarmThresholdType()
-	metricName := aws.StringValue(a.MetricName)
-	period := aws.Int64Value(a.Period)
-	evaluationPeriod := aws.Int64Value(a.EvaluationPeriods)
-	datapointsToAlarm := aws.Int64Value(a.DatapointsToAlarm)
+	metricName := awsv2.ToString(a.MetricName)
+	period := int64(awsv2.ToInt32(a.Period))
+	evaluationPeriod := int64(awsv2.ToInt32(a.EvaluationPeriods))
+	datapointsToAlarm := int64(awsv2.ToInt32(a.DatapointsToAlarm))
 	if datapointsToAlarm == 0 {
 		// https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cw-alarm.html#cfn-cloudwatch-alarm-datapointstoalarm
 		datapointsToAlarm = evaluationPeriod
 	}
-	operator := comparisonOperator(aws.StringValue(a.ComparisonOperator))
+	operator := comparisonOperator(a.ComparisonOperator)
 	switch thresholdType {
 	case static:
 		return fmt.Sprintf(fmtStaticMetricCondition, metricName, operator.humanString(),
-			aws.Float64Value(a.Threshold), datapointsToAlarm, humanizePeriod(evaluationPeriod, period))
+			awsv2.ToFloat64(a.Threshold), datapointsToAlarm, humanizePeriod(evaluationPeriod, period))
 	default:
 		return "-"
 	}
@@ -77,20 +77,20 @@ func (a metricAlarm) alarmThresholdType() alarmThresholdTypes {
 	}
 	thresholdMetric := a.thresholdMetric()
 	if thresholdMetric != nil {
-		if strings.HasPrefix(aws.StringValue(thresholdMetric.Expression), anomalyDetectionBandExpression) {
+		if strings.HasPrefix(awsv2.ToString(thresholdMetric.Expression), anomalyDetectionBandExpression) {
 			return predictive
 		}
 	}
 	return dynamic
 }
 
-func (a metricAlarm) thresholdMetric() *cloudwatch.MetricDataQuery {
+func (a metricAlarm) thresholdMetric() *types.MetricDataQuery {
 	if a.ThresholdMetricId == nil {
 		return nil
 	}
-	for _, m := range a.Metrics {
-		if aws.StringValue(m.Id) == aws.StringValue(a.ThresholdMetricId) {
-			return m
+	for idx := range a.Metrics {
+		if awsv2.ToString(a.Metrics[idx].Id) == awsv2.ToString(a.ThresholdMetricId) {
+			return &a.Metrics[idx]
 		}
 	}
 	return nil

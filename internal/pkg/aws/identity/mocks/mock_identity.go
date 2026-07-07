@@ -5,9 +5,10 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	sts "github.com/aws/aws-sdk-go/service/sts"
+	sts "github.com/aws/aws-sdk-go-v2/service/sts"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,16 +36,21 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // GetCallerIdentity mocks base method.
-func (m *Mockapi) GetCallerIdentity(input *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error) {
+func (m *Mockapi) GetCallerIdentity(ctx context.Context, input *sts.GetCallerIdentityInput, opts ...func(*sts.Options)) (*sts.GetCallerIdentityOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCallerIdentity", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetCallerIdentity", varargs...)
 	ret0, _ := ret[0].(*sts.GetCallerIdentityOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetCallerIdentity indicates an expected call of GetCallerIdentity.
-func (mr *MockapiMockRecorder) GetCallerIdentity(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) GetCallerIdentity(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCallerIdentity", reflect.TypeOf((*Mockapi)(nil).GetCallerIdentity), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCallerIdentity", reflect.TypeOf((*Mockapi)(nil).GetCallerIdentity), varargs...)
 }

@@ -7,8 +7,7 @@ import (
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 type cfn interface {
@@ -43,10 +42,10 @@ type StackDescriber struct {
 }
 
 // NewStackDescriber instantiates a new StackDescriber.
-func NewStackDescriber(stackName string, sess *session.Session) *StackDescriber {
+func NewStackDescriber(stackName string, cfg aws.Config) *StackDescriber {
 	return &StackDescriber{
 		name: stackName,
-		cfn:  cloudformation.New(sess),
+		cfn:  cloudformation.New(cfg),
 	}
 }
 
@@ -58,15 +57,15 @@ func (d *StackDescriber) Describe() (StackDescription, error) {
 	}
 	params := make(map[string]string)
 	for _, param := range descr.Parameters {
-		params[aws.StringValue(param.ParameterKey)] = aws.StringValue(param.ParameterValue)
+		params[aws.ToString(param.ParameterKey)] = aws.ToString(param.ParameterValue)
 	}
 	outputs := make(map[string]string)
 	for _, out := range descr.Outputs {
-		outputs[aws.StringValue(out.OutputKey)] = aws.StringValue(out.OutputValue)
+		outputs[aws.ToString(out.OutputKey)] = aws.ToString(out.OutputValue)
 	}
 	tags := make(map[string]string)
 	for _, tag := range descr.Tags {
-		tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
+		tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
 	}
 	return StackDescription{
 		Parameters: params,
@@ -106,9 +105,9 @@ func flattenResources(stackResources []*cloudformation.StackResource) []*Resourc
 	var resources []*Resource
 	for _, stackResource := range stackResources {
 		resources = append(resources, &Resource{
-			Type:       aws.StringValue(stackResource.ResourceType),
-			PhysicalID: aws.StringValue(stackResource.PhysicalResourceId),
-			LogicalID:  aws.StringValue(stackResource.LogicalResourceId),
+			Type:       aws.ToString(stackResource.ResourceType),
+			PhysicalID: aws.ToString(stackResource.PhysicalResourceId),
+			LogicalID:  aws.ToString(stackResource.LogicalResourceId),
 		})
 	}
 	return resources

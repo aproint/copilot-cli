@@ -4,19 +4,16 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -37,18 +34,19 @@ func newOverridePipelineOpts(vars overrideVars) (*overridePipelineOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline override"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
 	prompt := prompt.New()
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 
 	cmd := &overridePipelineOpts{
 		overrideOpts: &overrideOpts{
 			overrideVars: vars,
 			fs:           fs,
-			cfgStore:     config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region)),
+			cfgStore:     store,
 			prompt:       prompt,
 			cfnPrompt:    selector.NewCFNSelector(prompt),
 			spinner:      termprogress.NewSpinner(log.DiagnosticWriter),

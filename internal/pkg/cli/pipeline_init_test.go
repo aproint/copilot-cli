@@ -17,8 +17,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	templatemocks "github.com/aproint/copilot-cli/internal/pkg/template/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -120,11 +119,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:   "codecommit::us-west-2://repo-man",
 			setupMocks: func(m pipelineInitMocks) {
 				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
-				m.sessProvider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						Region: aws.String("us-east-1"),
-					},
-				}, nil)
+				m.sessProvider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: "us-east-1"}, nil)
 			},
 			expectedError: errors.New("repository repo-man is in us-west-2, but app my-app is in us-east-1; they must be in the same region"),
 		},
@@ -296,11 +291,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inGitBranch:    "main",
 			setupMocks: func(m pipelineInitMocks) {
 				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
-				m.sessProvider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						Region: aws.String("us-west-2"),
-					},
-				}, nil)
+				m.sessProvider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: "us-west-2"}, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.store.EXPECT().GetEnvironment("my-app", "test").Return(
 					&config.Environment{
@@ -586,11 +577,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 						S3Bucket: "gooseBucket",
 					},
 				}, nil)
-				m.sessProvider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						Region: aws.String("us-west-2"),
-					},
-				}, nil)
+				m.sessProvider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: "us-west-2"}, nil)
 			},
 			expectedError: nil,
 		},

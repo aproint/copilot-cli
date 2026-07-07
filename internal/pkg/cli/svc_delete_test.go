@@ -12,7 +12,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -349,7 +349,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					appName: mockAppName,
 					name:    mockSvcName,
 				},
-				newSvcCleaner: func(*session.Session, *config.Environment, string) cleaner {
+				newSvcCleaner: func(aws.Config, *config.Environment, string) cleaner {
 					return &cleantest.Succeeds{}
 				},
 			},
@@ -362,11 +362,11 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					// appEnvironments
 					mocks.store.EXPECT().ListEnvironments(gomock.Eq(mockAppName)).Times(1).Return(mockEnvs, nil),
 
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
 					mocks.svcCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
 
-					mocks.sessProvider.EXPECT().DefaultWithRegion(gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().DefaultConfigWithRegion(gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 
 					// emptyECRRepos
 					mocks.ecr.EXPECT().ClearRepository(mockRepo).Return(nil),
@@ -391,7 +391,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					envName: mockEnvName,
 					name:    mockSvcName,
 				},
-				newSvcCleaner: func(*session.Session, *config.Environment, string) cleaner {
+				newSvcCleaner: func(aws.Config, *config.Environment, string) cleaner {
 					return &cleantest.Succeeds{}
 				},
 			},
@@ -404,7 +404,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					// appEnvironments
 					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
 					mocks.svcCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
 
@@ -441,7 +441,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					envName: mockEnvName,
 					name:    mockSvcName,
 				},
-				newSvcCleaner: func(*session.Session, *config.Environment, string) cleaner {
+				newSvcCleaner: func(aws.Config, *config.Environment, string) cleaner {
 					return &cleantest.Fails{}
 				},
 			},
@@ -451,7 +451,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 						Type: manifestinfo.LoadBalancedWebServiceType,
 					}, nil),
 					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 				)
 			},
 			wantedError: errors.New("clean resources: an error"),
@@ -463,7 +463,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					envName: mockEnvName,
 					name:    mockSvcName,
 				},
-				newSvcCleaner: func(*session.Session, *config.Environment, string) cleaner {
+				newSvcCleaner: func(aws.Config, *config.Environment, string) cleaner {
 					return &cleantest.Succeeds{}
 				},
 			},
@@ -476,7 +476,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					// appEnvironments
 					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 
-					mocks.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{}, nil),
+					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
 					mocks.svcCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(testError),
 				)
@@ -506,10 +506,10 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 			tc.opts.sess = mocks.sessProvider
 			tc.opts.spinner = mocks.spinner
 			tc.opts.appCFN = mocks.appCFN
-			tc.opts.getSvcCFN = func(_ *session.Session) wlDeleter {
+			tc.opts.getSvcCFN = func(_ aws.Config) wlDeleter {
 				return mocks.svcCFN
 			}
-			tc.opts.getECR = func(_ *session.Session) imageRemover {
+			tc.opts.getECR = func(_ aws.Config) imageRemover {
 				return mocks.ecr
 			}
 

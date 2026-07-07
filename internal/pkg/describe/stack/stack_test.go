@@ -10,8 +10,8 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	sdkcfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sdkcfn "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -41,19 +41,19 @@ func TestStackDescriber_Describe(t *testing.T) {
 			setupMocks: func(m stackDescriberMocks) {
 				gomock.InOrder(
 					m.cfn.EXPECT().Describe(mockStackName).Return(&cloudformation.StackDescription{
-						Parameters: []*sdkcfn.Parameter{
+						Parameters: []sdkcfn.Parameter{
 							{
 								ParameterKey:   aws.String("mockParamKey"),
 								ParameterValue: aws.String("mockParamVal"),
 							},
 						},
-						Outputs: []*sdkcfn.Output{
+						Outputs: []sdkcfn.Output{
 							{
 								OutputKey:   aws.String("mockOutputKey"),
 								OutputValue: aws.String("mockOutputVal"),
 							},
 						},
-						Tags: []*sdkcfn.Tag{
+						Tags: []sdkcfn.Tag{
 							{
 								Key:   aws.String("mockTagKey"),
 								Value: aws.String("mockTagVal"),

@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 	cfnstack "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,8 +22,8 @@ type WorkloadStackDescriber struct {
 	name string
 	env  string
 
-	cfn  stackDescriber
-	sess *session.Session
+	cfn stackDescriber
+	cfg aws.Config
 
 	// Cache variables.
 	params         map[string]string
@@ -44,7 +45,7 @@ func NewWorkloadStackDescriber(opt NewWorkloadConfig) (*WorkloadStackDescriber, 
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s: %w", opt.Env, err)
 	}
-	sess, err := sessions.ImmutableProvider().FromRole(environment.ManagerRoleARN, environment.Region)
+	cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), environment.ManagerRoleARN, environment.Region)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +54,8 @@ func NewWorkloadStackDescriber(opt NewWorkloadConfig) (*WorkloadStackDescriber, 
 		name: opt.Name,
 		env:  opt.Env,
 
-		cfn:  stack.NewStackDescriber(cfnstack.NameForWorkload(opt.App, opt.Env, opt.Name), sess),
-		sess: sess,
+		cfn: stack.NewStackDescriber(cfnstack.NameForWorkload(opt.App, opt.Env, opt.Name), cfg),
+		cfg: cfg,
 	}, nil
 }
 

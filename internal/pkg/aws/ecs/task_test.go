@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -20,9 +20,9 @@ func TestTask_TaskStatus(t *testing.T) {
 	stopTime, _ := time.Parse(time.RFC3339, "2006-01-02T16:04:05+00:00")
 	mockImageDigest := "18f7eb6cff6e63e5f5273fb53f672975fe6044580f66c354f55d2de8dd28aec7"
 	testCases := map[string]struct {
-		health        *string
+		health        types.HealthStatus
 		taskArn       *string
-		containers    []*ecs.Container
+		containers    []types.Container
 		lastStatus    *string
 		startedAt     time.Time
 		stoppedAt     time.Time
@@ -32,19 +32,19 @@ func TestTask_TaskStatus(t *testing.T) {
 		wantErr        error
 	}{
 		"errors if failed to parse task ID": {
-			taskArn: aws.String("badTaskArn"),
+			taskArn: awsv2.String("badTaskArn"),
 			wantErr: fmt.Errorf("parse ECS task ARN: arn: invalid prefix"),
 		},
 		"success with a provisioning task": {
-			taskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/my-project-test-Cluster-9F7Y0RLP60R7/4082490ee6c245e09d2145010aa1ba8d"),
-			containers: []*ecs.Container{
+			taskArn: awsv2.String("arn:aws:ecs:us-west-2:123456789:task/my-project-test-Cluster-9F7Y0RLP60R7/4082490ee6c245e09d2145010aa1ba8d"),
+			containers: []types.Container{
 				{
-					Image:       aws.String("mockImageArn"),
-					ImageDigest: aws.String("sha256:" + mockImageDigest),
+					Image:       awsv2.String("mockImageArn"),
+					ImageDigest: awsv2.String("sha256:" + mockImageDigest),
 				},
 			},
-			health:     aws.String("HEALTHY"),
-			lastStatus: aws.String("UNKNOWN"),
+			health:     types.HealthStatusHealthy,
+			lastStatus: awsv2.String("UNKNOWN"),
 
 			wantTaskStatus: &TaskStatus{
 				Health: "HEALTHY",
@@ -59,15 +59,15 @@ func TestTask_TaskStatus(t *testing.T) {
 			},
 		},
 		"success with a running task": {
-			taskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/my-project-test-Cluster-9F7Y0RLP60R7/4082490ee6c245e09d2145010aa1ba8d"),
-			containers: []*ecs.Container{
+			taskArn: awsv2.String("arn:aws:ecs:us-west-2:123456789:task/my-project-test-Cluster-9F7Y0RLP60R7/4082490ee6c245e09d2145010aa1ba8d"),
+			containers: []types.Container{
 				{
-					Image:       aws.String("mockImageArn"),
-					ImageDigest: aws.String("sha256:" + mockImageDigest),
+					Image:       awsv2.String("mockImageArn"),
+					ImageDigest: awsv2.String("sha256:" + mockImageDigest),
 				},
 			},
-			health:     aws.String("HEALTHY"),
-			lastStatus: aws.String("UNKNOWN"),
+			health:     types.HealthStatusHealthy,
+			lastStatus: awsv2.String("UNKNOWN"),
 			startedAt:  startTime,
 
 			wantTaskStatus: &TaskStatus{
@@ -84,18 +84,18 @@ func TestTask_TaskStatus(t *testing.T) {
 			},
 		},
 		"success with a stopped task": {
-			taskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/my-project-test-Cluster-9F7Y0RLP60R7/4082490ee6c245e09d2145010aa1ba8d"),
-			containers: []*ecs.Container{
+			taskArn: awsv2.String("arn:aws:ecs:us-west-2:123456789:task/my-project-test-Cluster-9F7Y0RLP60R7/4082490ee6c245e09d2145010aa1ba8d"),
+			containers: []types.Container{
 				{
-					Image:       aws.String("mockImageArn"),
-					ImageDigest: aws.String("sha256:" + mockImageDigest),
+					Image:       awsv2.String("mockImageArn"),
+					ImageDigest: awsv2.String("sha256:" + mockImageDigest),
 				},
 			},
-			health:        aws.String("HEALTHY"),
-			lastStatus:    aws.String("UNKNOWN"),
+			health:        types.HealthStatusHealthy,
+			lastStatus:    awsv2.String("UNKNOWN"),
 			startedAt:     startTime,
 			stoppedAt:     stopTime,
-			stoppedReason: aws.String("some reason"),
+			stoppedReason: awsv2.String("some reason"),
 
 			wantTaskStatus: &TaskStatus{
 				Health: "HEALTHY",
@@ -145,15 +145,15 @@ func TestTask_TaskStatus(t *testing.T) {
 func TestTask_ENI(t *testing.T) {
 	testCases := map[string]struct {
 		taskARN     *string
-		attachments []*ecs.Attachment
+		attachments []types.Attachment
 		wantedENI   string
 		wantedErr   error
 	}{
 		"no matching attachment": {
-			taskARN: aws.String("1"),
-			attachments: []*ecs.Attachment{
+			taskARN: awsv2.String("1"),
+			attachments: []types.Attachment{
 				{
-					Type: aws.String("not ElasticNetworkInterface"),
+					Type: awsv2.String("not ElasticNetworkInterface"),
 				},
 			},
 			wantedErr: &ErrTaskENIInfoNotFound{
@@ -162,17 +162,17 @@ func TestTask_ENI(t *testing.T) {
 			},
 		},
 		"no matching detail in network interface attachment": {
-			taskARN: aws.String("1"),
-			attachments: []*ecs.Attachment{
+			taskARN: awsv2.String("1"),
+			attachments: []types.Attachment{
 				{
-					Type: aws.String("not ElasticNetworkInterface"),
+					Type: awsv2.String("not ElasticNetworkInterface"),
 				},
 				{
-					Type: aws.String("ElasticNetworkInterface"),
-					Details: []*ecs.KeyValuePair{
+					Type: awsv2.String("ElasticNetworkInterface"),
+					Details: []types.KeyValuePair{
 						{
-							Name:  aws.String("not networkInterfaceId"),
-							Value: aws.String("val"),
+							Name:  awsv2.String("not networkInterfaceId"),
+							Value: awsv2.String("val"),
 						},
 					},
 				},
@@ -183,21 +183,21 @@ func TestTask_ENI(t *testing.T) {
 			},
 		},
 		"successfully retrieve eni id": {
-			taskARN: aws.String("1"),
-			attachments: []*ecs.Attachment{
+			taskARN: awsv2.String("1"),
+			attachments: []types.Attachment{
 				{
-					Type: aws.String("not ElasticNetworkInterface"),
+					Type: awsv2.String("not ElasticNetworkInterface"),
 				},
 				{
-					Type: aws.String("ElasticNetworkInterface"),
-					Details: []*ecs.KeyValuePair{
+					Type: awsv2.String("ElasticNetworkInterface"),
+					Details: []types.KeyValuePair{
 						{
-							Name:  aws.String("not networkInterfaceId"),
-							Value: aws.String("val"),
+							Name:  awsv2.String("not networkInterfaceId"),
+							Value: awsv2.String("val"),
 						},
 						{
-							Name:  aws.String("networkInterfaceId"),
-							Value: aws.String("eni-123"),
+							Name:  awsv2.String("networkInterfaceId"),
+							Value: awsv2.String("eni-123"),
 						},
 					},
 				},
@@ -227,15 +227,15 @@ func TestTask_ENI(t *testing.T) {
 func TestTask_PrivateIP(t *testing.T) {
 	testCases := map[string]struct {
 		taskARN     *string
-		attachments []*ecs.Attachment
+		attachments []types.Attachment
 		wantedENI   string
 		wantedErr   error
 	}{
 		"no matching attachment": {
-			taskARN: aws.String("1"),
-			attachments: []*ecs.Attachment{
+			taskARN: awsv2.String("1"),
+			attachments: []types.Attachment{
 				{
-					Type: aws.String("not ElasticNetworkInterface"),
+					Type: awsv2.String("not ElasticNetworkInterface"),
 				},
 			},
 			wantedErr: &ErrTaskENIInfoNotFound{
@@ -244,17 +244,17 @@ func TestTask_PrivateIP(t *testing.T) {
 			},
 		},
 		"no matching detail in network interface attachment": {
-			taskARN: aws.String("1"),
-			attachments: []*ecs.Attachment{
+			taskARN: awsv2.String("1"),
+			attachments: []types.Attachment{
 				{
-					Type: aws.String("not ElasticNetworkInterface"),
+					Type: awsv2.String("not ElasticNetworkInterface"),
 				},
 				{
-					Type: aws.String("ElasticNetworkInterface"),
-					Details: []*ecs.KeyValuePair{
+					Type: awsv2.String("ElasticNetworkInterface"),
+					Details: []types.KeyValuePair{
 						{
-							Name:  aws.String("not privateIPv4Address"),
-							Value: aws.String("val"),
+							Name:  awsv2.String("not privateIPv4Address"),
+							Value: awsv2.String("val"),
 						},
 					},
 				},
@@ -265,21 +265,21 @@ func TestTask_PrivateIP(t *testing.T) {
 			},
 		},
 		"successfully retrieve eni id": {
-			taskARN: aws.String("1"),
-			attachments: []*ecs.Attachment{
+			taskARN: awsv2.String("1"),
+			attachments: []types.Attachment{
 				{
-					Type: aws.String("not ElasticNetworkInterface"),
+					Type: awsv2.String("not ElasticNetworkInterface"),
 				},
 				{
-					Type: aws.String("ElasticNetworkInterface"),
-					Details: []*ecs.KeyValuePair{
+					Type: awsv2.String("ElasticNetworkInterface"),
+					Details: []types.KeyValuePair{
 						{
-							Name:  aws.String("not networkInterfaceId"),
-							Value: aws.String("val"),
+							Name:  awsv2.String("not networkInterfaceId"),
+							Value: awsv2.String("val"),
 						},
 						{
-							Name:  aws.String("privateIPv4Address"),
-							Value: aws.String("eni-123"),
+							Name:  awsv2.String("privateIPv4Address"),
+							Value: awsv2.String("eni-123"),
 						},
 					},
 				},
@@ -338,24 +338,24 @@ func Test_TaskID(t *testing.T) {
 
 func TestTaskDefinition_EnvVars(t *testing.T) {
 	testCases := map[string]struct {
-		inContainers []*ecs.ContainerDefinition
+		inContainers []types.ContainerDefinition
 
 		wantEnvVars []*ContainerEnvVar
 	}{
 		"should return wrapped error given error; otherwise should return list of ContainerEnvVar objects": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Environment: []*ecs.KeyValuePair{
+					Environment: []types.KeyValuePair{
 						{
-							Name:  aws.String("COPILOT_SERVICE_NAME"),
-							Value: aws.String("my-svc"),
+							Name:  awsv2.String("COPILOT_SERVICE_NAME"),
+							Value: awsv2.String("my-svc"),
 						},
 						{
-							Name:  aws.String("COPILOT_ENVIRONMENT_NAME"),
-							Value: aws.String("prod"),
+							Name:  awsv2.String("COPILOT_ENVIRONMENT_NAME"),
+							Value: awsv2.String("prod"),
 						},
 					},
-					Name: aws.String("container"),
+					Name: awsv2.String("container"),
 				},
 			},
 
@@ -394,22 +394,22 @@ func TestTaskDefinition_EnvVars(t *testing.T) {
 
 func TestTaskDefinition_Secrets(t *testing.T) {
 	testCases := map[string]struct {
-		inContainers []*ecs.ContainerDefinition
+		inContainers []types.ContainerDefinition
 
 		wantedSecrets []*ContainerSecret
 	}{
 		"should return secrets of the task definition as a list of ContainerSecret objects": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Name: aws.String("container"),
-					Secrets: []*ecs.Secret{
+					Name: awsv2.String("container"),
+					Secrets: []types.Secret{
 						{
-							Name:      aws.String("GITHUB_WEBHOOK_SECRET"),
-							ValueFrom: aws.String("GH_WEBHOOK_SECRET"),
+							Name:      awsv2.String("GITHUB_WEBHOOK_SECRET"),
+							ValueFrom: awsv2.String("GH_WEBHOOK_SECRET"),
 						},
 						{
-							Name:      aws.String("SOME_OTHER_SECRET"),
-							ValueFrom: aws.String("SHHHHHHHH"),
+							Name:      awsv2.String("SOME_OTHER_SECRET"),
+							ValueFrom: awsv2.String("SHHHHHHHH"),
 						},
 					},
 				},
@@ -450,35 +450,35 @@ func TestTaskDefinition_Secrets(t *testing.T) {
 
 func TestTaskDefinition_Image(t *testing.T) {
 	testCases := map[string]struct {
-		inContainers    []*ecs.ContainerDefinition
+		inContainers    []types.ContainerDefinition
 		inContainerName string
 
 		wantedImage string
 		wantedError error
 	}{
 		"should return the container's image": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Name:  aws.String("container-1"),
-					Image: aws.String("image-1"),
+					Name:  awsv2.String("container-1"),
+					Image: awsv2.String("image-1"),
 				},
 				{
-					Name:  aws.String("container-2"),
-					Image: aws.String("image-2"),
+					Name:  awsv2.String("container-2"),
+					Image: awsv2.String("image-2"),
 				},
 			},
 			inContainerName: "container-2",
 			wantedImage:     "image-2",
 		},
 		"container not found": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Name:  aws.String("container-1"),
-					Image: aws.String("image-1"),
+					Name:  awsv2.String("container-1"),
+					Image: awsv2.String("image-1"),
 				},
 				{
-					Name:  aws.String("container-2"),
-					Image: aws.String("image-2"),
+					Name:  awsv2.String("container-2"),
+					Image: awsv2.String("image-2"),
 				},
 			},
 			inContainerName: "container-3",
@@ -509,38 +509,38 @@ func TestTaskDefinition_Image(t *testing.T) {
 
 func TestTaskDefinition_Command(t *testing.T) {
 	testCases := map[string]struct {
-		inContainers    []*ecs.ContainerDefinition
+		inContainers    []types.ContainerDefinition
 		inContainerName string
 
 		wantedCommand []string
 		wantedError   error
 	}{
 		"should return command overrides of the task definition as a list of ContainerCommand": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Name:    aws.String("container-1"),
-					Command: aws.StringSlice([]string{"echo", "strikes", "three"}),
+					Name:    awsv2.String("container-1"),
+					Command: []string{"echo", "strikes", "three"},
 				},
 				{
-					Name:    aws.String("container-2"),
-					Command: aws.StringSlice([]string{"echo", "ball", "four"}),
+					Name:    awsv2.String("container-2"),
+					Command: []string{"echo", "ball", "four"},
 				},
 				{
-					Name: aws.String("container-3"),
+					Name: awsv2.String("container-3"),
 				},
 			},
 			inContainerName: "container-1",
 			wantedCommand:   []string{"echo", "strikes", "three"},
 		},
 		"container not found": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Name:    aws.String("container-1"),
-					Command: aws.StringSlice([]string{"echo", "strikes", "three"}),
+					Name:    awsv2.String("container-1"),
+					Command: []string{"echo", "strikes", "three"},
 				},
 				{
-					Name:    aws.String("container-2"),
-					Command: aws.StringSlice([]string{"echo", "ball", "four"}),
+					Name:    awsv2.String("container-2"),
+					Command: []string{"echo", "ball", "four"},
 				},
 			},
 			inContainerName: "container-3",
@@ -571,20 +571,20 @@ func TestTaskDefinition_Command(t *testing.T) {
 
 func TestTaskDefinition_EntryPoint(t *testing.T) {
 	testCases := map[string]struct {
-		inContainers    []*ecs.ContainerDefinition
+		inContainers    []types.ContainerDefinition
 		inContainerName string
 
 		wantedEntryPoints []string
 		wantedError       error
 	}{
 		"should return command overrides of the task definition as a list of ContainerCommand": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Name:       aws.String("container-1"),
-					EntryPoint: aws.StringSlice([]string{"echo", "strikes", "three"}),
+					Name:       awsv2.String("container-1"),
+					EntryPoint: []string{"echo", "strikes", "three"},
 				},
 				{
-					Name: aws.String("container-2"),
+					Name: awsv2.String("container-2"),
 				},
 			},
 
@@ -592,14 +592,14 @@ func TestTaskDefinition_EntryPoint(t *testing.T) {
 			wantedEntryPoints: []string{"echo", "strikes", "three"},
 		},
 		"container not found": {
-			inContainers: []*ecs.ContainerDefinition{
+			inContainers: []types.ContainerDefinition{
 				{
-					Name:    aws.String("container-1"),
-					Command: aws.StringSlice([]string{"echo", "strikes", "three"}),
+					Name:    awsv2.String("container-1"),
+					Command: []string{"echo", "strikes", "three"},
 				},
 				{
-					Name:    aws.String("container-2"),
-					Command: aws.StringSlice([]string{"echo", "ball", "four"}),
+					Name:    awsv2.String("container-2"),
+					Command: []string{"echo", "ball", "four"},
 				},
 			},
 			inContainerName: "container-3",
@@ -665,18 +665,18 @@ func TestFilterRunningTasks(t *testing.T) {
 		"should return only running tasks": {
 			inTasks: []*Task{
 				{
-					TaskArn:    aws.String("mockTask1"),
-					LastStatus: aws.String("STOPPED"),
+					TaskArn:    awsv2.String("mockTask1"),
+					LastStatus: awsv2.String("STOPPED"),
 				},
 				{
-					TaskArn:    aws.String("mockTask2"),
-					LastStatus: aws.String("RUNNING"),
+					TaskArn:    awsv2.String("mockTask2"),
+					LastStatus: awsv2.String("RUNNING"),
 				},
 			},
 			wantedTasks: []*Task{
 				{
-					TaskArn:    aws.String("mockTask2"),
-					LastStatus: aws.String("RUNNING"),
+					TaskArn:    awsv2.String("mockTask2"),
+					LastStatus: awsv2.String("RUNNING"),
 				},
 			},
 		},

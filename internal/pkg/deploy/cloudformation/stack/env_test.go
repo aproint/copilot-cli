@@ -16,8 +16,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -1246,7 +1246,7 @@ func TestBootstrapEnv_ToEnv(t *testing.T) {
 func mockEnvironmentStack(stackArn, managerRoleARN, executionRoleARN string) *cloudformation.Stack {
 	return &cloudformation.Stack{
 		StackId: aws.String(stackArn),
-		Outputs: []*cloudformation.Output{
+		Outputs: []cloudformation.Output{
 			{
 				OutputKey:   aws.String(envOutputManagerRoleKey),
 				OutputValue: aws.String(managerRoleARN),

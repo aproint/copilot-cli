@@ -5,16 +5,17 @@
 package cloudwatch
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/dustin/go-humanize"
 )
 
@@ -28,7 +29,7 @@ const (
 var humanizeDuration = humanize.RelTime
 
 type api interface {
-	DescribeAlarms(input *cloudwatch.DescribeAlarmsInput) (*cloudwatch.DescribeAlarmsOutput, error)
+	DescribeAlarms(context.Context, *cloudwatch.DescribeAlarmsInput, ...func(*cloudwatch.Options)) (*cloudwatch.DescribeAlarmsOutput, error)
 }
 
 type resourceGetter interface {
@@ -59,11 +60,11 @@ type AlarmDescription struct {
 	Environment string `json:"environment"`
 }
 
-// New returns a CloudWatch struct configured against the input session.
-func New(s *session.Session) *CloudWatch {
+// New returns a CloudWatch struct configured against the input SDK v2 CloudWatch and Resource Groups configs.
+func New(cwConfig awsv2.Config, rgConfig awsv2.Config) *CloudWatch {
 	return &CloudWatch{
-		client:   cloudwatch.New(s),
-		rgClient: rg.New(s),
+		client:   cloudwatch.NewFromConfig(cwConfig),
+		rgClient: rg.New(rgConfig),
 	}
 }
 
@@ -93,14 +94,14 @@ type DescribeAlarmOpts func(input *cloudwatch.DescribeAlarmsInput)
 // WithNames sets DescribeAlarms to filter on alarm names.
 func WithNames(names []string) DescribeAlarmOpts {
 	return func(in *cloudwatch.DescribeAlarmsInput) {
-		in.AlarmNames = aws.StringSlice(names)
+		in.AlarmNames = names
 	}
 }
 
 // WithPrefix sets DescribeAlarms to filter on a name prefix.
 func WithPrefix(prefix string) DescribeAlarmOpts {
 	return func(in *cloudwatch.DescribeAlarmsInput) {
-		in.AlarmNamePrefix = aws.String(prefix)
+		in.AlarmNamePrefix = awsv2.String(prefix)
 	}
 }
 
@@ -116,7 +117,7 @@ func (cw *CloudWatch) AlarmStatuses(opts ...DescribeAlarmOpts) ([]AlarmStatus, e
 		}
 	}
 	for {
-		alarmResp, err := cw.client.DescribeAlarms(in)
+		alarmResp, err := cw.client.DescribeAlarms(context.Background(), in)
 		if err != nil {
 			return nil, fmt.Errorf("describe CloudWatch alarms: %w", err)
 		}
@@ -140,10 +141,10 @@ func (cw *CloudWatch) AlarmDescriptions(alarmNames []string) ([]*AlarmDescriptio
 	}
 	var alarmDescriptions []*AlarmDescription
 	in := &cloudwatch.DescribeAlarmsInput{
-		AlarmNames: aws.StringSlice(alarmNames),
+		AlarmNames: alarmNames,
 	}
 	for {
-		alarmResp, err := cw.client.DescribeAlarms(in)
+		alarmResp, err := cw.client.DescribeAlarms(context.Background(), in)
 		if err != nil {
 			return nil, fmt.Errorf("describe CloudWatch alarms: %w", err)
 		}
@@ -160,45 +161,36 @@ func (cw *CloudWatch) AlarmDescriptions(alarmNames []string) ([]*AlarmDescriptio
 	return alarmDescriptions, nil
 }
 
-func (cw *CloudWatch) compositeAlarmsDescriptions(alarms []*cloudwatch.CompositeAlarm) []*AlarmDescription {
+func (cw *CloudWatch) compositeAlarmsDescriptions(alarms []types.CompositeAlarm) []*AlarmDescription {
 	var alarmDescriptionList []*AlarmDescription
 	for _, alarm := range alarms {
-		if alarm == nil {
-			continue
-		}
 		alarmDescriptionList = append(alarmDescriptionList, &AlarmDescription{
-			Name:        aws.StringValue(alarm.AlarmName),
-			Description: aws.StringValue(alarm.AlarmDescription),
+			Name:        awsv2.ToString(alarm.AlarmName),
+			Description: awsv2.ToString(alarm.AlarmDescription),
 		})
 	}
 	return alarmDescriptionList
 }
 
-func (cw *CloudWatch) metricAlarmsDescriptions(alarms []*cloudwatch.MetricAlarm) []*AlarmDescription {
+func (cw *CloudWatch) metricAlarmsDescriptions(alarms []types.MetricAlarm) []*AlarmDescription {
 	var alarmDescriptionsList []*AlarmDescription
 	for _, alarm := range alarms {
-		if alarm == nil {
-			continue
-		}
 		alarmDescriptionsList = append(alarmDescriptionsList, &AlarmDescription{
-			Name:        aws.StringValue(alarm.AlarmName),
-			Description: aws.StringValue(alarm.AlarmDescription),
+			Name:        awsv2.ToString(alarm.AlarmName),
+			Description: awsv2.ToString(alarm.AlarmDescription),
 		})
 	}
 	return alarmDescriptionsList
 }
 
-func (cw *CloudWatch) compositeAlarmsStatus(alarms []*cloudwatch.CompositeAlarm) []AlarmStatus {
+func (cw *CloudWatch) compositeAlarmsStatus(alarms []types.CompositeAlarm) []AlarmStatus {
 	var alarmStatusList []AlarmStatus
 	for _, alarm := range alarms {
-		if alarm == nil {
-			continue
-		}
 		alarmStatusList = append(alarmStatusList, AlarmStatus{
-			Arn:          aws.StringValue(alarm.AlarmArn),
-			Name:         aws.StringValue(alarm.AlarmName),
-			Condition:    aws.StringValue(alarm.AlarmRule),
-			Status:       aws.StringValue(alarm.StateValue),
+			Arn:          awsv2.ToString(alarm.AlarmArn),
+			Name:         awsv2.ToString(alarm.AlarmName),
+			Condition:    awsv2.ToString(alarm.AlarmRule),
+			Status:       string(alarm.StateValue),
 			Type:         compositeAlarmType,
 			UpdatedTimes: *alarm.StateUpdatedTimestamp,
 		})
@@ -206,18 +198,15 @@ func (cw *CloudWatch) compositeAlarmsStatus(alarms []*cloudwatch.CompositeAlarm)
 	return alarmStatusList
 }
 
-func (cw *CloudWatch) metricAlarmsStatus(alarms []*cloudwatch.MetricAlarm) []AlarmStatus {
+func (cw *CloudWatch) metricAlarmsStatus(alarms []types.MetricAlarm) []AlarmStatus {
 	var alarmStatusList []AlarmStatus
 	for _, alarm := range alarms {
-		if alarm == nil {
-			continue
-		}
-		metricAlarm := metricAlarm(*alarm)
+		metricAlarm := metricAlarm(alarm)
 		alarmStatusList = append(alarmStatusList, AlarmStatus{
-			Arn:          aws.StringValue(metricAlarm.AlarmArn),
-			Name:         aws.StringValue(metricAlarm.AlarmName),
+			Arn:          awsv2.ToString(metricAlarm.AlarmArn),
+			Name:         awsv2.ToString(metricAlarm.AlarmName),
 			Condition:    metricAlarm.condition(),
-			Status:       aws.StringValue(metricAlarm.StateValue),
+			Status:       string(metricAlarm.StateValue),
 			Type:         metricAlarmType,
 			UpdatedTimes: *metricAlarm.StateUpdatedTimestamp,
 		})

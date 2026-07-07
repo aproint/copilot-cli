@@ -5,7 +5,7 @@ package stack
 
 import (
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 )

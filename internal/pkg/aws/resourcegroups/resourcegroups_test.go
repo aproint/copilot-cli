@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -30,22 +31,22 @@ const (
 func TestResourceGroups_GetResourcesByTags(t *testing.T) {
 	mockRequest := &rgapi.GetResourcesInput{
 		PaginationToken:     nil,
-		ResourceTypeFilters: aws.StringSlice([]string{testResourceType}),
-		TagFilters: []*rgapi.TagFilter{
+		ResourceTypeFilters: []string{testResourceType},
+		TagFilters: []types.TagFilter{
 			{
-				Key:    aws.String("copilot-environment"),
-				Values: aws.StringSlice([]string{"test"}),
+				Key:    awsv2.String("copilot-environment"),
+				Values: []string{"test"},
 			},
 		},
 	}
 	mockResponse := &rgapi.GetResourcesOutput{
-		ResourceTagMappingList: []*rgapi.ResourceTagMapping{
+		ResourceTagMappingList: []types.ResourceTagMapping{
 			{
-				ResourceARN: aws.String(testArn),
-				Tags: []*rgapi.Tag{
+				ResourceARN: awsv2.String(testArn),
+				Tags: []types.Tag{
 					{
-						Key:   aws.String("copilot-environment"),
-						Value: aws.String("test"),
+						Key:   awsv2.String("copilot-environment"),
+						Value: awsv2.String("test"),
 					},
 				},
 			},
@@ -64,7 +65,7 @@ func TestResourceGroups_GetResourcesByTags(t *testing.T) {
 			inTags:         testTags,
 			inResourceType: testResourceType,
 			setupMocks: func(m *mocks.Mockapi) {
-				m.EXPECT().GetResources(mockRequest).Return(mockResponse, nil)
+				m.EXPECT().GetResources(gomock.Any(), mockRequest).Return(mockResponse, nil)
 			},
 			expectedOut: []*Resource{
 				{
@@ -78,7 +79,7 @@ func TestResourceGroups_GetResourcesByTags(t *testing.T) {
 			inTags:         testTags,
 			inResourceType: testResourceType,
 			setupMocks: func(m *mocks.Mockapi) {
-				m.EXPECT().GetResources(mockRequest).Return(nil, mockError)
+				m.EXPECT().GetResources(gomock.Any(), mockRequest).Return(nil, mockError)
 			},
 			expectedOut: nil,
 			expectedErr: fmt.Errorf("get resource: some error"),
@@ -88,30 +89,30 @@ func TestResourceGroups_GetResourcesByTags(t *testing.T) {
 			inResourceType: testResourceType,
 			setupMocks: func(m *mocks.Mockapi) {
 				gomock.InOrder(
-					m.EXPECT().GetResources(mockRequest).Return(&rgapi.GetResourcesOutput{
-						PaginationToken: aws.String("mockNextToken"),
-						ResourceTagMappingList: []*rgapi.ResourceTagMapping{
+					m.EXPECT().GetResources(gomock.Any(), mockRequest).Return(&rgapi.GetResourcesOutput{
+						PaginationToken: awsv2.String("mockNextToken"),
+						ResourceTagMappingList: []types.ResourceTagMapping{
 							{
-								ResourceARN: aws.String(mockArn1),
-								Tags:        []*rgapi.Tag{{Key: aws.String("copilot-environment"), Value: aws.String("test")}},
+								ResourceARN: awsv2.String(mockArn1),
+								Tags:        []types.Tag{{Key: awsv2.String("copilot-environment"), Value: awsv2.String("test")}},
 							},
 						},
 					}, nil),
-					m.EXPECT().GetResources(&rgapi.GetResourcesInput{
-						PaginationToken:     aws.String("mockNextToken"),
-						ResourceTypeFilters: aws.StringSlice([]string{testResourceType}),
-						TagFilters: []*rgapi.TagFilter{
+					m.EXPECT().GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+						PaginationToken:     awsv2.String("mockNextToken"),
+						ResourceTypeFilters: []string{testResourceType},
+						TagFilters: []types.TagFilter{
 							{
-								Key:    aws.String("copilot-environment"),
-								Values: aws.StringSlice([]string{"test"}),
+								Key:    awsv2.String("copilot-environment"),
+								Values: []string{"test"},
 							},
 						},
 					}).Return(&rgapi.GetResourcesOutput{
 						PaginationToken: nil,
-						ResourceTagMappingList: []*rgapi.ResourceTagMapping{
+						ResourceTagMappingList: []types.ResourceTagMapping{
 							{
-								ResourceARN: aws.String(mockArn2),
-								Tags:        []*rgapi.Tag{{Key: aws.String("copilot-environment"), Value: aws.String("test")}},
+								ResourceARN: awsv2.String(mockArn2),
+								Tags:        []types.Tag{{Key: awsv2.String("copilot-environment"), Value: awsv2.String("test")}},
 							},
 						},
 					}, nil),

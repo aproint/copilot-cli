@@ -19,8 +19,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -100,7 +100,7 @@ func TestRequestDrivenWebService_NewRequestDrivenWebService(t *testing.T) {
 			wantedStack: &RequestDrivenWebService{
 				appRunnerWkld: &appRunnerWkld{
 					wkld: &wkld{
-						name: aws.StringValue(testRDWebServiceManifest.Name),
+						name: aws.ToString(testRDWebServiceManifest.Name),
 						env:  testEnvName,
 						app:  testAppName,
 						rc: RuntimeConfig{
@@ -516,7 +516,7 @@ func TestRequestDrivenWebService_Parameters(t *testing.T) {
 			c := &RequestDrivenWebService{
 				appRunnerWkld: &appRunnerWkld{
 					wkld: &wkld{
-						name:  aws.StringValue(testRDWebServiceManifest.Name),
+						name:  aws.ToString(testRDWebServiceManifest.Name),
 						env:   testEnvName,
 						app:   testAppName,
 						image: tc.imageConfig.Image,
@@ -541,13 +541,13 @@ func TestRequestDrivenWebService_SerializedParameters(t *testing.T) {
 	c := &RequestDrivenWebService{
 		appRunnerWkld: &appRunnerWkld{
 			wkld: &wkld{
-				name:        aws.StringValue(testRDWebServiceManifest.Name),
+				name:        aws.ToString(testRDWebServiceManifest.Name),
 				env:         testEnvName,
 				app:         testAppName,
 				artifactKey: "arn:aws:kms:us-west-2:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab",
 				rc: RuntimeConfig{
 					PushedImages: map[string]ECRImage{
-						aws.StringValue(testRDWebServiceManifest.Name): {
+						aws.ToString(testRDWebServiceManifest.Name): {
 							RepoURL:  testImageRepoURL,
 							ImageTag: testImageTag,
 						},

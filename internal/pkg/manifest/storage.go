@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/yaml.v3"
 )
 
@@ -135,7 +135,7 @@ func (e *EFSConfigOrBool) UnmarshalYAML(value *yaml.Node) error {
 func (e *EFSConfigOrBool) UseManagedFS() bool {
 	// Respect explicitly enabled or disabled value first.
 	if e.Enabled != nil {
-		return aws.BoolValue(e.Enabled)
+		return aws.ToBool(e.Enabled)
 	}
 	// Check whether we're implicitly enabling managed EFS via UID/GID.
 	return !e.Advanced.EmptyUIDConfig()
@@ -145,7 +145,7 @@ func (e *EFSConfigOrBool) UseManagedFS() bool {
 // This function is useful for checking that the EFS config has been intentionally turned off
 // and whether we should ignore any values of the struct which have been populated erroneously.
 func (e *EFSConfigOrBool) Disabled() bool {
-	if e.Enabled != nil && !aws.BoolValue(e.Enabled) {
+	if e.Enabled != nil && !aws.ToBool(e.Enabled) {
 		return true
 	}
 	return false

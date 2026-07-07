@@ -5,7 +5,7 @@ package manifest
 
 import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 type subnetIDsGetter interface {
@@ -21,14 +21,14 @@ type DynamicWorkloadManifest struct {
 	mft workloadManifest
 
 	// Clients required to dynamically populate.
-	newSubnetIDsGetter func(*session.Session) subnetIDsGetter
+	newSubnetIDsGetter func(aws.Config) subnetIDsGetter
 }
 
 func newDynamicWorkloadManifest(mft workloadManifest) *DynamicWorkloadManifest {
 	return &DynamicWorkloadManifest{
 		mft: mft,
-		newSubnetIDsGetter: func(s *session.Session) subnetIDsGetter {
-			return ec2.New(s)
+		newSubnetIDsGetter: func(cfg aws.Config) subnetIDsGetter {
+			return ec2.New(cfg)
 		},
 	}
 }
@@ -55,11 +55,11 @@ func (s *DynamicWorkloadManifest) RequiredEnvironmentFeatures() []string {
 }
 
 // Load dynamically populates all fields in the manifest.
-func (s *DynamicWorkloadManifest) Load(sess *session.Session) error {
+func (s *DynamicWorkloadManifest) Load(cfg aws.Config) error {
 	loaders := []loader{
 		&dynamicSubnets{
 			cfg:    s.mft.subnets(),
-			client: s.newSubnetIDsGetter(sess),
+			client: s.newSubnetIDsGetter(cfg),
 		},
 	}
 	return loadAll(loaders)

@@ -4,10 +4,11 @@
 package stackset
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/smithy-go"
 )
 
 // ErrStackSetOutOfDate occurs when we try to read and then update a StackSet but between reading it
@@ -53,9 +54,10 @@ func (e *ErrStackSetInstancesNotFound) IsEmpty() bool {
 
 // isAlreadyExistingStackSet returns true if the underlying error is a stack already exists error.
 func isAlreadyExistingStackSet(err error) bool {
-	if aerr, ok := err.(awserr.Error); ok {
-		switch aerr.Code() {
-		case cloudformation.ErrCodeNameAlreadyExistsException:
+	var aerr smithy.APIError
+	if ok := errors.As(err, &aerr); ok {
+		switch aerr.ErrorCode() {
+		case (*types.NameAlreadyExistsException)(nil).ErrorCode():
 			return true
 		}
 	}
@@ -64,9 +66,10 @@ func isAlreadyExistingStackSet(err error) bool {
 
 // isOutdatedStackSet returns true if the underlying error is because the operation was already performed.
 func isOutdatedStackSet(err error) bool {
-	if aerr, ok := err.(awserr.Error); ok {
-		switch aerr.Code() {
-		case cloudformation.ErrCodeOperationIdAlreadyExistsException, cloudformation.ErrCodeOperationInProgressException, cloudformation.ErrCodeStaleRequestException:
+	var aerr smithy.APIError
+	if ok := errors.As(err, &aerr); ok {
+		switch aerr.ErrorCode() {
+		case (*types.OperationIdAlreadyExistsException)(nil).ErrorCode(), (*types.OperationInProgressException)(nil).ErrorCode(), (*types.StaleRequestException)(nil).ErrorCode():
 			return true
 		}
 	}
@@ -75,9 +78,10 @@ func isOutdatedStackSet(err error) bool {
 
 // isNotFoundStackSet returns true if the stack set does not exist.
 func isNotFoundStackSet(err error) bool {
-	if aerr, ok := err.(awserr.Error); ok {
-		switch aerr.Code() {
-		case cloudformation.ErrCodeStackSetNotFoundException:
+	var aerr smithy.APIError
+	if ok := errors.As(err, &aerr); ok {
+		switch aerr.ErrorCode() {
+		case (*types.StackSetNotFoundException)(nil).ErrorCode():
 			return true
 		}
 	}

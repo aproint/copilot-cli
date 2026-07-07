@@ -5,12 +5,13 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 
@@ -57,7 +58,7 @@ type ConfigStoreClient interface {
 
 // SessionProvider is the interface to provide configuration for the AWS SDK's service clients.
 type SessionProvider interface {
-	FromRole(roleARN, region string) (*session.Session, error)
+	ConfigFromRole(ctx context.Context, roleARN string, region string) (awsv2.Config, error)
 }
 
 // Store fetches information on deployed services.
@@ -77,18 +78,18 @@ func NewStore(sessProvider SessionProvider, store ConfigStoreClient) (*Store, er
 		if err != nil {
 			return nil, fmt.Errorf("get environment config %s: %w", envName, err)
 		}
-		sess, err := sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
-			return nil, fmt.Errorf("create new session from env role: %w", err)
+			return nil, fmt.Errorf("create new config from env role: %w", err)
 		}
-		return rg.New(sess), nil
+		return rg.New(cfg), nil
 	}
 	s.newRgClientFromRole = func(roleARN, region string) (ResourceGetter, error) {
-		sess, err := sessProvider.FromRole(roleARN, region)
+		cfg, err := sessProvider.ConfigFromRole(context.Background(), roleARN, region)
 		if err != nil {
-			return nil, fmt.Errorf("create new session from env role: %w", err)
+			return nil, fmt.Errorf("create new config from env role: %w", err)
 		}
-		return rg.New(sess), nil
+		return rg.New(cfg), nil
 	}
 	return s, nil
 }

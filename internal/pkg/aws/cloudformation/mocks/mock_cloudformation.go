@@ -5,11 +5,11 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
+	time "time"
 
-	aws "github.com/aws/aws-sdk-go/aws"
-	request "github.com/aws/aws-sdk-go/aws/request"
-	cloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,82 +37,102 @@ func (m *MockchangeSetAPI) EXPECT() *MockchangeSetAPIMockRecorder {
 }
 
 // CreateChangeSet mocks base method.
-func (m *MockchangeSetAPI) CreateChangeSet(arg0 *cloudformation.CreateChangeSetInput) (*cloudformation.CreateChangeSetOutput, error) {
+func (m *MockchangeSetAPI) CreateChangeSet(arg0 context.Context, arg1 *cloudformation.CreateChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.CreateChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.CreateChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateChangeSet indicates an expected call of CreateChangeSet.
-func (mr *MockchangeSetAPIMockRecorder) CreateChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockchangeSetAPIMockRecorder) CreateChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).CreateChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).CreateChangeSet), varargs...)
 }
 
 // DeleteChangeSet mocks base method.
-func (m *MockchangeSetAPI) DeleteChangeSet(arg0 *cloudformation.DeleteChangeSetInput) (*cloudformation.DeleteChangeSetOutput, error) {
+func (m *MockchangeSetAPI) DeleteChangeSet(arg0 context.Context, arg1 *cloudformation.DeleteChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DeleteChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DeleteChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteChangeSet indicates an expected call of DeleteChangeSet.
-func (mr *MockchangeSetAPIMockRecorder) DeleteChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockchangeSetAPIMockRecorder) DeleteChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).DeleteChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).DeleteChangeSet), varargs...)
 }
 
 // DescribeChangeSet mocks base method.
-func (m *MockchangeSetAPI) DescribeChangeSet(arg0 *cloudformation.DescribeChangeSetInput) (*cloudformation.DescribeChangeSetOutput, error) {
+func (m *MockchangeSetAPI) DescribeChangeSet(arg0 context.Context, arg1 *cloudformation.DescribeChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DescribeChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DescribeChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeChangeSet indicates an expected call of DescribeChangeSet.
-func (mr *MockchangeSetAPIMockRecorder) DescribeChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockchangeSetAPIMockRecorder) DescribeChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).DescribeChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).DescribeChangeSet), varargs...)
 }
 
 // ExecuteChangeSet mocks base method.
-func (m *MockchangeSetAPI) ExecuteChangeSet(arg0 *cloudformation.ExecuteChangeSetInput) (*cloudformation.ExecuteChangeSetOutput, error) {
+func (m *MockchangeSetAPI) ExecuteChangeSet(arg0 context.Context, arg1 *cloudformation.ExecuteChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.ExecuteChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ExecuteChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.ExecuteChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecuteChangeSet indicates an expected call of ExecuteChangeSet.
-func (mr *MockchangeSetAPIMockRecorder) ExecuteChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockchangeSetAPIMockRecorder) ExecuteChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).ExecuteChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteChangeSet", reflect.TypeOf((*MockchangeSetAPI)(nil).ExecuteChangeSet), varargs...)
 }
 
-// WaitUntilChangeSetCreateCompleteWithContext mocks base method.
-func (m *MockchangeSetAPI) WaitUntilChangeSetCreateCompleteWithContext(arg0 aws.Context, arg1 *cloudformation.DescribeChangeSetInput, arg2 ...request.WaiterOption) error {
+// WaitUntilChangeSetCreateComplete mocks base method.
+func (m *MockchangeSetAPI) WaitUntilChangeSetCreateComplete(arg0 context.Context, arg1 *cloudformation.DescribeChangeSetInput, arg2 time.Duration, arg3 ...func(*cloudformation.ChangeSetCreateCompleteWaiterOptions)) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "WaitUntilChangeSetCreateCompleteWithContext", varargs...)
+	ret := m.ctrl.Call(m, "WaitUntilChangeSetCreateComplete", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// WaitUntilChangeSetCreateCompleteWithContext indicates an expected call of WaitUntilChangeSetCreateCompleteWithContext.
-func (mr *MockchangeSetAPIMockRecorder) WaitUntilChangeSetCreateCompleteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// WaitUntilChangeSetCreateComplete indicates an expected call of WaitUntilChangeSetCreateComplete.
+func (mr *MockchangeSetAPIMockRecorder) WaitUntilChangeSetCreateComplete(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilChangeSetCreateCompleteWithContext", reflect.TypeOf((*MockchangeSetAPI)(nil).WaitUntilChangeSetCreateCompleteWithContext), varargs...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilChangeSetCreateComplete", reflect.TypeOf((*MockchangeSetAPI)(nil).WaitUntilChangeSetCreateComplete), varargs...)
 }
 
 // Mockclient is a mock of client interface.
@@ -139,242 +159,297 @@ func (m *Mockclient) EXPECT() *MockclientMockRecorder {
 }
 
 // CancelUpdateStack mocks base method.
-func (m *Mockclient) CancelUpdateStack(in *cloudformation.CancelUpdateStackInput) (*cloudformation.CancelUpdateStackOutput, error) {
+func (m *Mockclient) CancelUpdateStack(arg0 context.Context, arg1 *cloudformation.CancelUpdateStackInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.CancelUpdateStackOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CancelUpdateStack", in)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CancelUpdateStack", varargs...)
 	ret0, _ := ret[0].(*cloudformation.CancelUpdateStackOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CancelUpdateStack indicates an expected call of CancelUpdateStack.
-func (mr *MockclientMockRecorder) CancelUpdateStack(in interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) CancelUpdateStack(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelUpdateStack", reflect.TypeOf((*Mockclient)(nil).CancelUpdateStack), in)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelUpdateStack", reflect.TypeOf((*Mockclient)(nil).CancelUpdateStack), varargs...)
 }
 
 // CreateChangeSet mocks base method.
-func (m *Mockclient) CreateChangeSet(arg0 *cloudformation.CreateChangeSetInput) (*cloudformation.CreateChangeSetOutput, error) {
+func (m *Mockclient) CreateChangeSet(arg0 context.Context, arg1 *cloudformation.CreateChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.CreateChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.CreateChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateChangeSet indicates an expected call of CreateChangeSet.
-func (mr *MockclientMockRecorder) CreateChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) CreateChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChangeSet", reflect.TypeOf((*Mockclient)(nil).CreateChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChangeSet", reflect.TypeOf((*Mockclient)(nil).CreateChangeSet), varargs...)
 }
 
 // DeleteChangeSet mocks base method.
-func (m *Mockclient) DeleteChangeSet(arg0 *cloudformation.DeleteChangeSetInput) (*cloudformation.DeleteChangeSetOutput, error) {
+func (m *Mockclient) DeleteChangeSet(arg0 context.Context, arg1 *cloudformation.DeleteChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DeleteChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DeleteChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteChangeSet indicates an expected call of DeleteChangeSet.
-func (mr *MockclientMockRecorder) DeleteChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) DeleteChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteChangeSet", reflect.TypeOf((*Mockclient)(nil).DeleteChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteChangeSet", reflect.TypeOf((*Mockclient)(nil).DeleteChangeSet), varargs...)
 }
 
 // DeleteStack mocks base method.
-func (m *Mockclient) DeleteStack(arg0 *cloudformation.DeleteStackInput) (*cloudformation.DeleteStackOutput, error) {
+func (m *Mockclient) DeleteStack(arg0 context.Context, arg1 *cloudformation.DeleteStackInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DeleteStackOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteStack", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteStack", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DeleteStackOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteStack indicates an expected call of DeleteStack.
-func (mr *MockclientMockRecorder) DeleteStack(arg0 interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) DeleteStack(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStack", reflect.TypeOf((*Mockclient)(nil).DeleteStack), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStack", reflect.TypeOf((*Mockclient)(nil).DeleteStack), varargs...)
 }
 
 // DescribeChangeSet mocks base method.
-func (m *Mockclient) DescribeChangeSet(arg0 *cloudformation.DescribeChangeSetInput) (*cloudformation.DescribeChangeSetOutput, error) {
+func (m *Mockclient) DescribeChangeSet(arg0 context.Context, arg1 *cloudformation.DescribeChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DescribeChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DescribeChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeChangeSet indicates an expected call of DescribeChangeSet.
-func (mr *MockclientMockRecorder) DescribeChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) DescribeChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeChangeSet", reflect.TypeOf((*Mockclient)(nil).DescribeChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeChangeSet", reflect.TypeOf((*Mockclient)(nil).DescribeChangeSet), varargs...)
 }
 
 // DescribeStackEvents mocks base method.
-func (m *Mockclient) DescribeStackEvents(arg0 *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+func (m *Mockclient) DescribeStackEvents(arg0 context.Context, arg1 *cloudformation.DescribeStackEventsInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DescribeStackEventsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeStackEvents", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeStackEvents", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DescribeStackEventsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeStackEvents indicates an expected call of DescribeStackEvents.
-func (mr *MockclientMockRecorder) DescribeStackEvents(arg0 interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) DescribeStackEvents(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackEvents", reflect.TypeOf((*Mockclient)(nil).DescribeStackEvents), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackEvents", reflect.TypeOf((*Mockclient)(nil).DescribeStackEvents), varargs...)
 }
 
 // DescribeStackResources mocks base method.
-func (m *Mockclient) DescribeStackResources(input *cloudformation.DescribeStackResourcesInput) (*cloudformation.DescribeStackResourcesOutput, error) {
+func (m *Mockclient) DescribeStackResources(arg0 context.Context, arg1 *cloudformation.DescribeStackResourcesInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DescribeStackResourcesOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeStackResources", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeStackResources", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DescribeStackResourcesOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeStackResources indicates an expected call of DescribeStackResources.
-func (mr *MockclientMockRecorder) DescribeStackResources(input interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) DescribeStackResources(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackResources", reflect.TypeOf((*Mockclient)(nil).DescribeStackResources), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackResources", reflect.TypeOf((*Mockclient)(nil).DescribeStackResources), varargs...)
 }
 
 // DescribeStacks mocks base method.
-func (m *Mockclient) DescribeStacks(arg0 *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+func (m *Mockclient) DescribeStacks(arg0 context.Context, arg1 *cloudformation.DescribeStacksInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.DescribeStacksOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeStacks", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeStacks", varargs...)
 	ret0, _ := ret[0].(*cloudformation.DescribeStacksOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeStacks indicates an expected call of DescribeStacks.
-func (mr *MockclientMockRecorder) DescribeStacks(arg0 interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) DescribeStacks(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStacks", reflect.TypeOf((*Mockclient)(nil).DescribeStacks), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStacks", reflect.TypeOf((*Mockclient)(nil).DescribeStacks), varargs...)
 }
 
 // ExecuteChangeSet mocks base method.
-func (m *Mockclient) ExecuteChangeSet(arg0 *cloudformation.ExecuteChangeSetInput) (*cloudformation.ExecuteChangeSetOutput, error) {
+func (m *Mockclient) ExecuteChangeSet(arg0 context.Context, arg1 *cloudformation.ExecuteChangeSetInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.ExecuteChangeSetOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteChangeSet", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ExecuteChangeSet", varargs...)
 	ret0, _ := ret[0].(*cloudformation.ExecuteChangeSetOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecuteChangeSet indicates an expected call of ExecuteChangeSet.
-func (mr *MockclientMockRecorder) ExecuteChangeSet(arg0 interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) ExecuteChangeSet(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteChangeSet", reflect.TypeOf((*Mockclient)(nil).ExecuteChangeSet), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteChangeSet", reflect.TypeOf((*Mockclient)(nil).ExecuteChangeSet), varargs...)
 }
 
 // GetTemplate mocks base method.
-func (m *Mockclient) GetTemplate(input *cloudformation.GetTemplateInput) (*cloudformation.GetTemplateOutput, error) {
+func (m *Mockclient) GetTemplate(arg0 context.Context, arg1 *cloudformation.GetTemplateInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.GetTemplateOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTemplate", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTemplate", varargs...)
 	ret0, _ := ret[0].(*cloudformation.GetTemplateOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTemplate indicates an expected call of GetTemplate.
-func (mr *MockclientMockRecorder) GetTemplate(input interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) GetTemplate(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplate", reflect.TypeOf((*Mockclient)(nil).GetTemplate), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplate", reflect.TypeOf((*Mockclient)(nil).GetTemplate), varargs...)
 }
 
 // GetTemplateSummary mocks base method.
-func (m *Mockclient) GetTemplateSummary(in *cloudformation.GetTemplateSummaryInput) (*cloudformation.GetTemplateSummaryOutput, error) {
+func (m *Mockclient) GetTemplateSummary(arg0 context.Context, arg1 *cloudformation.GetTemplateSummaryInput, arg2 ...func(*cloudformation.Options)) (*cloudformation.GetTemplateSummaryOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTemplateSummary", in)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTemplateSummary", varargs...)
 	ret0, _ := ret[0].(*cloudformation.GetTemplateSummaryOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTemplateSummary indicates an expected call of GetTemplateSummary.
-func (mr *MockclientMockRecorder) GetTemplateSummary(in interface{}) *gomock.Call {
+func (mr *MockclientMockRecorder) GetTemplateSummary(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplateSummary", reflect.TypeOf((*Mockclient)(nil).GetTemplateSummary), in)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplateSummary", reflect.TypeOf((*Mockclient)(nil).GetTemplateSummary), varargs...)
 }
 
-// WaitUntilChangeSetCreateCompleteWithContext mocks base method.
-func (m *Mockclient) WaitUntilChangeSetCreateCompleteWithContext(arg0 aws.Context, arg1 *cloudformation.DescribeChangeSetInput, arg2 ...request.WaiterOption) error {
+// WaitUntilChangeSetCreateComplete mocks base method.
+func (m *Mockclient) WaitUntilChangeSetCreateComplete(arg0 context.Context, arg1 *cloudformation.DescribeChangeSetInput, arg2 time.Duration, arg3 ...func(*cloudformation.ChangeSetCreateCompleteWaiterOptions)) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "WaitUntilChangeSetCreateCompleteWithContext", varargs...)
+	ret := m.ctrl.Call(m, "WaitUntilChangeSetCreateComplete", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// WaitUntilChangeSetCreateCompleteWithContext indicates an expected call of WaitUntilChangeSetCreateCompleteWithContext.
-func (mr *MockclientMockRecorder) WaitUntilChangeSetCreateCompleteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// WaitUntilChangeSetCreateComplete indicates an expected call of WaitUntilChangeSetCreateComplete.
+func (mr *MockclientMockRecorder) WaitUntilChangeSetCreateComplete(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilChangeSetCreateCompleteWithContext", reflect.TypeOf((*Mockclient)(nil).WaitUntilChangeSetCreateCompleteWithContext), varargs...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilChangeSetCreateComplete", reflect.TypeOf((*Mockclient)(nil).WaitUntilChangeSetCreateComplete), varargs...)
 }
 
-// WaitUntilStackCreateCompleteWithContext mocks base method.
-func (m *Mockclient) WaitUntilStackCreateCompleteWithContext(arg0 aws.Context, arg1 *cloudformation.DescribeStacksInput, arg2 ...request.WaiterOption) error {
+// WaitUntilStackCreateComplete mocks base method.
+func (m *Mockclient) WaitUntilStackCreateComplete(arg0 context.Context, arg1 *cloudformation.DescribeStacksInput, arg2 time.Duration, arg3 ...func(*cloudformation.StackCreateCompleteWaiterOptions)) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "WaitUntilStackCreateCompleteWithContext", varargs...)
+	ret := m.ctrl.Call(m, "WaitUntilStackCreateComplete", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// WaitUntilStackCreateCompleteWithContext indicates an expected call of WaitUntilStackCreateCompleteWithContext.
-func (mr *MockclientMockRecorder) WaitUntilStackCreateCompleteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// WaitUntilStackCreateComplete indicates an expected call of WaitUntilStackCreateComplete.
+func (mr *MockclientMockRecorder) WaitUntilStackCreateComplete(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStackCreateCompleteWithContext", reflect.TypeOf((*Mockclient)(nil).WaitUntilStackCreateCompleteWithContext), varargs...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStackCreateComplete", reflect.TypeOf((*Mockclient)(nil).WaitUntilStackCreateComplete), varargs...)
 }
 
-// WaitUntilStackDeleteCompleteWithContext mocks base method.
-func (m *Mockclient) WaitUntilStackDeleteCompleteWithContext(arg0 aws.Context, arg1 *cloudformation.DescribeStacksInput, arg2 ...request.WaiterOption) error {
+// WaitUntilStackDeleteComplete mocks base method.
+func (m *Mockclient) WaitUntilStackDeleteComplete(arg0 context.Context, arg1 *cloudformation.DescribeStacksInput, arg2 time.Duration, arg3 ...func(*cloudformation.StackDeleteCompleteWaiterOptions)) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "WaitUntilStackDeleteCompleteWithContext", varargs...)
+	ret := m.ctrl.Call(m, "WaitUntilStackDeleteComplete", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// WaitUntilStackDeleteCompleteWithContext indicates an expected call of WaitUntilStackDeleteCompleteWithContext.
-func (mr *MockclientMockRecorder) WaitUntilStackDeleteCompleteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// WaitUntilStackDeleteComplete indicates an expected call of WaitUntilStackDeleteComplete.
+func (mr *MockclientMockRecorder) WaitUntilStackDeleteComplete(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStackDeleteCompleteWithContext", reflect.TypeOf((*Mockclient)(nil).WaitUntilStackDeleteCompleteWithContext), varargs...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStackDeleteComplete", reflect.TypeOf((*Mockclient)(nil).WaitUntilStackDeleteComplete), varargs...)
 }
 
-// WaitUntilStackUpdateCompleteWithContext mocks base method.
-func (m *Mockclient) WaitUntilStackUpdateCompleteWithContext(arg0 aws.Context, arg1 *cloudformation.DescribeStacksInput, arg2 ...request.WaiterOption) error {
+// WaitUntilStackUpdateComplete mocks base method.
+func (m *Mockclient) WaitUntilStackUpdateComplete(arg0 context.Context, arg1 *cloudformation.DescribeStacksInput, arg2 time.Duration, arg3 ...func(*cloudformation.StackUpdateCompleteWaiterOptions)) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "WaitUntilStackUpdateCompleteWithContext", varargs...)
+	ret := m.ctrl.Call(m, "WaitUntilStackUpdateComplete", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// WaitUntilStackUpdateCompleteWithContext indicates an expected call of WaitUntilStackUpdateCompleteWithContext.
-func (mr *MockclientMockRecorder) WaitUntilStackUpdateCompleteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// WaitUntilStackUpdateComplete indicates an expected call of WaitUntilStackUpdateComplete.
+func (mr *MockclientMockRecorder) WaitUntilStackUpdateComplete(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStackUpdateCompleteWithContext", reflect.TypeOf((*Mockclient)(nil).WaitUntilStackUpdateCompleteWithContext), varargs...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStackUpdateComplete", reflect.TypeOf((*Mockclient)(nil).WaitUntilStackUpdateComplete), varargs...)
 }

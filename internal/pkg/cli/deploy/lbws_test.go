@@ -21,8 +21,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/override"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 func TestLbWebSvcDeployer_GenerateCloudFormationTemplate(t *testing.T) {
@@ -79,7 +78,7 @@ func mockLoadBalancedWebServiceDeployer(opts ...func(deployer *lbWebSvcDeployer)
 				templateFS:       template.New(),
 				customResources:  lbwsCustomResources,
 			},
-			newSvcUpdater: func(f func(*session.Session) serviceForceUpdater) serviceForceUpdater {
+			newSvcUpdater: func(f func(aws.Config) serviceForceUpdater) serviceForceUpdater {
 				return nil
 			},
 			now: func() time.Time {

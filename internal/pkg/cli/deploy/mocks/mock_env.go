@@ -8,13 +8,13 @@ import (
 	context "context"
 	reflect "reflect"
 
-	cloudformation0 "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	cloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	elbv2 "github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 	config "github.com/aproint/copilot-cli/internal/pkg/config"
-	cloudformation1 "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	cloudformation0 "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	stack "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	stack0 "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
-	cloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
+	types "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -203,10 +203,10 @@ func (m *MockenvironmentDeployer) EXPECT() *MockenvironmentDeployerMockRecorder 
 }
 
 // DeployedEnvironmentParameters mocks base method.
-func (m *MockenvironmentDeployer) DeployedEnvironmentParameters(app, env string) ([]*cloudformation.Parameter, error) {
+func (m *MockenvironmentDeployer) DeployedEnvironmentParameters(app, env string) ([]types.Parameter, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeployedEnvironmentParameters", app, env)
-	ret0, _ := ret[0].([]*cloudformation.Parameter)
+	ret0, _ := ret[0].([]types.Parameter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -233,7 +233,7 @@ func (mr *MockenvironmentDeployerMockRecorder) ForceUpdateOutputID(app, env inte
 }
 
 // UpdateAndRenderEnvironment mocks base method.
-func (m *MockenvironmentDeployer) UpdateAndRenderEnvironment(conf cloudformation1.StackConfiguration, bucketARN string, detach bool, opts ...cloudformation0.StackOption) error {
+func (m *MockenvironmentDeployer) UpdateAndRenderEnvironment(conf cloudformation0.StackConfiguration, bucketARN string, detach bool, opts ...cloudformation.StackOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{conf, bucketARN, detach}
 	for _, a := range opts {

@@ -14,10 +14,11 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 )
+
+const awsPartitionID = "aws"
 
 type environmentTemplateUpdateGetter interface {
 	Template(stackName string) (string, error)
@@ -50,7 +51,7 @@ func (p *EnvironmentPatcher) EnsureManagerRoleIsAllowedToUpload(bucket string) e
 	if ok {
 		return nil
 	}
-	return p.grantManagerRolePermissionToUpload(p.Env.App, p.Env.Name, p.Env.ExecutionRoleARN, body, s3.FormatARN(endpoints.AwsPartitionID, bucket))
+	return p.grantManagerRolePermissionToUpload(p.Env.App, p.Env.Name, p.Env.ExecutionRoleARN, body, s3.FormatARN(awsPartitionID, bucket))
 }
 
 func (p *EnvironmentPatcher) grantManagerRolePermissionToUpload(app, env, execRole, body, bucketARN string) error {

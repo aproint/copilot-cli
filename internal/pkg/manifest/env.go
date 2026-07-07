@@ -10,7 +10,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/yaml.v3"
 )
 
@@ -103,10 +103,10 @@ func (mft *EnvironmentConfig) IsPublicLBIngressRestrictedToCDN() bool {
 	// Check the fixed manifest first. This would be `http.public.ingress.cdn`.
 	// For more information, see https://github.com/aproint/copilot-cli/pull/4068#issuecomment-1275080333
 	if !mft.HTTPConfig.Public.Ingress.IsEmpty() {
-		return aws.BoolValue(mft.HTTPConfig.Public.Ingress.CDNIngress)
+		return aws.ToBool(mft.HTTPConfig.Public.Ingress.CDNIngress)
 	}
 	// Fall through to the old manifest: `http.public.security_groups.ingress.cdn`.
-	return aws.BoolValue(mft.HTTPConfig.Public.DeprecatedSG.DeprecatedIngress.RestrictiveIngress.CDNIngress)
+	return aws.ToBool(mft.HTTPConfig.Public.DeprecatedSG.DeprecatedIngress.RestrictiveIngress.CDNIngress)
 }
 
 // GetPublicALBSourceIPs returns list of IPNet.
@@ -157,7 +157,7 @@ func (cfg *portsConfig) IsEmpty() bool {
 // GetPorts returns the from and to ports of a security group rule.
 func (r securityGroupRule) GetPorts() (from, to int, err error) {
 	if r.Ports.Range == nil {
-		return aws.IntValue(r.Ports.Port), aws.IntValue(r.Ports.Port), nil // a single value is provided for ports.
+		return aws.ToInt(r.Ports.Port), aws.ToInt(r.Ports.Port), nil // a single value is provided for ports.
 	}
 	return r.Ports.Range.Parse()
 }
@@ -234,7 +234,7 @@ func (cfg *EnvironmentConfig) CDNEnabled() bool {
 	if !cfg.CDNConfig.Config.isEmpty() {
 		return true
 	}
-	return aws.BoolValue(cfg.CDNConfig.Enabled)
+	return aws.ToBool(cfg.CDNConfig.Enabled)
 }
 
 // HasImportedPublicALBCerts returns true when the environment's ALB
@@ -246,7 +246,7 @@ func (cfg *EnvironmentConfig) HasImportedPublicALBCerts() bool {
 // CDNDoesTLSTermination returns true when the environment's CDN
 // is configured to terminate incoming TLS connections.
 func (cfg *EnvironmentConfig) CDNDoesTLSTermination() bool {
-	return aws.BoolValue(cfg.CDNConfig.Config.TerminateTLS)
+	return aws.ToBool(cfg.CDNConfig.Config.TerminateTLS)
 }
 
 // UnmarshalYAML overrides the default YAML unmarshaling logic for the environmentCDNConfig
@@ -341,11 +341,11 @@ func UnmarshalEnvironment(in []byte) (*Environment, error) {
 }
 
 func (cfg *environmentVPCConfig) imported() bool {
-	return aws.StringValue(cfg.ID) != ""
+	return aws.ToString(cfg.ID) != ""
 }
 
 func (cfg *environmentVPCConfig) managedVPCCustomized() bool {
-	return aws.StringValue((*string)(cfg.CIDR)) != ""
+	return aws.ToString((*string)(cfg.CIDR)) != ""
 }
 
 // ImportedVPC returns configurations that import VPC resources if there is any.
@@ -355,13 +355,13 @@ func (cfg *environmentVPCConfig) ImportedVPC() *template.ImportVPC {
 	}
 	var publicSubnetIDs, privateSubnetIDs []string
 	for _, subnet := range cfg.Subnets.Public {
-		publicSubnetIDs = append(publicSubnetIDs, aws.StringValue(subnet.SubnetID))
+		publicSubnetIDs = append(publicSubnetIDs, aws.ToString(subnet.SubnetID))
 	}
 	for _, subnet := range cfg.Subnets.Private {
-		privateSubnetIDs = append(privateSubnetIDs, aws.StringValue(subnet.SubnetID))
+		privateSubnetIDs = append(privateSubnetIDs, aws.ToString(subnet.SubnetID))
 	}
 	return &template.ImportVPC{
-		ID:               aws.StringValue(cfg.ID),
+		ID:               aws.ToString(cfg.ID),
 		PublicSubnetIDs:  publicSubnetIDs,
 		PrivateSubnetIDs: privateSubnetIDs,
 	}
@@ -386,20 +386,20 @@ func (cfg *environmentVPCConfig) ManagedVPC() *template.ManagedVPC {
 	// For example, if we have two subnets defined: public-subnet-1 ~ us-east-1a, and private-subnet-1 ~ us-east-1a.
 	// We want to make sure that public-subnet-1, us-east-1a and private-subnet-1 are all at index 0 of in perspective lists.
 	sort.SliceStable(cfg.Subnets.Public, func(i, j int) bool {
-		return aws.StringValue(cfg.Subnets.Public[i].AZ) < aws.StringValue(cfg.Subnets.Public[j].AZ)
+		return aws.ToString(cfg.Subnets.Public[i].AZ) < aws.ToString(cfg.Subnets.Public[j].AZ)
 	})
 	sort.SliceStable(cfg.Subnets.Private, func(i, j int) bool {
-		return aws.StringValue(cfg.Subnets.Private[i].AZ) < aws.StringValue(cfg.Subnets.Private[j].AZ)
+		return aws.ToString(cfg.Subnets.Private[i].AZ) < aws.ToString(cfg.Subnets.Private[j].AZ)
 	})
 	for idx, subnet := range cfg.Subnets.Public {
-		publicSubnetCIDRs[idx] = aws.StringValue((*string)(subnet.CIDR))
-		privateSubnetCIDRs[idx] = aws.StringValue((*string)(cfg.Subnets.Private[idx].CIDR))
-		if az := aws.StringValue(subnet.AZ); az != "" {
+		publicSubnetCIDRs[idx] = aws.ToString((*string)(subnet.CIDR))
+		privateSubnetCIDRs[idx] = aws.ToString((*string)(cfg.Subnets.Private[idx].CIDR))
+		if az := aws.ToString(subnet.AZ); az != "" {
 			azs = append(azs, az)
 		}
 	}
 	return &template.ManagedVPC{
-		CIDR:               aws.StringValue((*string)(cfg.CIDR)),
+		CIDR:               aws.ToString((*string)(cfg.CIDR)),
 		AZs:                azs,
 		PublicSubnetCIDRs:  publicSubnetCIDRs,
 		PrivateSubnetCIDRs: privateSubnetCIDRs,
@@ -528,7 +528,7 @@ func (cfg *EnvironmentConfig) ELBAccessLogs() (*ELBAccessLogsArgs, bool) {
 		return nil, false
 	}
 	if accessLogs.Enabled != nil {
-		return nil, aws.BoolValue(accessLogs.Enabled)
+		return nil, aws.ToBool(accessLogs.Enabled)
 	}
 	return &accessLogs.AdvancedConfig, true
 }
@@ -575,5 +575,5 @@ func (cfg privateHTTPConfig) IsEmpty() bool {
 
 // HasVPCIngress returns true if the private ALB allows ingress from within the VPC.
 func (cfg privateHTTPConfig) HasVPCIngress() bool {
-	return aws.BoolValue(cfg.Ingress.VPCIngress) || aws.BoolValue(cfg.DeprecatedSG.DeprecatedIngress.VPCIngress)
+	return aws.ToBool(cfg.Ingress.VPCIngress) || aws.ToBool(cfg.DeprecatedSG.DeprecatedIngress.VPCIngress)
 }

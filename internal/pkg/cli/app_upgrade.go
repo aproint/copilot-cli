@@ -4,11 +4,9 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/route53"
@@ -57,18 +55,18 @@ type appUpgradeOpts struct {
 }
 
 func newAppUpgradeOpts(vars appUpgradeVars) (*appUpgradeOpts, error) {
-	sess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app upgrade")).Default()
+	cfg, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app upgrade")).DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(sess), ssm.New(sess), aws.StringValue(sess.Config.Region))
+	store := newSSMConfigStoreFromConfig(cfg)
 	return &appUpgradeOpts{
 		appUpgradeVars: vars,
 		store:          store,
-		identity:       identity.New(sess),
-		route53:        route53.New(sess),
+		identity:       identity.New(cfg),
+		route53:        route53.New(cfg),
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
-		upgrader:       cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),
+		upgrader:       cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr)),
 		newVersionGetter: func(appName string) (versionGetter, error) {
 			d, err := describe.NewAppDescriber(appName)
 			if err != nil {

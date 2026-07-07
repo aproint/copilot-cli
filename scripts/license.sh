@@ -22,31 +22,33 @@ if [ $# != 1 ]; then
     exit 1
 fi
 
+rootdir=$1
+
 fail=0
-for file in $(find $1 -regextype 'posix-extended' -regex '.*\.(go|js)'); do
+while IFS= read -r -d '' file; do
     case $file in
-        $1/*/mocks/*)
+        $rootdir/*/mocks/*)
             # Skip mocks packages.
         ;;
-        $1/*/mock_*.go)
+        $rootdir/*/mock_*.go)
             # Skip mock files.
         ;;
-        $1/*/node_modules/*)
+        $rootdir/*/node_modules/*)
             # Skip node modules for js files.
         ;;
-        $1/site/*)
+        $rootdir/site/*)
             # Skip website content
         ;;
         *)
             header="$(head -10 $file)"
             if ! check_header "$header"; then
                 fail=1
-                echo "${file#$1/} doesn't have the right copyright header:"
+                echo "${file#$rootdir/} doesn't have the right copyright header:"
                 echo "$header" | sed -e 's/^/    /g'
             fi
             ;;
     esac
-done
+done < <(find "$rootdir" \( -name '*.go' -o -name '*.js' \) -print0)
 
 if [ $fail -ne 0 ]; then
     exit 1

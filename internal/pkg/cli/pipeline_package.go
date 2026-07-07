@@ -5,13 +5,13 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	clideploy "github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
@@ -25,8 +25,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 )
 
@@ -58,11 +56,11 @@ type packagePipelineOpts struct {
 
 func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline package"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
@@ -70,7 +68,7 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 	}
 	opts := &packagePipelineOpts{
 		packagePipelineVars: vars,
-		pipelineDeployer:    deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
+		pipelineDeployer:    deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
 		tmplWriter:          os.Stdout,
 		ws:                  ws,
 		store:               store,
@@ -113,7 +111,7 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 		svcBuffer: &bytes.Buffer{},
 		jobBuffer: &bytes.Buffer{},
 		configureDeployedPipelineLister: func() deployedPipelineLister {
-			return deploy.NewPipelineStore(rg.New(defaultSession))
+			return deploy.NewPipelineStore(rg.New(defaultConfig))
 		},
 	}
 	return opts, nil

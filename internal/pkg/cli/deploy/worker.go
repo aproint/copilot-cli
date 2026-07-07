@@ -19,9 +19,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -144,8 +143,8 @@ func (d *workerSvcDeployOutput) buildWorkerQueueNames() string {
 		if subscription.Queue.IsEmpty() {
 			continue
 		}
-		svc := template.StripNonAlphaNumFunc(aws.StringValue(subscription.Service))
-		topic := template.StripNonAlphaNumFunc(aws.StringValue(subscription.Name))
+		svc := template.StripNonAlphaNumFunc(aws.ToString(subscription.Service))
+		topic := template.StripNonAlphaNumFunc(aws.ToString(subscription.Name))
 		queueNames = append(queueNames, fmt.Sprintf("%s%sEventsQueue", svc, cases.Title(language.English).String(topic)))
 	}
 	return strings.Join(queueNames, ", ")
@@ -198,8 +197,8 @@ func (d *workerSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*
 	return &workerSvcStackConfigurationOutput{
 		svcStackConfigurationOutput: svcStackConfigurationOutput{
 			conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
-			svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-				return ecs.New(s)
+			svcUpdater: d.newSvcUpdater(func(cfg aws.Config) serviceForceUpdater {
+				return ecs.New(cfg)
 			}),
 		},
 		subscriptions: subs,
@@ -217,7 +216,7 @@ func validateTopicsExist(subscriptions []manifest.TopicSubscription, topicARNs [
 	}
 
 	for _, ts := range subscriptions {
-		topicName := fmt.Sprintf(resourceNameFormat, app, env, aws.StringValue(ts.Service), aws.StringValue(ts.Name))
+		topicName := fmt.Sprintf(resourceNameFormat, app, env, aws.ToString(ts.Service), aws.ToString(ts.Name))
 		if !slices.Contains(validTopicResources, topicName) {
 			return fmt.Errorf(fmtErrTopicSubscriptionNotAllowed, topicName, env)
 		}

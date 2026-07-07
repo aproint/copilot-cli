@@ -9,7 +9,7 @@ import (
 	net "net"
 	reflect "reflect"
 
-	route53 "github.com/aws/aws-sdk-go/service/route53"
+	route53 "github.com/aws/aws-sdk-go-v2/service/route53"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,33 +37,43 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // ListHostedZonesByName mocks base method.
-func (m *Mockapi) ListHostedZonesByName(arg0 *route53.ListHostedZonesByNameInput) (*route53.ListHostedZonesByNameOutput, error) {
+func (m *Mockapi) ListHostedZonesByName(arg0 context.Context, arg1 *route53.ListHostedZonesByNameInput, arg2 ...func(*route53.Options)) (*route53.ListHostedZonesByNameOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListHostedZonesByName", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListHostedZonesByName", varargs...)
 	ret0, _ := ret[0].(*route53.ListHostedZonesByNameOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListHostedZonesByName indicates an expected call of ListHostedZonesByName.
-func (mr *MockapiMockRecorder) ListHostedZonesByName(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListHostedZonesByName(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHostedZonesByName", reflect.TypeOf((*Mockapi)(nil).ListHostedZonesByName), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHostedZonesByName", reflect.TypeOf((*Mockapi)(nil).ListHostedZonesByName), varargs...)
 }
 
 // ListResourceRecordSets mocks base method.
-func (m *Mockapi) ListResourceRecordSets(arg0 *route53.ListResourceRecordSetsInput) (*route53.ListResourceRecordSetsOutput, error) {
+func (m *Mockapi) ListResourceRecordSets(arg0 context.Context, arg1 *route53.ListResourceRecordSetsInput, arg2 ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListResourceRecordSets", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListResourceRecordSets", varargs...)
 	ret0, _ := ret[0].(*route53.ListResourceRecordSetsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListResourceRecordSets indicates an expected call of ListResourceRecordSets.
-func (mr *MockapiMockRecorder) ListResourceRecordSets(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListResourceRecordSets(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListResourceRecordSets", reflect.TypeOf((*Mockapi)(nil).ListResourceRecordSets), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListResourceRecordSets", reflect.TypeOf((*Mockapi)(nil).ListResourceRecordSets), varargs...)
 }
 
 // MocknameserverResolver is a mock of nameserverResolver interface.

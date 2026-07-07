@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,9 +21,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"golang.org/x/mod/semver"
 
@@ -81,7 +80,7 @@ type deploySvcOpts struct {
 	// cached variables
 	targetApp         *config.Application
 	targetEnv         *config.Environment
-	envSess           *session.Session
+	envConfig         aws.Config
 	svcType           string
 	appliedDynamicMft manifest.DynamicWorkload
 	rawMft            string
@@ -100,12 +99,12 @@ func newSvcDeployOpts(vars deployWkldVars) (*deploySvcOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc deploy"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 
 	opts := &deploySvcOpts{
@@ -225,7 +224,7 @@ func (o *deploySvcOpts) Execute() error {
 		ws:           o.ws,
 		interpolator: o.newInterpolator(o.appName, o.envName),
 		unmarshal:    o.unmarshal,
-		sess:         o.envSess,
+		cfg:          o.envConfig,
 	})
 	if err != nil {
 		return err
@@ -442,18 +441,18 @@ func (o *deploySvcOpts) configureClients() error {
 	o.targetEnv = env
 
 	// client to retrieve an application's resources created with CloudFormation.
-	defaultSess, err := o.sessProvider.Default()
+	defaultConfig, err := o.sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return fmt.Errorf("create default session: %w", err)
+		return fmt.Errorf("create default config: %w", err)
 	}
-	envSess, err := o.sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+	envConfig, err := o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return err
 	}
-	o.envSess = envSess
+	o.envConfig = envConfig
 
 	// client to retrieve caller identity.
-	caller, err := identity.New(defaultSess).Get()
+	caller, err := identity.New(defaultConfig).Get()
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
@@ -488,7 +487,7 @@ type workloadManifestInput struct {
 	envName      string
 	ws           wsWlDirReader
 	interpolator interpolator
-	sess         *session.Session
+	cfg          aws.Config
 	unmarshal    func([]byte) (manifest.DynamicWorkload, error)
 }
 
@@ -512,7 +511,7 @@ func workloadManifest(in *workloadManifestInput) (manifest.DynamicWorkload, stri
 	if err := envMft.Validate(); err != nil {
 		return nil, "", fmt.Errorf("validate manifest against environment %q: %w", in.envName, err)
 	}
-	if err := envMft.Load(in.sess); err != nil {
+	if err := envMft.Load(in.cfg); err != nil {
 		return nil, "", fmt.Errorf("load dynamic content: %w", err)
 	}
 	return envMft, interpolated, nil

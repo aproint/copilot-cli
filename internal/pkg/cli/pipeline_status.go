@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -11,14 +12,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/spf13/afero"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
@@ -64,13 +60,13 @@ func newPipelineStatusOpts(vars pipelineStatusVars) (*pipelineStatusOpts, error)
 		return nil, err
 	}
 
-	session, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline status")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline status")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	codepipeline := codepipeline.New(session)
-	pipelineLister := deploy.NewPipelineStore(rg.New(session))
-	store := config.NewSSMStore(identity.New(session), ssm.New(session), aws.StringValue(session.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
+	codepipeline := codepipeline.New(defaultConfig, defaultConfig)
+	pipelineLister := deploy.NewPipelineStore(rg.New(defaultConfig))
 	prompter := prompt.New()
 	return &pipelineStatusOpts{
 		w:                      log.OutputWriter,

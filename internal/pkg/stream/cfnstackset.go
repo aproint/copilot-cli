@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/request"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset"
 )
 
@@ -120,7 +118,7 @@ func (s *StackSetStreamer) Fetch() (next time.Time, done bool, err error) {
 	op, err := s.stackset.DescribeOperation(s.ssName, s.opID)
 	if err != nil {
 		// Check for throttles and wait to try again using the StackSetStreamer's interval.
-		if request.IsErrorThrottle(err) {
+		if isThrottleError(err) {
 			s.retries += 1
 			return nextFetchDate(s.clock, s.rand, s.retries), false, nil
 		}

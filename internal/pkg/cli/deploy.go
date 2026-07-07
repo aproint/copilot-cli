@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -14,14 +15,12 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/queue"
 	"github.com/dustin/go-humanize"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/dustin/go-humanize/english"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/cli/group"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -116,11 +115,11 @@ type deployOpts struct {
 
 func newDeployOpts(vars deployVars) (*deployOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("deploy"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -136,7 +135,7 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 		newWorkloadAdder: func() wkldInitializerWithoutManifest {
 			return &initialize.WorkloadInitializer{
 				Store:    store,
-				Deployer: cloudformation.New(defaultSess),
+				Deployer: cloudformation.New(defaultConfig),
 				Ws:       ws,
 				Prog:     termprogress.NewSpinner(log.DiagnosticWriter),
 			}
@@ -682,7 +681,7 @@ func (o *deployOpts) maybeInitEnv() error {
 		o.yesInitEnv = aws.Bool(v)
 	}
 
-	if aws.BoolValue(o.yesInitEnv) {
+	if aws.ToBool(o.yesInitEnv) {
 		cmd, err := o.newInitEnvCmd(o)
 		if err != nil {
 			return fmt.Errorf("load env init command : %w", err)
@@ -699,7 +698,7 @@ func (o *deployOpts) maybeInitEnv() error {
 		if o.deployEnv == nil {
 			log.Infof("Environment %q was just initialized. We'll deploy it now.\n", o.envName)
 			o.deployEnv = aws.Bool(true)
-		} else if !aws.BoolValue(o.deployEnv) {
+		} else if !aws.ToBool(o.deployEnv) {
 			log.Errorf("Environment is not deployed but --%s=false was specified. Deploy the environment with %s in order to deploy a workload to it.\n", deployEnvFlag, color.HighlightCode("copilot env deploy"))
 			return fmt.Errorf("environment %s was initialized but has not been deployed", o.envName)
 		}
@@ -714,7 +713,7 @@ func (o *deployOpts) maybeDeployEnv() error {
 		return nil
 	}
 
-	if aws.BoolValue(o.deployEnv) {
+	if aws.ToBool(o.deployEnv) {
 		cmd, err := o.newDeployEnvCmd(o)
 		if err != nil {
 			return fmt.Errorf("set up env deploy command: %w", err)

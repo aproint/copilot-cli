@@ -4,20 +4,17 @@
 package cli
 
 import (
+	"context"
 	"encoding"
 	"errors"
 	"fmt"
 	"strconv"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/dustin/go-humanize/english"
 
 	"github.com/aproint/copilot-cli/internal/pkg/addon"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
@@ -191,7 +188,7 @@ type initStorageOpts struct {
 
 func newStorageInitOpts(vars initStorageVars) (*initStorageOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("storage init"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +199,7 @@ func newStorageInitOpts(vars initStorageVars) (*initStorageOpts, error) {
 		return nil, err
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	return &initStorageOpts{
 		initStorageVars: vars,

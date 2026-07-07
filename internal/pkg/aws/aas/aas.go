@@ -5,12 +5,12 @@
 package aas
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	aas "github.com/aws/aws-sdk-go/service/applicationautoscaling"
-
-	"github.com/aws/aws-sdk-go/aws/session"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	aas "github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling/types"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 type api interface {
-	DescribeScalingPolicies(input *aas.DescribeScalingPoliciesInput) (*aas.DescribeScalingPoliciesOutput, error)
+	DescribeScalingPolicies(ctx context.Context, input *aas.DescribeScalingPoliciesInput, opts ...func(*aas.Options)) (*aas.DescribeScalingPoliciesOutput, error)
 }
 
 // ApplicationAutoscaling wraps an Amazon Application Auto Scaling client.
@@ -28,10 +28,10 @@ type ApplicationAutoscaling struct {
 	client api
 }
 
-// New returns a ApplicationAutoscaling struct configured against the input session.
-func New(s *session.Session) *ApplicationAutoscaling {
+// New returns a ApplicationAutoscaling struct configured against the input SDK v2 config.
+func New(cfg awsv2.Config) *ApplicationAutoscaling {
 	return &ApplicationAutoscaling{
-		client: aas.New(s),
+		client: aas.NewFromConfig(cfg),
 	}
 }
 
@@ -43,9 +43,9 @@ func (a *ApplicationAutoscaling) ECSServiceAlarmNames(cluster, service string) (
 	var err error
 	resp := &aas.DescribeScalingPoliciesOutput{}
 	for {
-		resp, err = a.client.DescribeScalingPolicies(&aas.DescribeScalingPoliciesInput{
-			ResourceId:       aws.String(resourceID),
-			ServiceNamespace: aws.String(ecsServiceNamespace),
+		resp, err = a.client.DescribeScalingPolicies(context.Background(), &aas.DescribeScalingPoliciesInput{
+			ResourceId:       awsv2.String(resourceID),
+			ServiceNamespace: types.ServiceNamespaceEcs,
 			NextToken:        resp.NextToken,
 		})
 		if err != nil {
@@ -53,7 +53,7 @@ func (a *ApplicationAutoscaling) ECSServiceAlarmNames(cluster, service string) (
 		}
 		for _, policy := range resp.ScalingPolicies {
 			for _, alarm := range policy.Alarms {
-				alarms = append(alarms, aws.StringValue(alarm.AlarmName))
+				alarms = append(alarms, awsv2.ToString(alarm.AlarmName))
 			}
 		}
 		if resp.NextToken == nil {

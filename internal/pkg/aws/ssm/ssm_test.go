@@ -11,9 +11,9 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ssm/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -42,29 +42,29 @@ func TestSSM_PutSecret(t *testing.T) {
 				},
 			},
 			mockClient: func(m *mocks.Mockapi) {
-				m.EXPECT().PutParameter(&ssm.PutParameterInput{
-					DataType: aws.String("text"),
-					Type:     aws.String("SecureString"),
-					Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-					Value:    aws.String("super secure password"),
-					Tags: []*ssm.Tag{
+				m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+					DataType: awsv2.String("text"),
+					Type:     types.ParameterTypeSecureString,
+					Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+					Value:    awsv2.String("super secure password"),
+					Tags: []types.Tag{
 						{
-							Key:   aws.String(deploy.AppTagKey),
-							Value: aws.String(mockApp),
+							Key:   awsv2.String(deploy.AppTagKey),
+							Value: awsv2.String(mockApp),
 						},
 						{
-							Key:   aws.String(deploy.EnvTagKey),
-							Value: aws.String(mockEnv),
+							Key:   awsv2.String(deploy.EnvTagKey),
+							Value: awsv2.String(mockEnv),
 						},
 					},
 				}).Return(&ssm.PutParameterOutput{
-					Tier:    aws.String("Standard"),
-					Version: aws.Int64(1),
+					Tier:    types.ParameterTierStandard,
+					Version: int64(1),
 				}, nil)
 			},
 			wantedOut: &PutSecretOutput{
-				Tier:    aws.String("Standard"),
-				Version: aws.Int64(1),
+				Tier:    types.ParameterTierStandard,
+				Version: int64(1),
 			},
 		},
 		"attempt to create a new secret even if overwrite is true": {
@@ -78,29 +78,29 @@ func TestSSM_PutSecret(t *testing.T) {
 				Overwrite: true,
 			},
 			mockClient: func(m *mocks.Mockapi) {
-				m.EXPECT().PutParameter(&ssm.PutParameterInput{
-					DataType: aws.String("text"),
-					Type:     aws.String("SecureString"),
-					Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-					Value:    aws.String("super secure password"),
-					Tags: []*ssm.Tag{
+				m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+					DataType: awsv2.String("text"),
+					Type:     types.ParameterTypeSecureString,
+					Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+					Value:    awsv2.String("super secure password"),
+					Tags: []types.Tag{
 						{
-							Key:   aws.String(deploy.AppTagKey),
-							Value: aws.String(mockApp),
+							Key:   awsv2.String(deploy.AppTagKey),
+							Value: awsv2.String(mockApp),
 						},
 						{
-							Key:   aws.String(deploy.EnvTagKey),
-							Value: aws.String(mockEnv),
+							Key:   awsv2.String(deploy.EnvTagKey),
+							Value: awsv2.String(mockEnv),
 						},
 					},
 				}).Return(&ssm.PutParameterOutput{
-					Tier:    aws.String("Standard"),
-					Version: aws.Int64(1),
+					Tier:    types.ParameterTierStandard,
+					Version: int64(1),
 				}, nil)
 			},
 			wantedOut: &PutSecretOutput{
-				Tier:    aws.String("Standard"),
-				Version: aws.Int64(1),
+				Tier:    types.ParameterTierStandard,
+				Version: int64(1),
 			},
 		},
 		"no overwrite attempt when overwrite is false and creation fails because the secret exists": {
@@ -113,22 +113,22 @@ func TestSSM_PutSecret(t *testing.T) {
 				},
 			},
 			mockClient: func(m *mocks.Mockapi) {
-				m.EXPECT().PutParameter(&ssm.PutParameterInput{
-					DataType: aws.String("text"),
-					Type:     aws.String("SecureString"),
-					Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-					Value:    aws.String("super secure password"),
-					Tags: []*ssm.Tag{
+				m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+					DataType: awsv2.String("text"),
+					Type:     types.ParameterTypeSecureString,
+					Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+					Value:    awsv2.String("super secure password"),
+					Tags: []types.Tag{
 						{
-							Key:   aws.String(deploy.AppTagKey),
-							Value: aws.String(mockApp),
+							Key:   awsv2.String(deploy.AppTagKey),
+							Value: awsv2.String(mockApp),
 						},
 						{
-							Key:   aws.String(deploy.EnvTagKey),
-							Value: aws.String(mockEnv),
+							Key:   awsv2.String(deploy.EnvTagKey),
+							Value: awsv2.String(mockEnv),
 						},
 					},
-				}).Return(nil, awserr.New(ssm.ErrCodeParameterAlreadyExists, "parameter already exists", fmt.Errorf("parameter already exists")))
+				}).Return(nil, &types.ParameterAlreadyExists{Message: awsv2.String("parameter already exists")})
 			},
 			wantedError: &ErrParameterAlreadyExists{"/copilot/myapp/myenv/secrets/db-password"},
 		},
@@ -142,19 +142,19 @@ func TestSSM_PutSecret(t *testing.T) {
 				},
 			},
 			mockClient: func(m *mocks.Mockapi) {
-				m.EXPECT().PutParameter(&ssm.PutParameterInput{
-					DataType: aws.String("text"),
-					Type:     aws.String("SecureString"),
-					Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-					Value:    aws.String("super secure password"),
-					Tags: []*ssm.Tag{
+				m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+					DataType: awsv2.String("text"),
+					Type:     types.ParameterTypeSecureString,
+					Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+					Value:    awsv2.String("super secure password"),
+					Tags: []types.Tag{
 						{
-							Key:   aws.String(deploy.AppTagKey),
-							Value: aws.String(mockApp),
+							Key:   awsv2.String(deploy.AppTagKey),
+							Value: awsv2.String(mockApp),
 						},
 						{
-							Key:   aws.String(deploy.EnvTagKey),
-							Value: aws.String(mockEnv),
+							Key:   awsv2.String(deploy.EnvTagKey),
+							Value: awsv2.String(mockEnv),
 						},
 					},
 				}).Return(nil, errors.New("some error"))
@@ -172,19 +172,19 @@ func TestSSM_PutSecret(t *testing.T) {
 				Overwrite: true,
 			},
 			mockClient: func(m *mocks.Mockapi) {
-				m.EXPECT().PutParameter(&ssm.PutParameterInput{
-					DataType: aws.String("text"),
-					Type:     aws.String("SecureString"),
-					Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-					Value:    aws.String("super secure password"),
-					Tags: []*ssm.Tag{
+				m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+					DataType: awsv2.String("text"),
+					Type:     types.ParameterTypeSecureString,
+					Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+					Value:    awsv2.String("super secure password"),
+					Tags: []types.Tag{
 						{
-							Key:   aws.String(deploy.AppTagKey),
-							Value: aws.String(mockApp),
+							Key:   awsv2.String(deploy.AppTagKey),
+							Value: awsv2.String(mockApp),
 						},
 						{
-							Key:   aws.String(deploy.EnvTagKey),
-							Value: aws.String(mockEnv),
+							Key:   awsv2.String(deploy.EnvTagKey),
+							Value: awsv2.String(mockEnv),
 						},
 					},
 				}).Return(nil, errors.New("some error"))
@@ -203,35 +203,35 @@ func TestSSM_PutSecret(t *testing.T) {
 			},
 			mockClient: func(m *mocks.Mockapi) {
 				gomock.InOrder(
-					m.EXPECT().PutParameter(&ssm.PutParameterInput{
-						DataType: aws.String("text"),
-						Type:     aws.String("SecureString"),
-						Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-						Value:    aws.String("super secure password"),
-						Tags: []*ssm.Tag{
+					m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+						DataType: awsv2.String("text"),
+						Type:     types.ParameterTypeSecureString,
+						Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+						Value:    awsv2.String("super secure password"),
+						Tags: []types.Tag{
 							{
-								Key:   aws.String(deploy.AppTagKey),
-								Value: aws.String(mockApp),
+								Key:   awsv2.String(deploy.AppTagKey),
+								Value: awsv2.String(mockApp),
 							},
 							{
-								Key:   aws.String(deploy.EnvTagKey),
-								Value: aws.String(mockEnv),
+								Key:   awsv2.String(deploy.EnvTagKey),
+								Value: awsv2.String(mockEnv),
 							},
 						},
-					}).Return(nil, awserr.New(ssm.ErrCodeParameterAlreadyExists, "parameter already exists", fmt.Errorf("parameter already exists"))),
-					m.EXPECT().PutParameter(&ssm.PutParameterInput{
-						DataType:  aws.String("text"),
-						Type:      aws.String("SecureString"),
-						Name:      aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-						Value:     aws.String("super secure password"),
-						Overwrite: aws.Bool(true),
+					}).Return(nil, &types.ParameterAlreadyExists{Message: awsv2.String("parameter already exists")}),
+					m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+						DataType:  awsv2.String("text"),
+						Type:      types.ParameterTypeSecureString,
+						Name:      awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+						Value:     awsv2.String("super secure password"),
+						Overwrite: awsv2.Bool(true),
 					}).Return(&ssm.PutParameterOutput{
-						Tier:    aws.String("Standard"),
-						Version: aws.Int64(3),
+						Tier:    types.ParameterTierStandard,
+						Version: int64(3),
 					}, nil),
-					m.EXPECT().AddTagsToResource(&ssm.AddTagsToResourceInput{
-						ResourceType: aws.String(ssm.ResourceTypeForTaggingParameter),
-						ResourceId:   aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+					m.EXPECT().AddTagsToResource(gomock.Any(), &ssm.AddTagsToResourceInput{
+						ResourceType: types.ResourceTypeForTaggingParameter,
+						ResourceId:   awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
 						Tags: convertTags(map[string]string{
 							deploy.AppTagKey: mockApp,
 							deploy.EnvTagKey: mockEnv,
@@ -240,8 +240,8 @@ func TestSSM_PutSecret(t *testing.T) {
 				)
 			},
 			wantedOut: &PutSecretOutput{
-				Tier:    aws.String("Standard"),
-				Version: aws.Int64(3),
+				Tier:    types.ParameterTierStandard,
+				Version: int64(3),
 			},
 		},
 		"failed to add tags during an overwrite operation": {
@@ -256,35 +256,35 @@ func TestSSM_PutSecret(t *testing.T) {
 			},
 			mockClient: func(m *mocks.Mockapi) {
 				gomock.InOrder(
-					m.EXPECT().PutParameter(&ssm.PutParameterInput{
-						DataType: aws.String("text"),
-						Type:     aws.String("SecureString"),
-						Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-						Value:    aws.String("super secure password"),
-						Tags: []*ssm.Tag{
+					m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+						DataType: awsv2.String("text"),
+						Type:     types.ParameterTypeSecureString,
+						Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+						Value:    awsv2.String("super secure password"),
+						Tags: []types.Tag{
 							{
-								Key:   aws.String(deploy.AppTagKey),
-								Value: aws.String(mockApp),
+								Key:   awsv2.String(deploy.AppTagKey),
+								Value: awsv2.String(mockApp),
 							},
 							{
-								Key:   aws.String(deploy.EnvTagKey),
-								Value: aws.String(mockEnv),
+								Key:   awsv2.String(deploy.EnvTagKey),
+								Value: awsv2.String(mockEnv),
 							},
 						},
-					}).Return(nil, awserr.New(ssm.ErrCodeParameterAlreadyExists, "parameter already exists", fmt.Errorf("parameter already exists"))),
-					m.EXPECT().PutParameter(&ssm.PutParameterInput{
-						DataType:  aws.String("text"),
-						Type:      aws.String("SecureString"),
-						Name:      aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-						Value:     aws.String("super secure password"),
-						Overwrite: aws.Bool(true),
+					}).Return(nil, &types.ParameterAlreadyExists{Message: awsv2.String("parameter already exists")}),
+					m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+						DataType:  awsv2.String("text"),
+						Type:      types.ParameterTypeSecureString,
+						Name:      awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+						Value:     awsv2.String("super secure password"),
+						Overwrite: awsv2.Bool(true),
 					}).Return(&ssm.PutParameterOutput{
-						Tier:    aws.String("Standard"),
-						Version: aws.Int64(3),
+						Tier:    types.ParameterTierStandard,
+						Version: int64(3),
 					}, nil),
-					m.EXPECT().AddTagsToResource(&ssm.AddTagsToResourceInput{
-						ResourceType: aws.String(ssm.ResourceTypeForTaggingParameter),
-						ResourceId:   aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+					m.EXPECT().AddTagsToResource(gomock.Any(), &ssm.AddTagsToResourceInput{
+						ResourceType: types.ResourceTypeForTaggingParameter,
+						ResourceId:   awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
 						Tags: convertTags(map[string]string{
 							deploy.AppTagKey: mockApp,
 							deploy.EnvTagKey: mockEnv,
@@ -306,28 +306,28 @@ func TestSSM_PutSecret(t *testing.T) {
 			},
 			mockClient: func(m *mocks.Mockapi) {
 				gomock.InOrder(
-					m.EXPECT().PutParameter(&ssm.PutParameterInput{
-						DataType: aws.String("text"),
-						Type:     aws.String("SecureString"),
-						Name:     aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-						Value:    aws.String("super secure password"),
-						Tags: []*ssm.Tag{
+					m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+						DataType: awsv2.String("text"),
+						Type:     types.ParameterTypeSecureString,
+						Name:     awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+						Value:    awsv2.String("super secure password"),
+						Tags: []types.Tag{
 							{
-								Key:   aws.String(deploy.AppTagKey),
-								Value: aws.String(mockApp),
+								Key:   awsv2.String(deploy.AppTagKey),
+								Value: awsv2.String(mockApp),
 							},
 							{
-								Key:   aws.String(deploy.EnvTagKey),
-								Value: aws.String(mockEnv),
+								Key:   awsv2.String(deploy.EnvTagKey),
+								Value: awsv2.String(mockEnv),
 							},
 						},
-					}).Return(nil, awserr.New(ssm.ErrCodeParameterAlreadyExists, "parameter already exists", fmt.Errorf("parameter already exists"))),
-					m.EXPECT().PutParameter(&ssm.PutParameterInput{
-						DataType:  aws.String("text"),
-						Type:      aws.String("SecureString"),
-						Name:      aws.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
-						Value:     aws.String("super secure password"),
-						Overwrite: aws.Bool(true),
+					}).Return(nil, &types.ParameterAlreadyExists{Message: awsv2.String("parameter already exists")}),
+					m.EXPECT().PutParameter(gomock.Any(), &ssm.PutParameterInput{
+						DataType:  awsv2.String("text"),
+						Type:      types.ParameterTypeSecureString,
+						Name:      awsv2.String(fmt.Sprintf("/copilot/%s/%s/secrets/db-password", mockApp, mockEnv)),
+						Value:     awsv2.String("super secure password"),
+						Overwrite: awsv2.Bool(true),
 					}).Return(nil, errors.New("some error")),
 				)
 			},
@@ -370,9 +370,9 @@ func TestSSM_GetSecretValue(t *testing.T) {
 		"error": {
 			secretName: "asdf",
 			setupMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetParameterWithContext(gomock.Any(), &ssm.GetParameterInput{
-					Name:           aws.String("asdf"),
-					WithDecryption: aws.Bool(true),
+				m.EXPECT().GetParameter(gomock.Any(), &ssm.GetParameterInput{
+					Name:           awsv2.String("asdf"),
+					WithDecryption: awsv2.Bool(true),
 				}).Return(nil, errors.New("some error"))
 			},
 			wantError: `get parameter "asdf" from SSM: some error`,
@@ -380,12 +380,12 @@ func TestSSM_GetSecretValue(t *testing.T) {
 		"success": {
 			secretName: "asdf",
 			setupMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetParameterWithContext(gomock.Any(), &ssm.GetParameterInput{
-					Name:           aws.String("asdf"),
-					WithDecryption: aws.Bool(true),
+				m.EXPECT().GetParameter(gomock.Any(), &ssm.GetParameterInput{
+					Name:           awsv2.String("asdf"),
+					WithDecryption: awsv2.Bool(true),
 				}).Return(&ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
-						Value: aws.String("hi"),
+					Parameter: &types.Parameter{
+						Value: awsv2.String("hi"),
 					},
 				}, nil)
 			},

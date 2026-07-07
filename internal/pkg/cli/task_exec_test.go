@@ -12,9 +12,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -156,7 +155,7 @@ func TestTaskExec_Ask(t *testing.T) {
 		"should bubble error if fail to select task in default cluster": {
 			useDefault: true,
 			setupMocks: func(m execTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockErr)
 			},
@@ -194,7 +193,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			inEnv: mockEnv,
 			setupMocks: func(m execTaskMocks) {
 				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(&config.Environment{}, nil)
-				m.provider.EXPECT().FromRole(gomock.Any(), gomock.Any())
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockErr)
 			},
@@ -204,7 +203,7 @@ func TestTaskExec_Ask(t *testing.T) {
 		"success with default flag set": {
 			useDefault: true,
 			setupMocks: func(m execTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(mockTask, nil)
 			},
@@ -214,7 +213,7 @@ func TestTaskExec_Ask(t *testing.T) {
 		},
 		"success with default option chose": {
 			setupMocks: func(m execTaskMocks) {
-				m.provider.EXPECT().Default().Return(&session.Session{}, nil)
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.configSel.EXPECT().Application(taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
 					Return(useDefaultClusterOption, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
@@ -231,7 +230,7 @@ func TestTaskExec_Ask(t *testing.T) {
 				m.configSel.EXPECT().Environment(taskExecEnvNamePrompt, taskExecEnvNameHelpPrompt, mockApp, prompt.Option{Value: useDefaultClusterOption}).
 					Return(mockEnv, nil)
 				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(&config.Environment{}, nil)
-				m.provider.EXPECT().FromRole(gomock.Any(), gomock.Any())
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(mockTask, nil)
 			},
@@ -249,7 +248,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			mockStoreReader := mocks.NewMockstore(ctrl)
 			mockConfigSel := mocks.NewMockappEnvSelector(ctrl)
 			mockTaskSel := mocks.NewMockrunningTaskSelector(ctrl)
-			mockNewTaskSel := func(_ *session.Session) runningTaskSelector {
+			mockNewTaskSel := func(_ aws.Config) runningTaskSelector {
 				return mockTaskSel
 			}
 			mockProvider := mocks.NewMocksessionProvider(ctrl)
@@ -307,7 +306,7 @@ func TestTaskExec_Execute(t *testing.T) {
 	mockTask := &ecs.Task{
 		TaskArn:    aws.String(mockTaskARN),
 		ClusterArn: aws.String(mockClusterARN),
-		Containers: []*awsecs.Container{
+		Containers: []awsecs.Container{
 			{
 				Name: aws.String(mockContainerName),
 			},
@@ -333,14 +332,14 @@ func TestTaskExec_Execute(t *testing.T) {
 			inTask: &ecs.Task{
 				TaskArn:    aws.String(mockBadTaskARN),
 				ClusterArn: aws.String(mockClusterARN),
-				Containers: []*awsecs.Container{
+				Containers: []awsecs.Container{
 					{
 						Name: aws.String(mockContainerName),
 					},
 				},
 			},
 			setupMocks: func(m execTaskMocks) {
-				m.provider.EXPECT().Default()
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 			},
 
 			wantedError: fmt.Errorf("parse task ARN mockBadTaskARN: parse ECS task ARN: arn: invalid prefix"),
@@ -349,7 +348,7 @@ func TestTaskExec_Execute(t *testing.T) {
 			inTask:       mockTask,
 			inUseDefault: true,
 			setupMocks: func(m execTaskMocks) {
-				m.provider.EXPECT().Default()
+				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.commandExec.EXPECT().ExecuteCommand(ecs.ExecuteCommandInput{
 					Cluster:   mockClusterARN,
 					Command:   mockCommand,
@@ -364,7 +363,7 @@ func TestTaskExec_Execute(t *testing.T) {
 			inTask: mockTask,
 			setupMocks: func(m execTaskMocks) {
 				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(&config.Environment{}, nil)
-				m.provider.EXPECT().FromRole(gomock.Any(), gomock.Any())
+				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.commandExec.EXPECT().ExecuteCommand(ecs.ExecuteCommandInput{
 					Cluster:   mockClusterARN,
 					Command:   mockCommand,
@@ -382,7 +381,7 @@ func TestTaskExec_Execute(t *testing.T) {
 
 			mockStoreReader := mocks.NewMockstore(ctrl)
 			mockCommandExec := mocks.NewMockecsCommandExecutor(ctrl)
-			mockNewCommandExec := func(_ *session.Session) ecsCommandExecutor {
+			mockNewCommandExec := func(_ aws.Config) ecsCommandExecutor {
 				return mockCommandExec
 			}
 			mocks := execTaskMocks{

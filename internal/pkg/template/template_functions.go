@@ -13,9 +13,9 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -131,10 +131,10 @@ func generateMountPointJSON(mountPoints []*MountPoint) string {
 		// Skip adding mount points with empty container paths to the map.
 		// This is validated elsewhere so this condition should never happen, but it
 		// will fail to inject mountpoints with empty paths.
-		if aws.StringValue(mp.ContainerPath) == "" {
+		if aws.ToString(mp.ContainerPath) == "" {
 			continue
 		}
-		volumeMap[aws.StringValue(mp.SourceVolume)] = aws.StringValue(mp.ContainerPath)
+		volumeMap[aws.ToString(mp.SourceVolume)] = aws.ToString(mp.ContainerPath)
 	}
 
 	out, ok := getJSONMap(volumeMap)
@@ -160,7 +160,7 @@ func generateSNSJSON(topics []*Topic) string {
 		if topic.Name == nil {
 			continue
 		}
-		topicMap[aws.StringValue(topic.Name)] = topic.ARN()
+		topicMap[aws.ToString(topic.Name)] = topic.ARN()
 	}
 
 	out, ok := getJSONMap(topicMap)
@@ -184,8 +184,8 @@ func generateQueueURIJSON(ts []*TopicSubscription) string {
 		if sub.Name == nil || sub.Service == nil || sub.Queue == nil {
 			continue
 		}
-		svc := StripNonAlphaNumFunc(aws.StringValue(sub.Service))
-		topicName := StripNonAlphaNumFunc(aws.StringValue(sub.Name))
+		svc := StripNonAlphaNumFunc(aws.ToString(sub.Service))
+		topicName := StripNonAlphaNumFunc(aws.ToString(sub.Name))
 		subName := fmt.Sprintf("%s%sEventsQueue", svc, cases.Title(language.English).String(topicName))
 
 		urlMap[subName] = fmt.Sprintf("${%s%sURL}", svc, topicName)

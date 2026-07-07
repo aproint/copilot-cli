@@ -5,9 +5,10 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	applicationautoscaling "github.com/aws/aws-sdk-go/service/applicationautoscaling"
+	applicationautoscaling "github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,16 +36,21 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // DescribeScalingPolicies mocks base method.
-func (m *Mockapi) DescribeScalingPolicies(input *applicationautoscaling.DescribeScalingPoliciesInput) (*applicationautoscaling.DescribeScalingPoliciesOutput, error) {
+func (m *Mockapi) DescribeScalingPolicies(ctx context.Context, input *applicationautoscaling.DescribeScalingPoliciesInput, opts ...func(*applicationautoscaling.Options)) (*applicationautoscaling.DescribeScalingPoliciesOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeScalingPolicies", input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeScalingPolicies", varargs...)
 	ret0, _ := ret[0].(*applicationautoscaling.DescribeScalingPoliciesOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeScalingPolicies indicates an expected call of DescribeScalingPolicies.
-func (mr *MockapiMockRecorder) DescribeScalingPolicies(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeScalingPolicies(ctx, input interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeScalingPolicies", reflect.TypeOf((*Mockapi)(nil).DescribeScalingPolicies), input)
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeScalingPolicies", reflect.TypeOf((*Mockapi)(nil).DescribeScalingPolicies), varargs...)
 }

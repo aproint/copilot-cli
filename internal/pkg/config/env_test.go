@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +44,7 @@ func TestStore_ListEnvironments(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, environmentPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(prodIADEnvPath),
 							Value: aws.String(prodIADEnvString),
@@ -64,7 +64,7 @@ func TestStore_ListEnvironments(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, environmentPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(testEnvironmentPath),
 							Value: aws.String("oops"),
@@ -88,7 +88,7 @@ func TestStore_ListEnvironments(t *testing.T) {
 				if !lastPageInPaginatedResp {
 					lastPageInPaginatedResp = true
 					return &ssm.GetParametersByPathOutput{
-						Parameters: []*ssm.Parameter{
+						Parameters: []types.Parameter{
 							{
 								Name:  aws.String(prodPDXEnvPath), // Return "pdx" first on purpose to test if alphabetical ordering is maintained.
 								Value: aws.String(prodPDXEnvString),
@@ -99,7 +99,7 @@ func TestStore_ListEnvironments(t *testing.T) {
 				}
 
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String(prodIADEnvPath),
 							Value: aws.String(prodIADEnvString),
@@ -159,7 +159,7 @@ func TestStore_GetEnvironment(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testEnvironmentPath),
 						Value: aws.String(testEnvironmentString),
 					},
@@ -171,7 +171,7 @@ func TestStore_GetEnvironment(t *testing.T) {
 		"with no existing environment": {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "bloop", nil)
+				return nil, &types.ParameterNotFound{}
 			},
 			wantedErr: &ErrNoSuchEnvironment{
 				ApplicationName: testEnvironment.App,
@@ -182,7 +182,7 @@ func TestStore_GetEnvironment(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testEnvironmentPath),
 						Value: aws.String("oops"),
 					},
@@ -244,7 +244,7 @@ func TestStore_CreateEnvironment(t *testing.T) {
 	testEnvironmentPath := fmt.Sprintf(fmtEnvParamPath, testEnvironment.App, testEnvironment.Name)
 	require.NoError(t, err, "Marshal environment should not fail")
 
-	tagsForEnvParam := []*ssm.Tag{
+	tagsForEnvParam := []types.Tag{
 		{
 			Key:   aws.String("copilot-application"),
 			Value: aws.String(testEnvironment.App),
@@ -266,13 +266,13 @@ func TestStore_CreateEnvironment(t *testing.T) {
 				require.Equal(t, testEnvironmentString, *param.Value)
 				require.Equal(t, tagsForEnvParam, param.Tags)
 				return &ssm.PutParameterOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil
 			},
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String(testApplicationString),
 					},
@@ -285,12 +285,12 @@ func TestStore_CreateEnvironment(t *testing.T) {
 			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				require.Equal(t, tagsForEnvParam, param.Tags)
-				return nil, awserr.New(ssm.ErrCodeParameterAlreadyExists, "Already exists", fmt.Errorf("Already Exists"))
+				return nil, &types.ParameterAlreadyExists{}
 			},
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String(testApplicationString),
 					},
@@ -306,7 +306,7 @@ func TestStore_CreateEnvironment(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String(testApplicationString),
 					},
@@ -356,7 +356,7 @@ func TestStore_DeleteEnvironment(t *testing.T) {
 			inApplicationName: "phonetool",
 			inEnvName:         "test",
 			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "Not found", nil)
+				return nil, &types.ParameterNotFound{}
 			},
 		},
 		"unexpected error": {

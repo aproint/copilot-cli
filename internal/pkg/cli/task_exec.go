@@ -4,23 +4,19 @@
 package cli
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/exec"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
 )
 
@@ -49,9 +45,9 @@ type taskExecOpts struct {
 	store              store
 	ssmPluginManager   ssmPluginManager
 	prompter           prompter
-	newTaskSel         func(*session.Session) runningTaskSelector
+	newTaskSel         func(aws.Config) runningTaskSelector
 	configSel          appEnvSelector
-	newCommandExecutor func(*session.Session) ecsCommandExecutor
+	newCommandExecutor func(aws.Config) ecsCommandExecutor
 	provider           sessionProvider
 
 	task *awsecs.Task
@@ -59,24 +55,24 @@ type taskExecOpts struct {
 
 func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("task exec"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	ssmStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	ssmStore := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	return &taskExecOpts{
 		taskExecVars:     vars,
 		store:            ssmStore,
-		ssmPluginManager: exec.NewSSMPluginCommand(nil),
+		ssmPluginManager: exec.NewSSMPluginCommand(""),
 		prompter:         prompter,
-		newTaskSel: func(sess *session.Session) runningTaskSelector {
-			return selector.NewTaskSelector(prompter, ecs.New(sess))
+		newTaskSel: func(cfg aws.Config) runningTaskSelector {
+			return selector.NewTaskSelector(prompter, ecs.New(cfg))
 		},
 		configSel: selector.NewConfigSelector(prompter, ssmStore),
-		newCommandExecutor: func(s *session.Session) ecsCommandExecutor {
-			return awsecs.New(s)
+		newCommandExecutor: func(cfg aws.Config) ecsCommandExecutor {
+			return awsecs.New(cfg)
 		},
 		provider: sessProvider,
 	}, nil
@@ -132,18 +128,18 @@ func (o *taskExecOpts) Ask() error {
 
 // Execute executes a command in a running container.
 func (o *taskExecOpts) Execute() error {
-	sess, err := o.configSession()
+	cfg, err := o.config()
 	if err != nil {
 		return err
 	}
-	cluster, container := aws.StringValue(o.task.ClusterArn), aws.StringValue(o.task.Containers[0].Name)
-	taskID, err := awsecs.TaskID(aws.StringValue(o.task.TaskArn))
+	cluster, container := aws.ToString(o.task.ClusterArn), aws.ToString(o.task.Containers[0].Name)
+	taskID, err := awsecs.TaskID(aws.ToString(o.task.TaskArn))
 	if err != nil {
-		return fmt.Errorf("parse task ARN %s: %w", aws.StringValue(o.task.TaskArn), err)
+		return fmt.Errorf("parse task ARN %s: %w", aws.ToString(o.task.TaskArn), err)
 	}
 	log.Infof("Execute %s in container %s in task %s.\n", color.HighlightCode(o.command),
 		color.HighlightUserInput(container), color.HighlightResource(taskID))
-	if err = o.newCommandExecutor(sess).ExecuteCommand(awsecs.ExecuteCommandInput{
+	if err = o.newCommandExecutor(cfg).ExecuteCommand(awsecs.ExecuteCommandInput{
 		Cluster:   cluster,
 		Command:   o.command,
 		Container: container,
@@ -155,11 +151,11 @@ func (o *taskExecOpts) Execute() error {
 }
 
 func (o *taskExecOpts) selectTaskInDefaultCluster() error {
-	sess, err := o.provider.Default()
+	cfg, err := o.provider.DefaultConfig(context.Background())
 	if err != nil {
-		return fmt.Errorf("create default session: %w", err)
+		return fmt.Errorf("create default config: %w", err)
 	}
-	task, err := o.newTaskSel(sess).RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+	task, err := o.newTaskSel(cfg).RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 		selector.WithDefault(), selector.WithTaskGroup(o.name), selector.WithTaskID(o.taskID))
 	if err != nil {
 		return fmt.Errorf("select running task in default cluster: %w", err)
@@ -173,11 +169,11 @@ func (o *taskExecOpts) selectTaskInAppEnvCluster() error {
 	if err != nil {
 		return fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
-	sess, err := o.provider.FromRole(env.ManagerRoleARN, env.Region)
+	cfg, err := o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 	if err != nil {
-		return fmt.Errorf("get session from role %s and region %s: %w", env.ManagerRoleARN, env.Region, err)
+		return fmt.Errorf("get config from role %s and region %s: %w", env.ManagerRoleARN, env.Region, err)
 	}
-	task, err := o.newTaskSel(sess).RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+	task, err := o.newTaskSel(cfg).RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 		selector.WithAppEnv(o.appName, o.envName), selector.WithTaskGroup(o.name), selector.WithTaskID(o.taskID))
 	if err != nil {
 		return fmt.Errorf("select running task in environment %s: %w", o.envName, err)
@@ -186,15 +182,15 @@ func (o *taskExecOpts) selectTaskInAppEnvCluster() error {
 	return nil
 }
 
-func (o *taskExecOpts) configSession() (*session.Session, error) {
+func (o *taskExecOpts) config() (aws.Config, error) {
 	if o.useDefault {
-		return o.provider.Default()
+		return o.provider.DefaultConfig(context.Background())
 	}
 	env, err := o.store.GetEnvironment(o.appName, o.envName)
 	if err != nil {
-		return nil, fmt.Errorf("get environment %s: %w", o.envName, err)
+		return aws.Config{}, fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
-	return o.provider.FromRole(env.ManagerRoleARN, env.Region)
+	return o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 }
 
 // buildTaskExecCmd builds the command for execute a running container in a one-off task.

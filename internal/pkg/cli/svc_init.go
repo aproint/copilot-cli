@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -12,15 +13,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/dustin/go-humanize/english"
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerfile"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 
@@ -190,11 +189,11 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 		return nil, err
 	}
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc init"))
-	sess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(sess), ssm.New(sess), aws.StringValue(sess.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {
@@ -206,7 +205,7 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 		Store:    store,
 		Ws:       ws,
 		Prog:     termprogress.NewSpinner(log.DiagnosticWriter),
-		Deployer: cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),
+		Deployer: cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 	}
 	dfSel, err := selector.NewDockerfileSelector(prompter, fs)
 	if err != nil {

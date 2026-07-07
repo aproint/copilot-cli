@@ -10,18 +10,15 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 )
 
 type api interface {
-	PutParameter(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
-	AddTagsToResource(*ssm.AddTagsToResourceInput) (*ssm.AddTagsToResourceOutput, error)
-	GetParameterWithContext(context.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
+	PutParameter(context.Context, *ssm.PutParameterInput, ...func(*ssm.Options)) (*ssm.PutParameterOutput, error)
+	AddTagsToResource(context.Context, *ssm.AddTagsToResourceInput, ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error)
+	GetParameter(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
 
 // SSM wraps an AWS SSM client.
@@ -29,10 +26,10 @@ type SSM struct {
 	client api
 }
 
-// New returns a SSM service configured against the input session.
-func New(s *session.Session) *SSM {
+// New returns a SSM service configured against the input SDK v2 config.
+func New(cfg awsv2.Config) *SSM {
 	return &SSM{
-		client: ssm.New(s),
+		client: ssm.NewFromConfig(cfg),
 	}
 }
 
@@ -67,14 +64,14 @@ func (s *SSM) PutSecret(in PutSecretInput) (*PutSecretOutput, error) {
 // GetSecretValue retrieves the value of a parameter from AWS Systems Manager Parameter Store.
 // It takes the name of the parameter as input and returns the corresponding value as a string.
 func (s *SSM) GetSecretValue(ctx context.Context, name string) (string, error) {
-	resp, err := s.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
-		Name:           aws.String(name),
-		WithDecryption: aws.Bool(true),
+	resp, err := s.client.GetParameter(ctx, &ssm.GetParameterInput{
+		Name:           awsv2.String(name),
+		WithDecryption: awsv2.Bool(true),
 	})
 	if err != nil {
 		return "", fmt.Errorf("get parameter %q from SSM: %w", name, err)
 	}
-	return aws.StringValue(resp.Parameter.Value), nil
+	return awsv2.ToString(resp.Parameter.Value), nil
 }
 
 func (s *SSM) createSecret(in PutSecretInput) (*PutSecretOutput, error) {
@@ -84,21 +81,20 @@ func (s *SSM) createSecret(in PutSecretInput) (*PutSecretOutput, error) {
 	tags := convertTags(in.Tags)
 
 	input := &ssm.PutParameterInput{
-		DataType: aws.String("text"),
-		Type:     aws.String("SecureString"),
-		Name:     aws.String(in.Name),
-		Value:    aws.String(in.Value),
+		DataType: awsv2.String("text"),
+		Type:     types.ParameterTypeSecureString,
+		Name:     awsv2.String(in.Name),
+		Value:    awsv2.String(in.Value),
 		Tags:     tags,
 	}
-	output, err := s.client.PutParameter(input)
+	output, err := s.client.PutParameter(context.Background(), input)
 	if err == nil {
 		return (*PutSecretOutput)(output), nil
 	}
 
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == ssm.ErrCodeParameterAlreadyExists {
-			return nil, &ErrParameterAlreadyExists{in.Name}
-		}
+	var errAlreadyExists *types.ParameterAlreadyExists
+	if errors.As(err, &errAlreadyExists) {
+		return nil, &ErrParameterAlreadyExists{in.Name}
 	}
 	return nil, fmt.Errorf("create parameter %s: %w", in.Name, err)
 }
@@ -108,21 +104,21 @@ func (s *SSM) overwriteSecret(in PutSecretInput) (*PutSecretOutput, error) {
 	// add the tags in two separate calls.
 
 	input := &ssm.PutParameterInput{
-		DataType:  aws.String("text"),
-		Type:      aws.String("SecureString"),
-		Name:      aws.String(in.Name),
-		Value:     aws.String(in.Value),
-		Overwrite: aws.Bool(in.Overwrite),
+		DataType:  awsv2.String("text"),
+		Type:      types.ParameterTypeSecureString,
+		Name:      awsv2.String(in.Name),
+		Value:     awsv2.String(in.Value),
+		Overwrite: awsv2.Bool(in.Overwrite),
 	}
-	output, err := s.client.PutParameter(input)
+	output, err := s.client.PutParameter(context.Background(), input)
 	if err != nil {
 		return nil, fmt.Errorf("update parameter %s: %w", in.Name, err)
 	}
 
 	tags := convertTags(in.Tags)
-	_, err = s.client.AddTagsToResource(&ssm.AddTagsToResourceInput{
-		ResourceType: aws.String(ssm.ResourceTypeForTaggingParameter),
-		ResourceId:   aws.String(in.Name),
+	_, err = s.client.AddTagsToResource(context.Background(), &ssm.AddTagsToResourceInput{
+		ResourceType: types.ResourceTypeForTaggingParameter,
+		ResourceId:   awsv2.String(in.Name),
 		Tags:         tags,
 	})
 	if err != nil {
@@ -131,7 +127,7 @@ func (s *SSM) overwriteSecret(in PutSecretInput) (*PutSecretOutput, error) {
 	return (*PutSecretOutput)(output), nil
 }
 
-func convertTags(inTags map[string]string) []*ssm.Tag {
+func convertTags(inTags map[string]string) []types.Tag {
 	// Sort the map so that the unit test won't be flaky.
 	keys := make([]string, 0, len(inTags))
 	for k := range inTags {
@@ -139,11 +135,11 @@ func convertTags(inTags map[string]string) []*ssm.Tag {
 	}
 	sort.Strings(keys)
 
-	var tags []*ssm.Tag
+	var tags []types.Tag
 	for _, key := range keys {
-		tags = append(tags, &ssm.Tag{
-			Key:   aws.String(key),
-			Value: aws.String(inTags[key]),
+		tags = append(tags, types.Tag{
+			Key:   awsv2.String(key),
+			Value: awsv2.String(inTags[key]),
 		})
 	}
 	return tags

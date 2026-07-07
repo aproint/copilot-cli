@@ -8,8 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	request "github.com/aws/aws-sdk-go/aws/request"
-	secretsmanager "github.com/aws/aws-sdk-go/service/secretsmanager"
+	secretsmanager "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,66 +36,81 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // CreateSecret mocks base method.
-func (m *Mockapi) CreateSecret(arg0 *secretsmanager.CreateSecretInput) (*secretsmanager.CreateSecretOutput, error) {
+func (m *Mockapi) CreateSecret(arg0 context.Context, arg1 *secretsmanager.CreateSecretInput, arg2 ...func(*secretsmanager.Options)) (*secretsmanager.CreateSecretOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSecret", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateSecret", varargs...)
 	ret0, _ := ret[0].(*secretsmanager.CreateSecretOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateSecret indicates an expected call of CreateSecret.
-func (mr *MockapiMockRecorder) CreateSecret(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) CreateSecret(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecret", reflect.TypeOf((*Mockapi)(nil).CreateSecret), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecret", reflect.TypeOf((*Mockapi)(nil).CreateSecret), varargs...)
 }
 
 // DeleteSecret mocks base method.
-func (m *Mockapi) DeleteSecret(arg0 *secretsmanager.DeleteSecretInput) (*secretsmanager.DeleteSecretOutput, error) {
+func (m *Mockapi) DeleteSecret(arg0 context.Context, arg1 *secretsmanager.DeleteSecretInput, arg2 ...func(*secretsmanager.Options)) (*secretsmanager.DeleteSecretOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteSecret", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteSecret", varargs...)
 	ret0, _ := ret[0].(*secretsmanager.DeleteSecretOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteSecret indicates an expected call of DeleteSecret.
-func (mr *MockapiMockRecorder) DeleteSecret(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DeleteSecret(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecret", reflect.TypeOf((*Mockapi)(nil).DeleteSecret), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecret", reflect.TypeOf((*Mockapi)(nil).DeleteSecret), varargs...)
 }
 
 // DescribeSecret mocks base method.
-func (m *Mockapi) DescribeSecret(arg0 *secretsmanager.DescribeSecretInput) (*secretsmanager.DescribeSecretOutput, error) {
+func (m *Mockapi) DescribeSecret(arg0 context.Context, arg1 *secretsmanager.DescribeSecretInput, arg2 ...func(*secretsmanager.Options)) (*secretsmanager.DescribeSecretOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeSecret", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeSecret", varargs...)
 	ret0, _ := ret[0].(*secretsmanager.DescribeSecretOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeSecret indicates an expected call of DescribeSecret.
-func (mr *MockapiMockRecorder) DescribeSecret(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeSecret(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecret", reflect.TypeOf((*Mockapi)(nil).DescribeSecret), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecret", reflect.TypeOf((*Mockapi)(nil).DescribeSecret), varargs...)
 }
 
-// GetSecretValueWithContext mocks base method.
-func (m *Mockapi) GetSecretValueWithContext(arg0 context.Context, arg1 *secretsmanager.GetSecretValueInput, arg2 ...request.Option) (*secretsmanager.GetSecretValueOutput, error) {
+// GetSecretValue mocks base method.
+func (m *Mockapi) GetSecretValue(arg0 context.Context, arg1 *secretsmanager.GetSecretValueInput, arg2 ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "GetSecretValueWithContext", varargs...)
+	ret := m.ctrl.Call(m, "GetSecretValue", varargs...)
 	ret0, _ := ret[0].(*secretsmanager.GetSecretValueOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSecretValueWithContext indicates an expected call of GetSecretValueWithContext.
-func (mr *MockapiMockRecorder) GetSecretValueWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// GetSecretValue indicates an expected call of GetSecretValue.
+func (mr *MockapiMockRecorder) GetSecretValue(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretValueWithContext", reflect.TypeOf((*Mockapi)(nil).GetSecretValueWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretValue", reflect.TypeOf((*Mockapi)(nil).GetSecretValue), varargs...)
 }

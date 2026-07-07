@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"testing"
 
-	ecsapi "github.com/aws/aws-sdk-go/service/ecs"
+	ecsapi "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -48,10 +48,10 @@ func TestECSServiceDescriber_EnvVars(t *testing.T) {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
 					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
-						ContainerDefinitions: []*ecsapi.ContainerDefinition{
+						ContainerDefinitions: []ecsapi.ContainerDefinition{
 							{
 								Name: aws.String("container"),
-								Environment: []*ecsapi.KeyValuePair{
+								Environment: []ecsapi.KeyValuePair{
 									{
 										Name:  aws.String("COPILOT_SERVICE_NAME"),
 										Value: aws.String("my-svc"),
@@ -159,9 +159,9 @@ func TestECSServiceDescriber_RollbackAlarmNames(t *testing.T) {
 					m.mockECSClient.EXPECT().Service(testApp, testEnv, testSvc).Return(&awsecs.Service{
 						DeploymentConfiguration: &ecsapi.DeploymentConfiguration{
 							Alarms: &ecsapi.DeploymentAlarms{
-								AlarmNames: []*string{aws.String("alarm1"), aws.String("alarm2")},
-								Enable:     aws.Bool(true),
-								Rollback:   aws.Bool(true),
+								AlarmNames: []string{"alarm1", "alarm2"},
+								Enable:     true,
+								Rollback:   true,
 							},
 						},
 					}, nil),
@@ -229,12 +229,12 @@ func TestECSServiceDescriber_ServiceConnectDNSNames(t *testing.T) {
 		"success": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				m.mockECSClient.EXPECT().Service(testApp, testEnv, testSvc).Return(&awsecs.Service{
-					Deployments: []*ecsapi.Deployment{
+					Deployments: []ecsapi.Deployment{
 						{
 							ServiceConnectConfiguration: &ecsapi.ServiceConnectConfiguration{
-								Enabled:   aws.Bool(true),
+								Enabled:   true,
 								Namespace: aws.String("foobar.com"),
-								Services: []*ecsapi.ServiceConnectService{
+								Services: []ecsapi.ServiceConnectService{
 									{
 										PortName: aws.String("frontend"),
 									},
@@ -310,10 +310,10 @@ func TestECSServiceDescriber_Secrets(t *testing.T) {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
 					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
-						ContainerDefinitions: []*ecsapi.ContainerDefinition{
+						ContainerDefinitions: []ecsapi.ContainerDefinition{
 							{
 								Name: aws.String("container"),
-								Secrets: []*ecsapi.Secret{
+								Secrets: []ecsapi.Secret{
 									{
 										Name:      aws.String("GITHUB_WEBHOOK_SECRET"),
 										ValueFrom: aws.String("GH_WEBHOOK_SECRET"),
@@ -404,8 +404,8 @@ func TestECSServiceDescriber_Platform(t *testing.T) {
 				gomock.InOrder(
 					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
 						RuntimePlatform: &ecsapi.RuntimePlatform{
-							CpuArchitecture:       aws.String("ARM64"),
-							OperatingSystemFamily: aws.String("LINUX"),
+							CpuArchitecture:       ecsapi.CPUArchitectureArm64,
+							OperatingSystemFamily: ecsapi.OSFamilyLinux,
 						},
 					}, nil))
 			},

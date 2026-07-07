@@ -4,14 +4,16 @@
 package stackset
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -19,6 +21,12 @@ import (
 const testName = "stackset"
 
 var testError = errors.New("some error")
+
+func apiErr(code string) error {
+	return &smithy.GenericAPIError{
+		Code: code,
+	}
+}
 
 func TestStackSet_Create(t *testing.T) {
 	const (
@@ -37,12 +45,12 @@ func TestStackSet_Create(t *testing.T) {
 		"succeeds if new stack set": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().CreateStackSet(&cloudformation.CreateStackSetInput{
+				m.EXPECT().CreateStackSet(gomock.Any(), &cloudformation.CreateStackSetInput{
 					AdministrationRoleARN: aws.String(testAdministrationRole),
 					Description:           aws.String(testDescription),
 					ExecutionRoleName:     aws.String(testExecutionRole),
 					StackSetName:          aws.String(testName),
-					Tags: []*cloudformation.Tag{
+					Tags: []types.Tag{
 						{
 							Key:   aws.String("owner"),
 							Value: aws.String("boss"),
@@ -56,14 +64,14 @@ func TestStackSet_Create(t *testing.T) {
 		"succeeds if stack set already exists": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().CreateStackSet(gomock.Any()).Return(nil, awserr.New(cloudformation.ErrCodeNameAlreadyExistsException, "", nil))
+				m.EXPECT().CreateStackSet(gomock.Any(), gomock.Any()).Return(nil, apiErr("NameAlreadyExistsException"))
 				return m
 			},
 		},
 		"wraps error on unexpected failure": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().CreateStackSet(gomock.Any()).Return(nil, testError)
+				m.EXPECT().CreateStackSet(gomock.Any(), gomock.Any()).Return(nil, testError)
 				return m
 			},
 			wantedError: fmt.Errorf("create stack set %s: %w", testName, testError),
@@ -100,10 +108,10 @@ func TestStackSet_Describe(t *testing.T) {
 		"succeeds": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DescribeStackSet(&cloudformation.DescribeStackSetInput{
+				m.EXPECT().DescribeStackSet(gomock.Any(), &cloudformation.DescribeStackSetInput{
 					StackSetName: aws.String(testName),
 				}).Return(&cloudformation.DescribeStackSetOutput{
-					StackSet: &cloudformation.StackSet{
+					StackSet: &types.StackSet{
 						StackSetId:   aws.String(testName),
 						StackSetName: aws.String(testName),
 						TemplateBody: aws.String("body"),
@@ -120,7 +128,7 @@ func TestStackSet_Describe(t *testing.T) {
 		"wraps error on unexpected failure": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DescribeStackSet(gomock.Any()).Return(nil, testError)
+				m.EXPECT().DescribeStackSet(gomock.Any(), gomock.Any()).Return(nil, testError)
 				return m
 			},
 			wantedError: fmt.Errorf("describe stack set %s: %w", testName, testError),
@@ -157,12 +165,12 @@ func TestStackSet_DescribeOperation(t *testing.T) {
 		"returns the operation description on successful call": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DescribeStackSetOperation(&cloudformation.DescribeStackSetOperationInput{
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), &cloudformation.DescribeStackSetOperationInput{
 					StackSetName: aws.String(testName),
 					OperationId:  aws.String(testOpID),
 				}).Return(&cloudformation.DescribeStackSetOperationOutput{
-					StackSetOperation: &cloudformation.StackSetOperation{
-						Status:       aws.String(cloudformation.StackSetOperationStatusStopped),
+					StackSetOperation: &types.StackSetOperation{
+						Status:       types.StackSetOperationStatusStopped,
 						StatusReason: aws.String("manually stopped"),
 					},
 				}, nil)
@@ -170,14 +178,14 @@ func TestStackSet_DescribeOperation(t *testing.T) {
 			},
 			wantedOp: Operation{
 				ID:     testOpID,
-				Status: OpStatus(cloudformation.StackSetOperationStatusStopped),
+				Status: OpStatus(types.StackSetOperationStatusStopped),
 				Reason: "manually stopped",
 			},
 		},
 		"wraps error on unexpected failure": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DescribeStackSetOperation(gomock.Any()).Return(nil, testError)
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), gomock.Any()).Return(nil, testError)
 				return m
 			},
 			wantedError: errors.New("describe operation 1 for stack set stackset: some error"),
@@ -219,9 +227,9 @@ func TestStackSet_Update(t *testing.T) {
 		testTags = map[string]string{
 			"owner": "boss",
 		}
-		errOpExists = awserr.New(cloudformation.ErrCodeOperationIdAlreadyExistsException, "", nil)
-		errOpInProg = awserr.New(cloudformation.ErrCodeOperationInProgressException, "", nil)
-		errOpStale  = awserr.New(cloudformation.ErrCodeStaleRequestException, "", nil)
+		errOpExists = apiErr("OperationIdAlreadyExistsException")
+		errOpInProg = apiErr("OperationInProgressException")
+		errOpStale  = apiErr("StaleRequestException")
 	)
 
 	testCases := map[string]struct {
@@ -233,20 +241,20 @@ func TestStackSet_Update(t *testing.T) {
 		"updates stack with operation is valid": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(&cloudformation.UpdateStackSetInput{
+				m.EXPECT().UpdateStackSet(gomock.Any(), &cloudformation.UpdateStackSetInput{
 					OperationId:           aws.String(testOperationID),
 					AdministrationRoleARN: aws.String(testAdministrationRole),
 					Description:           aws.String(testDescription),
 					ExecutionRoleName:     aws.String(testExecutionRole),
 					StackSetName:          aws.String(testName),
-					Tags: []*cloudformation.Tag{
+					Tags: []types.Tag{
 						{
 							Key:   aws.String("owner"),
 							Value: aws.String("boss"),
 						},
 					},
-					OperationPreferences: &cloudformation.StackSetOperationPreferences{
-						RegionConcurrencyType: aws.String(cloudformation.RegionConcurrencyTypeParallel),
+					OperationPreferences: &types.StackSetOperationPreferences{
+						RegionConcurrencyType: types.RegionConcurrencyTypeParallel,
 					},
 					TemplateBody: aws.String(testTemplate),
 				}).Return(&cloudformation.UpdateStackSetOutput{
@@ -259,7 +267,7 @@ func TestStackSet_Update(t *testing.T) {
 		"returns ErrStackSetOutOfDate if operation exists already": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(gomock.Any()).Return(nil, errOpExists)
+				m.EXPECT().UpdateStackSet(gomock.Any(), gomock.Any()).Return(nil, errOpExists)
 				return m
 			},
 			wantedError: &ErrStackSetOutOfDate{
@@ -270,7 +278,7 @@ func TestStackSet_Update(t *testing.T) {
 		"returns ErrStackSetOutOfDate if operation in progress": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(gomock.Any()).Return(nil, errOpInProg)
+				m.EXPECT().UpdateStackSet(gomock.Any(), gomock.Any()).Return(nil, errOpInProg)
 				return m
 			},
 			wantedError: &ErrStackSetOutOfDate{
@@ -281,7 +289,7 @@ func TestStackSet_Update(t *testing.T) {
 		"returns ErrStackSetOutOfDate if operation is stale": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(gomock.Any()).Return(nil, errOpStale)
+				m.EXPECT().UpdateStackSet(gomock.Any(), gomock.Any()).Return(nil, errOpStale)
 				return m
 			},
 			wantedError: &ErrStackSetOutOfDate{
@@ -292,7 +300,7 @@ func TestStackSet_Update(t *testing.T) {
 		"wrap error on unexpected failure": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(gomock.Any()).Return(nil, testError)
+				m.EXPECT().UpdateStackSet(gomock.Any(), gomock.Any()).Return(nil, testError)
 				return m
 			},
 			wantedError: fmt.Errorf("update stack set %s: %w", testName, testError),
@@ -336,15 +344,15 @@ func TestStackSet_UpdateAndWait(t *testing.T) {
 		"waits until operation succeeds": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(gomock.Any()).Return(&cloudformation.UpdateStackSetOutput{
+				m.EXPECT().UpdateStackSet(gomock.Any(), gomock.Any()).Return(&cloudformation.UpdateStackSetOutput{
 					OperationId: aws.String("1"),
 				}, nil)
-				m.EXPECT().DescribeStackSetOperation(&cloudformation.DescribeStackSetOperationInput{
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), &cloudformation.DescribeStackSetOperationInput{
 					StackSetName: aws.String(testName),
 					OperationId:  aws.String("1"),
 				}).Return(&cloudformation.DescribeStackSetOperationOutput{
-					StackSetOperation: &cloudformation.StackSetOperation{
-						Status: aws.String(opStatusSucceeded),
+					StackSetOperation: &types.StackSetOperation{
+						Status: types.StackSetOperationStatus(opStatusSucceeded),
 					},
 				}, nil)
 				return m
@@ -353,12 +361,12 @@ func TestStackSet_UpdateAndWait(t *testing.T) {
 		"returns a wrapped error if operation stopped": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(gomock.Any()).Return(&cloudformation.UpdateStackSetOutput{
+				m.EXPECT().UpdateStackSet(gomock.Any(), gomock.Any()).Return(&cloudformation.UpdateStackSetOutput{
 					OperationId: aws.String("1"),
 				}, nil)
-				m.EXPECT().DescribeStackSetOperation(gomock.Any()).Return(&cloudformation.DescribeStackSetOperationOutput{
-					StackSetOperation: &cloudformation.StackSetOperation{
-						Status: aws.String(opStatusStopped),
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), gomock.Any()).Return(&cloudformation.DescribeStackSetOperationOutput{
+					StackSetOperation: &types.StackSetOperation{
+						Status: types.StackSetOperationStatus(opStatusStopped),
 					},
 				}, nil)
 				return m
@@ -368,12 +376,12 @@ func TestStackSet_UpdateAndWait(t *testing.T) {
 		"returns a wrapped error if operation failed": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().UpdateStackSet(gomock.Any()).Return(&cloudformation.UpdateStackSetOutput{
+				m.EXPECT().UpdateStackSet(gomock.Any(), gomock.Any()).Return(&cloudformation.UpdateStackSetOutput{
 					OperationId: aws.String("1"),
 				}, nil)
-				m.EXPECT().DescribeStackSetOperation(gomock.Any()).Return(&cloudformation.DescribeStackSetOperationOutput{
-					StackSetOperation: &cloudformation.StackSetOperation{
-						Status: aws.String(opStatusFailed),
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), gomock.Any()).Return(&cloudformation.DescribeStackSetOperationOutput{
+					StackSetOperation: &types.StackSetOperation{
+						Status: types.StackSetOperationStatus(opStatusFailed),
 					},
 				}, nil)
 				return m
@@ -413,7 +421,7 @@ func TestStackSet_DeleteInstance(t *testing.T) {
 		"returns if the account and region aren't found in the list of instances": {
 			mockClient: func(t *testing.T, ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DeleteStackInstances(gomock.Any()).Return(nil, fmt.Errorf("some error"))
+				m.EXPECT().DeleteStackInstances(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("some error"))
 				return m
 			},
 			inputRegion:  "us-west-1",
@@ -424,12 +432,12 @@ func TestStackSet_DeleteInstance(t *testing.T) {
 		"successfully deletes stack instance and returns the operation ID": {
 			mockClient: func(t *testing.T, ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DeleteStackInstances(gomock.Any()).
-					DoAndReturn(func(in *cloudformation.DeleteStackInstancesInput) (*cloudformation.DeleteStackInstancesOutput, error) {
-						require.Equal(t, testName, aws.StringValue(in.StackSetName))
-						require.ElementsMatch(t, []string{"1111"}, aws.StringValueSlice(in.Accounts))
-						require.ElementsMatch(t, []string{"us-east-1"}, aws.StringValueSlice(in.Regions))
-						require.False(t, aws.BoolValue(in.RetainStacks))
+				m.EXPECT().DeleteStackInstances(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, in *cloudformation.DeleteStackInstancesInput, _ ...func(*cloudformation.Options)) (*cloudformation.DeleteStackInstancesOutput, error) {
+						require.Equal(t, testName, aws.ToString(in.StackSetName))
+						require.ElementsMatch(t, []string{"1111"}, in.Accounts)
+						require.ElementsMatch(t, []string{"us-east-1"}, in.Regions)
+						require.False(t, aws.ToBool(in.RetainStacks))
 						return &cloudformation.DeleteStackInstancesOutput{
 							OperationId: aws.String("1"),
 						}, nil
@@ -473,21 +481,21 @@ func TestStackSet_WaitForStackSetLastOperationComplete(t *testing.T) {
 		"waits until operation succeeds": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackSetOperations(&cloudformation.ListStackSetOperationsInput{
+				m.EXPECT().ListStackSetOperations(gomock.Any(), &cloudformation.ListStackSetOperationsInput{
 					StackSetName: aws.String(testName),
 				}).Return(&cloudformation.ListStackSetOperationsOutput{
-					Summaries: []*cloudformation.StackSetOperationSummary{
+					Summaries: []types.StackSetOperationSummary{
 						{
-							Status: aws.String(cloudformation.StackSetOperationStatusRunning),
+							Status: types.StackSetOperationStatusRunning,
 						},
 					},
 				}, nil)
-				m.EXPECT().ListStackSetOperations(&cloudformation.ListStackSetOperationsInput{
+				m.EXPECT().ListStackSetOperations(gomock.Any(), &cloudformation.ListStackSetOperationsInput{
 					StackSetName: aws.String(testName),
 				}).Return(&cloudformation.ListStackSetOperationsOutput{
-					Summaries: []*cloudformation.StackSetOperationSummary{
+					Summaries: []types.StackSetOperationSummary{
 						{
-							Status: aws.String(cloudformation.StackSetOperationStatusSucceeded),
+							Status: types.StackSetOperationStatusSucceeded,
 						},
 					},
 				}, nil)
@@ -497,10 +505,10 @@ func TestStackSet_WaitForStackSetLastOperationComplete(t *testing.T) {
 		"return if no operation": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackSetOperations(&cloudformation.ListStackSetOperationsInput{
+				m.EXPECT().ListStackSetOperations(gomock.Any(), &cloudformation.ListStackSetOperationsInput{
 					StackSetName: aws.String(testName),
 				}).Return(&cloudformation.ListStackSetOperationsOutput{
-					Summaries: []*cloudformation.StackSetOperationSummary{},
+					Summaries: []types.StackSetOperationSummary{},
 				}, nil)
 				return m
 			},
@@ -508,7 +516,7 @@ func TestStackSet_WaitForStackSetLastOperationComplete(t *testing.T) {
 		"error if fail to list stackset operation": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackSetOperations(&cloudformation.ListStackSetOperationsInput{
+				m.EXPECT().ListStackSetOperations(gomock.Any(), &cloudformation.ListStackSetOperationsInput{
 					StackSetName: aws.String(testName),
 				}).Return(nil, errors.New("some error"))
 				return m
@@ -549,7 +557,7 @@ func TestStackSet_DeleteAllInstances(t *testing.T) {
 		"return ErrStackSetNotFound if the stack set does not exist": {
 			mockClient: func(t *testing.T, ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackInstances(gomock.Any()).Return(nil, awserr.New(cloudformation.ErrCodeStackSetNotFoundException, "", nil))
+				m.EXPECT().ListStackInstances(gomock.Any(), gomock.Any()).Return(nil, apiErr("StackSetNotFoundException"))
 				return m
 			},
 			wantedError: &ErrStackSetNotFound{name: testName},
@@ -557,8 +565,8 @@ func TestStackSet_DeleteAllInstances(t *testing.T) {
 		"returns ErrStackSetInstancesNotFound if there are no stack set instances": {
 			mockClient: func(t *testing.T, ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackInstances(gomock.Any()).Return(&cloudformation.ListStackInstancesOutput{
-					Summaries: []*cloudformation.StackInstanceSummary{},
+				m.EXPECT().ListStackInstances(gomock.Any(), gomock.Any()).Return(&cloudformation.ListStackInstancesOutput{
+					Summaries: []types.StackInstanceSummary{},
 				}, nil)
 				return m
 			},
@@ -567,8 +575,8 @@ func TestStackSet_DeleteAllInstances(t *testing.T) {
 		"successfully deletes stack instances and returns the operation ID": {
 			mockClient: func(t *testing.T, ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackInstances(gomock.Any()).Return(&cloudformation.ListStackInstancesOutput{
-					Summaries: []*cloudformation.StackInstanceSummary{
+				m.EXPECT().ListStackInstances(gomock.Any(), gomock.Any()).Return(&cloudformation.ListStackInstancesOutput{
+					Summaries: []types.StackInstanceSummary{
 						{
 							Account: aws.String("1111"),
 							Region:  aws.String("us-east-1"),
@@ -583,12 +591,12 @@ func TestStackSet_DeleteAllInstances(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.EXPECT().DeleteStackInstances(gomock.Any()).
-					DoAndReturn(func(in *cloudformation.DeleteStackInstancesInput) (*cloudformation.DeleteStackInstancesOutput, error) {
-						require.Equal(t, testName, aws.StringValue(in.StackSetName))
-						require.ElementsMatch(t, []string{"1111", "2222"}, aws.StringValueSlice(in.Accounts))
-						require.ElementsMatch(t, []string{"us-east-1", "us-west-2"}, aws.StringValueSlice(in.Regions))
-						require.False(t, aws.BoolValue(in.RetainStacks))
+				m.EXPECT().DeleteStackInstances(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, in *cloudformation.DeleteStackInstancesInput, _ ...func(*cloudformation.Options)) (*cloudformation.DeleteStackInstancesOutput, error) {
+						require.Equal(t, testName, aws.ToString(in.StackSetName))
+						require.ElementsMatch(t, []string{"1111", "2222"}, in.Accounts)
+						require.ElementsMatch(t, []string{"us-east-1", "us-west-2"}, in.Regions)
+						require.False(t, aws.ToBool(in.RetainStacks))
 						return &cloudformation.DeleteStackInstancesOutput{
 							OperationId: aws.String("1"),
 						}, nil
@@ -630,14 +638,14 @@ func TestStackSet_Delete(t *testing.T) {
 		"successfully exits if stack set does not exist": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DeleteStackSet(gomock.Any()).Return(nil, awserr.New(cloudformation.ErrCodeStackSetNotFoundException, "", nil))
+				m.EXPECT().DeleteStackSet(gomock.Any(), gomock.Any()).Return(nil, apiErr("StackSetNotFoundException"))
 				return m
 			},
 		},
 		"wraps error on unexpected failure": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DeleteStackSet(gomock.Any()).Return(nil, testError)
+				m.EXPECT().DeleteStackSet(gomock.Any(), gomock.Any()).Return(nil, testError)
 				return m
 			},
 			wantedError: fmt.Errorf("delete stack set %s: %w", testName, testError),
@@ -676,10 +684,10 @@ func TestStackSet_CreateInstances(t *testing.T) {
 		"successfully creates stack instances": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().CreateStackInstances(&cloudformation.CreateStackInstancesInput{
+				m.EXPECT().CreateStackInstances(gomock.Any(), &cloudformation.CreateStackInstancesInput{
 					StackSetName: aws.String(testName),
-					Accounts:     aws.StringSlice(testAccounts),
-					Regions:      aws.StringSlice(testRegions),
+					Accounts:     testAccounts,
+					Regions:      testRegions,
 				}).Return(&cloudformation.CreateStackInstancesOutput{
 					OperationId: aws.String("1"),
 				}, nil)
@@ -690,7 +698,7 @@ func TestStackSet_CreateInstances(t *testing.T) {
 		"wraps error on unexpected failure": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().CreateStackInstances(gomock.Any()).Return(nil, testError)
+				m.EXPECT().CreateStackInstances(gomock.Any(), gomock.Any()).Return(nil, testError)
 				return m
 			},
 			wantedError: fmt.Errorf("create stack instances for stack set %s in regions %v for accounts %v: %w",
@@ -737,12 +745,12 @@ func TestStackSet_InstanceSummaries(t *testing.T) {
 		"returns summaries": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackInstances(&cloudformation.ListStackInstancesInput{
+				m.EXPECT().ListStackInstances(gomock.Any(), &cloudformation.ListStackInstancesInput{
 					StackSetName:         aws.String(testName),
 					StackInstanceAccount: aws.String(testAccountID),
 					StackInstanceRegion:  aws.String(testRegion),
 				}).Return(&cloudformation.ListStackInstancesOutput{
-					Summaries: []*cloudformation.StackInstanceSummary{
+					Summaries: []types.StackInstanceSummary{
 						{
 							StackId: aws.String(testName),
 							Account: aws.String(testAccountID),
@@ -763,7 +771,7 @@ func TestStackSet_InstanceSummaries(t *testing.T) {
 		"wraps error on unexpected failure": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().ListStackInstances(gomock.Any()).Return(nil, testError)
+				m.EXPECT().ListStackInstances(gomock.Any(), gomock.Any()).Return(nil, testError)
 				return m
 			},
 			wantedError: fmt.Errorf("list stack instances for stack set %s: %w", testName, testError),
@@ -772,36 +780,36 @@ func TestStackSet_InstanceSummaries(t *testing.T) {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
 				gomock.InOrder(
-					m.EXPECT().ListStackInstances(&cloudformation.ListStackInstancesInput{
+					m.EXPECT().ListStackInstances(gomock.Any(), &cloudformation.ListStackInstancesInput{
 						StackSetName:         aws.String(testName),
 						StackInstanceAccount: aws.String(testAccountID),
 						StackInstanceRegion:  aws.String(testRegion),
 					}).Return(&cloudformation.ListStackInstancesOutput{
-						Summaries: []*cloudformation.StackInstanceSummary{
+						Summaries: []types.StackInstanceSummary{
 							{
 								StackId: aws.String("1111"),
 								Account: aws.String(testAccountID),
 								Region:  aws.String("us-west-2"),
-								StackInstanceStatus: &cloudformation.StackInstanceComprehensiveStatus{
-									DetailedStatus: aws.String(instanceStatusRunning),
+								StackInstanceStatus: &types.StackInstanceComprehensiveStatus{
+									DetailedStatus: types.StackInstanceDetailedStatus(instanceStatusRunning),
 								},
 							},
 						},
 						NextToken: aws.String("token"),
 					}, nil),
-					m.EXPECT().ListStackInstances(&cloudformation.ListStackInstancesInput{
+					m.EXPECT().ListStackInstances(gomock.Any(), &cloudformation.ListStackInstancesInput{
 						StackSetName:         aws.String(testName),
 						StackInstanceAccount: aws.String(testAccountID),
 						StackInstanceRegion:  aws.String(testRegion),
 						NextToken:            aws.String("token"),
 					}).Return(&cloudformation.ListStackInstancesOutput{
-						Summaries: []*cloudformation.StackInstanceSummary{
+						Summaries: []types.StackInstanceSummary{
 							{
 								StackId: aws.String("2222"),
 								Account: aws.String(testAccountID),
 								Region:  aws.String("us-east-1"),
-								StackInstanceStatus: &cloudformation.StackInstanceComprehensiveStatus{
-									DetailedStatus: aws.String(instanceStatusSucceeded),
+								StackInstanceStatus: &types.StackInstanceComprehensiveStatus{
+									DetailedStatus: types.StackInstanceDetailedStatus(instanceStatusSucceeded),
 								},
 							},
 						},
@@ -861,12 +869,12 @@ func TestStackSet_WaitForOperation(t *testing.T) {
 		"returns nil if the operation status is successful": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DescribeStackSetOperation(&cloudformation.DescribeStackSetOperationInput{
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), &cloudformation.DescribeStackSetOperationInput{
 					StackSetName: aws.String(testName),
 					OperationId:  aws.String(testOpID),
 				}).Return(&cloudformation.DescribeStackSetOperationOutput{
-					StackSetOperation: &cloudformation.StackSetOperation{
-						Status: aws.String(cloudformation.StackSetOperationStatusSucceeded),
+					StackSetOperation: &types.StackSetOperation{
+						Status: types.StackSetOperationStatusSucceeded,
 					},
 				}, nil)
 				return m
@@ -875,12 +883,12 @@ func TestStackSet_WaitForOperation(t *testing.T) {
 		"returns an error if the operation stopped": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DescribeStackSetOperation(&cloudformation.DescribeStackSetOperationInput{
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), &cloudformation.DescribeStackSetOperationInput{
 					StackSetName: aws.String(testName),
 					OperationId:  aws.String(testOpID),
 				}).Return(&cloudformation.DescribeStackSetOperationOutput{
-					StackSetOperation: &cloudformation.StackSetOperation{
-						Status: aws.String(cloudformation.StackSetOperationStatusStopped),
+					StackSetOperation: &types.StackSetOperation{
+						Status: types.StackSetOperationStatusStopped,
 					},
 				}, nil)
 				return m
@@ -890,12 +898,12 @@ func TestStackSet_WaitForOperation(t *testing.T) {
 		"returns an error if the operation failed": {
 			mockClient: func(ctrl *gomock.Controller) api {
 				m := mocks.NewMockapi(ctrl)
-				m.EXPECT().DescribeStackSetOperation(&cloudformation.DescribeStackSetOperationInput{
+				m.EXPECT().DescribeStackSetOperation(gomock.Any(), &cloudformation.DescribeStackSetOperationInput{
 					StackSetName: aws.String(testName),
 					OperationId:  aws.String(testOpID),
 				}).Return(&cloudformation.DescribeStackSetOperationOutput{
-					StackSetOperation: &cloudformation.StackSetOperation{
-						Status: aws.String(cloudformation.StackSetOperationStatusFailed),
+					StackSetOperation: &types.StackSetOperation{
+						Status: types.StackSetOperationStatusFailed,
 					},
 				}, nil)
 				return m

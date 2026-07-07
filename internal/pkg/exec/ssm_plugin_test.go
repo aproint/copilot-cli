@@ -10,9 +10,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -32,15 +31,15 @@ func (c *fakeHTTPClient) Get(url string) (resp *http.Response, err error) {
 }
 
 func TestSSMPluginCommand_StartSession(t *testing.T) {
-	mockSession := &ecs.Session{
-		SessionId:  aws.String("mockSessionID"),
-		StreamUrl:  aws.String("mockStreamURL"),
-		TokenValue: aws.String("mockTokenValue"),
+	mockSession := &types.Session{
+		SessionId:  awsv2.String("mockSessionID"),
+		StreamUrl:  awsv2.String("mockStreamURL"),
+		TokenValue: awsv2.String("mockTokenValue"),
 	}
 	var mockRunner *Mockrunner
 	mockError := errors.New("some error")
 	tests := map[string]struct {
-		inSession   *ecs.Session
+		inSession   *types.Session
 		setupMocks  func(controller *gomock.Controller)
 		wantedError error
 	}{
@@ -68,11 +67,7 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 			tc.setupMocks(ctrl)
 			s := SSMPluginCommand{
 				runner: mockRunner,
-				sess: &session.Session{
-					Config: &aws.Config{
-						Region: aws.String("us-west-2"),
-					},
-				},
+				region: "us-west-2",
 			}
 			err := s.StartSession(tc.inSession)
 			if tc.wantedError != nil {

@@ -3,24 +3,24 @@
 
 package stackset
 
-import "github.com/aws/aws-sdk-go/service/cloudformation"
+import "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 const (
-	opStatusSucceeded = cloudformation.StackSetOperationStatusSucceeded
-	opStatusStopped   = cloudformation.StackSetOperationStatusStopped
-	opStatusFailed    = cloudformation.StackSetOperationStatusFailed
-	opStatusRunning   = cloudformation.StackSetOperationStatusRunning
-	opStatusStopping  = cloudformation.StackSetOperationStatusStopping
-	opStatusQueued    = cloudformation.StackSetOperationStatusQueued
+	opStatusSucceeded = OpStatus(types.StackSetOperationStatusSucceeded)
+	opStatusStopped   = OpStatus(types.StackSetOperationStatusStopped)
+	opStatusFailed    = OpStatus(types.StackSetOperationStatusFailed)
+	opStatusRunning   = OpStatus(types.StackSetOperationStatusRunning)
+	opStatusStopping  = OpStatus(types.StackSetOperationStatusStopping)
+	opStatusQueued    = OpStatus(types.StackSetOperationStatusQueued)
 )
 
 const (
-	instanceStatusPending    = cloudformation.StackInstanceDetailedStatusPending
-	instanceStatusRunning    = cloudformation.StackInstanceDetailedStatusRunning
-	instanceStatusSucceeded  = cloudformation.StackInstanceDetailedStatusSucceeded
-	instanceStatusFailed     = cloudformation.StackInstanceDetailedStatusFailed
-	instanceStatusCancelled  = cloudformation.StackInstanceDetailedStatusCancelled
-	instanceStatusInoperable = cloudformation.StackInstanceDetailedStatusInoperable
+	instanceStatusPending    = InstanceStatus(types.StackInstanceDetailedStatusPending)
+	instanceStatusRunning    = InstanceStatus(types.StackInstanceDetailedStatusRunning)
+	instanceStatusSucceeded  = InstanceStatus(types.StackInstanceDetailedStatusSucceeded)
+	instanceStatusFailed     = InstanceStatus(types.StackInstanceDetailedStatusFailed)
+	instanceStatusCancelled  = InstanceStatus(types.StackInstanceDetailedStatusCancelled)
+	instanceStatusInoperable = InstanceStatus(types.StackInstanceDetailedStatusInoperable)
 )
 
 // OpStatus represents a stack set operation status.

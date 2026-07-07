@@ -5,10 +5,11 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	s3 "github.com/aws/aws-sdk-go/service/s3"
-	s3manager "github.com/aws/aws-sdk-go/service/s3/s3manager"
+	manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,22 +37,22 @@ func (m *Mocks3ManagerAPI) EXPECT() *Mocks3ManagerAPIMockRecorder {
 }
 
 // Upload mocks base method.
-func (m *Mocks3ManagerAPI) Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+func (m *Mocks3ManagerAPI) Upload(arg0 context.Context, arg1 *s3.PutObjectInput, arg2 ...func(*manager.Uploader)) (*manager.UploadOutput, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{input}
-	for _, a := range options {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Upload", varargs...)
-	ret0, _ := ret[0].(*s3manager.UploadOutput)
+	ret0, _ := ret[0].(*manager.UploadOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Upload indicates an expected call of Upload.
-func (mr *Mocks3ManagerAPIMockRecorder) Upload(input interface{}, options ...interface{}) *gomock.Call {
+func (mr *Mocks3ManagerAPIMockRecorder) Upload(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{input}, options...)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mocks3ManagerAPI)(nil).Upload), varargs...)
 }
 
@@ -79,63 +80,83 @@ func (m *Mocks3API) EXPECT() *Mocks3APIMockRecorder {
 }
 
 // DeleteObjects mocks base method.
-func (m *Mocks3API) DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error) {
+func (m *Mocks3API) DeleteObjects(arg0 context.Context, arg1 *s3.DeleteObjectsInput, arg2 ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteObjects", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteObjects", varargs...)
 	ret0, _ := ret[0].(*s3.DeleteObjectsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteObjects indicates an expected call of DeleteObjects.
-func (mr *Mocks3APIMockRecorder) DeleteObjects(input interface{}) *gomock.Call {
+func (mr *Mocks3APIMockRecorder) DeleteObjects(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObjects", reflect.TypeOf((*Mocks3API)(nil).DeleteObjects), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObjects", reflect.TypeOf((*Mocks3API)(nil).DeleteObjects), varargs...)
 }
 
 // HeadBucket mocks base method.
-func (m *Mocks3API) HeadBucket(input *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+func (m *Mocks3API) HeadBucket(arg0 context.Context, arg1 *s3.HeadBucketInput, arg2 ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HeadBucket", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "HeadBucket", varargs...)
 	ret0, _ := ret[0].(*s3.HeadBucketOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HeadBucket indicates an expected call of HeadBucket.
-func (mr *Mocks3APIMockRecorder) HeadBucket(input interface{}) *gomock.Call {
+func (mr *Mocks3APIMockRecorder) HeadBucket(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HeadBucket", reflect.TypeOf((*Mocks3API)(nil).HeadBucket), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HeadBucket", reflect.TypeOf((*Mocks3API)(nil).HeadBucket), varargs...)
 }
 
 // ListObjectVersions mocks base method.
-func (m *Mocks3API) ListObjectVersions(input *s3.ListObjectVersionsInput) (*s3.ListObjectVersionsOutput, error) {
+func (m *Mocks3API) ListObjectVersions(arg0 context.Context, arg1 *s3.ListObjectVersionsInput, arg2 ...func(*s3.Options)) (*s3.ListObjectVersionsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListObjectVersions", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListObjectVersions", varargs...)
 	ret0, _ := ret[0].(*s3.ListObjectVersionsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListObjectVersions indicates an expected call of ListObjectVersions.
-func (mr *Mocks3APIMockRecorder) ListObjectVersions(input interface{}) *gomock.Call {
+func (mr *Mocks3APIMockRecorder) ListObjectVersions(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectVersions", reflect.TypeOf((*Mocks3API)(nil).ListObjectVersions), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectVersions", reflect.TypeOf((*Mocks3API)(nil).ListObjectVersions), varargs...)
 }
 
 // ListObjectsV2 mocks base method.
-func (m *Mocks3API) ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+func (m *Mocks3API) ListObjectsV2(arg0 context.Context, arg1 *s3.ListObjectsV2Input, arg2 ...func(*s3.Options)) (*s3.ListObjectsV2Output, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListObjectsV2", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListObjectsV2", varargs...)
 	ret0, _ := ret[0].(*s3.ListObjectsV2Output)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListObjectsV2 indicates an expected call of ListObjectsV2.
-func (mr *Mocks3APIMockRecorder) ListObjectsV2(input interface{}) *gomock.Call {
+func (mr *Mocks3APIMockRecorder) ListObjectsV2(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsV2", reflect.TypeOf((*Mocks3API)(nil).ListObjectsV2), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsV2", reflect.TypeOf((*Mocks3API)(nil).ListObjectsV2), varargs...)
 }
 
 // MockNamedBinary is a mock of NamedBinary interface.

@@ -11,13 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/acm"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/dustin/go-humanize/english"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 const (
@@ -25,7 +22,7 @@ const (
 )
 
 type api interface {
-	DescribeCertificateWithContext(ctx aws.Context, input *acm.DescribeCertificateInput, opts ...request.Option) (*acm.DescribeCertificateOutput, error)
+	DescribeCertificate(ctx context.Context, input *acm.DescribeCertificateInput, opts ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
 }
 
 // ACM wraps an AWS Certificate Manager client.
@@ -33,10 +30,10 @@ type ACM struct {
 	client api
 }
 
-// New returns an ACM struct configured against the input session.
-func New(s *session.Session) *ACM {
+// New returns an ACM struct configured against the input SDK v2 config.
+func New(cfg awsv2.Config) *ACM {
 	return &ACM{
-		client: acm.New(s),
+		client: acm.NewFromConfig(cfg),
 	}
 }
 
@@ -81,15 +78,13 @@ func (a *ACM) ValidateCertAliases(aliases []string, certs []string) error {
 }
 
 func (a *ACM) validDomainsOfCert(ctx context.Context, cert string) ([]string, error) {
-	resp, err := a.client.DescribeCertificateWithContext(ctx, &acm.DescribeCertificateInput{
-		CertificateArn: aws.String(cert),
+	resp, err := a.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
+		CertificateArn: awsv2.String(cert),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("describe certificate %s: %w", cert, err)
 	}
-	var domainsOfCert []*string
-	domainsOfCert = append(domainsOfCert, resp.Certificate.SubjectAlternativeNames...)
-	return aws.StringValueSlice(domainsOfCert), err
+	return append([]string(nil), resp.Certificate.SubjectAlternativeNames...), err
 }
 
 func filterValidAliases(domains []string, aliases []string) []string {

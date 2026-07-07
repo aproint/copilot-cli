@@ -5,9 +5,10 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	iam "github.com/aws/aws-sdk-go/service/iam"
+	iam "github.com/aws/aws-sdk-go-v2/service/iam"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,91 +36,121 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // CreateServiceLinkedRole mocks base method.
-func (m *Mockapi) CreateServiceLinkedRole(input *iam.CreateServiceLinkedRoleInput) (*iam.CreateServiceLinkedRoleOutput, error) {
+func (m *Mockapi) CreateServiceLinkedRole(arg0 context.Context, arg1 *iam.CreateServiceLinkedRoleInput, arg2 ...func(*iam.Options)) (*iam.CreateServiceLinkedRoleOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateServiceLinkedRole", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateServiceLinkedRole", varargs...)
 	ret0, _ := ret[0].(*iam.CreateServiceLinkedRoleOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateServiceLinkedRole indicates an expected call of CreateServiceLinkedRole.
-func (mr *MockapiMockRecorder) CreateServiceLinkedRole(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) CreateServiceLinkedRole(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServiceLinkedRole", reflect.TypeOf((*Mockapi)(nil).CreateServiceLinkedRole), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServiceLinkedRole", reflect.TypeOf((*Mockapi)(nil).CreateServiceLinkedRole), varargs...)
 }
 
 // DeleteRole mocks base method.
-func (m *Mockapi) DeleteRole(input *iam.DeleteRoleInput) (*iam.DeleteRoleOutput, error) {
+func (m *Mockapi) DeleteRole(arg0 context.Context, arg1 *iam.DeleteRoleInput, arg2 ...func(*iam.Options)) (*iam.DeleteRoleOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteRole", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteRole", varargs...)
 	ret0, _ := ret[0].(*iam.DeleteRoleOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteRole indicates an expected call of DeleteRole.
-func (mr *MockapiMockRecorder) DeleteRole(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DeleteRole(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRole", reflect.TypeOf((*Mockapi)(nil).DeleteRole), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRole", reflect.TypeOf((*Mockapi)(nil).DeleteRole), varargs...)
 }
 
 // DeleteRolePolicy mocks base method.
-func (m *Mockapi) DeleteRolePolicy(input *iam.DeleteRolePolicyInput) (*iam.DeleteRolePolicyOutput, error) {
+func (m *Mockapi) DeleteRolePolicy(arg0 context.Context, arg1 *iam.DeleteRolePolicyInput, arg2 ...func(*iam.Options)) (*iam.DeleteRolePolicyOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteRolePolicy", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteRolePolicy", varargs...)
 	ret0, _ := ret[0].(*iam.DeleteRolePolicyOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteRolePolicy indicates an expected call of DeleteRolePolicy.
-func (mr *MockapiMockRecorder) DeleteRolePolicy(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DeleteRolePolicy(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRolePolicy", reflect.TypeOf((*Mockapi)(nil).DeleteRolePolicy), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRolePolicy", reflect.TypeOf((*Mockapi)(nil).DeleteRolePolicy), varargs...)
 }
 
 // ListPolicies mocks base method.
-func (m *Mockapi) ListPolicies(input *iam.ListPoliciesInput) (*iam.ListPoliciesOutput, error) {
+func (m *Mockapi) ListPolicies(arg0 context.Context, arg1 *iam.ListPoliciesInput, arg2 ...func(*iam.Options)) (*iam.ListPoliciesOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPolicies", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListPolicies", varargs...)
 	ret0, _ := ret[0].(*iam.ListPoliciesOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListPolicies indicates an expected call of ListPolicies.
-func (mr *MockapiMockRecorder) ListPolicies(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListPolicies(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPolicies", reflect.TypeOf((*Mockapi)(nil).ListPolicies), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPolicies", reflect.TypeOf((*Mockapi)(nil).ListPolicies), varargs...)
 }
 
 // ListRolePolicies mocks base method.
-func (m *Mockapi) ListRolePolicies(input *iam.ListRolePoliciesInput) (*iam.ListRolePoliciesOutput, error) {
+func (m *Mockapi) ListRolePolicies(arg0 context.Context, arg1 *iam.ListRolePoliciesInput, arg2 ...func(*iam.Options)) (*iam.ListRolePoliciesOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListRolePolicies", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListRolePolicies", varargs...)
 	ret0, _ := ret[0].(*iam.ListRolePoliciesOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListRolePolicies indicates an expected call of ListRolePolicies.
-func (mr *MockapiMockRecorder) ListRolePolicies(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListRolePolicies(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRolePolicies", reflect.TypeOf((*Mockapi)(nil).ListRolePolicies), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRolePolicies", reflect.TypeOf((*Mockapi)(nil).ListRolePolicies), varargs...)
 }
 
 // ListRoleTags mocks base method.
-func (m *Mockapi) ListRoleTags(input *iam.ListRoleTagsInput) (*iam.ListRoleTagsOutput, error) {
+func (m *Mockapi) ListRoleTags(arg0 context.Context, arg1 *iam.ListRoleTagsInput, arg2 ...func(*iam.Options)) (*iam.ListRoleTagsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListRoleTags", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListRoleTags", varargs...)
 	ret0, _ := ret[0].(*iam.ListRoleTagsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListRoleTags indicates an expected call of ListRoleTags.
-func (mr *MockapiMockRecorder) ListRoleTags(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) ListRoleTags(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRoleTags", reflect.TypeOf((*Mockapi)(nil).ListRoleTags), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRoleTags", reflect.TypeOf((*Mockapi)(nil).ListRoleTags), varargs...)
 }

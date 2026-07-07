@@ -15,8 +15,8 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,7 +64,7 @@ func TestStaticSite_NewStaticSite(t *testing.T) {
 
 			wantedStack: &StaticSite{
 				wkld: &wkld{
-					name: aws.StringValue(testStaticSiteManifest.Name),
+					name: aws.ToString(testStaticSiteManifest.Name),
 					env:  testEnvName,
 					app:  testAppName,
 					rc: RuntimeConfig{

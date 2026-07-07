@@ -18,7 +18,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/smithy-go"
 	"github.com/spf13/cobra"
 )
 
@@ -78,14 +78,14 @@ func isStackSetNotExistsErr(err error) bool {
 	if err == nil {
 		return false
 	}
-	aerr, ok := err.(awserr.Error)
-	if !ok {
+	var apiErr smithy.APIError
+	if !errors.As(err, &apiErr) {
 		return isStackSetNotExistsErr(errors.Unwrap(err))
 	}
-	if aerr.Code() != "StackSetNotFoundException" {
-		return isStackSetNotExistsErr(errors.Unwrap(err))
+	if apiErr.ErrorCode() == "StackSetNotFoundException" {
+		return true
 	}
-	return true
+	return isStackSetNotExistsErr(errors.Unwrap(err))
 }
 
 func run(cmd cmd) error {

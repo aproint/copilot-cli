@@ -153,10 +153,11 @@ func (t *cfnTemplate) assignNewNodesTo(tplName string) {
 // mergeTwoLevelMaps merges the top and second level keys of src node to dst.
 // It assumes that both nodes are nested maps. For example, a node can hold:
 // Mapping01:  # Top Level is a map.
-//    Key01:   # Second Level is also a map.
-//      Name: Value01
-//    Key02:   # Second Level.
-//      Name: Value02
+//
+//	Key01:   # Second Level is also a map.
+//	  Name: Value01
+//	Key02:   # Second Level.
+//	  Name: Value02
 //
 // If a second-level key exists in both src and dst but has different values, then returns an errKeyAlreadyExists.
 // If a second-level key exists in src but not in dst, it merges the second level key to dst.
@@ -179,8 +180,9 @@ func mergeTwoLevelMaps(dst, src *yaml.Node) error {
 // mergeSingleLevelMaps merges the keys of src node to dst.
 // It assumes that both nodes are a map. For example, a node can hold:
 // Resources:
-//    MyResourceName:
-//        ...  # If the contents of "MyResourceName" are not equal in both src and dst then err.
+//
+//	MyResourceName:
+//	    ...  # If the contents of "MyResourceName" are not equal in both src and dst then err.
 //
 // If a key exists in both src and dst but has different values, then returns an errKeyAlreadyExists.
 // If a key exists in both src and dst and the values are equal, then do nothing.

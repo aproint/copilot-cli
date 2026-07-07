@@ -14,8 +14,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/exec"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -451,11 +450,7 @@ func TestSvcExec_Execute(t *testing.T) {
 					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
-					m.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{
-						Config: &aws.Config{
-							Region: aws.String("mockRegion"),
-						},
-					}, nil),
+					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(nil, mockError),
 				)
 			},
@@ -468,11 +463,7 @@ func TestSvcExec_Execute(t *testing.T) {
 					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
-					m.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{
-						Config: &aws.Config{
-							Region: aws.String("mockRegion"),
-						},
-					}, nil),
+					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						Tasks: []*awsecs.Task{},
 					}, nil),
@@ -488,11 +479,7 @@ func TestSvcExec_Execute(t *testing.T) {
 					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
-					m.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{
-						Config: &aws.Config{
-							Region: aws.String("mockRegion"),
-						},
-					}, nil),
+					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						Tasks: []*awsecs.Task{
 							{
@@ -513,11 +500,7 @@ func TestSvcExec_Execute(t *testing.T) {
 					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
-					m.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{
-						Config: &aws.Config{
-							Region: aws.String("mockRegion"),
-						},
-					}, nil),
+					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						ClusterName: "mockCluster",
 						Tasks: []*awsecs.Task{
@@ -544,11 +527,7 @@ func TestSvcExec_Execute(t *testing.T) {
 					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
-					m.sessProvider.EXPECT().FromRole(gomock.Any(), gomock.Any()).Return(&session.Session{
-						Config: &aws.Config{
-							Region: aws.String("mockRegion"),
-						},
-					}, nil),
+					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						ClusterName: "mockCluster",
 						Tasks: []*awsecs.Task{
@@ -582,10 +561,10 @@ func TestSvcExec_Execute(t *testing.T) {
 			mockSvcDescriber := mocks.NewMockserviceDescriber(ctrl)
 			mockCommandExecutor := mocks.NewMockecsCommandExecutor(ctrl)
 			mockSessionProvider := mocks.NewMocksessionProvider(ctrl)
-			mockNewSvcDescriber := func(_ *session.Session) serviceDescriber {
+			mockNewSvcDescriber := func(_ aws.Config) serviceDescriber {
 				return mockSvcDescriber
 			}
-			mockNewCommandExecutor := func(_ *session.Session) ecsCommandExecutor {
+			mockNewCommandExecutor := func(_ aws.Config) ecsCommandExecutor {
 				return mockCommandExecutor
 			}
 

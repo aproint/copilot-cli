@@ -17,8 +17,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/template/override"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // Parameter logical IDs for a load balanced web service.
@@ -94,8 +94,8 @@ func NewLoadBalancedWebService(conf LoadBalancedWebServiceConfig,
 	s := &LoadBalancedWebService{
 		ecsWkld: &ecsWkld{
 			wkld: &wkld{
-				name:               aws.StringValue(conf.Manifest.Name),
-				env:                aws.StringValue(conf.EnvManifest.Name),
+				name:               aws.ToString(conf.Manifest.Name),
+				env:                aws.ToString(conf.EnvManifest.Name),
 				app:                conf.App.Name,
 				permBound:          conf.App.PermissionsBoundary,
 				artifactBucketName: conf.ArtifactBucketName,
@@ -217,7 +217,7 @@ func (s *LoadBalancedWebService) Template() (string, error) {
 		AddonsExtraParams:       addonsParams,
 		Autoscaling:             autoscaling,
 		CapacityProviders:       capacityProviders,
-		CredentialsParameter:    aws.StringValue(s.manifest.ImageConfig.Image.Credentials),
+		CredentialsParameter:    aws.ToString(s.manifest.ImageConfig.Image.Credentials),
 		DesiredCountOnSpot:      desiredCountOnSpot,
 		DeploymentConfiguration: convertDeploymentConfig(s.manifest.DeployConfig),
 		DependsOn:               convertDependsOn(s.manifest.ImageConfig.Image.DependsOn),
@@ -248,7 +248,7 @@ func (s *LoadBalancedWebService) Template() (string, error) {
 
 		// Additional options for request driven web service templates.
 		Observability: template.ObservabilityOpts{
-			Tracing: strings.ToUpper(aws.StringValue(s.manifest.Observability.Tracing)),
+			Tracing: strings.ToUpper(aws.ToString(s.manifest.Observability.Tracing)),
 		},
 
 		// Sidecar configs.

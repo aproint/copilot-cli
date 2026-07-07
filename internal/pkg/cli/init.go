@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -34,8 +35,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -104,11 +104,11 @@ type initOpts struct {
 func newInitOpts(vars initVars) (*initOpts, error) {
 	fs := afero.NewOsFs()
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("init"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 	prompt := prompt.New()
 	sel := selector.NewConfigSelector(prompt, configStore)
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
@@ -117,9 +117,9 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 	}
 	snsSel := selector.NewDeploySelect(prompt, configStore, deployStore)
 	spin := termprogress.NewSpinner(log.DiagnosticWriter)
-	id := identity.New(defaultSess)
-	deployer := cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr))
-	iamClient := iam.New(defaultSess)
+	id := identity.New(defaultConfig)
+	deployer := cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr))
+	iamClient := iam.New(defaultConfig)
 	initAppCmd := &initAppOpts{
 		initAppVars: initAppVars{
 			name: vars.appName,
@@ -130,7 +130,7 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		cfn:      deployer,
 		prog:     spin,
 		isSessionFromEnvVars: func() (bool, error) {
-			return sessions.AreCredsFromEnvVars(defaultSess)
+			return sessions.AreV2CredsFromEnvVars(context.Background(), defaultConfig)
 		},
 		existingWorkspace: func() (wsAppManager, error) {
 			return workspace.Use(fs)
@@ -150,8 +150,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		newAppVersionGetter: func(appName string) (versionGetter, error) {
 			return describe.NewAppDescriber(appName)
 		},
-		appCFN:          cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr)),
-		sess:            defaultSess,
+		appCFN:          cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
+		cfg:             defaultConfig,
 		templateVersion: version.LatestTemplateVersion(),
 	}
 	deployEnvCmd := &deployEnvOpts{
@@ -481,7 +481,7 @@ func (o *initOpts) deployEnv() error {
 	if err := o.askShouldDeploy(); err != nil {
 		return err
 	}
-	if !aws.BoolValue(o.shouldDeploy) {
+	if !aws.ToBool(o.shouldDeploy) {
 		// User chose not to deploy the service, exit.
 		return nil
 	}
@@ -512,7 +512,7 @@ func (o *initOpts) deployEnv() error {
 }
 
 func (o *initOpts) deploySvc() error {
-	if !aws.BoolValue(o.shouldDeploy) {
+	if !aws.ToBool(o.shouldDeploy) {
 		return nil
 	}
 	if deployOpts, ok := o.deploySvcCmd.(*deploySvcOpts); ok {
@@ -535,7 +535,7 @@ func (o *initOpts) deploySvc() error {
 }
 
 func (o *initOpts) deployJob() error {
-	if !aws.BoolValue(o.shouldDeploy) {
+	if !aws.ToBool(o.shouldDeploy) {
 		return nil
 	}
 	if deployOpts, ok := o.deployJobCmd.(*deployJobOpts); ok {
@@ -641,7 +641,7 @@ func BuildInitCmd() *cobra.Command {
 			}
 
 			// ShouldDeploy will always be set after flags or prompting.
-			if !aws.BoolValue(opts.shouldDeploy) {
+			if !aws.ToBool(opts.shouldDeploy) {
 				log.Info("\nNo problem, you can deploy your service later:\n")
 				log.Infof("- Run %s to create your environment.\n", color.HighlightCode("copilot env init"))
 				log.Infof("- Run %s to deploy your service.\n", color.HighlightCode("copilot deploy"))

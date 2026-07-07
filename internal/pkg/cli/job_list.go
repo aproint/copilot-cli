@@ -4,17 +4,14 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 
 	"github.com/aproint/copilot-cli/internal/pkg/cli/list"
-	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
@@ -34,15 +31,11 @@ type listJobOpts struct {
 }
 
 func newListJobOpts(vars listWkldVars) (*listJobOpts, error) {
-	defaultSession, err := sessions.ImmutableProvider(sessions.UserAgentExtras("job ls")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("job ls")).DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
-
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err

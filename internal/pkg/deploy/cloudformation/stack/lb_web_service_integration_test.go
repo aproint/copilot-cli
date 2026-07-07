@@ -17,8 +17,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 
@@ -94,7 +93,7 @@ func TestLoadBalancedWebService_TemplateInteg(t *testing.T) {
 		require.NoError(t, err)
 		err = envMft.Validate()
 		require.NoError(t, err)
-		err = envMft.Load(session.New())
+		err = envMft.Load(aws.Config{})
 		require.NoError(t, err)
 		content := envMft.Manifest()
 
@@ -112,7 +111,7 @@ func TestLoadBalancedWebService_TemplateInteg(t *testing.T) {
 		ws, err := workspace.Use(fs)
 		require.NoError(t, err)
 
-		_, err = addon.ParseFromWorkload(aws.StringValue(v.Name), ws)
+		_, err = addon.ParseFromWorkload(aws.ToString(v.Name), ws)
 		var notFound *addon.ErrAddonsNotFound
 		require.ErrorAs(t, err, &notFound)
 

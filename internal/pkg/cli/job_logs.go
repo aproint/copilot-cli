@@ -4,11 +4,9 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
-
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -17,7 +15,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
 )
 
@@ -47,11 +45,11 @@ type jobLogsOpts struct {
 
 func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job logs"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	configStore := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {
@@ -71,12 +69,12 @@ func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 		if err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
-		sess, err := sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
 		opts.logsSvc = logging.NewJobLogger(&logging.NewWorkloadLoggerOpts{
-			Sess: sess,
+			Cfg:  cfg,
 			App:  opts.appName,
 			Env:  opts.envName,
 			Name: opts.name,

@@ -6,6 +6,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,13 +14,10 @@ import (
 
 	clideploy "github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
 
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	awss3 "github.com/aproint/copilot-cli/internal/pkg/aws/s3"
 	"github.com/aproint/copilot-cli/internal/pkg/cli/clean"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/s3"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 
@@ -32,7 +30,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
-	awssession "github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
 )
 
@@ -69,19 +67,19 @@ type deleteSvcOpts struct {
 	prompt        prompter
 	sel           configSelector
 	appCFN        svcRemoverFromApp
-	getSvcCFN     func(sess *awssession.Session) wlDeleter
-	getECR        func(sess *awssession.Session) imageRemover
-	newSvcCleaner func(sess *awssession.Session, env *config.Environment, manifestType string) cleaner
+	getSvcCFN     func(aws.Config) wlDeleter
+	getECR        func(aws.Config) imageRemover
+	newSvcCleaner func(cfg aws.Config, env *config.Environment, manifestType string) cleaner
 }
 
 func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc delete"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	opts := &deleteSvcOpts{
 		deleteSvcVars: vars,
@@ -91,17 +89,17 @@ func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 		prompt:  prompter,
 		sess:    sessProvider,
 		sel:     selector.NewConfigSelector(prompter, store),
-		appCFN:  cloudformation.New(defaultSession, cloudformation.WithProgressTracker(os.Stderr)),
-		getSvcCFN: func(sess *awssession.Session) wlDeleter {
-			return cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
+		appCFN:  cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
+		getSvcCFN: func(cfg aws.Config) wlDeleter {
+			return cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
 		},
-		getECR: func(sess *awssession.Session) imageRemover {
-			return ecr.New(sess)
+		getECR: func(cfg aws.Config) imageRemover {
+			return ecr.New(cfg)
 		},
 	}
-	opts.newSvcCleaner = func(sess *awssession.Session, env *config.Environment, manifestType string) cleaner {
+	opts.newSvcCleaner = func(cfg aws.Config, env *config.Environment, manifestType string) cleaner {
 		if manifestType == manifestinfo.StaticSiteType {
-			return clean.StaticSite(opts.appName, env.Name, opts.name, s3.New(sess), awss3.New(sess))
+			return clean.StaticSite(opts.appName, env.Name, opts.name, s3.New(cfg), awss3.New(cfg))
 		}
 		return &clean.NoOp{}
 	}
@@ -271,16 +269,16 @@ func (o *deleteSvcOpts) appEnvironments() ([]*config.Environment, error) {
 
 func (o *deleteSvcOpts) deleteStacks(wkldType string, envs []*config.Environment) error {
 	for _, env := range envs {
-		sess, err := o.sess.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := o.sess.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
 
-		if err := o.newSvcCleaner(sess, env, wkldType).Clean(); err != nil {
+		if err := o.newSvcCleaner(cfg, env, wkldType).Clean(); err != nil {
 			return fmt.Errorf("clean resources: %w", err)
 		}
 
-		cfClient := o.getSvcCFN(sess)
+		cfClient := o.getSvcCFN(cfg)
 		if err := cfClient.DeleteWorkload(deploy.DeleteWorkloadInput{
 			Name:             o.name,
 			EnvName:          env.Name,
@@ -305,11 +303,11 @@ func (o *deleteSvcOpts) emptyECRRepos(envs []*config.Environment) error {
 	// TODO: centralized ECR repo name
 	repoName := clideploy.RepoName(o.appName, o.name)
 	for _, region := range uniqueRegions {
-		sess, err := o.sess.DefaultWithRegion(region)
+		cfg, err := o.sess.DefaultConfigWithRegion(context.Background(), region)
 		if err != nil {
 			return err
 		}
-		client := o.getECR(sess)
+		client := o.getECR(cfg)
 		if err := client.ClearRepository(repoName); err != nil {
 			return err
 		}

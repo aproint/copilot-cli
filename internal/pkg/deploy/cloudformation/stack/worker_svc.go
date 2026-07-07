@@ -14,8 +14,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/template/override"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // WorkerService represents the configuration needed to create a CloudFormation stack from a worker service manifest.
@@ -49,7 +49,7 @@ func NewWorkerService(cfg WorkerServiceConfig) (*WorkerService, error) {
 	return &WorkerService{
 		ecsWkld: &ecsWkld{
 			wkld: &wkld{
-				name:               aws.StringValue(cfg.Manifest.Name),
+				name:               aws.ToString(cfg.Manifest.Name),
 				env:                cfg.Env,
 				app:                cfg.App.Name,
 				permBound:          cfg.App.PermissionsBoundary,
@@ -156,13 +156,13 @@ func (s *WorkerService) Template() (string, error) {
 		ServiceConnectOpts:       scOpts,
 		Command:                  command,
 		DependsOn:                convertDependsOn(s.manifest.ImageConfig.Image.DependsOn),
-		CredentialsParameter:     aws.StringValue(s.manifest.ImageConfig.Image.Credentials),
+		CredentialsParameter:     aws.ToString(s.manifest.ImageConfig.Image.Credentials),
 		ServiceDiscoveryEndpoint: s.rc.ServiceDiscoveryEndpoint,
 		Subscribe:                subscribe,
 		Publish:                  publishers,
 		Platform:                 convertPlatform(s.manifest.Platform),
 		Observability: template.ObservabilityOpts{
-			Tracing: strings.ToUpper(aws.StringValue(s.manifest.Observability.Tracing)),
+			Tracing: strings.ToUpper(aws.ToString(s.manifest.Observability.Tracing)),
 		},
 		PermissionsBoundary: s.permBound,
 	})

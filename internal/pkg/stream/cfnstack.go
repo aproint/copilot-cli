@@ -10,12 +10,10 @@ import (
 	"sync"
 	"time"
 
-	awsarn "github.com/aws/aws-sdk-go/aws/arn"
-
 	cfn "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 )
 
 // StackEventsDescriber is the CloudFormation interface needed to describe stack events.
@@ -126,7 +124,7 @@ func (s *StackStreamer) Fetch() (next time.Time, done bool, err error) {
 		})
 		if err != nil {
 			// Check for throttles and wait to try again using the StackStreamer's interval.
-			if request.IsErrorThrottle(err) {
+			if isThrottleError(err) {
 				s.retries += 1
 				return nextFetchDate(s.clock, s.rand, s.retries), false, nil
 			}
@@ -140,24 +138,28 @@ func (s *StackStreamer) Fetch() (next time.Time, done bool, err error) {
 				finished = true
 				break
 			}
-			if _, seen := s.pastEventIDs[aws.StringValue(event.EventId)]; seen {
+			if _, seen := s.pastEventIDs[aws.ToString(event.EventId)]; seen {
 				finished = true
 				break
 			}
 
-			logicalID, resourceStatus := aws.StringValue(event.LogicalResourceId), aws.StringValue(event.ResourceStatus)
+			logicalID, resourceStatus := aws.ToString(event.LogicalResourceId), string(event.ResourceStatus)
 			if logicalID == s.stackName && !cfn.StackStatus(resourceStatus).InProgress() {
 				done = true
 			}
+			var eventTime time.Time
+			if event.Timestamp != nil {
+				eventTime = *event.Timestamp
+			}
 			events = append(events, StackEvent{
 				LogicalResourceID:    logicalID,
-				PhysicalResourceID:   aws.StringValue(event.PhysicalResourceId),
-				ResourceType:         aws.StringValue(event.ResourceType),
+				PhysicalResourceID:   aws.ToString(event.PhysicalResourceId),
+				ResourceType:         aws.ToString(event.ResourceType),
 				ResourceStatus:       resourceStatus,
-				ResourceStatusReason: aws.StringValue(event.ResourceStatusReason),
-				Timestamp:            aws.TimeValue(event.Timestamp),
+				ResourceStatusReason: aws.ToString(event.ResourceStatusReason),
+				Timestamp:            eventTime,
 			})
-			s.pastEventIDs[aws.StringValue(event.EventId)] = true
+			s.pastEventIDs[aws.ToString(event.EventId)] = true
 		}
 		if finished || out.NextToken == nil {
 			break

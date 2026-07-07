@@ -11,8 +11,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/aws-sdk-go/aws"
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,9 +85,9 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 			out: &ecs.Service{
 				DeploymentConfiguration: &awsecs.DeploymentConfiguration{
 					Alarms: &awsecs.DeploymentAlarms{
-						AlarmNames: []*string{aws.String("alarm1"), aws.String("alarm2")},
-						Enable:     aws.Bool(true),
-						Rollback:   aws.Bool(true),
+						AlarmNames: []string{"alarm1", "alarm2"},
+						Enable:     true,
+						Rollback:   true,
 					},
 				},
 			},
@@ -109,9 +109,9 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 			out: &ecs.Service{
 				DeploymentConfiguration: &awsecs.DeploymentConfiguration{
 					Alarms: &awsecs.DeploymentAlarms{
-						AlarmNames: []*string{aws.String("alarm1"), aws.String("alarm2")},
-						Enable:     aws.Bool(true),
-						Rollback:   aws.Bool(true),
+						AlarmNames: []string{"alarm1", "alarm2"},
+						Enable:     true,
+						Rollback:   true,
 					},
 				},
 			},
@@ -140,24 +140,24 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 		startDate := time.Date(2020, time.November, 23, 18, 0, 0, 0, time.UTC)
 		m := mockECS{
 			out: &ecs.Service{
-				Deployments: []*awsecs.Deployment{
+				Deployments: []awsecs.Deployment{
 					{
-						DesiredCount:   aws.Int64(10),
-						FailedTasks:    aws.Int64(0),
-						PendingCount:   aws.Int64(0),
-						RolloutState:   aws.String("COMPLETED"),
-						RunningCount:   aws.Int64(10),
+						DesiredCount:   10,
+						FailedTasks:    0,
+						PendingCount:   0,
+						RolloutState:   awsecs.DeploymentRolloutStateCompleted,
+						RunningCount:   10,
 						Status:         aws.String("PRIMARY"),
 						TaskDefinition: aws.String("arn:aws:ecs:us-west-2:1111:task-definition/myapp-test-mysvc:2"),
 						UpdatedAt:      aws.Time(startDate),
 						Id:             aws.String("ecs-svc/123"),
 					},
 					{
-						DesiredCount:   aws.Int64(10),
-						FailedTasks:    aws.Int64(10),
-						PendingCount:   aws.Int64(0),
-						RolloutState:   aws.String("FAILED"),
-						RunningCount:   aws.Int64(0),
+						DesiredCount:   10,
+						FailedTasks:    10,
+						PendingCount:   0,
+						RolloutState:   awsecs.DeploymentRolloutStateFailed,
+						RunningCount:   0,
 						Status:         aws.String("ACTIVE"),
 						TaskDefinition: aws.String("arn:aws:ecs:us-west-2:1111:task-definition/myapp-test-mysvc:1"),
 						UpdatedAt:      aws.Time(oldStartDate),
@@ -166,12 +166,12 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 				},
 				DeploymentConfiguration: &awsecs.DeploymentConfiguration{
 					Alarms: &awsecs.DeploymentAlarms{
-						AlarmNames: []*string{aws.String("alarm1"), aws.String("alarm2")},
-						Enable:     aws.Bool(true),
-						Rollback:   aws.Bool(true),
+						AlarmNames: []string{"alarm1", "alarm2"},
+						Enable:     true,
+						Rollback:   true,
 					},
 				},
-				Events: []*awsecs.ServiceEvent{
+				Events: []awsecs.ServiceEvent{
 					{
 						CreatedAt: aws.Time(startDate),
 						Id:        aws.String("id1"),
@@ -301,21 +301,21 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 		startDate := time.Date(2020, time.November, 23, 18, 0, 0, 0, time.UTC)
 		m := mockECS{
 			out: &ecs.Service{
-				Deployments: []*awsecs.Deployment{
+				Deployments: []awsecs.Deployment{
 					{
-						DesiredCount:   aws.Int64(10),
-						FailedTasks:    aws.Int64(0),
-						PendingCount:   aws.Int64(0),
-						RunningCount:   aws.Int64(10),
+						DesiredCount:   10,
+						FailedTasks:    0,
+						PendingCount:   0,
+						RunningCount:   10,
 						Status:         aws.String("PRIMARY"),
 						TaskDefinition: aws.String("arn:aws:ecs:us-west-2:1111:task-definition/myapp-test-mysvc:2"),
 						UpdatedAt:      aws.Time(startDate),
 					},
 					{
-						DesiredCount:   aws.Int64(10),
-						FailedTasks:    aws.Int64(10),
-						PendingCount:   aws.Int64(0),
-						RunningCount:   aws.Int64(0),
+						DesiredCount:   10,
+						FailedTasks:    10,
+						PendingCount:   0,
+						RunningCount:   0,
 						Status:         aws.String("ACTIVE"),
 						TaskDefinition: aws.String("arn:aws:ecs:us-west-2:1111:task-definition/myapp-test-mysvc:1"),
 						UpdatedAt:      aws.Time(oldStartDate),
@@ -323,8 +323,8 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 				},
 				DeploymentConfiguration: &awsecs.DeploymentConfiguration{
 					DeploymentCircuitBreaker: &awsecs.DeploymentCircuitBreaker{
-						Enable:   aws.Bool(false),
-						Rollback: aws.Bool(true),
+						Enable:   false,
+						Rollback: true,
 					},
 				},
 			},
@@ -369,7 +369,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 		startDate := time.Date(2020, time.November, 23, 18, 0, 0, 0, time.UTC)
 		m := mockECS{
 			out: &ecs.Service{
-				Events: []*awsecs.ServiceEvent{
+				Events: []awsecs.ServiceEvent{
 					{
 						// Failure event
 						Id:        aws.String("1"),
@@ -467,7 +467,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 		startDate := time.Date(2020, time.November, 23, 18, 0, 0, 0, time.UTC)
 		m := mockECS{
 			out: &ecs.Service{
-				Events: []*awsecs.ServiceEvent{
+				Events: []awsecs.ServiceEvent{
 					{
 						// Failure event
 						Id:        aws.String("1"),
@@ -499,7 +499,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 		startDate := time.Date(2020, time.November, 23, 18, 0, 0, 0, time.UTC)
 		m := mockECS{
 			out: &ecs.Service{
-				Events: []*awsecs.ServiceEvent{
+				Events: []awsecs.ServiceEvent{
 					{
 						// Failure event
 						Id:        aws.String("1"),

@@ -31,9 +31,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/syncbuffer"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	sdkcfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sdkcfn "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -1370,7 +1369,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 						envVersionGetter: m.mockEnvVersionGetter,
 						overrider:        new(override.Noop),
 					},
-					newSvcUpdater: func(f func(*session.Session) serviceForceUpdater) serviceForceUpdater {
+					newSvcUpdater: func(f func(aws.Config) serviceForceUpdater) serviceForceUpdater {
 						return m.mockServiceForceUpdater
 					},
 					now: func() time.Time {

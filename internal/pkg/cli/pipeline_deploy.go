@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,14 +14,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/spf13/afero"
 	"golang.org/x/mod/semver"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	cs "github.com/aproint/copilot-cli/internal/pkg/aws/codestar"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	clideploy "github.com/aproint/copilot-cli/internal/pkg/cli/deploy"
@@ -39,7 +38,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/spf13/cobra"
 
@@ -118,11 +117,11 @@ type deployPipelineOpts struct {
 
 func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline deploy"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	store := config.NewSSMStore(identity.New(defaultSession), ssm.New(defaultSession), aws.StringValue(defaultSession.Config.Region))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 
 	prompter := prompt.New()
 	ws, err := workspace.Use(afero.NewOsFs())
@@ -137,8 +136,8 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 
 	opts := &deployPipelineOpts{
 		ws:                 ws,
-		pipelineDeployer:   deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
-		region:             aws.StringValue(defaultSession.Config.Region),
+		pipelineDeployer:   deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
+		region:             defaultConfig.Region,
 		deployPipelineVars: vars,
 		store:              store,
 		prog:               termprogress.NewSpinner(log.DiagnosticWriter),
@@ -146,7 +145,7 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 		diffWriter:         os.Stdout,
 		sessProvider:       sessProvider,
 		sel:                selector.NewWsPipelineSelector(prompter, ws),
-		codestar:           cs.New(defaultSession),
+		codestar:           cs.New(defaultConfig),
 		templateVersion:    version.LatestTemplateVersion(),
 		pipelineStackConfig: func(in *deploy.CreatePipelineInput) stackConfiguration {
 			return stack.NewPipelineStackConfig(in)
@@ -189,7 +188,7 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 	}
 	opts.configureDeployedPipelineLister = func() deployedPipelineLister {
 		// Initialize the client only after the appName is asked.
-		return deploy.NewPipelineStore(rg.New(defaultSession))
+		return deploy.NewPipelineStore(rg.New(defaultConfig))
 	}
 	opts.pipelineVersionGetter = func(appName, name string, isLegacy bool) (versionGetter, error) {
 		return describe.NewPipelineStackDescriber(appName, name, isLegacy)

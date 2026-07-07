@@ -240,6 +240,41 @@ func TestStaticSite_Template(t *testing.T) {
 		// THEN
 		require.EqualError(t, err, "some error")
 	})
+
+	t.Run("renders CloudFront Function with runtime 2.0", func(t *testing.T) {
+		// GIVEN
+		static, err := NewStaticSite(&StaticSiteConfig{
+			App: &config.Application{
+				Name: testAppName,
+			},
+			EnvManifest: &manifest.Environment{
+				Workload: manifest.Workload{
+					Name: aws.String(testEnvName),
+				},
+			},
+			Manifest: &manifest.StaticSite{
+				Workload: manifest.Workload{
+					Name: aws.String("frontend"),
+				},
+			},
+			ArtifactBucketName: "mockBucket",
+			RuntimeConfig: RuntimeConfig{
+				Region: "us-west-2",
+			},
+			Addons: mockAddons{},
+		})
+		require.NoError(t, err)
+		static.parser = realEmbedFS
+
+		// WHEN
+		tpl, err := static.Template()
+
+		// THEN
+		require.NoError(t, err)
+		require.Contains(t, tpl, "Runtime: cloudfront-js-2.0")
+		require.NotContains(t, tpl, "Runtime: cloudfront-js-1.0")
+		require.Contains(t, tpl, "function handler(event){var request=event.request;var uri=request.uri;if(uri.endsWith('/')){request.uri+='index.html'}else if(!uri.includes('.')){request.uri+='/index.html'}return request}")
+	})
 }
 
 func TestStaticSite_Parameters(t *testing.T) {

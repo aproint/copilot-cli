@@ -103,7 +103,7 @@ Resources:
         function handler(event){var request=event.request;var uri=request.uri;if(uri.endsWith('/')){request.uri+='index.html'}else if(!uri.includes('.')){request.uri+='/index.html'}return request}
       FunctionConfig: 
         Comment: CloudFront Function to rewrite viewer request to index.html
-        Runtime: cloudfront-js-1.0
+        Runtime: cloudfront-js-2.0
       Name: my-app-my-env-static
 
   CloudFrontDistribution:

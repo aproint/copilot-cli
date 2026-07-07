@@ -8,18 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"runtime"
-	"strings"
 
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	v2config "github.com/aws/aws-sdk-go-v2/config"
 	v2credentials "github.com/aws/aws-sdk-go-v2/credentials"
 	v2stscreds "github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go/middleware"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
 type v2ConfigLoader func(context.Context, ...func(*v2config.LoadOptions) error) (awsv2.Config, error)
@@ -153,11 +151,6 @@ func (p *Provider) v2APIOptions() []func(*middleware.Stack) error {
 	}
 }
 
-func (p *Provider) userAgentValue() string {
-	extras := append([]string{runtime.GOOS}, p.userAgentExtras...)
-	return fmt.Sprintf("%s/%s (%s)", userAgentProductName, version.Version, strings.Join(extras, "; "))
-}
-
 // AreV2CredsFromEnvVars returns true if the config's credentials provider is environment variables, false otherwise.
 // An error is returned if the credentials are invalid or the request times out.
 func AreV2CredsFromEnvVars(ctx context.Context, cfg awsv2.Config) (bool, error) {
@@ -189,33 +182,16 @@ func (v *v2Validator) ValidateV2Credentials(ctx context.Context, cfg awsv2.Confi
 	return V2Creds(ctx, cfg)
 }
 
-type copilotUserAgent struct {
-	provider *Provider
-}
-
 func addCopilotUserAgent(provider *Provider) func(*middleware.Stack) error {
 	return func(stack *middleware.Stack) error {
-		return stack.Build.Add(&copilotUserAgent{provider: provider}, middleware.After)
+		if err := awsmiddleware.AddUserAgentKeyValue(userAgentProductName, version.Version)(stack); err != nil {
+			return err
+		}
+		for _, extra := range provider.userAgentExtras {
+			if err := awsmiddleware.AddUserAgentKeyValue(userAgentCommandKey, extra)(stack); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
-}
-
-func (m *copilotUserAgent) ID() string {
-	return "CopilotUserAgent"
-}
-
-func (m *copilotUserAgent) HandleBuild(ctx context.Context, in middleware.BuildInput, next middleware.BuildHandler) (
-	out middleware.BuildOutput, metadata middleware.Metadata, err error,
-) {
-	req, ok := in.Request.(*smithyhttp.Request)
-	if !ok {
-		return out, metadata, fmt.Errorf("unknown transport type %T", in.Request)
-	}
-
-	value := m.provider.userAgentValue()
-	if existing := req.Header.Get("User-Agent"); existing != "" {
-		req.Header.Set("User-Agent", fmt.Sprintf("%s %s", existing, value))
-	} else {
-		req.Header.Set("User-Agent", value)
-	}
-	return next.HandleBuild(ctx, in)
 }

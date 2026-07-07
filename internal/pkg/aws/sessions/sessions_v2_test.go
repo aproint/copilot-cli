@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/version"
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	v2config "github.com/aws/aws-sdk-go-v2/config"
 	v2credentials "github.com/aws/aws-sdk-go-v2/credentials"
@@ -277,54 +278,63 @@ func TestAreV2CredsFromEnvVars(t *testing.T) {
 	}
 }
 
-func TestCopilotUserAgent_HandleBuild(t *testing.T) {
+func TestAddCopilotUserAgent(t *testing.T) {
 	provider := &Provider{}
 	testCases := map[string]struct {
 		existing string
-		want     string
 	}{
-		"sets the header if missing": {
-			want: provider.userAgentValue(),
-		},
+		"sets the header if missing": {},
 		"appends to existing user agent": {
 			existing: "aws-sdk-go-v2/1.0.0",
-			want:     "aws-sdk-go-v2/1.0.0 " + provider.userAgentValue(),
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			req := &smithyhttp.Request{Request: &http.Request{Header: http.Header{}}}
+			got := renderCopilotUserAgent(t, provider, tc.existing)
+			require.Contains(t, got, "aws-sdk-go-v2/")
+			require.Contains(t, got, userAgentProductName+"/"+version.Version)
 			if tc.existing != "" {
-				req.Header.Set("User-Agent", tc.existing)
+				require.Contains(t, got, tc.existing)
 			}
-			ua := &copilotUserAgent{provider: provider}
-
-			_, _, err := ua.HandleBuild(context.Background(), middleware.BuildInput{Request: req}, middleware.BuildHandlerFunc(
-				func(_ context.Context, in middleware.BuildInput) (middleware.BuildOutput, middleware.Metadata, error) {
-					return middleware.BuildOutput{Result: in.Request}, middleware.Metadata{}, nil
-				},
-			))
-
-			require.NoError(t, err)
-			require.Equal(t, tc.want, req.Header.Get("User-Agent"))
 		})
 	}
 }
 
-func TestCopilotUserAgent_HandleBuildUsesLatestProviderExtras(t *testing.T) {
+func TestAddCopilotUserAgentUsesLatestProviderExtras(t *testing.T) {
 	provider := &Provider{userAgentExtras: []string{"svc deploy"}}
-	req := &smithyhttp.Request{Request: &http.Request{Header: http.Header{}}}
-	ua := &copilotUserAgent{provider: provider}
 
 	provider.UserAgentExtras("override cdk")
-	_, _, err := ua.HandleBuild(context.Background(), middleware.BuildInput{Request: req}, middleware.BuildHandlerFunc(
-		func(_ context.Context, in middleware.BuildInput) (middleware.BuildOutput, middleware.Metadata, error) {
-			return middleware.BuildOutput{Result: in.Request}, middleware.Metadata{}, nil
-		},
-	))
+	got := renderCopilotUserAgent(t, provider, "")
 
+	require.Contains(t, got, userAgentProductName+"/"+version.Version)
+	require.Contains(t, got, userAgentCommandKey+"/svc-deploy")
+	require.Contains(t, got, userAgentCommandKey+"/override-cdk")
+}
+
+func renderCopilotUserAgent(t *testing.T, provider *Provider, existing string) string {
+	t.Helper()
+
+	stack := middleware.NewStack("testStack", smithyhttp.NewStackRequest)
+	req := &smithyhttp.Request{Request: &http.Request{Header: http.Header{}}}
+	if existing != "" {
+		req.Header.Set("User-Agent", existing)
+	}
+	err := stack.Build.Add(middleware.BuildMiddlewareFunc("setRequest", func(ctx context.Context, _ middleware.BuildInput, handler middleware.BuildHandler) (
+		out middleware.BuildOutput, metadata middleware.Metadata, err error,
+	) {
+		return handler.HandleBuild(ctx, middleware.BuildInput{Request: req})
+	}), middleware.After)
 	require.NoError(t, err)
-	require.Equal(t, provider.userAgentValue(), req.Header.Get("User-Agent"))
-	require.Contains(t, req.Header.Get("User-Agent"), "svc deploy; override cdk")
+
+	err = addCopilotUserAgent(provider)(stack)
+	require.NoError(t, err)
+	_, _, err = middleware.DecorateHandler(middleware.HandlerFunc(func(_ context.Context, input interface{}) (
+		output interface{}, metadata middleware.Metadata, err error,
+	) {
+		return input, metadata, nil
+	}), stack).Handle(context.Background(), nil)
+	require.NoError(t, err)
+
+	return req.Header.Get("User-Agent")
 }

@@ -22,6 +22,7 @@ const (
 // User-Agent settings.
 const (
 	userAgentProductName = "aws-copilot"
+	userAgentCommandKey  = "aws-copilot-command"
 )
 
 // Provider provides methods to create AWS SDK configs.

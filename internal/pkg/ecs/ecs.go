@@ -82,7 +82,7 @@ type Client struct {
 func New(sess *session.Session, rgConfig awsv2.Config) *Client {
 	return &Client{
 		rgGetter:  resourcegroups.New(rgConfig),
-		ecsClient: ecs.New(sess),
+		ecsClient: ecs.New(rgConfig),
 	}
 }
 
@@ -574,14 +574,14 @@ func (c Client) HasNonZeroExitCode(taskARNs []string, cluster string) error {
 
 	for _, describedTask := range tasks {
 		for _, container := range describedTask.Containers {
-			if isContainerEssential[aws.StringValue(container.Name)] && aws.Int64Value(container.ExitCode) != 0 {
+			if isContainerEssential[aws.StringValue(container.Name)] && awsv2.ToInt32(container.ExitCode) != 0 {
 				taskID, err := ecs.TaskID(aws.StringValue(describedTask.TaskArn))
 				if err != nil {
 					return err
 				}
 				return &ErrExitCode{aws.StringValue(container.Name),
 					taskID,
-					int(aws.Int64Value(container.ExitCode))}
+					int(awsv2.ToInt32(container.ExitCode))}
 			}
 		}
 	}

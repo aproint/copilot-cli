@@ -5,16 +5,17 @@
 package apprunner
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apprunner"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/apprunner"
+	"github.com/aws/aws-sdk-go-v2/service/apprunner/types"
 )
 
 const (
@@ -32,18 +33,18 @@ const (
 	repositoryTypeECRPublic = "ECR_PUBLIC"
 
 	// EndpointsID is the ID to look up the App Runner service endpoint.
-	EndpointsID = apprunner.EndpointsID
+	EndpointsID = "apprunner"
 )
 
 type api interface {
-	DescribeService(input *apprunner.DescribeServiceInput) (*apprunner.DescribeServiceOutput, error)
-	ListOperations(input *apprunner.ListOperationsInput) (*apprunner.ListOperationsOutput, error)
-	ListServices(input *apprunner.ListServicesInput) (*apprunner.ListServicesOutput, error)
-	PauseService(input *apprunner.PauseServiceInput) (*apprunner.PauseServiceOutput, error)
-	ResumeService(input *apprunner.ResumeServiceInput) (*apprunner.ResumeServiceOutput, error)
-	StartDeployment(input *apprunner.StartDeploymentInput) (*apprunner.StartDeploymentOutput, error)
-	DescribeObservabilityConfiguration(input *apprunner.DescribeObservabilityConfigurationInput) (*apprunner.DescribeObservabilityConfigurationOutput, error)
-	DescribeVpcIngressConnection(input *apprunner.DescribeVpcIngressConnectionInput) (*apprunner.DescribeVpcIngressConnectionOutput, error)
+	DescribeService(ctx context.Context, input *apprunner.DescribeServiceInput, opts ...func(*apprunner.Options)) (*apprunner.DescribeServiceOutput, error)
+	ListOperations(ctx context.Context, input *apprunner.ListOperationsInput, opts ...func(*apprunner.Options)) (*apprunner.ListOperationsOutput, error)
+	ListServices(ctx context.Context, input *apprunner.ListServicesInput, opts ...func(*apprunner.Options)) (*apprunner.ListServicesOutput, error)
+	PauseService(ctx context.Context, input *apprunner.PauseServiceInput, opts ...func(*apprunner.Options)) (*apprunner.PauseServiceOutput, error)
+	ResumeService(ctx context.Context, input *apprunner.ResumeServiceInput, opts ...func(*apprunner.Options)) (*apprunner.ResumeServiceOutput, error)
+	StartDeployment(ctx context.Context, input *apprunner.StartDeploymentInput, opts ...func(*apprunner.Options)) (*apprunner.StartDeploymentOutput, error)
+	DescribeObservabilityConfiguration(ctx context.Context, input *apprunner.DescribeObservabilityConfigurationInput, opts ...func(*apprunner.Options)) (*apprunner.DescribeObservabilityConfigurationOutput, error)
+	DescribeVpcIngressConnection(ctx context.Context, input *apprunner.DescribeVpcIngressConnectionInput, opts ...func(*apprunner.Options)) (*apprunner.DescribeVpcIngressConnectionOutput, error)
 }
 
 // AppRunner wraps an AWS AppRunner client.
@@ -51,17 +52,17 @@ type AppRunner struct {
 	client api
 }
 
-// New returns a Service configured against the input session.
-func New(s *session.Session) *AppRunner {
+// New returns a Service configured against the input config.
+func New(cfg awsv2.Config) *AppRunner {
 	return &AppRunner{
-		client: apprunner.New(s),
+		client: apprunner.NewFromConfig(cfg),
 	}
 }
 
 // DescribeService returns a description of an AppRunner service given its ARN.
 func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
-	resp, err := a.client.DescribeService(&apprunner.DescribeServiceInput{
-		ServiceArn: aws.String(svcARN),
+	resp, err := a.client.DescribeService(context.Background(), &apprunner.DescribeServiceInput{
+		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("describe service %s: %w", svcARN, err)
@@ -70,7 +71,7 @@ func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
 	for k, v := range resp.Service.SourceConfiguration.ImageRepository.ImageConfiguration.RuntimeEnvironmentVariables {
 		envVars = append(envVars, &EnvironmentVariable{
 			Name:  k,
-			Value: aws.StringValue(v),
+			Value: v,
 		})
 	}
 	sort.SliceStable(envVars, func(i int, j int) bool { return envVars[i].Name < envVars[j].Name })
@@ -79,14 +80,14 @@ func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
 	for k, v := range resp.Service.SourceConfiguration.ImageRepository.ImageConfiguration.RuntimeEnvironmentSecrets {
 		secrets = append(secrets, &EnvironmentSecret{
 			Name:  k,
-			Value: aws.StringValue(v),
+			Value: v,
 		})
 	}
 	sort.SliceStable(secrets, func(i int, j int) bool { return secrets[i].Name < secrets[j].Name })
 
 	var observabilityConfiguration ObservabilityConfiguration
-	if resp.Service.ObservabilityConfiguration != nil && aws.BoolValue(resp.Service.ObservabilityConfiguration.ObservabilityEnabled) {
-		if out, err := a.client.DescribeObservabilityConfiguration(&apprunner.DescribeObservabilityConfigurationInput{
+	if resp.Service.ObservabilityConfiguration != nil && resp.Service.ObservabilityConfiguration.ObservabilityEnabled {
+		if out, err := a.client.DescribeObservabilityConfiguration(context.Background(), &apprunner.DescribeObservabilityConfigurationInput{
 			ObservabilityConfigurationArn: resp.Service.ObservabilityConfiguration.ObservabilityConfigurationArn,
 		}); err == nil {
 			// NOTE: swallow the error otherwise, because observability is an optional description of the service.
@@ -97,18 +98,18 @@ func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
 		}
 	}
 	return &Service{
-		ServiceARN:           aws.StringValue(resp.Service.ServiceArn),
-		Name:                 aws.StringValue(resp.Service.ServiceName),
-		ID:                   aws.StringValue(resp.Service.ServiceId),
-		Status:               aws.StringValue(resp.Service.Status),
-		ServiceURL:           aws.StringValue(resp.Service.ServiceUrl),
+		ServiceARN:           awsv2.ToString(resp.Service.ServiceArn),
+		Name:                 awsv2.ToString(resp.Service.ServiceName),
+		ID:                   awsv2.ToString(resp.Service.ServiceId),
+		Status:               string(resp.Service.Status),
+		ServiceURL:           awsv2.ToString(resp.Service.ServiceUrl),
 		DateCreated:          *resp.Service.CreatedAt,
 		DateUpdated:          *resp.Service.UpdatedAt,
 		EnvironmentVariables: envVars,
-		CPU:                  *resp.Service.InstanceConfiguration.Cpu,
-		Memory:               *resp.Service.InstanceConfiguration.Memory,
-		ImageID:              *resp.Service.SourceConfiguration.ImageRepository.ImageIdentifier,
-		Port:                 *resp.Service.SourceConfiguration.ImageRepository.ImageConfiguration.Port,
+		CPU:                  awsv2.ToString(resp.Service.InstanceConfiguration.Cpu),
+		Memory:               awsv2.ToString(resp.Service.InstanceConfiguration.Memory),
+		ImageID:              awsv2.ToString(resp.Service.SourceConfiguration.ImageRepository.ImageIdentifier),
+		Port:                 awsv2.ToString(resp.Service.SourceConfiguration.ImageRepository.ImageConfiguration.Port),
 		Observability:        observabilityConfiguration,
 		EnvironmentSecrets:   secrets,
 	}, nil
@@ -118,15 +119,15 @@ func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
 func (a *AppRunner) ServiceARN(svc string) (string, error) {
 	var nextToken *string
 	for {
-		resp, err := a.client.ListServices(&apprunner.ListServicesInput{
+		resp, err := a.client.ListServices(context.Background(), &apprunner.ListServicesInput{
 			NextToken: nextToken,
 		})
 		if err != nil {
 			return "", fmt.Errorf("list AppRunner services: %w", err)
 		}
 		for _, service := range resp.ServiceSummaryList {
-			if aws.StringValue(service.ServiceName) == svc {
-				return aws.StringValue(service.ServiceArn), nil
+			if awsv2.ToString(service.ServiceName) == svc {
+				return awsv2.ToString(service.ServiceArn), nil
 			}
 		}
 		if resp.NextToken == nil {
@@ -139,16 +140,16 @@ func (a *AppRunner) ServiceARN(svc string) (string, error) {
 
 // PauseService pause the running App Runner service.
 func (a *AppRunner) PauseService(svcARN string) error {
-	resp, err := a.client.PauseService(&apprunner.PauseServiceInput{
-		ServiceArn: aws.String(svcARN),
+	resp, err := a.client.PauseService(context.Background(), &apprunner.PauseServiceInput{
+		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
 		return fmt.Errorf("pause service operation failed: %w", err)
 	}
-	if resp.OperationId == nil && aws.StringValue(resp.Service.Status) == svcStatusPaused {
+	if resp.OperationId == nil && string(resp.Service.Status) == svcStatusPaused {
 		return nil
 	}
-	if err := a.WaitForOperation(aws.StringValue(resp.OperationId), svcARN); err != nil {
+	if err := a.WaitForOperation(awsv2.ToString(resp.OperationId), svcARN); err != nil {
 		return err
 	}
 	return nil
@@ -156,16 +157,16 @@ func (a *AppRunner) PauseService(svcARN string) error {
 
 // ResumeService resumes a paused App Runner service.
 func (a *AppRunner) ResumeService(svcARN string) error {
-	resp, err := a.client.ResumeService(&apprunner.ResumeServiceInput{
-		ServiceArn: aws.String(svcARN),
+	resp, err := a.client.ResumeService(context.Background(), &apprunner.ResumeServiceInput{
+		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
 		return fmt.Errorf("resume service operation failed: %w", err)
 	}
-	if resp.OperationId == nil && aws.StringValue(resp.Service.Status) == svcStatusRunning {
+	if resp.OperationId == nil && string(resp.Service.Status) == svcStatusRunning {
 		return nil
 	}
-	if err := a.WaitForOperation(aws.StringValue(resp.OperationId), svcARN); err != nil {
+	if err := a.WaitForOperation(awsv2.ToString(resp.OperationId), svcARN); err != nil {
 		return err
 	}
 	return nil
@@ -173,29 +174,29 @@ func (a *AppRunner) ResumeService(svcARN string) error {
 
 // StartDeployment initiates a manual deployment to an AWS App Runner service.
 func (a *AppRunner) StartDeployment(svcARN string) (string, error) {
-	out, err := a.client.StartDeployment(&apprunner.StartDeploymentInput{
-		ServiceArn: aws.String(svcARN),
+	out, err := a.client.StartDeployment(context.Background(), &apprunner.StartDeploymentInput{
+		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
 		return "", fmt.Errorf("start new deployment: %w", err)
 	}
-	return aws.StringValue(out.OperationId), nil
+	return awsv2.ToString(out.OperationId), nil
 }
 
 // DescribeOperation return OperationSummary for given OperationId and ServiceARN.
-func (a *AppRunner) DescribeOperation(operationId, svcARN string) (*apprunner.OperationSummary, error) {
+func (a *AppRunner) DescribeOperation(operationId, svcARN string) (*types.OperationSummary, error) {
 	var nextToken *string
 	for {
-		resp, err := a.client.ListOperations(&apprunner.ListOperationsInput{
-			ServiceArn: aws.String(svcARN),
+		resp, err := a.client.ListOperations(context.Background(), &apprunner.ListOperationsInput{
+			ServiceArn: awsv2.String(svcARN),
 			NextToken:  nextToken,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("list operations: %w", err)
 		}
-		for _, operation := range resp.OperationSummaryList {
-			if aws.StringValue(operation.Id) == operationId {
-				return operation, nil
+		for i := range resp.OperationSummaryList {
+			if awsv2.ToString(resp.OperationSummaryList[i].Id) == operationId {
+				return &resp.OperationSummaryList[i], nil
 			}
 		}
 		if resp.NextToken == nil {
@@ -213,7 +214,7 @@ func (a *AppRunner) WaitForOperation(operationId, svcARN string) error {
 		if err != nil {
 			return fmt.Errorf("error describing operation %s: %w", operationId, err)
 		}
-		switch status := aws.StringValue(resp.Status); status {
+		switch status := string(resp.Status); status {
 		case opStatusSucceeded:
 			return nil
 		case opStatusFailed:
@@ -227,14 +228,14 @@ func (a *AppRunner) WaitForOperation(operationId, svcARN string) error {
 
 // PrivateURL returns the url associated with a VPC Ingress Connection.
 func (a *AppRunner) PrivateURL(vicARN string) (string, error) {
-	resp, err := a.client.DescribeVpcIngressConnection(&apprunner.DescribeVpcIngressConnectionInput{
-		VpcIngressConnectionArn: aws.String(vicARN),
+	resp, err := a.client.DescribeVpcIngressConnection(context.Background(), &apprunner.DescribeVpcIngressConnectionInput{
+		VpcIngressConnectionArn: awsv2.String(vicARN),
 	})
 	if err != nil {
 		return "", fmt.Errorf("describe vpc ingress connection %q: %w", vicARN, err)
 	}
 
-	return aws.StringValue(resp.VpcIngressConnection.DomainName), nil
+	return awsv2.ToString(resp.VpcIngressConnection.DomainName), nil
 }
 
 // ParseServiceName returns the service name.

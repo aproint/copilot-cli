@@ -18,7 +18,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 )
 
@@ -169,7 +168,7 @@ func newAppRunnerServiceDescriber(opt NewServiceConfig) (*appRunnerServiceDescri
 
 	return &appRunnerServiceDescriber{
 		WorkloadStackDescriber: stackDescriber,
-		apprunnerClient:        apprunner.New(stackDescriber.sess),
+		apprunnerClient:        apprunner.New(v2ConfigFromSessionRegion(stackDescriber.sess)),
 	}, nil
 }
 
@@ -225,7 +224,7 @@ func (d *ecsServiceDescriber) RollbackAlarmNames() ([]string, error) {
 	if service.DeploymentConfiguration.Alarms == nil {
 		return nil, nil
 	}
-	return aws.StringValueSlice(service.DeploymentConfiguration.Alarms.AlarmNames), nil
+	return service.DeploymentConfiguration.Alarms.AlarmNames, nil
 }
 
 // ServiceARN retrieves the ARN of the app runner service.

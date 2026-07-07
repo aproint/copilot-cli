@@ -16,9 +16,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
+	ecsapi "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	ecsapi "github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -179,9 +179,9 @@ func TestServiceStatus_Describe(t *testing.T) {
 							{
 								TaskArn:      aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/1234567890123456789"),
 								StartedAt:    &startTime,
-								HealthStatus: aws.String("HEALTHY"),
+								HealthStatus: ecsapi.HealthStatusHealthy,
 								LastStatus:   aws.String("RUNNING"),
-								Containers: []*ecsapi.Container{
+								Containers: []ecsapi.Container{
 									{
 										Image:       aws.String("mockImageID1"),
 										ImageDigest: aws.String("69671a968e8ec3648e2697417750e"),
@@ -194,9 +194,9 @@ func TestServiceStatus_Describe(t *testing.T) {
 					}, nil),
 					m.ecsServiceGetter.EXPECT().Service(mockCluster, mockService).Return(&awsecs.Service{
 						Status:       aws.String("ACTIVE"),
-						DesiredCount: aws.Int64(1),
-						RunningCount: aws.Int64(1),
-						Deployments: []*ecsapi.Deployment{
+						DesiredCount: 1,
+						RunningCount: 1,
+						Deployments: []ecsapi.Deployment{
 							{
 								UpdatedAt:      &startTime,
 								TaskDefinition: aws.String("mockTaskDefinition"),
@@ -251,12 +251,12 @@ func TestServiceStatus_Describe(t *testing.T) {
 				gomock.InOrder(
 					m.serviceDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(mockServiceDesc, nil),
 					m.ecsServiceGetter.EXPECT().Service(mockCluster, mockService).Return(&awsecs.Service{
-						Deployments: []*ecsapi.Deployment{
+						Deployments: []ecsapi.Deployment{
 							{
 								UpdatedAt: aws.Time(startTime),
 							},
 						},
-						LoadBalancers: []*ecsapi.LoadBalancer{
+						LoadBalancers: []ecsapi.LoadBalancer{
 							{
 								TargetGroupArn: aws.String("group-1"),
 							},
@@ -297,10 +297,10 @@ func TestServiceStatus_Describe(t *testing.T) {
 						Tasks: []*awsecs.Task{
 							{
 								TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/task-with-private-ip-being-target"),
-								Attachments: []*ecsapi.Attachment{
+								Attachments: []ecsapi.Attachment{
 									{
 										Type: aws.String("ElasticNetworkInterface"),
-										Details: []*ecsapi.KeyValuePair{
+										Details: []ecsapi.KeyValuePair{
 											{
 												Name:  aws.String("privateIPv4Address"),
 												Value: aws.String("1.2.3.4"),
@@ -311,10 +311,10 @@ func TestServiceStatus_Describe(t *testing.T) {
 							},
 							{
 								TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/task-with-private-ip-not-a-target"),
-								Attachments: []*ecsapi.Attachment{
+								Attachments: []ecsapi.Attachment{
 									{
 										Type: aws.String("ElasticNetworkInterface"),
-										Details: []*ecsapi.KeyValuePair{
+										Details: []ecsapi.KeyValuePair{
 											{
 												Name:  aws.String("privateIPv4Address"),
 												Value: aws.String("5.6.7.8"),
@@ -327,15 +327,15 @@ func TestServiceStatus_Describe(t *testing.T) {
 					}, nil),
 					m.ecsServiceGetter.EXPECT().Service(mockCluster, mockService).Return(&awsecs.Service{
 						Status:       aws.String("ACTIVE"),
-						DesiredCount: aws.Int64(1),
-						RunningCount: aws.Int64(1),
-						Deployments: []*ecsapi.Deployment{
+						DesiredCount: 1,
+						RunningCount: 1,
+						Deployments: []ecsapi.Deployment{
 							{
 								UpdatedAt:      &startTime,
 								TaskDefinition: aws.String("mockTaskDefinition"),
 							},
 						},
-						LoadBalancers: []*ecsapi.LoadBalancer{
+						LoadBalancers: []ecsapi.LoadBalancer{
 							{
 								TargetGroupArn: aws.String("group-1"),
 							},
@@ -462,9 +462,9 @@ func TestServiceStatus_Describe(t *testing.T) {
 							{
 								TaskArn:      aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/1234567890123456789"),
 								StartedAt:    &startTime,
-								HealthStatus: aws.String("HEALTHY"),
+								HealthStatus: ecsapi.HealthStatusHealthy,
 								LastStatus:   aws.String("RUNNING"),
-								Containers: []*ecsapi.Container{
+								Containers: []ecsapi.Container{
 									{
 										Image:       aws.String("mockImageID1"),
 										ImageDigest: aws.String("69671a968e8ec3648e2697417750e"),
@@ -481,9 +481,9 @@ func TestServiceStatus_Describe(t *testing.T) {
 					}, nil),
 					m.ecsServiceGetter.EXPECT().Service(mockCluster, mockService).Return(&awsecs.Service{
 						Status:       aws.String("ACTIVE"),
-						DesiredCount: aws.Int64(1),
-						RunningCount: aws.Int64(1),
-						Deployments: []*ecsapi.Deployment{
+						DesiredCount: 1,
+						RunningCount: 1,
+						Deployments: []ecsapi.Deployment{
 							{
 								UpdatedAt:      &startTime,
 								TaskDefinition: aws.String("mockTaskDefinition"),
@@ -867,10 +867,10 @@ func Test_targetHealthForTasks(t *testing.T) {
 			inTasks: []*awsecs.Task{
 				{
 					TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/task-with-private-ip-being-target"),
-					Attachments: []*ecsapi.Attachment{
+					Attachments: []ecsapi.Attachment{
 						{
 							Type: aws.String("ElasticNetworkInterface"),
-							Details: []*ecsapi.KeyValuePair{
+							Details: []ecsapi.KeyValuePair{
 								{
 									Name:  aws.String("privateIPv4Address"),
 									Value: aws.String("1.2.3.4"),
@@ -881,10 +881,10 @@ func Test_targetHealthForTasks(t *testing.T) {
 				},
 				{
 					TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/task-with-private-ip-being-target"),
-					Attachments: []*ecsapi.Attachment{
+					Attachments: []ecsapi.Attachment{
 						{
 							Type: aws.String("ElasticNetworkInterface"),
-							Details: []*ecsapi.KeyValuePair{
+							Details: []ecsapi.KeyValuePair{
 								{
 									Name:  aws.String("privateIPv4Address"),
 									Value: aws.String("4.3.2.1"),
@@ -934,10 +934,10 @@ func Test_targetHealthForTasks(t *testing.T) {
 			inTasks: []*awsecs.Task{
 				{
 					TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/task-with-private-ip-being-target"),
-					Attachments: []*ecsapi.Attachment{
+					Attachments: []ecsapi.Attachment{
 						{
 							Type: aws.String("ElasticNetworkInterface"),
-							Details: []*ecsapi.KeyValuePair{
+							Details: []ecsapi.KeyValuePair{
 								{
 									Name:  aws.String("privateIPv4Address"),
 									Value: aws.String("42.42.42.42"),
@@ -948,10 +948,10 @@ func Test_targetHealthForTasks(t *testing.T) {
 				},
 				{
 					TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789012:task/mockCluster/not-target"),
-					Attachments: []*ecsapi.Attachment{
+					Attachments: []ecsapi.Attachment{
 						{
 							Type: aws.String("ElasticNetworkInterface"),
-							Details: []*ecsapi.KeyValuePair{
+							Details: []ecsapi.KeyValuePair{
 								{
 									Name:  aws.String("privateIPv4Address"),
 									Value: aws.String("4.3.2.1"),

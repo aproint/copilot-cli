@@ -5,17 +5,16 @@
 package ecs
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-
 	"github.com/aproint/copilot-cli/internal/pkg/exec"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 const (
@@ -25,25 +24,33 @@ const (
 	stableServiceDeploymentNum       = 1
 
 	// EndpointsID is the ID to look up the ECS service endpoint.
-	EndpointsID = ecs.EndpointsID
+	EndpointsID = "ecs"
 )
 
 type api interface {
-	DescribeClusters(input *ecs.DescribeClustersInput) (*ecs.DescribeClustersOutput, error)
-	DescribeServices(input *ecs.DescribeServicesInput) (*ecs.DescribeServicesOutput, error)
-	DescribeTasks(input *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error)
-	DescribeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error)
-	ExecuteCommand(input *ecs.ExecuteCommandInput) (*ecs.ExecuteCommandOutput, error)
-	ListTasks(input *ecs.ListTasksInput) (*ecs.ListTasksOutput, error)
-	RunTask(input *ecs.RunTaskInput) (*ecs.RunTaskOutput, error)
-	StopTask(input *ecs.StopTaskInput) (*ecs.StopTaskOutput, error)
-	UpdateService(input *ecs.UpdateServiceInput) (*ecs.UpdateServiceOutput, error)
-	WaitUntilTasksRunning(input *ecs.DescribeTasksInput) error
-	ListServicesByNamespacePages(input *ecs.ListServicesByNamespaceInput, fn func(*ecs.ListServicesByNamespaceOutput, bool) bool) error
+	DescribeClusters(ctx context.Context, input *ecs.DescribeClustersInput, opts ...func(*ecs.Options)) (*ecs.DescribeClustersOutput, error)
+	DescribeServices(ctx context.Context, input *ecs.DescribeServicesInput, opts ...func(*ecs.Options)) (*ecs.DescribeServicesOutput, error)
+	DescribeTasks(ctx context.Context, input *ecs.DescribeTasksInput, opts ...func(*ecs.Options)) (*ecs.DescribeTasksOutput, error)
+	DescribeTaskDefinition(ctx context.Context, input *ecs.DescribeTaskDefinitionInput, opts ...func(*ecs.Options)) (*ecs.DescribeTaskDefinitionOutput, error)
+	ExecuteCommand(ctx context.Context, input *ecs.ExecuteCommandInput, opts ...func(*ecs.Options)) (*ecs.ExecuteCommandOutput, error)
+	ListServicesByNamespace(ctx context.Context, input *ecs.ListServicesByNamespaceInput, opts ...func(*ecs.Options)) (*ecs.ListServicesByNamespaceOutput, error)
+	ListTasks(ctx context.Context, input *ecs.ListTasksInput, opts ...func(*ecs.Options)) (*ecs.ListTasksOutput, error)
+	RunTask(ctx context.Context, input *ecs.RunTaskInput, opts ...func(*ecs.Options)) (*ecs.RunTaskOutput, error)
+	StopTask(ctx context.Context, input *ecs.StopTaskInput, opts ...func(*ecs.Options)) (*ecs.StopTaskOutput, error)
+	UpdateService(ctx context.Context, input *ecs.UpdateServiceInput, opts ...func(*ecs.Options)) (*ecs.UpdateServiceOutput, error)
+	WaitUntilTasksRunning(ctx context.Context, input *ecs.DescribeTasksInput, maxWaitDur time.Duration, opts ...func(*ecs.TasksRunningWaiterOptions)) error
 }
 
 type ssmSessionStarter interface {
-	StartSession(ssmSession *ecs.Session) error
+	StartSession(ssmSession *types.Session) error
+}
+
+type clientWithWaiter struct {
+	*ecs.Client
+}
+
+func (c clientWithWaiter) WaitUntilTasksRunning(ctx context.Context, input *ecs.DescribeTasksInput, maxWaitDur time.Duration, opts ...func(*ecs.TasksRunningWaiterOptions)) error {
+	return ecs.NewTasksRunningWaiter(c.Client).Wait(ctx, input, maxWaitDur, opts...)
 }
 
 // ECS wraps an AWS ECS client.
@@ -75,12 +82,13 @@ type ExecuteCommandInput struct {
 	Container string
 }
 
-// New returns a Service configured against the input session.
-func New(s *session.Session) *ECS {
+// New returns a Service configured against the input config.
+func New(cfg awsv2.Config) *ECS {
+	client := ecs.NewFromConfig(cfg)
 	return &ECS{
-		client: ecs.New(s),
+		client: clientWithWaiter{Client: client},
 		newSessStarter: func() ssmSessionStarter {
-			return exec.NewSSMPluginCommand(s)
+			return exec.NewSSMPluginCommand(cfg.Region)
 		},
 		maxServiceStableTries: waitServiceStableMaxTry,
 		pollIntervalDuration:  waitServiceStablePollingInterval,
@@ -89,8 +97,8 @@ func New(s *session.Session) *ECS {
 
 // TaskDefinition calls ECS API and returns the task definition.
 func (e *ECS) TaskDefinition(taskDefName string) (*TaskDefinition, error) {
-	resp, err := e.client.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: aws.String(taskDefName),
+	resp, err := e.client.DescribeTaskDefinition(context.Background(), &ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: awsv2.String(taskDefName),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("describe task definition %s: %w", taskDefName, err)
@@ -105,7 +113,7 @@ func (e *ECS) Service(clusterName, serviceName string) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	if aws.StringValue(svcs[0].ServiceName) != serviceName {
+	if awsv2.ToString(svcs[0].ServiceName) != serviceName {
 		return nil, fmt.Errorf("cannot find service %s", serviceName)
 	}
 
@@ -119,21 +127,21 @@ func (e *ECS) Services(cluster string, services ...string) ([]*Service, error) {
 	for i := 0; i < len(services); i += 10 {
 		split := services[i:min(10+i, len(services))]
 
-		resp, err := e.client.DescribeServices(&ecs.DescribeServicesInput{
-			Cluster:  aws.String(cluster),
-			Services: aws.StringSlice(split),
+		resp, err := e.client.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
+			Cluster:  awsv2.String(cluster),
+			Services: split,
 		})
 		switch {
 		case err != nil:
 			return nil, fmt.Errorf("describe services: %w", err)
 		case len(resp.Failures) > 0:
-			return nil, fmt.Errorf("describe services: %s", resp.Failures[0].String())
+			return nil, fmt.Errorf("describe services: %s", failureString(resp.Failures[0]))
 		case len(resp.Services) != len(split):
 			return nil, fmt.Errorf("describe services: got %v services, but expected %v", len(resp.Services), len(split))
 		}
 
 		for j := range resp.Services {
-			svc := Service(*resp.Services[j])
+			svc := Service(resp.Services[j])
 			svcs = append(svcs, &svc)
 		}
 	}
@@ -145,14 +153,19 @@ func (e *ECS) Services(cluster string, services ...string) ([]*Service, error) {
 // are in the given namespace.
 func (e *ECS) ListServicesByNamespace(namespace string) ([]string, error) {
 	var arns []string
-	err := e.client.ListServicesByNamespacePages(&ecs.ListServicesByNamespaceInput{
-		Namespace: aws.String(namespace),
-	}, func(resp *ecs.ListServicesByNamespaceOutput, b bool) bool {
-		arns = append(arns, aws.StringValueSlice(resp.ServiceArns)...)
-		return true
-	})
-	if err != nil {
-		return nil, err
+	in := &ecs.ListServicesByNamespaceInput{
+		Namespace: awsv2.String(namespace),
+	}
+	for {
+		resp, err := e.client.ListServicesByNamespace(context.Background(), in)
+		if err != nil {
+			return nil, err
+		}
+		arns = append(arns, resp.ServiceArns...)
+		if resp.NextToken == nil {
+			break
+		}
+		in.NextToken = resp.NextToken
 	}
 	return arns, nil
 }
@@ -163,20 +176,20 @@ type UpdateServiceOpts func(*ecs.UpdateServiceInput)
 // WithForceUpdate sets ForceNewDeployment to force an update.
 func WithForceUpdate() UpdateServiceOpts {
 	return func(in *ecs.UpdateServiceInput) {
-		in.ForceNewDeployment = aws.Bool(true)
+		in.ForceNewDeployment = true
 	}
 }
 
 // UpdateService calls ECS API and updates the specific service running in the cluster.
 func (e *ECS) UpdateService(clusterName, serviceName string, opts ...UpdateServiceOpts) error {
 	in := &ecs.UpdateServiceInput{
-		Cluster: aws.String(clusterName),
-		Service: aws.String(serviceName),
+		Cluster: awsv2.String(clusterName),
+		Service: awsv2.String(serviceName),
 	}
 	for _, opt := range opts {
 		opt(in)
 	}
-	svc, err := e.client.UpdateService(in)
+	svc, err := e.client.UpdateService(context.Background(), in)
 	if err != nil {
 		return fmt.Errorf("update service %s from cluster %s: %w", serviceName, clusterName, err)
 	}
@@ -194,7 +207,7 @@ func (e *ECS) waitUntilServiceStable(svc *Service) error {
 	var tryNum int
 	for {
 		if len(svc.Deployments) == stableServiceDeploymentNum &&
-			aws.Int64Value(svc.DesiredCount) == aws.Int64Value(svc.RunningCount) {
+			svc.DesiredCount == svc.RunningCount {
 			// This conditional is sufficient to determine that the service is stable AND has successfully updated (hence not rolled-back).
 			// The stable service cannot be a rolled-back service because a rollback can only be triggered by circuit breaker after ~1hr,
 			// by which time we would have already timed out.
@@ -205,7 +218,7 @@ func (e *ECS) waitUntilServiceStable(svc *Service) error {
 				maxRetries: e.maxServiceStableTries,
 			}
 		}
-		svc, err = e.Service(aws.StringValue(svc.ClusterArn), aws.StringValue(svc.ServiceName))
+		svc, err = e.Service(awsv2.ToString(svc.ClusterArn), awsv2.ToString(svc.ServiceName))
 		if err != nil {
 			return err
 		}
@@ -239,54 +252,54 @@ type listTasksOpts func(*ecs.ListTasksInput)
 
 func withService(svcName string) listTasksOpts {
 	return func(in *ecs.ListTasksInput) {
-		in.ServiceName = aws.String(svcName)
+		in.ServiceName = awsv2.String(svcName)
 	}
 }
 
 func withFamily(family string) listTasksOpts {
 	return func(in *ecs.ListTasksInput) {
-		in.Family = aws.String(family)
+		in.Family = awsv2.String(family)
 	}
 }
 
 func withRunningTasks() listTasksOpts {
 	return func(in *ecs.ListTasksInput) {
-		in.DesiredStatus = aws.String(ecs.DesiredStatusRunning)
+		in.DesiredStatus = types.DesiredStatusRunning
 	}
 }
 
 func withStoppedTasks() listTasksOpts {
 	return func(in *ecs.ListTasksInput) {
-		in.DesiredStatus = aws.String(ecs.DesiredStatusStopped)
+		in.DesiredStatus = types.DesiredStatusStopped
 	}
 }
 
 func (e *ECS) listTasks(cluster string, opts ...listTasksOpts) ([]*Task, error) {
 	var tasks []*Task
 	in := &ecs.ListTasksInput{
-		Cluster: aws.String(cluster),
+		Cluster: awsv2.String(cluster),
 	}
 	for _, opt := range opts {
 		opt(in)
 	}
 	for {
-		listTaskResp, err := e.client.ListTasks(in)
+		listTaskResp, err := e.client.ListTasks(context.Background(), in)
 		if err != nil {
 			return nil, fmt.Errorf("list running tasks: %w", err)
 		}
 		if len(listTaskResp.TaskArns) == 0 {
 			return tasks, nil
 		}
-		descTaskResp, err := e.client.DescribeTasks(&ecs.DescribeTasksInput{
-			Cluster: aws.String(cluster),
+		descTaskResp, err := e.client.DescribeTasks(context.Background(), &ecs.DescribeTasksInput{
+			Cluster: awsv2.String(cluster),
 			Tasks:   listTaskResp.TaskArns,
-			Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+			Include: []types.TaskField{types.TaskFieldTags},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("describe running tasks in cluster %s: %w", cluster, err)
 		}
 		for _, task := range descTaskResp.Tasks {
-			t := Task(*task)
+			t := Task(task)
 			tasks = append(tasks, &t)
 		}
 		if listTaskResp.NextToken == nil {
@@ -303,14 +316,14 @@ type StopTasksOpts func(*ecs.StopTaskInput)
 // WithStopTaskReason sets an optional message specified when a task is stopped.
 func WithStopTaskReason(reason string) StopTasksOpts {
 	return func(in *ecs.StopTaskInput) {
-		in.Reason = aws.String(reason)
+		in.Reason = awsv2.String(reason)
 	}
 }
 
 // WithStopTaskCluster sets the cluster that hosts the task to stop.
 func WithStopTaskCluster(cluster string) StopTasksOpts {
 	return func(in *ecs.StopTaskInput) {
-		in.Cluster = aws.String(cluster)
+		in.Cluster = awsv2.String(cluster)
 	}
 }
 
@@ -321,8 +334,8 @@ func (e *ECS) StopTasks(tasks []string, opts ...StopTasksOpts) error {
 		opt(in)
 	}
 	for _, task := range tasks {
-		in.Task = aws.String(task)
-		if _, err := e.client.StopTask(in); err != nil {
+		in.Task = awsv2.String(task)
+		if _, err := e.client.StopTask(context.Background(), in); err != nil {
 			return fmt.Errorf("stop task %s: %w", task, err)
 		}
 	}
@@ -331,7 +344,7 @@ func (e *ECS) StopTasks(tasks []string, opts ...StopTasksOpts) error {
 
 // DefaultCluster returns the default cluster ARN in the account and region.
 func (e *ECS) DefaultCluster() (string, error) {
-	resp, err := e.client.DescribeClusters(&ecs.DescribeClustersInput{})
+	resp, err := e.client.DescribeClusters(context.Background(), &ecs.DescribeClustersInput{})
 	if err != nil {
 		return "", fmt.Errorf("get default cluster: %w", err)
 	}
@@ -342,11 +355,11 @@ func (e *ECS) DefaultCluster() (string, error) {
 
 	// NOTE: right now at most 1 default cluster is possible, so cluster[0] must be the default cluster
 	cluster := resp.Clusters[0]
-	if aws.StringValue(cluster.Status) != statusActive {
+	if awsv2.ToString(cluster.Status) != statusActive {
 		return "", ErrNoDefaultCluster
 	}
 
-	return aws.StringValue(cluster.ClusterArn), nil
+	return awsv2.ToString(cluster.ClusterArn), nil
 }
 
 // HasDefaultCluster tries to find the default cluster and returns true if there is one.
@@ -362,20 +375,20 @@ func (e *ECS) HasDefaultCluster() (bool, error) {
 
 // ActiveClusters returns the subset of cluster arns that have an ACTIVE status.
 func (e *ECS) ActiveClusters(arns ...string) ([]string, error) {
-	resp, err := e.client.DescribeClusters(&ecs.DescribeClustersInput{
-		Clusters: aws.StringSlice(arns),
+	resp, err := e.client.DescribeClusters(context.Background(), &ecs.DescribeClustersInput{
+		Clusters: arns,
 	})
 	switch {
 	case err != nil:
 		return nil, fmt.Errorf("describe clusters: %w", err)
 	case len(resp.Failures) > 0:
-		return nil, fmt.Errorf("describe clusters: %s", resp.Failures[0].GoString())
+		return nil, fmt.Errorf("describe clusters: %s", failureString(resp.Failures[0]))
 	}
 
 	var active []string
 	for _, cluster := range resp.Clusters {
-		if aws.StringValue(cluster.Status) == statusActive {
-			active = append(active, aws.StringValue(cluster.ClusterArn))
+		if awsv2.ToString(cluster.Status) == statusActive {
+			active = append(active, awsv2.ToString(cluster.ClusterArn))
 		}
 	}
 
@@ -389,21 +402,21 @@ func (e *ECS) ActiveServices(clusterARN string, serviceARNs ...string) ([]string
 	if err != nil {
 		return nil, err
 	}
-	resp, err := e.client.DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(clusterARN),
-		Services: aws.StringSlice(filteredSvcARNS),
+	resp, err := e.client.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
+		Cluster:  awsv2.String(clusterARN),
+		Services: filteredSvcARNS,
 	})
 	switch {
 	case err != nil:
 		return nil, fmt.Errorf("describe services: %w", err)
 	case len(resp.Failures) > 0:
-		return nil, fmt.Errorf("describe services: %s", resp.Failures[0].GoString())
+		return nil, fmt.Errorf("describe services: %s", failureString(resp.Failures[0]))
 	}
 
 	var active []string
 	for _, svc := range resp.Services {
-		if aws.StringValue(svc.Status) == statusActive {
-			active = append(active, aws.StringValue(svc.ServiceArn))
+		if awsv2.ToString(svc.Status) == statusActive {
+			active = append(active, awsv2.ToString(svc.ServiceArn))
 		}
 	}
 
@@ -413,22 +426,22 @@ func (e *ECS) ActiveServices(clusterARN string, serviceARNs ...string) ([]string
 // RunTask runs a number of tasks with the task definition and network configurations in a cluster, and returns after
 // the task(s) is running or fails to run, along with task ARNs if possible.
 func (e *ECS) RunTask(input RunTaskInput) ([]*Task, error) {
-	resp, err := e.client.RunTask(&ecs.RunTaskInput{
-		Cluster:        aws.String(input.Cluster),
-		Count:          aws.Int64(int64(input.Count)),
-		LaunchType:     aws.String(ecs.LaunchTypeFargate),
-		StartedBy:      aws.String(input.StartedBy),
-		TaskDefinition: aws.String(input.TaskFamilyName),
-		NetworkConfiguration: &ecs.NetworkConfiguration{
-			AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
-				AssignPublicIp: aws.String(ecs.AssignPublicIpEnabled),
-				Subnets:        aws.StringSlice(input.Subnets),
-				SecurityGroups: aws.StringSlice(input.SecurityGroups),
+	resp, err := e.client.RunTask(context.Background(), &ecs.RunTaskInput{
+		Cluster:        awsv2.String(input.Cluster),
+		Count:          awsv2.Int32(int32(input.Count)),
+		LaunchType:     types.LaunchTypeFargate,
+		StartedBy:      awsv2.String(input.StartedBy),
+		TaskDefinition: awsv2.String(input.TaskFamilyName),
+		NetworkConfiguration: &types.NetworkConfiguration{
+			AwsvpcConfiguration: &types.AwsVpcConfiguration{
+				AssignPublicIp: types.AssignPublicIpEnabled,
+				Subnets:        input.Subnets,
+				SecurityGroups: input.SecurityGroups,
 			},
 		},
-		EnableExecuteCommand: aws.Bool(input.EnableExec),
-		PlatformVersion:      aws.String(input.PlatformVersion),
-		PropagateTags:        aws.String(ecs.PropagateTagsTaskDefinition),
+		EnableExecuteCommand: input.EnableExec,
+		PlatformVersion:      awsv2.String(input.PlatformVersion),
+		PropagateTags:        types.PropagateTagsTaskDefinition,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("run task(s) %s: %w", input.TaskFamilyName, err)
@@ -436,14 +449,14 @@ func (e *ECS) RunTask(input RunTaskInput) ([]*Task, error) {
 
 	taskARNs := make([]string, len(resp.Tasks))
 	for idx, task := range resp.Tasks {
-		taskARNs[idx] = aws.StringValue(task.TaskArn)
+		taskARNs[idx] = awsv2.ToString(task.TaskArn)
 	}
 
-	waitErr := e.client.WaitUntilTasksRunning(&ecs.DescribeTasksInput{
-		Cluster: aws.String(input.Cluster),
-		Tasks:   aws.StringSlice(taskARNs),
-		Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
-	})
+	waitErr := e.client.WaitUntilTasksRunning(context.Background(), &ecs.DescribeTasksInput{
+		Cluster: awsv2.String(input.Cluster),
+		Tasks:   taskARNs,
+		Include: []types.TaskField{types.TaskFieldTags},
+	}, 10*time.Minute)
 
 	if waitErr != nil && !isRequestTimeoutErr(waitErr) {
 		return nil, fmt.Errorf("wait for tasks to be running: %w", waitErr)
@@ -463,10 +476,10 @@ func (e *ECS) RunTask(input RunTaskInput) ([]*Task, error) {
 
 // DescribeTasks returns the tasks with the taskARNs in the cluster.
 func (e *ECS) DescribeTasks(cluster string, taskARNs []string) ([]*Task, error) {
-	resp, err := e.client.DescribeTasks(&ecs.DescribeTasksInput{
-		Cluster: aws.String(cluster),
-		Tasks:   aws.StringSlice(taskARNs),
-		Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+	resp, err := e.client.DescribeTasks(context.Background(), &ecs.DescribeTasksInput{
+		Cluster: awsv2.String(cluster),
+		Tasks:   taskARNs,
+		Include: []types.TaskField{types.TaskFieldTags},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("describe tasks: %w", err)
@@ -474,7 +487,7 @@ func (e *ECS) DescribeTasks(cluster string, taskARNs []string) ([]*Task, error) 
 
 	tasks := make([]*Task, len(resp.Tasks))
 	for idx, task := range resp.Tasks {
-		t := Task(*task)
+		t := Task(task)
 		tasks[idx] = &t
 	}
 	return tasks, nil
@@ -482,17 +495,17 @@ func (e *ECS) DescribeTasks(cluster string, taskARNs []string) ([]*Task, error) 
 
 // ExecuteCommand executes commands in a running container, and then terminate the session.
 func (e *ECS) ExecuteCommand(in ExecuteCommandInput) (err error) {
-	execCmdresp, err := e.client.ExecuteCommand(&ecs.ExecuteCommandInput{
-		Cluster:     aws.String(in.Cluster),
-		Command:     aws.String(in.Command),
-		Container:   aws.String(in.Container),
-		Interactive: aws.Bool(true),
-		Task:        aws.String(in.Task),
+	execCmdresp, err := e.client.ExecuteCommand(context.Background(), &ecs.ExecuteCommandInput{
+		Cluster:     awsv2.String(in.Cluster),
+		Command:     awsv2.String(in.Command),
+		Container:   awsv2.String(in.Container),
+		Interactive: true,
+		Task:        awsv2.String(in.Task),
 	})
 	if err != nil {
 		return &ErrExecuteCommand{err: err}
 	}
-	sessID := aws.StringValue(execCmdresp.Session.SessionId)
+	sessID := awsv2.ToString(execCmdresp.Session.SessionId)
 	if err = e.newSessStarter().StartSession(execCmdresp.Session); err != nil {
 		err = fmt.Errorf("start session %s using ssm plugin: %w", sessID, err)
 	}
@@ -512,23 +525,23 @@ func (e *ECS) NetworkConfiguration(cluster, serviceName string) (*NetworkConfigu
 	}
 
 	return &NetworkConfiguration{
-		AssignPublicIp: aws.StringValue(networkConfig.AwsvpcConfiguration.AssignPublicIp),
-		SecurityGroups: aws.StringValueSlice(networkConfig.AwsvpcConfiguration.SecurityGroups),
-		Subnets:        aws.StringValueSlice(networkConfig.AwsvpcConfiguration.Subnets),
+		AssignPublicIp: string(networkConfig.AwsvpcConfiguration.AssignPublicIp),
+		SecurityGroups: networkConfig.AwsvpcConfiguration.SecurityGroups,
+		Subnets:        networkConfig.AwsvpcConfiguration.Subnets,
 	}, nil
 }
 
 func (e *ECS) service(clusterName, serviceName string) (*Service, error) {
-	resp, err := e.client.DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(clusterName),
-		Services: aws.StringSlice([]string{serviceName}),
+	resp, err := e.client.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
+		Cluster:  awsv2.String(clusterName),
+		Services: []string{serviceName},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("describe service %s: %w", serviceName, err)
 	}
 	for _, service := range resp.Services {
-		if aws.StringValue(service.ServiceName) == serviceName {
-			svc := Service(*service)
+		if awsv2.ToString(service.ServiceName) == serviceName {
+			svc := Service(service)
 			return &svc, nil
 		}
 	}
@@ -551,8 +564,22 @@ func (e *ECS) filterServiceARNs(clusterARN string, serviceARNs ...string) ([]str
 }
 
 func isRequestTimeoutErr(err error) bool {
-	if aerr, ok := err.(awserr.Error); ok {
-		return aerr.Code() == request.WaiterResourceNotReadyErrorCode
+	return strings.Contains(err.Error(), "exceeded max wait time for TasksRunning waiter")
+}
+
+func failureString(f types.Failure) string {
+	var fields []string
+	if f.Arn != nil {
+		fields = append(fields, fmt.Sprintf("  Arn: %q", awsv2.ToString(f.Arn)))
 	}
-	return false
+	if f.Detail != nil {
+		fields = append(fields, fmt.Sprintf("  Detail: %q", awsv2.ToString(f.Detail)))
+	}
+	if f.Reason != nil {
+		fields = append(fields, fmt.Sprintf("  Reason: %q", awsv2.ToString(f.Reason)))
+	}
+	if len(fields) == 0 {
+		return "{}"
+	}
+	return fmt.Sprintf("{\n%s\n}", strings.Join(fields, ",\n"))
 }

@@ -500,7 +500,7 @@ func (o *initEnvOpts) askCustomizedResources() error {
 
 func (o *initEnvOpts) askImportResources() error {
 	if o.selVPC == nil {
-		o.selVPC = selector.NewEC2Select(o.prompt, ec2.New(o.sess))
+		o.selVPC = selector.NewEC2Select(o.prompt, ec2.New(v2ConfigFromSessionRegion(o.sess)))
 	}
 	if o.importVPC.ID == "" {
 		vpcID, err := o.selVPC.VPC(envInitVPCSelectPrompt, "")
@@ -516,7 +516,7 @@ func (o *initEnvOpts) askImportResources() error {
 		o.importVPC.ID = vpcID
 	}
 	if o.ec2Client == nil {
-		o.ec2Client = ec2.New(o.sess)
+		o.ec2Client = ec2.New(v2ConfigFromSessionRegion(o.sess))
 	}
 	dnsSupport, err := o.ec2Client.HasDNSSupport(o.importVPC.ID)
 	if err != nil {
@@ -633,7 +633,7 @@ func (o *initEnvOpts) askAZs() ([]string, error) {
 		return o.adjustVPC.AZs, nil
 	}
 	if o.ec2Client == nil {
-		o.ec2Client = ec2.New(o.sess)
+		o.ec2Client = ec2.New(v2ConfigFromSessionRegion(o.sess))
 	}
 	azs, err := o.ec2Client.ListAZs()
 	if err != nil {

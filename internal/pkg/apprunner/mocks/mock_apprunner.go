@@ -9,7 +9,7 @@ import (
 
 	apprunner "github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	resourcegroups "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	apprunner0 "github.com/aws/aws-sdk-go/service/apprunner"
+	types "github.com/aws/aws-sdk-go-v2/service/apprunner/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,10 +37,10 @@ func (m *MockappRunnerClient) EXPECT() *MockappRunnerClientMockRecorder {
 }
 
 // DescribeOperation mocks base method.
-func (m *MockappRunnerClient) DescribeOperation(operationId, svcARN string) (*apprunner0.OperationSummary, error) {
+func (m *MockappRunnerClient) DescribeOperation(operationId, svcARN string) (*types.OperationSummary, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeOperation", operationId, svcARN)
-	ret0, _ := ret[0].(*apprunner0.OperationSummary)
+	ret0, _ := ret[0].(*types.OperationSummary)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

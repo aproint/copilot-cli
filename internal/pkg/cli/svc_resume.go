@@ -165,7 +165,7 @@ func newResumeSvcOpts(vars resumeSvcVars) (*resumeSvcOpts, error) {
 			if err != nil {
 				return err
 			}
-			a = apprunner.New(sess)
+			a = apprunner.New(v2ConfigFromSessionRegion(sess))
 			d, err = describe.NewRDWebServiceDescriber(describe.NewServiceConfig{
 				App:         opts.appName,
 				Svc:         opts.svcName,

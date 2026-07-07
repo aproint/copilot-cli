@@ -4,7 +4,12 @@
 package manifest
 
 import (
+	"context"
+
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
@@ -28,9 +33,14 @@ func newDynamicWorkloadManifest(mft workloadManifest) *DynamicWorkloadManifest {
 	return &DynamicWorkloadManifest{
 		mft: mft,
 		newSubnetIDsGetter: func(s *session.Session) subnetIDsGetter {
-			return ec2.New(s)
+			return ec2.New(v2ConfigFromSessionRegion(s))
 		},
 	}
+}
+
+func v2ConfigFromSessionRegion(sess *session.Session) awsv2.Config {
+	cfg, _ := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), aws.StringValue(sess.Config.Region))
+	return cfg
 }
 
 // Manifest returns the manifest content.

@@ -214,8 +214,8 @@ func New(sess *session.Session, opts ...OptFn) CloudFormation {
 		cfnClient:      cloudformation.New(sess),
 		codeStarClient: codestar.New(v2Config),
 		cpClient:       codepipeline.New(v2Config, v2Config),
-		ecsClient:      ecs.New(sess),
-		cwClient:       cloudwatch.New(sess, v2Config),
+		ecsClient:      ecs.New(v2Config),
+		cwClient:       cloudwatch.New(v2Config, v2Config),
 		regionalClient: func(region string) cfnClient {
 			return cloudformation.New(sess.Copy(&aws.Config{
 				Region: aws.String(region),
@@ -226,11 +226,10 @@ func New(sess *session.Session, opts ...OptFn) CloudFormation {
 			return ecr.New(regionalV2Config)
 		},
 		appStackSet: stackset.New(sess),
-		s3Client:    s3.New(sess),
+		s3Client:    s3.New(v2Config),
 		regionalS3Client: func(region string) s3Client {
-			return s3.New(sess.Copy(&aws.Config{
-				Region: aws.String(region),
-			}))
+			regionalV2Config, _ := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), region)
+			return s3.New(regionalV2Config)
 		},
 		region:  aws.StringValue(sess.Config.Region),
 		console: new(discardFile),

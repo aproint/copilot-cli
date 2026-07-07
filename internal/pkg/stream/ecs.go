@@ -146,15 +146,14 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 	var primaryDeploymentId string
 	for _, deployment := range out.Deployments {
 		status := aws.StringValue(deployment.Status)
-		desiredCount, runningCount := aws.Int64Value(deployment.DesiredCount), aws.Int64Value(deployment.RunningCount)
 		rollingDeploy := ECSDeployment{
 			Status:          status,
 			TaskDefRevision: parseRevisionFromTaskDefARN(aws.StringValue(deployment.TaskDefinition)),
-			DesiredCount:    int(desiredCount),
-			RunningCount:    int(runningCount),
-			FailedCount:     int(aws.Int64Value(deployment.FailedTasks)),
-			PendingCount:    int(aws.Int64Value(deployment.PendingCount)),
-			RolloutState:    aws.StringValue(deployment.RolloutState),
+			DesiredCount:    int(deployment.DesiredCount),
+			RunningCount:    int(deployment.RunningCount),
+			FailedCount:     int(deployment.FailedTasks),
+			PendingCount:    int(deployment.PendingCount),
+			RolloutState:    string(deployment.RolloutState),
 			CreatedAt:       aws.TimeValue(deployment.CreatedAt),
 			UpdatedAt:       aws.TimeValue(deployment.UpdatedAt),
 			Id:              aws.StringValue(deployment.Id),
@@ -211,8 +210,8 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 	}
 
 	var alarms []cloudwatch.AlarmStatus
-	if out.DeploymentConfiguration != nil && out.DeploymentConfiguration.Alarms != nil && aws.BoolValue(out.DeploymentConfiguration.Alarms.Enable) {
-		alarmNames := aws.StringValueSlice(out.DeploymentConfiguration.Alarms.AlarmNames)
+	if out.DeploymentConfiguration != nil && out.DeploymentConfiguration.Alarms != nil && out.DeploymentConfiguration.Alarms.Enable {
+		alarmNames := out.DeploymentConfiguration.Alarms.AlarmNames
 		alarms, err = s.cw.AlarmStatuses(cloudwatch.WithNames(alarmNames))
 		if err != nil {
 			if request.IsErrorThrottle(err) {

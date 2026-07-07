@@ -132,7 +132,8 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 		if err != nil {
 			return nil, err
 		}
-		return cloudwatch.New(sess, v2ConfigFromSessionRegion(sess)), nil
+		cfg := v2ConfigFromSessionRegion(sess)
+		return cloudwatch.New(cfg, cfg), nil
 	}
 	return describer, nil
 }

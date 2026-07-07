@@ -11,8 +11,9 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch/mocks"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cwapi "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	cwtypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -64,8 +65,8 @@ func TestCloudWatch_AlarmsWithTags(t *testing.T) {
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
 					m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: mockAlarmArn}}, nil),
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-						AlarmNames: aws.StringSlice([]string{"mockAlarmName"}),
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+						AlarmNames: []string{"mockAlarmName"},
 					}).Return(nil, mockError),
 				)
 			},
@@ -83,19 +84,19 @@ func TestCloudWatch_AlarmsWithTags(t *testing.T) {
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
 					m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: mockAlarmArn}}, nil),
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-						AlarmNames: aws.StringSlice([]string{"mockAlarmName"}),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
-						MetricAlarms: []*cloudwatch.MetricAlarm{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+						AlarmNames: []string{"mockAlarmName"},
+					}).Return(&cwapi.DescribeAlarmsOutput{
+						MetricAlarms: []cwtypes.MetricAlarm{
 							{
 								AlarmArn:              aws.String(mockAlarmArn),
 								AlarmName:             aws.String("mockAlarmName"),
-								ComparisonOperator:    aws.String(cloudwatch.ComparisonOperatorGreaterThanOrEqualToThreshold),
-								EvaluationPeriods:     aws.Int64(int64(300)),
-								Period:                aws.Int64(int64(5)),
+								ComparisonOperator:    cwtypes.ComparisonOperatorGreaterThanOrEqualToThreshold,
+								EvaluationPeriods:     aws.Int32(300),
+								Period:                aws.Int32(5),
 								Threshold:             aws.Float64(float64(70)),
 								MetricName:            aws.String("mockMetricName"),
-								StateValue:            aws.String("mockState"),
+								StateValue:            cwtypes.StateValue("mockState"),
 								StateUpdatedTimestamp: &mockTime,
 							},
 						},
@@ -166,7 +167,7 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 		"errors if fail to describe alarms": {
 			in: WithPrefix(mockPrefix),
 			setupMocks: func(m cloudWatchMocks) {
-				m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
+				m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
 					AlarmNamePrefix: aws.String(mockPrefix),
 				}).Return(nil, mockError)
 			},
@@ -175,7 +176,7 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 		"return if no alarms with prefix found": {
 			in: WithPrefix(mockPrefix),
 			setupMocks: func(m cloudWatchMocks) {
-				m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
+				m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
 					AlarmNamePrefix: aws.String(mockPrefix),
 				}).Return(nil, nil)
 			},
@@ -183,19 +184,19 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 		"success with prefix": {
 			in: WithPrefix(mockPrefix),
 			setupMocks: func(m cloudWatchMocks) {
-				m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
+				m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
 					AlarmNamePrefix: aws.String(mockPrefix),
-				}).Return(&cloudwatch.DescribeAlarmsOutput{
-					MetricAlarms: []*cloudwatch.MetricAlarm{
+				}).Return(&cwapi.DescribeAlarmsOutput{
+					MetricAlarms: []cwtypes.MetricAlarm{
 						{
 							AlarmArn:              aws.String(mockAlarmArn),
 							AlarmName:             aws.String(mockName),
-							ComparisonOperator:    aws.String(cloudwatch.ComparisonOperatorGreaterThanOrEqualToThreshold),
-							EvaluationPeriods:     aws.Int64(int64(300)),
-							Period:                aws.Int64(int64(5)),
+							ComparisonOperator:    cwtypes.ComparisonOperatorGreaterThanOrEqualToThreshold,
+							EvaluationPeriods:     aws.Int32(300),
+							Period:                aws.Int32(5),
 							Threshold:             aws.Float64(float64(70)),
 							MetricName:            aws.String("mockMetricName"),
-							StateValue:            aws.String("mockState"),
+							StateValue:            cwtypes.StateValue("mockState"),
 							StateUpdatedTimestamp: &mockTime,
 						},
 					},
@@ -216,19 +217,19 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 			in: WithNames([]string{mockName}),
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-						AlarmNames: aws.StringSlice([]string{mockName}),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
-						MetricAlarms: []*cloudwatch.MetricAlarm{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+						AlarmNames: []string{mockName},
+					}).Return(&cwapi.DescribeAlarmsOutput{
+						MetricAlarms: []cwtypes.MetricAlarm{
 							{
 								AlarmArn:              aws.String(mockAlarmArn),
 								AlarmName:             aws.String(mockName),
-								ComparisonOperator:    aws.String(cloudwatch.ComparisonOperatorGreaterThanOrEqualToThreshold),
-								EvaluationPeriods:     aws.Int64(int64(300)),
-								Period:                aws.Int64(int64(5)),
+								ComparisonOperator:    cwtypes.ComparisonOperatorGreaterThanOrEqualToThreshold,
+								EvaluationPeriods:     aws.Int32(300),
+								Period:                aws.Int32(5),
 								Threshold:             aws.Float64(float64(70)),
 								MetricName:            aws.String("mockMetricName"),
-								StateValue:            aws.String("mockState"),
+								StateValue:            cwtypes.StateValue("mockState"),
 								StateUpdatedTimestamp: &mockTime,
 							},
 						},
@@ -251,20 +252,20 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 			in: WithNames([]string{mockName}),
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-						AlarmNames: aws.StringSlice([]string{mockName}),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
-						MetricAlarms: []*cloudwatch.MetricAlarm{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+						AlarmNames: []string{mockName},
+					}).Return(&cwapi.DescribeAlarmsOutput{
+						MetricAlarms: []cwtypes.MetricAlarm{
 							{
 								AlarmArn:           aws.String(mockArn1),
 								AlarmName:          aws.String(mockName),
-								ComparisonOperator: aws.String(cloudwatch.ComparisonOperatorLessThanLowerOrGreaterThanUpperThreshold),
-								Metrics: []*cloudwatch.MetricDataQuery{
+								ComparisonOperator: cwtypes.ComparisonOperatorLessThanLowerOrGreaterThanUpperThreshold,
+								Metrics: []cwtypes.MetricDataQuery{
 									{
 										Id: aws.String("m1"),
-										MetricStat: &cloudwatch.MetricStat{
-											Period: aws.Int64(120),
-											Metric: &cloudwatch.Metric{
+										MetricStat: &cwtypes.MetricStat{
+											Period: aws.Int32(120),
+											Metric: &cwtypes.Metric{
 												MetricName: aws.String("mockMetricName"),
 											},
 										},
@@ -277,7 +278,7 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 									},
 								},
 								ThresholdMetricId:     aws.String("m2"),
-								StateValue:            aws.String("mockState"),
+								StateValue:            cwtypes.StateValue("mockState"),
 								StateUpdatedTimestamp: &mockTime,
 							},
 						},
@@ -300,20 +301,20 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 			in: WithNames([]string{mockName}),
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-						AlarmNames: aws.StringSlice([]string{mockName}),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
-						MetricAlarms: []*cloudwatch.MetricAlarm{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+						AlarmNames: []string{mockName},
+					}).Return(&cwapi.DescribeAlarmsOutput{
+						MetricAlarms: []cwtypes.MetricAlarm{
 							{
 								AlarmArn:           aws.String(mockArn1),
 								AlarmName:          aws.String(mockName),
-								ComparisonOperator: aws.String(cloudwatch.ComparisonOperatorGreaterThanUpperThreshold),
-								Metrics: []*cloudwatch.MetricDataQuery{
+								ComparisonOperator: cwtypes.ComparisonOperatorGreaterThanUpperThreshold,
+								Metrics: []cwtypes.MetricDataQuery{
 									{
 										Id: aws.String("m1"),
-										MetricStat: &cloudwatch.MetricStat{
-											Period: aws.Int64(120),
-											Metric: &cloudwatch.Metric{
+										MetricStat: &cwtypes.MetricStat{
+											Period: aws.Int32(120),
+											Metric: &cwtypes.Metric{
 												MetricName: aws.String("mockMetricName1"),
 											},
 										},
@@ -326,19 +327,19 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 									},
 								},
 								ThresholdMetricId:     aws.String("m2"),
-								StateValue:            aws.String("mockState"),
+								StateValue:            cwtypes.StateValue("mockState"),
 								StateUpdatedTimestamp: &mockTime,
 							},
 							{
 								AlarmArn:           aws.String(mockArn2),
 								AlarmName:          aws.String("mockAlarmName2"),
-								ComparisonOperator: aws.String(cloudwatch.ComparisonOperatorGreaterThanThreshold),
-								Metrics: []*cloudwatch.MetricDataQuery{
+								ComparisonOperator: cwtypes.ComparisonOperatorGreaterThanThreshold,
+								Metrics: []cwtypes.MetricDataQuery{
 									{
 										Id: aws.String("m1"),
-										MetricStat: &cloudwatch.MetricStat{
-											Period: aws.Int64(120),
-											Metric: &cloudwatch.Metric{
+										MetricStat: &cwtypes.MetricStat{
+											Period: aws.Int32(120),
+											Metric: &cwtypes.Metric{
 												MetricName: aws.String("mockMetricName2"),
 											},
 										},
@@ -351,7 +352,7 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 									},
 								},
 								ThresholdMetricId:     aws.String("m2"),
-								StateValue:            aws.String("mockState"),
+								StateValue:            cwtypes.StateValue("mockState"),
 								StateUpdatedTimestamp: &mockTime,
 							},
 						},
@@ -382,39 +383,37 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 			in: WithNames([]string{"mockAlarmName1", "mockAlarmName2"}),
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-						AlarmNames: aws.StringSlice([]string{"mockAlarmName1", "mockAlarmName2"}),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+						AlarmNames: []string{"mockAlarmName1", "mockAlarmName2"},
+					}).Return(&cwapi.DescribeAlarmsOutput{
 						NextToken: aws.String("mockNextToken"),
-						CompositeAlarms: []*cloudwatch.CompositeAlarm{
+						CompositeAlarms: []cwtypes.CompositeAlarm{
 							{
 								AlarmArn:              aws.String(mockArn1),
 								AlarmName:             aws.String("mockAlarmName1"),
 								AlarmRule:             aws.String("mockAlarmRule"),
-								StateValue:            aws.String("mockState"),
+								StateValue:            cwtypes.StateValue("mockState"),
 								StateUpdatedTimestamp: &mockTime,
 							},
-							nil,
 						},
 					}, nil),
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
 						NextToken:  aws.String("mockNextToken"),
-						AlarmNames: aws.StringSlice([]string{"mockAlarmName1", "mockAlarmName2"}),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
-						MetricAlarms: []*cloudwatch.MetricAlarm{
+						AlarmNames: []string{"mockAlarmName1", "mockAlarmName2"},
+					}).Return(&cwapi.DescribeAlarmsOutput{
+						MetricAlarms: []cwtypes.MetricAlarm{
 							{
 								AlarmArn:              aws.String(mockArn2),
 								AlarmName:             aws.String("mockAlarmName2"),
-								ComparisonOperator:    aws.String(cloudwatch.ComparisonOperatorLessThanThreshold),
-								EvaluationPeriods:     aws.Int64(int64(60)),
-								Period:                aws.Int64(int64(5)),
-								DatapointsToAlarm:     aws.Int64(int64(3)),
+								ComparisonOperator:    cwtypes.ComparisonOperatorLessThanThreshold,
+								EvaluationPeriods:     aws.Int32(60),
+								Period:                aws.Int32(5),
+								DatapointsToAlarm:     aws.Int32(3),
 								Threshold:             aws.Float64(float64(63)),
 								MetricName:            aws.String("mockMetricName1"),
-								StateValue:            aws.String("mockState"),
+								StateValue:            cwtypes.StateValue("mockState"),
 								StateUpdatedTimestamp: &mockTime,
 							},
-							nil,
 						},
 					}, nil),
 				)
@@ -487,8 +486,8 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 		"errors if fail to describe alarms": {
 			in: mockNames,
 			setupMocks: func(m cloudWatchMocks) {
-				m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-					AlarmNames: aws.StringSlice(mockNames),
+				m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+					AlarmNames: mockNames,
 				}).Return(nil, mockError)
 			},
 			wantedErr: errors.New("describe CloudWatch alarms: some error"),
@@ -496,18 +495,18 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 		"return if no alarms with names": {
 			in: mockNames,
 			setupMocks: func(m cloudWatchMocks) {
-				m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-					AlarmNames: aws.StringSlice(mockNames),
+				m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+					AlarmNames: mockNames,
 				}).Return(nil, nil)
 			},
 		},
 		"success": {
 			in: mockNames,
 			setupMocks: func(m cloudWatchMocks) {
-				m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-					AlarmNames: aws.StringSlice(mockNames),
-				}).Return(&cloudwatch.DescribeAlarmsOutput{
-					MetricAlarms: []*cloudwatch.MetricAlarm{
+				m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+					AlarmNames: mockNames,
+				}).Return(&cwapi.DescribeAlarmsOutput{
+					MetricAlarms: []cwtypes.MetricAlarm{
 						{
 							AlarmName:        aws.String(name1),
 							AlarmDescription: aws.String(desc1),
@@ -536,28 +535,26 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 			in: mockNames,
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
-						AlarmNames: aws.StringSlice(mockNames),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
+						AlarmNames: mockNames,
+					}).Return(&cwapi.DescribeAlarmsOutput{
 						NextToken: aws.String("mockNextToken"),
-						CompositeAlarms: []*cloudwatch.CompositeAlarm{
+						CompositeAlarms: []cwtypes.CompositeAlarm{
 							{
 								AlarmName:        aws.String(name1),
 								AlarmDescription: aws.String(desc1),
 							},
-							nil,
 						},
 					}, nil),
-					m.cw.EXPECT().DescribeAlarms(&cloudwatch.DescribeAlarmsInput{
+					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
 						NextToken:  aws.String("mockNextToken"),
-						AlarmNames: aws.StringSlice(mockNames),
-					}).Return(&cloudwatch.DescribeAlarmsOutput{
-						MetricAlarms: []*cloudwatch.MetricAlarm{
+						AlarmNames: mockNames,
+					}).Return(&cwapi.DescribeAlarmsOutput{
+						MetricAlarms: []cwtypes.MetricAlarm{
 							{
 								AlarmName:        aws.String(name2),
 								AlarmDescription: aws.String(desc2),
 							},
-							nil,
 						},
 					}, nil),
 				)

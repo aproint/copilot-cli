@@ -11,7 +11,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/service/apprunner/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -290,7 +290,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 						},
 						Observability: apprunner.ObservabilityConfiguration{
 							TraceConfiguration: &apprunner.TraceConfiguration{
-								Vendor: aws.String("mockVendor"),
+								Vendor: types.TracingVendor("mockVendor"),
 							},
 						},
 					}, nil),

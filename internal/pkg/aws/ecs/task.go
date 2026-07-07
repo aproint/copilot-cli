@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 const (
@@ -26,11 +26,11 @@ const (
 	networkInterfaceAttachmentType = "ElasticNetworkInterface"
 
 	// TaskContainerHealthStatusUnknown wraps the ECS health status UNKNOWN.
-	TaskContainerHealthStatusUnknown = ecs.HealthStatusUnknown
+	TaskContainerHealthStatusUnknown = string(types.HealthStatusUnknown)
 	// TaskContainerHealthStatusHealthy wraps the ECS health status HEALTHY.
-	TaskContainerHealthStatusHealthy = ecs.HealthStatusHealthy
+	TaskContainerHealthStatusHealthy = string(types.HealthStatusHealthy)
 	// TaskContainerHealthStatusUnhealthy wraps the ECS health status UNHEALTHY.
-	TaskContainerHealthStatusUnhealthy = ecs.HealthStatusUnhealthy
+	TaskContainerHealthStatusUnhealthy = string(types.HealthStatusUnhealthy)
 
 	// TaskCapacityProviderFargate is the capacity provider name for FARGATE.
 	TaskCapacityProviderFargate = "FARGATE"
@@ -47,22 +47,22 @@ type Image struct {
 }
 
 // Task wraps up ECS Task struct.
-type Task ecs.Task
+type Task types.Task
 
 // String returns the human readable format of an ECS task.
 // For example, a task with ARN arn:aws:ecs:us-west-2:123456789:task/4082490ee6c245e09d2145010aa1ba8d
 // and task definition ARN arn:aws:ecs:us-west-2:123456789012:task-definition/sample-fargate:2
 // becomes "4082490e (sample-fargate:2)"
 func (t Task) String() string {
-	taskID, _ := TaskID(aws.StringValue(t.TaskArn))
+	taskID, _ := TaskID(awsv2.ToString(t.TaskArn))
 	taskID = ShortTaskID(taskID)
-	taskDefName, _ := taskDefinitionName(aws.StringValue(t.TaskDefinitionArn))
+	taskDefName, _ := taskDefinitionName(awsv2.ToString(t.TaskDefinitionArn))
 	return fmt.Sprintf("%s (%s)", taskID, taskDefName)
 }
 
 // TaskStatus returns the status of the running task.
 func (t *Task) TaskStatus() (*TaskStatus, error) {
-	taskID, err := TaskID(aws.StringValue(t.TaskArn))
+	taskID, err := TaskID(awsv2.ToString(t.TaskArn))
 	if err != nil {
 		return nil, err
 	}
@@ -76,25 +76,25 @@ func (t *Task) TaskStatus() (*TaskStatus, error) {
 		startedAt = *t.StartedAt
 	}
 	if t.StoppedReason != nil {
-		stoppedReason = aws.StringValue(t.StoppedReason)
+		stoppedReason = awsv2.ToString(t.StoppedReason)
 	}
 	var images []Image
 	for _, container := range t.Containers {
 		images = append(images, Image{
-			ID:     aws.StringValue(container.Image),
-			Digest: imageDigestValue(aws.StringValue(container.ImageDigest)),
+			ID:     awsv2.ToString(container.Image),
+			Digest: imageDigestValue(awsv2.ToString(container.ImageDigest)),
 		})
 	}
 	return &TaskStatus{
-		Health:           aws.StringValue(t.HealthStatus),
+		Health:           string(t.HealthStatus),
 		ID:               taskID,
 		Images:           images,
-		LastStatus:       aws.StringValue(t.LastStatus),
+		LastStatus:       awsv2.ToString(t.LastStatus),
 		StartedAt:        startedAt,
 		StoppedAt:        stoppedAt,
 		StoppedReason:    stoppedReason,
-		CapacityProvider: aws.StringValue(t.CapacityProviderName),
-		TaskDefinition:   aws.StringValue(t.TaskDefinitionArn),
+		CapacityProvider: awsv2.ToString(t.CapacityProviderName),
+		TaskDefinition:   awsv2.ToString(t.TaskDefinitionArn),
 	}, nil
 }
 
@@ -107,13 +107,13 @@ func (t *Task) ENI() (string, error) {
 	}
 
 	for _, detail := range attachmentENI.Details {
-		if aws.StringValue(detail.Name) == networkInterfaceIDKey {
-			return aws.StringValue(detail.Value), nil
+		if awsv2.ToString(detail.Name) == networkInterfaceIDKey {
+			return awsv2.ToString(detail.Value), nil
 		}
 	}
 	return "", &ErrTaskENIInfoNotFound{
 		MissingField: missingFieldDetailENIID,
-		TaskARN:      aws.StringValue(t.TaskArn),
+		TaskARN:      awsv2.ToString(t.TaskArn),
 	}
 }
 
@@ -124,30 +124,30 @@ func (t *Task) PrivateIP() (string, error) {
 		return "", err
 	}
 	for _, detail := range attachmentENI.Details {
-		if aws.StringValue(detail.Name) == privateIPv4AddressKey {
-			return aws.StringValue(detail.Value), nil
+		if awsv2.ToString(detail.Name) == privateIPv4AddressKey {
+			return awsv2.ToString(detail.Value), nil
 		}
 	}
 	return "", &ErrTaskENIInfoNotFound{
 		MissingField: missingFieldPrivateIPv4Address,
-		TaskARN:      aws.StringValue(t.TaskArn),
+		TaskARN:      awsv2.ToString(t.TaskArn),
 	}
 }
 
-func (t *Task) attachmentENI() (*ecs.Attachment, error) {
+func (t *Task) attachmentENI() (*types.Attachment, error) {
 	// Every Fargate task is provided with an ENI by default (https://docs.aws.amazon.com/AmazonECS/latest/userguide/fargate-task-networking.html).
 	// So an error is warranted if there is no ENI found.
-	var attachmentENI *ecs.Attachment
-	for _, attachment := range t.Attachments {
-		if aws.StringValue(attachment.Type) == networkInterfaceAttachmentType {
-			attachmentENI = attachment
+	var attachmentENI *types.Attachment
+	for i := range t.Attachments {
+		if awsv2.ToString(t.Attachments[i].Type) == networkInterfaceAttachmentType {
+			attachmentENI = &t.Attachments[i]
 			break
 		}
 	}
 	if attachmentENI == nil {
 		return nil, &ErrTaskENIInfoNotFound{
 			MissingField: missingFieldAttachment,
-			TaskARN:      aws.StringValue(t.TaskArn),
+			TaskARN:      awsv2.ToString(t.TaskArn),
 		}
 	}
 	return attachmentENI, nil
@@ -167,7 +167,7 @@ type TaskStatus struct {
 }
 
 // TaskDefinition wraps up ECS TaskDefinition struct.
-type TaskDefinition ecs.TaskDefinition
+type TaskDefinition types.TaskDefinition
 
 // ContainerPlatform holds basic info of a container's platform.
 type ContainerPlatform struct {
@@ -181,8 +181,8 @@ func (t *TaskDefinition) Platform() *ContainerPlatform {
 		return nil
 	}
 	return &ContainerPlatform{
-		OperatingSystem: aws.StringValue(t.RuntimePlatform.OperatingSystemFamily),
-		Architecture:    aws.StringValue(t.RuntimePlatform.CpuArchitecture),
+		OperatingSystem: string(t.RuntimePlatform.OperatingSystemFamily),
+		Architecture:    string(t.RuntimePlatform.CpuArchitecture),
 	}
 }
 
@@ -199,9 +199,9 @@ func (t *TaskDefinition) EnvironmentVariables() []*ContainerEnvVar {
 	for _, container := range t.ContainerDefinitions {
 		for _, env := range container.Environment {
 			envs = append(envs, &ContainerEnvVar{
-				aws.StringValue(env.Name),
-				aws.StringValue(container.Name),
-				aws.StringValue(env.Value),
+				awsv2.ToString(env.Name),
+				awsv2.ToString(container.Name),
+				awsv2.ToString(env.Value),
 			})
 		}
 	}
@@ -221,9 +221,9 @@ func (t *TaskDefinition) Secrets() []*ContainerSecret {
 	for _, container := range t.ContainerDefinitions {
 		for _, secret := range container.Secrets {
 			secrets = append(secrets, &ContainerSecret{
-				aws.StringValue(secret.Name),
-				aws.StringValue(container.Name),
-				aws.StringValue(secret.ValueFrom),
+				awsv2.ToString(secret.Name),
+				awsv2.ToString(container.Name),
+				awsv2.ToString(secret.ValueFrom),
 			})
 		}
 	}
@@ -233,8 +233,8 @@ func (t *TaskDefinition) Secrets() []*ContainerSecret {
 // Image returns the container's image of the task definition.
 func (t *TaskDefinition) Image(containerName string) (string, error) {
 	for _, container := range t.ContainerDefinitions {
-		if aws.StringValue(container.Name) == containerName {
-			return aws.StringValue(container.Image), nil
+		if awsv2.ToString(container.Name) == containerName {
+			return awsv2.ToString(container.Image), nil
 		}
 	}
 	return "", fmt.Errorf("container %s not found", containerName)
@@ -243,8 +243,8 @@ func (t *TaskDefinition) Image(containerName string) (string, error) {
 // Command returns the container's command overrides of the task definition.
 func (t *TaskDefinition) Command(containerName string) ([]string, error) {
 	for _, container := range t.ContainerDefinitions {
-		if aws.StringValue(container.Name) == containerName {
-			return aws.StringValueSlice(container.Command), nil
+		if awsv2.ToString(container.Name) == containerName {
+			return container.Command, nil
 		}
 	}
 	return nil, fmt.Errorf("container %s not found", containerName)
@@ -253,8 +253,8 @@ func (t *TaskDefinition) Command(containerName string) ([]string, error) {
 // EntryPoint returns the container's entrypoint overrides of the task definition.
 func (t *TaskDefinition) EntryPoint(containerName string) ([]string, error) {
 	for _, container := range t.ContainerDefinitions {
-		if aws.StringValue(container.Name) == containerName {
-			return aws.StringValueSlice(container.EntryPoint), nil
+		if awsv2.ToString(container.Name) == containerName {
+			return container.EntryPoint, nil
 		}
 	}
 	return nil, fmt.Errorf("container %s not found", containerName)
@@ -304,7 +304,7 @@ func ShortTaskID(id string) string {
 func FilterRunningTasks(tasks []*Task) []*Task {
 	var filtered []*Task
 	for _, task := range tasks {
-		if aws.StringValue(task.LastStatus) == lastStatusRunning {
+		if awsv2.ToString(task.LastStatus) == lastStatusRunning {
 			filtered = append(filtered, task)
 		}
 	}

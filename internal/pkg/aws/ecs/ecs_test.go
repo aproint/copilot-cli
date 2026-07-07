@@ -9,10 +9,9 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -30,8 +29,8 @@ func TestECS_TaskDefinition(t *testing.T) {
 		"should return wrapped error given error": {
 			taskDefinitionName: "task-def",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-					TaskDefinition: aws.String("task-def"),
+				m.EXPECT().DescribeTaskDefinition(gomock.Any(), &ecs.DescribeTaskDefinitionInput{
+					TaskDefinition: awsv2.String("task-def"),
 				}).Return(nil, mockError)
 			},
 			wantErr: fmt.Errorf("describe task definition %s: %w", "task-def", mockError),
@@ -39,20 +38,20 @@ func TestECS_TaskDefinition(t *testing.T) {
 		"returns task definition given a task definition name": {
 			taskDefinitionName: "task-def",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-					TaskDefinition: aws.String("task-def"),
+				m.EXPECT().DescribeTaskDefinition(gomock.Any(), &ecs.DescribeTaskDefinitionInput{
+					TaskDefinition: awsv2.String("task-def"),
 				}).Return(&ecs.DescribeTaskDefinitionOutput{
-					TaskDefinition: &ecs.TaskDefinition{
-						ContainerDefinitions: []*ecs.ContainerDefinition{
+					TaskDefinition: &types.TaskDefinition{
+						ContainerDefinitions: []types.ContainerDefinition{
 							{
-								Environment: []*ecs.KeyValuePair{
+								Environment: []types.KeyValuePair{
 									{
-										Name:  aws.String("COPILOT_SERVICE_NAME"),
-										Value: aws.String("my-app"),
+										Name:  awsv2.String("COPILOT_SERVICE_NAME"),
+										Value: awsv2.String("my-app"),
 									},
 									{
-										Name:  aws.String("COPILOT_ENVIRONMENT_NAME"),
-										Value: aws.String("prod"),
+										Name:  awsv2.String("COPILOT_ENVIRONMENT_NAME"),
+										Value: awsv2.String("prod"),
 									},
 								},
 							},
@@ -61,16 +60,16 @@ func TestECS_TaskDefinition(t *testing.T) {
 				}, nil)
 			},
 			wantTaskDef: &TaskDefinition{
-				ContainerDefinitions: []*ecs.ContainerDefinition{
+				ContainerDefinitions: []types.ContainerDefinition{
 					{
-						Environment: []*ecs.KeyValuePair{
+						Environment: []types.KeyValuePair{
 							{
-								Name:  aws.String("COPILOT_SERVICE_NAME"),
-								Value: aws.String("my-app"),
+								Name:  awsv2.String("COPILOT_SERVICE_NAME"),
+								Value: awsv2.String("my-app"),
 							},
 							{
-								Name:  aws.String("COPILOT_ENVIRONMENT_NAME"),
-								Value: aws.String("prod"),
+								Name:  awsv2.String("COPILOT_ENVIRONMENT_NAME"),
+								Value: awsv2.String("prod"),
 							},
 						},
 					},
@@ -117,28 +116,28 @@ func TestECS_Service(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"mockService"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"mockService"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							ServiceName: aws.String("mockService"),
+							ServiceName: awsv2.String("mockService"),
 						},
 					},
 				}, nil)
 			},
 			wantSvc: &Service{
-				ServiceName: aws.String("mockService"),
+				ServiceName: awsv2.String("mockService"),
 			},
 		},
 		"errors if failed to describe service": {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"mockService"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"mockService"},
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("describe services: some error"),
@@ -147,13 +146,13 @@ func TestECS_Service(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"mockService"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"mockService"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							ServiceName: aws.String("badMockService"),
+							ServiceName: awsv2.String("badMockService"),
 						},
 					},
 				}, nil)
@@ -200,9 +199,9 @@ func TestECS_Services(t *testing.T) {
 			clusterName: "mockCluster",
 			services:    []string{"1"},
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"1"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"1"},
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: "describe services: some error",
@@ -211,14 +210,14 @@ func TestECS_Services(t *testing.T) {
 			clusterName: "mockCluster",
 			services:    []string{"1"},
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"1"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"1"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Failures: []*ecs.Failure{
+					Failures: []types.Failure{
 						{
-							Arn:    aws.String("arn:1"),
-							Reason: aws.String("some error"),
+							Arn:    awsv2.String("arn:1"),
+							Reason: awsv2.String("some error"),
 						},
 					},
 				}, nil)
@@ -232,13 +231,13 @@ func TestECS_Services(t *testing.T) {
 			clusterName: "mockCluster",
 			services:    []string{"1", "2"},
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"1", "2"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"1", "2"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							ServiceName: aws.String("1"),
+							ServiceName: awsv2.String("1"),
 						},
 					},
 				}, nil)
@@ -252,87 +251,87 @@ func TestECS_Services(t *testing.T) {
 				"11",
 			},
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							ServiceName: aws.String("1"),
+							ServiceName: awsv2.String("1"),
 						},
 						{
-							ServiceName: aws.String("2"),
+							ServiceName: awsv2.String("2"),
 						},
 						{
-							ServiceName: aws.String("3"),
+							ServiceName: awsv2.String("3"),
 						},
 						{
-							ServiceName: aws.String("4"),
+							ServiceName: awsv2.String("4"),
 						},
 						{
-							ServiceName: aws.String("5"),
+							ServiceName: awsv2.String("5"),
 						},
 						{
-							ServiceName: aws.String("6"),
+							ServiceName: awsv2.String("6"),
 						},
 						{
-							ServiceName: aws.String("7"),
+							ServiceName: awsv2.String("7"),
 						},
 						{
-							ServiceName: aws.String("8"),
+							ServiceName: awsv2.String("8"),
 						},
 						{
-							ServiceName: aws.String("9"),
+							ServiceName: awsv2.String("9"),
 						},
 						{
-							ServiceName: aws.String("10"),
+							ServiceName: awsv2.String("10"),
 						},
 					},
 				}, nil)
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("mockCluster"),
-					Services: aws.StringSlice([]string{"11"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("mockCluster"),
+					Services: []string{"11"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							ServiceName: aws.String("11"),
+							ServiceName: awsv2.String("11"),
 						},
 					},
 				}, nil)
 			},
 			wantSvcs: []*Service{
 				{
-					ServiceName: aws.String("1"),
+					ServiceName: awsv2.String("1"),
 				},
 				{
-					ServiceName: aws.String("2"),
+					ServiceName: awsv2.String("2"),
 				},
 				{
-					ServiceName: aws.String("3"),
+					ServiceName: awsv2.String("3"),
 				},
 				{
-					ServiceName: aws.String("4"),
+					ServiceName: awsv2.String("4"),
 				},
 				{
-					ServiceName: aws.String("5"),
+					ServiceName: awsv2.String("5"),
 				},
 				{
-					ServiceName: aws.String("6"),
+					ServiceName: awsv2.String("6"),
 				},
 				{
-					ServiceName: aws.String("7"),
+					ServiceName: awsv2.String("7"),
 				},
 				{
-					ServiceName: aws.String("8"),
+					ServiceName: awsv2.String("8"),
 				},
 				{
-					ServiceName: aws.String("9"),
+					ServiceName: awsv2.String("9"),
 				},
 				{
-					ServiceName: aws.String("10"),
+					ServiceName: awsv2.String("10"),
 				},
 				{
-					ServiceName: aws.String("11"),
+					ServiceName: awsv2.String("11"),
 				},
 			},
 		},
@@ -374,23 +373,20 @@ func TestECS_ListServicesByNamespace(t *testing.T) {
 		"error if api call error": {
 			namespace: "mockNamespace",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListServicesByNamespacePages(&ecs.ListServicesByNamespaceInput{
-					Namespace: aws.String("mockNamespace"),
-				}, gomock.Any()).Return(errors.New("some error"))
+				m.EXPECT().ListServicesByNamespace(gomock.Any(), &ecs.ListServicesByNamespaceInput{
+					Namespace: awsv2.String("mockNamespace"),
+				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: "some error",
 		},
 		"success": {
 			namespace: "mockNamespace",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListServicesByNamespacePages(&ecs.ListServicesByNamespaceInput{
-					Namespace: aws.String("mockNamespace"),
-				}, gomock.Any()).DoAndReturn(func(in *ecs.ListServicesByNamespaceInput, fn func(*ecs.ListServicesByNamespaceOutput, bool) bool) error {
-					fn(&ecs.ListServicesByNamespaceOutput{
-						ServiceArns: []*string{aws.String("svc1"), aws.String("svc2"), aws.String("svc3")},
-					}, true)
-					return nil
-				})
+				m.EXPECT().ListServicesByNamespace(gomock.Any(), &ecs.ListServicesByNamespaceInput{
+					Namespace: awsv2.String("mockNamespace"),
+				}).Return(&ecs.ListServicesByNamespaceOutput{
+					ServiceArns: []string{"svc1", "svc2", "svc3"},
+				}, nil)
 			},
 			wantARNs: []string{"svc1", "svc2", "svc3"},
 		},
@@ -437,38 +433,38 @@ func TestECS_UpdateService(t *testing.T) {
 		"errors if failed to update service": {
 
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().UpdateService(&ecs.UpdateServiceInput{
-					Cluster: aws.String(clusterName),
-					Service: aws.String(serviceName),
+				m.EXPECT().UpdateService(gomock.Any(), &ecs.UpdateServiceInput{
+					Cluster: awsv2.String(clusterName),
+					Service: awsv2.String(serviceName),
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("update service mockService from cluster mockCluster: some error"),
 		},
 		"errors if max retries exceeded": {
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().UpdateService(&ecs.UpdateServiceInput{
-					Cluster: aws.String(clusterName),
-					Service: aws.String(serviceName),
+				m.EXPECT().UpdateService(gomock.Any(), &ecs.UpdateServiceInput{
+					Cluster: awsv2.String(clusterName),
+					Service: awsv2.String(serviceName),
 				}).Return(&ecs.UpdateServiceOutput{
-					Service: &ecs.Service{
-						Deployments:  []*ecs.Deployment{{}, {}},
-						DesiredCount: aws.Int64(1),
-						RunningCount: aws.Int64(2),
-						ClusterArn:   aws.String(clusterName),
-						ServiceName:  aws.String(serviceName),
+					Service: &types.Service{
+						Deployments:  []types.Deployment{{}, {}},
+						DesiredCount: 1,
+						RunningCount: 2,
+						ClusterArn:   awsv2.String(clusterName),
+						ServiceName:  awsv2.String(serviceName),
 					},
 				}, nil)
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String(clusterName),
-					Services: aws.StringSlice([]string{serviceName}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String(clusterName),
+					Services: []string{serviceName},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							Deployments:  []*ecs.Deployment{{}},
-							DesiredCount: aws.Int64(1),
-							RunningCount: aws.Int64(2),
-							ClusterArn:   aws.String(clusterName),
-							ServiceName:  aws.String(serviceName),
+							Deployments:  []types.Deployment{{}},
+							DesiredCount: 1,
+							RunningCount: 2,
+							ClusterArn:   awsv2.String(clusterName),
+							ServiceName:  awsv2.String(serviceName),
 						},
 					},
 				}, nil).Times(2)
@@ -477,21 +473,21 @@ func TestECS_UpdateService(t *testing.T) {
 		},
 		"errors if failed to describe service": {
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().UpdateService(&ecs.UpdateServiceInput{
-					Cluster: aws.String(clusterName),
-					Service: aws.String(serviceName),
+				m.EXPECT().UpdateService(gomock.Any(), &ecs.UpdateServiceInput{
+					Cluster: awsv2.String(clusterName),
+					Service: awsv2.String(serviceName),
 				}).Return(&ecs.UpdateServiceOutput{
-					Service: &ecs.Service{
-						Deployments:  []*ecs.Deployment{{}, {}},
-						DesiredCount: aws.Int64(1),
-						RunningCount: aws.Int64(2),
-						ClusterArn:   aws.String(clusterName),
-						ServiceName:  aws.String(serviceName),
+					Service: &types.Service{
+						Deployments:  []types.Deployment{{}, {}},
+						DesiredCount: 1,
+						RunningCount: 2,
+						ClusterArn:   awsv2.String(clusterName),
+						ServiceName:  awsv2.String(serviceName),
 					},
 				}, nil)
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String(clusterName),
-					Services: aws.StringSlice([]string{serviceName}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String(clusterName),
+					Services: []string{serviceName},
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("wait until service mockService becomes stable: describe services: some error"),
@@ -499,44 +495,44 @@ func TestECS_UpdateService(t *testing.T) {
 		"success": {
 			forceUpdate: true,
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().UpdateService(&ecs.UpdateServiceInput{
-					Cluster:            aws.String(clusterName),
-					Service:            aws.String(serviceName),
-					ForceNewDeployment: aws.Bool(true),
+				m.EXPECT().UpdateService(gomock.Any(), &ecs.UpdateServiceInput{
+					Cluster:            awsv2.String(clusterName),
+					Service:            awsv2.String(serviceName),
+					ForceNewDeployment: true,
 				}).Return(&ecs.UpdateServiceOutput{
-					Service: &ecs.Service{
-						Deployments:  []*ecs.Deployment{{}, {}},
-						DesiredCount: aws.Int64(1),
-						RunningCount: aws.Int64(2),
-						ClusterArn:   aws.String(clusterName),
-						ServiceName:  aws.String(serviceName),
+					Service: &types.Service{
+						Deployments:  []types.Deployment{{}, {}},
+						DesiredCount: 1,
+						RunningCount: 2,
+						ClusterArn:   awsv2.String(clusterName),
+						ServiceName:  awsv2.String(serviceName),
 					},
 				}, nil)
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String(clusterName),
-					Services: aws.StringSlice([]string{serviceName}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String(clusterName),
+					Services: []string{serviceName},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							Deployments:  []*ecs.Deployment{{}},
-							DesiredCount: aws.Int64(1),
-							RunningCount: aws.Int64(2),
-							ClusterArn:   aws.String(clusterName),
-							ServiceName:  aws.String(serviceName),
+							Deployments:  []types.Deployment{{}},
+							DesiredCount: 1,
+							RunningCount: 2,
+							ClusterArn:   awsv2.String(clusterName),
+							ServiceName:  awsv2.String(serviceName),
 						},
 					},
 				}, nil)
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String(clusterName),
-					Services: aws.StringSlice([]string{serviceName}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String(clusterName),
+					Services: []string{serviceName},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							Deployments:  []*ecs.Deployment{{}},
-							DesiredCount: aws.Int64(1),
-							RunningCount: aws.Int64(1),
-							ClusterArn:   aws.String(clusterName),
-							ServiceName:  aws.String(serviceName),
+							Deployments:  []types.Deployment{{}},
+							DesiredCount: 1,
+							RunningCount: 1,
+							ClusterArn:   awsv2.String(clusterName),
+							ServiceName:  awsv2.String(serviceName),
 						},
 					},
 				}, nil)
@@ -588,10 +584,10 @@ func TestECS_Tasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String("RUNNING"),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusRunning,
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("list running tasks: some error"),
@@ -600,18 +596,18 @@ func TestECS_Tasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String("RUNNING"),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusRunning,
 				}).Return(&ecs.ListTasksOutput{
 					NextToken: nil,
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn"}),
+					TaskArns:  []string{"mockTaskArn"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("describe running tasks in cluster mockCluster: some error"),
@@ -620,29 +616,29 @@ func TestECS_Tasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String("RUNNING"),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusRunning,
 				}).Return(&ecs.ListTasksOutput{
 					NextToken: nil,
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn"}),
+					TaskArns:  []string{"mockTaskArn"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("mockTaskArn"),
+							TaskArn: awsv2.String("mockTaskArn"),
 						},
 					},
 				}, nil)
 			},
 			wantTasks: []*Task{
 				{
-					TaskArn: aws.String("mockTaskArn"),
+					TaskArn: awsv2.String("mockTaskArn"),
 				},
 			},
 		},
@@ -650,52 +646,52 @@ func TestECS_Tasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String("RUNNING"),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusRunning,
 				}).Return(&ecs.ListTasksOutput{
-					NextToken: aws.String("mockNextToken"),
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn1"}),
+					NextToken: awsv2.String("mockNextToken"),
+					TaskArns:  []string{"mockTaskArn1"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn1"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn1"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("mockTaskArn1"),
+							TaskArn: awsv2.String("mockTaskArn1"),
 						},
 					},
 				}, nil)
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String("RUNNING"),
-					NextToken:     aws.String("mockNextToken"),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusRunning,
+					NextToken:     awsv2.String("mockNextToken"),
 				}).Return(&ecs.ListTasksOutput{
 					NextToken: nil,
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn2"}),
+					TaskArns:  []string{"mockTaskArn2"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn2"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn2"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("mockTaskArn2"),
+							TaskArn: awsv2.String("mockTaskArn2"),
 						},
 					},
 				}, nil)
 			},
 			wantTasks: []*Task{
 				{
-					TaskArn: aws.String("mockTaskArn1"),
+					TaskArn: awsv2.String("mockTaskArn1"),
 				},
 				{
-					TaskArn: aws.String("mockTaskArn2"),
+					TaskArn: awsv2.String("mockTaskArn2"),
 				},
 			},
 		},
@@ -739,10 +735,10 @@ func TestECS_StoppedServiceTasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String(ecs.DesiredStatusStopped),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusStopped,
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("list running tasks: some error"),
@@ -751,18 +747,18 @@ func TestECS_StoppedServiceTasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String(ecs.DesiredStatusStopped),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusStopped,
 				}).Return(&ecs.ListTasksOutput{
 					NextToken: nil,
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn"}),
+					TaskArns:  []string{"mockTaskArn"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("describe running tasks in cluster mockCluster: some error"),
@@ -771,29 +767,29 @@ func TestECS_StoppedServiceTasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String(ecs.DesiredStatusStopped),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusStopped,
 				}).Return(&ecs.ListTasksOutput{
 					NextToken: nil,
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn"}),
+					TaskArns:  []string{"mockTaskArn"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("mockTaskArn"),
+							TaskArn: awsv2.String("mockTaskArn"),
 						},
 					},
 				}, nil)
 			},
 			wantTasks: []*Task{
 				{
-					TaskArn: aws.String("mockTaskArn"),
+					TaskArn: awsv2.String("mockTaskArn"),
 				},
 			},
 		},
@@ -801,52 +797,52 @@ func TestECS_StoppedServiceTasks(t *testing.T) {
 			clusterName: "mockCluster",
 			serviceName: "mockService",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String(ecs.DesiredStatusStopped),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusStopped,
 				}).Return(&ecs.ListTasksOutput{
-					NextToken: aws.String("mockNextToken"),
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn1"}),
+					NextToken: awsv2.String("mockNextToken"),
+					TaskArns:  []string{"mockTaskArn1"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn1"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn1"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("mockTaskArn1"),
+							TaskArn: awsv2.String("mockTaskArn1"),
 						},
 					},
 				}, nil)
-				m.EXPECT().ListTasks(&ecs.ListTasksInput{
-					Cluster:       aws.String("mockCluster"),
-					ServiceName:   aws.String("mockService"),
-					DesiredStatus: aws.String(ecs.DesiredStatusStopped),
-					NextToken:     aws.String("mockNextToken"),
+				m.EXPECT().ListTasks(gomock.Any(), &ecs.ListTasksInput{
+					Cluster:       awsv2.String("mockCluster"),
+					ServiceName:   awsv2.String("mockService"),
+					DesiredStatus: types.DesiredStatusStopped,
+					NextToken:     awsv2.String("mockNextToken"),
 				}).Return(&ecs.ListTasksOutput{
 					NextToken: nil,
-					TaskArns:  aws.StringSlice([]string{"mockTaskArn2"}),
+					TaskArns:  []string{"mockTaskArn2"},
 				}, nil)
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String("mockCluster"),
-					Tasks:   aws.StringSlice([]string{"mockTaskArn2"}),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String("mockCluster"),
+					Tasks:   []string{"mockTaskArn2"},
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("mockTaskArn2"),
+							TaskArn: awsv2.String("mockTaskArn2"),
 						},
 					},
 				}, nil)
 			},
 			wantTasks: []*Task{
 				{
-					TaskArn: aws.String("mockTaskArn1"),
+					TaskArn: awsv2.String("mockTaskArn1"),
 				},
 				{
-					TaskArn: aws.String("mockTaskArn2"),
+					TaskArn: awsv2.String("mockTaskArn2"),
 				},
 			},
 		},
@@ -891,11 +887,11 @@ func TestECS_StopTasks(t *testing.T) {
 		"errors if failed to stop tasks in default cluster": {
 			tasks: mockTasks,
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().StopTask(&ecs.StopTaskInput{
-					Task: aws.String("mockTask1"),
+				m.EXPECT().StopTask(gomock.Any(), &ecs.StopTaskInput{
+					Task: awsv2.String("mockTask1"),
 				}).Return(&ecs.StopTaskOutput{}, nil)
-				m.EXPECT().StopTask(&ecs.StopTaskInput{
-					Task: aws.String("mockTask2"),
+				m.EXPECT().StopTask(gomock.Any(), &ecs.StopTaskInput{
+					Task: awsv2.String("mockTask2"),
 				}).Return(&ecs.StopTaskOutput{}, mockError)
 			},
 			wantErr: fmt.Errorf("stop task mockTask2: some error"),
@@ -905,15 +901,15 @@ func TestECS_StopTasks(t *testing.T) {
 			cluster:         "mockCluster",
 			stopTasksReason: "some reason",
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().StopTask(&ecs.StopTaskInput{
-					Cluster: aws.String("mockCluster"),
-					Reason:  aws.String("some reason"),
-					Task:    aws.String("mockTask1"),
+				m.EXPECT().StopTask(gomock.Any(), &ecs.StopTaskInput{
+					Cluster: awsv2.String("mockCluster"),
+					Reason:  awsv2.String("some reason"),
+					Task:    awsv2.String("mockTask1"),
 				}).Return(&ecs.StopTaskOutput{}, nil)
-				m.EXPECT().StopTask(&ecs.StopTaskInput{
-					Cluster: aws.String("mockCluster"),
-					Reason:  aws.String("some reason"),
-					Task:    aws.String("mockTask2"),
+				m.EXPECT().StopTask(gomock.Any(), &ecs.StopTaskInput{
+					Cluster: awsv2.String("mockCluster"),
+					Reason:  awsv2.String("some reason"),
+					Task:    awsv2.String("mockTask2"),
 				}).Return(&ecs.StopTaskOutput{}, nil)
 			},
 		},
@@ -960,18 +956,18 @@ func TestECS_DefaultCluster(t *testing.T) {
 		"get default clusters success": {
 			mockECSClient: func(m *mocks.Mockapi) {
 				m.EXPECT().
-					DescribeClusters(&ecs.DescribeClustersInput{}).
+					DescribeClusters(gomock.Any(), &ecs.DescribeClustersInput{}).
 					Return(&ecs.DescribeClustersOutput{
-						Clusters: []*ecs.Cluster{
+						Clusters: []types.Cluster{
 							{
-								ClusterArn:  aws.String("arn:aws:ecs:us-east-1:0123456:cluster/cluster1"),
-								ClusterName: aws.String("cluster1"),
-								Status:      aws.String(statusActive),
+								ClusterArn:  awsv2.String("arn:aws:ecs:us-east-1:0123456:cluster/cluster1"),
+								ClusterName: awsv2.String("cluster1"),
+								Status:      awsv2.String(statusActive),
 							},
 							{
-								ClusterArn:  aws.String("arn:aws:ecs:us-east-1:0123456:cluster/cluster2"),
-								ClusterName: aws.String("cluster2"),
-								Status:      aws.String(statusActive),
+								ClusterArn:  awsv2.String("arn:aws:ecs:us-east-1:0123456:cluster/cluster2"),
+								ClusterName: awsv2.String("cluster2"),
+								Status:      awsv2.String(statusActive),
 							},
 						},
 					}, nil)
@@ -982,13 +978,13 @@ func TestECS_DefaultCluster(t *testing.T) {
 		"ignore inactive cluster": {
 			mockECSClient: func(m *mocks.Mockapi) {
 				m.EXPECT().
-					DescribeClusters(&ecs.DescribeClustersInput{}).
+					DescribeClusters(gomock.Any(), &ecs.DescribeClustersInput{}).
 					Return(&ecs.DescribeClustersOutput{
-						Clusters: []*ecs.Cluster{
+						Clusters: []types.Cluster{
 							{
-								ClusterArn:  aws.String("arn:aws:ecs:us-east-1:0123456:cluster/cluster1"),
-								ClusterName: aws.String("cluster1"),
-								Status:      aws.String("INACTIVE"),
+								ClusterArn:  awsv2.String("arn:aws:ecs:us-east-1:0123456:cluster/cluster1"),
+								ClusterName: awsv2.String("cluster1"),
+								Status:      awsv2.String("INACTIVE"),
 							},
 						},
 					}, nil)
@@ -998,7 +994,7 @@ func TestECS_DefaultCluster(t *testing.T) {
 		"failed to get default clusters": {
 			mockECSClient: func(m *mocks.Mockapi) {
 				m.EXPECT().
-					DescribeClusters(&ecs.DescribeClustersInput{}).
+					DescribeClusters(gomock.Any(), &ecs.DescribeClustersInput{}).
 					Return(nil, errors.New("error"))
 			},
 			wantedError: fmt.Errorf("get default cluster: %s", "error"),
@@ -1035,28 +1031,28 @@ func TestECS_HasDefaultCluster(t *testing.T) {
 	}{
 		"no default cluster": {
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeClusters(&ecs.DescribeClustersInput{}).
+				m.EXPECT().DescribeClusters(gomock.Any(), &ecs.DescribeClustersInput{}).
 					Return(&ecs.DescribeClustersOutput{
-						Clusters: []*ecs.Cluster{},
+						Clusters: []types.Cluster{},
 					}, nil)
 			},
 			wantedHasDefaultCluster: false,
 		},
 		"error getting default cluster": {
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeClusters(&ecs.DescribeClustersInput{}).
+				m.EXPECT().DescribeClusters(gomock.Any(), &ecs.DescribeClustersInput{}).
 					Return(nil, errors.New("other error"))
 			},
 			wantedErr: fmt.Errorf("get default cluster: other error"),
 		},
 		"has default cluster": {
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeClusters(&ecs.DescribeClustersInput{}).
+				m.EXPECT().DescribeClusters(gomock.Any(), &ecs.DescribeClustersInput{}).
 					Return(&ecs.DescribeClustersOutput{
-						Clusters: []*ecs.Cluster{
+						Clusters: []types.Cluster{
 							{
-								ClusterArn: aws.String("cluster"),
-								Status:     aws.String(statusActive),
+								ClusterArn: awsv2.String("cluster"),
+								Status:     awsv2.String(statusActive),
 							},
 						},
 					}, nil)
@@ -1101,7 +1097,7 @@ func TestECS_ActiveClusters(t *testing.T) {
 			inArns: []string{"arn1"},
 			mockECSClient: func(m *mocks.Mockapi) {
 				m.EXPECT().
-					DescribeClusters(gomock.Any()).
+					DescribeClusters(gomock.Any(), gomock.Any()).
 					Return(nil, fmt.Errorf("some error"))
 			},
 			wantedError: fmt.Errorf("describe clusters: some error"),
@@ -1110,26 +1106,26 @@ func TestECS_ActiveClusters(t *testing.T) {
 			inArns: []string{"arn1", "arn2"},
 			mockECSClient: func(m *mocks.Mockapi) {
 				m.EXPECT().
-					DescribeClusters(&ecs.DescribeClustersInput{
-						Clusters: aws.StringSlice([]string{"arn1", "arn2"}),
+					DescribeClusters(gomock.Any(), &ecs.DescribeClustersInput{
+						Clusters: []string{"arn1", "arn2"},
 					}).
 					Return(&ecs.DescribeClustersOutput{
-						Clusters: []*ecs.Cluster{
+						Clusters: []types.Cluster{
 							{
-								ClusterArn: aws.String("cluster1"),
-								Status:     aws.String(statusActive),
+								ClusterArn: awsv2.String("cluster1"),
+								Status:     awsv2.String(statusActive),
 							},
 							{
-								ClusterArn: aws.String("cluster2"),
-								Status:     aws.String("INACTIVE"),
+								ClusterArn: awsv2.String("cluster2"),
+								Status:     awsv2.String("INACTIVE"),
 							},
 							{
-								ClusterArn: aws.String("cluster3"),
-								Status:     aws.String(statusActive),
+								ClusterArn: awsv2.String("cluster3"),
+								Status:     awsv2.String(statusActive),
 							},
 							{
-								ClusterArn: aws.String("cluster4"),
-								Status:     aws.String("random"),
+								ClusterArn: awsv2.String("cluster4"),
+								Status:     awsv2.String("random"),
 							},
 						},
 					}, nil)
@@ -1177,7 +1173,7 @@ func TestECS_ActiveServices(t *testing.T) {
 			inArns:       []string{"arn:aws:ecs:us-west-2:1234567890:service/cluster1/svc1", "arn:aws:ecs:us-west-2:1234567890:service/cluster2/svc2"},
 			mockECSClient: func(m *mocks.Mockapi) {
 				m.EXPECT().
-					DescribeServices(gomock.Any()).
+					DescribeServices(gomock.Any(), gomock.Any()).
 					Return(nil, fmt.Errorf("some error"))
 			},
 			wantedError: fmt.Errorf("describe services: some error"),
@@ -1187,16 +1183,16 @@ func TestECS_ActiveServices(t *testing.T) {
 			inArns:       []string{"arn:aws:ecs:us-west-2:1234567890:service/cluster1/svc1", "arn:aws:ecs:us-west-2:1234567890:service/cluster1/svc2"},
 			mockECSClient: func(m *mocks.Mockapi) {
 				m.EXPECT().
-					DescribeServices(gomock.Any()).
+					DescribeServices(gomock.Any(), gomock.Any()).
 					Return(&ecs.DescribeServicesOutput{
-						Services: []*ecs.Service{
+						Services: []types.Service{
 							{
-								ServiceArn: aws.String("service1"),
-								Status:     aws.String(statusActive),
+								ServiceArn: awsv2.String("service1"),
+								Status:     awsv2.String(statusActive),
 							},
 							{
-								ServiceArn: aws.String("service2"),
-								Status:     aws.String("random"),
+								ServiceArn: awsv2.String("service2"),
+								Status:     awsv2.String("random"),
 							},
 						},
 					}, nil)
@@ -1250,21 +1246,21 @@ func TestECS_RunTask(t *testing.T) {
 		platformVersion: "LATEST",
 		enableExec:      true,
 	}
-	ecsTasks := []*ecs.Task{
+	ecsTasks := []types.Task{
 		{
-			TaskArn: aws.String("task-1"),
+			TaskArn: awsv2.String("task-1"),
 		},
 		{
-			TaskArn: aws.String("task-2"),
+			TaskArn: awsv2.String("task-2"),
 		},
 		{
-			TaskArn: aws.String("task-3"),
+			TaskArn: awsv2.String("task-3"),
 		},
 	}
 	describeTasksInput := ecs.DescribeTasksInput{
-		Cluster: aws.String("my-cluster"),
-		Tasks:   aws.StringSlice([]string{"task-1", "task-2", "task-3"}),
-		Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+		Cluster: awsv2.String("my-cluster"),
+		Tasks:   []string{"task-1", "task-2", "task-3"},
+		Include: []types.TaskField{types.TaskFieldTags},
 	}
 	testCases := map[string]struct {
 		input
@@ -1277,39 +1273,39 @@ func TestECS_RunTask(t *testing.T) {
 		"run task success": {
 			input: runTaskInput,
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().RunTask(&ecs.RunTaskInput{
-					Cluster:        aws.String("my-cluster"),
-					Count:          aws.Int64(3),
-					LaunchType:     aws.String(ecs.LaunchTypeFargate),
-					StartedBy:      aws.String("task"),
-					TaskDefinition: aws.String("my-task"),
-					NetworkConfiguration: &ecs.NetworkConfiguration{
-						AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
-							AssignPublicIp: aws.String(ecs.AssignPublicIpEnabled),
-							Subnets:        aws.StringSlice([]string{"subnet-1", "subnet-2"}),
-							SecurityGroups: aws.StringSlice([]string{"sg-1", "sg-2"}),
+				m.EXPECT().RunTask(gomock.Any(), &ecs.RunTaskInput{
+					Cluster:        awsv2.String("my-cluster"),
+					Count:          awsv2.Int32(int32(3)),
+					LaunchType:     types.LaunchTypeFargate,
+					StartedBy:      awsv2.String("task"),
+					TaskDefinition: awsv2.String("my-task"),
+					NetworkConfiguration: &types.NetworkConfiguration{
+						AwsvpcConfiguration: &types.AwsVpcConfiguration{
+							AssignPublicIp: types.AssignPublicIpEnabled,
+							Subnets:        []string{"subnet-1", "subnet-2"},
+							SecurityGroups: []string{"sg-1", "sg-2"},
 						},
 					},
-					EnableExecuteCommand: aws.Bool(true),
-					PlatformVersion:      aws.String("LATEST"),
-					PropagateTags:        aws.String(ecs.PropagateTagsTaskDefinition),
+					EnableExecuteCommand: true,
+					PlatformVersion:      awsv2.String("LATEST"),
+					PropagateTags:        types.PropagateTagsTaskDefinition,
 				}).Return(&ecs.RunTaskOutput{
 					Tasks: ecsTasks,
 				}, nil)
-				m.EXPECT().WaitUntilTasksRunning(&describeTasksInput).Times(1)
-				m.EXPECT().DescribeTasks(&describeTasksInput).Return(&ecs.DescribeTasksOutput{
+				m.EXPECT().WaitUntilTasksRunning(gomock.Any(), &describeTasksInput, gomock.Any()).Times(1)
+				m.EXPECT().DescribeTasks(gomock.Any(), &describeTasksInput).Return(&ecs.DescribeTasksOutput{
 					Tasks: ecsTasks,
 				}, nil)
 			},
 			wantedTasks: []*Task{
 				{
-					TaskArn: aws.String("task-1"),
+					TaskArn: awsv2.String("task-1"),
 				},
 				{
-					TaskArn: aws.String("task-2"),
+					TaskArn: awsv2.String("task-2"),
 				},
 				{
-					TaskArn: aws.String("task-3"),
+					TaskArn: awsv2.String("task-3"),
 				},
 			},
 		},
@@ -1317,22 +1313,22 @@ func TestECS_RunTask(t *testing.T) {
 			input: runTaskInput,
 
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().RunTask(&ecs.RunTaskInput{
-					Cluster:        aws.String("my-cluster"),
-					Count:          aws.Int64(3),
-					LaunchType:     aws.String(ecs.LaunchTypeFargate),
-					StartedBy:      aws.String("task"),
-					TaskDefinition: aws.String("my-task"),
-					NetworkConfiguration: &ecs.NetworkConfiguration{
-						AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
-							AssignPublicIp: aws.String(ecs.AssignPublicIpEnabled),
-							Subnets:        aws.StringSlice([]string{"subnet-1", "subnet-2"}),
-							SecurityGroups: aws.StringSlice([]string{"sg-1", "sg-2"}),
+				m.EXPECT().RunTask(gomock.Any(), &ecs.RunTaskInput{
+					Cluster:        awsv2.String("my-cluster"),
+					Count:          awsv2.Int32(int32(3)),
+					LaunchType:     types.LaunchTypeFargate,
+					StartedBy:      awsv2.String("task"),
+					TaskDefinition: awsv2.String("my-task"),
+					NetworkConfiguration: &types.NetworkConfiguration{
+						AwsvpcConfiguration: &types.AwsVpcConfiguration{
+							AssignPublicIp: types.AssignPublicIpEnabled,
+							Subnets:        []string{"subnet-1", "subnet-2"},
+							SecurityGroups: []string{"sg-1", "sg-2"},
 						},
 					},
-					EnableExecuteCommand: aws.Bool(true),
-					PlatformVersion:      aws.String("LATEST"),
-					PropagateTags:        aws.String(ecs.PropagateTagsTaskDefinition),
+					EnableExecuteCommand: true,
+					PlatformVersion:      awsv2.String("LATEST"),
+					PropagateTags:        types.PropagateTagsTaskDefinition,
 				}).
 					Return(&ecs.RunTaskOutput{}, errors.New("error"))
 			},
@@ -1342,27 +1338,27 @@ func TestECS_RunTask(t *testing.T) {
 			input: runTaskInput,
 
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().RunTask(&ecs.RunTaskInput{
-					Cluster:        aws.String("my-cluster"),
-					Count:          aws.Int64(3),
-					LaunchType:     aws.String(ecs.LaunchTypeFargate),
-					StartedBy:      aws.String("task"),
-					TaskDefinition: aws.String("my-task"),
-					NetworkConfiguration: &ecs.NetworkConfiguration{
-						AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
-							AssignPublicIp: aws.String(ecs.AssignPublicIpEnabled),
-							Subnets:        aws.StringSlice([]string{"subnet-1", "subnet-2"}),
-							SecurityGroups: aws.StringSlice([]string{"sg-1", "sg-2"}),
+				m.EXPECT().RunTask(gomock.Any(), &ecs.RunTaskInput{
+					Cluster:        awsv2.String("my-cluster"),
+					Count:          awsv2.Int32(int32(3)),
+					LaunchType:     types.LaunchTypeFargate,
+					StartedBy:      awsv2.String("task"),
+					TaskDefinition: awsv2.String("my-task"),
+					NetworkConfiguration: &types.NetworkConfiguration{
+						AwsvpcConfiguration: &types.AwsVpcConfiguration{
+							AssignPublicIp: types.AssignPublicIpEnabled,
+							Subnets:        []string{"subnet-1", "subnet-2"},
+							SecurityGroups: []string{"sg-1", "sg-2"},
 						},
 					},
-					EnableExecuteCommand: aws.Bool(true),
-					PlatformVersion:      aws.String("LATEST"),
-					PropagateTags:        aws.String(ecs.PropagateTagsTaskDefinition),
+					EnableExecuteCommand: true,
+					PlatformVersion:      awsv2.String("LATEST"),
+					PropagateTags:        types.PropagateTagsTaskDefinition,
 				}).
 					Return(&ecs.RunTaskOutput{
 						Tasks: ecsTasks,
 					}, nil)
-				m.EXPECT().WaitUntilTasksRunning(&describeTasksInput).Return(errors.New("some error"))
+				m.EXPECT().WaitUntilTasksRunning(gomock.Any(), &describeTasksInput, gomock.Any()).Return(errors.New("some error"))
 			},
 			wantedError: errors.New("wait for tasks to be running: some error"),
 		},
@@ -1370,45 +1366,45 @@ func TestECS_RunTask(t *testing.T) {
 			input: runTaskInput,
 
 			mockECSClient: func(m *mocks.Mockapi) {
-				m.EXPECT().RunTask(&ecs.RunTaskInput{
-					Cluster:        aws.String("my-cluster"),
-					Count:          aws.Int64(3),
-					LaunchType:     aws.String(ecs.LaunchTypeFargate),
-					StartedBy:      aws.String("task"),
-					TaskDefinition: aws.String("my-task"),
-					NetworkConfiguration: &ecs.NetworkConfiguration{
-						AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
-							AssignPublicIp: aws.String(ecs.AssignPublicIpEnabled),
-							Subnets:        aws.StringSlice([]string{"subnet-1", "subnet-2"}),
-							SecurityGroups: aws.StringSlice([]string{"sg-1", "sg-2"}),
+				m.EXPECT().RunTask(gomock.Any(), &ecs.RunTaskInput{
+					Cluster:        awsv2.String("my-cluster"),
+					Count:          awsv2.Int32(int32(3)),
+					LaunchType:     types.LaunchTypeFargate,
+					StartedBy:      awsv2.String("task"),
+					TaskDefinition: awsv2.String("my-task"),
+					NetworkConfiguration: &types.NetworkConfiguration{
+						AwsvpcConfiguration: &types.AwsVpcConfiguration{
+							AssignPublicIp: types.AssignPublicIpEnabled,
+							Subnets:        []string{"subnet-1", "subnet-2"},
+							SecurityGroups: []string{"sg-1", "sg-2"},
 						},
 					},
-					EnableExecuteCommand: aws.Bool(true),
-					PlatformVersion:      aws.String("LATEST"),
-					PropagateTags:        aws.String(ecs.PropagateTagsTaskDefinition),
+					EnableExecuteCommand: true,
+					PlatformVersion:      awsv2.String("LATEST"),
+					PropagateTags:        types.PropagateTagsTaskDefinition,
 				}).
 					Return(&ecs.RunTaskOutput{
 						Tasks: ecsTasks}, nil)
-				m.EXPECT().WaitUntilTasksRunning(&describeTasksInput).
-					Return(awserr.New(request.WaiterResourceNotReadyErrorCode, "some error", errors.New("some error")))
-				m.EXPECT().DescribeTasks(&describeTasksInput).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+				m.EXPECT().WaitUntilTasksRunning(gomock.Any(), &describeTasksInput, gomock.Any()).
+					Return(errors.New("exceeded max wait time for TasksRunning waiter"))
+				m.EXPECT().DescribeTasks(gomock.Any(), &describeTasksInput).Return(&ecs.DescribeTasksOutput{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("task-1"),
+							TaskArn: awsv2.String("task-1"),
 						},
 						{
-							TaskArn:       aws.String("arn:aws:ecs:us-west-2:123456789:task/4082490ee6c245e09d2145010aa1ba8d"),
-							StoppedReason: aws.String("Task failed to start"),
-							LastStatus:    aws.String("STOPPED"),
-							Containers: []*ecs.Container{
+							TaskArn:       awsv2.String("arn:aws:ecs:us-west-2:123456789:task/4082490ee6c245e09d2145010aa1ba8d"),
+							StoppedReason: awsv2.String("Task failed to start"),
+							LastStatus:    awsv2.String("STOPPED"),
+							Containers: []types.Container{
 								{
-									Reason:     aws.String("CannotPullContainerError: inspect image has been retried 1 time(s)"),
-									LastStatus: aws.String("STOPPED"),
+									Reason:     awsv2.String("CannotPullContainerError: inspect image has been retried 1 time(s)"),
+									LastStatus: awsv2.String("STOPPED"),
 								},
 							},
 						},
 						{
-							TaskArn: aws.String("task-3"),
+							TaskArn: awsv2.String("task-3"),
 						},
 					},
 				}, nil)
@@ -1459,43 +1455,43 @@ func TestECS_DescribeTasks(t *testing.T) {
 	}{
 		"error describing tasks": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String(inCluster),
-					Tasks:   aws.StringSlice(inTaskARNs),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String(inCluster),
+					Tasks:   inTaskARNs,
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(nil, errors.New("error describing tasks"))
 			},
 			wantedError: fmt.Errorf("describe tasks: %w", errors.New("error describing tasks")),
 		},
 		"successfully described tasks": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeTasks(&ecs.DescribeTasksInput{
-					Cluster: aws.String(inCluster),
-					Tasks:   aws.StringSlice(inTaskARNs),
-					Include: aws.StringSlice([]string{ecs.TaskFieldTags}),
+				m.EXPECT().DescribeTasks(gomock.Any(), &ecs.DescribeTasksInput{
+					Cluster: awsv2.String(inCluster),
+					Tasks:   inTaskARNs,
+					Include: []types.TaskField{types.TaskFieldTags},
 				}).Return(&ecs.DescribeTasksOutput{
-					Tasks: []*ecs.Task{
+					Tasks: []types.Task{
 						{
-							TaskArn: aws.String("task-1"),
+							TaskArn: awsv2.String("task-1"),
 						},
 						{
-							TaskArn: aws.String("task-2"),
+							TaskArn: awsv2.String("task-2"),
 						},
 						{
-							TaskArn: aws.String("task-3"),
+							TaskArn: awsv2.String("task-3"),
 						},
 					},
 				}, nil)
 			},
 			wantedTasks: []*Task{
 				{
-					TaskArn: aws.String("task-1"),
+					TaskArn: awsv2.String("task-1"),
 				},
 				{
-					TaskArn: aws.String("task-2"),
+					TaskArn: awsv2.String("task-2"),
 				},
 				{
-					TaskArn: aws.String("task-3"),
+					TaskArn: awsv2.String("task-3"),
 				},
 			},
 		},
@@ -1526,14 +1522,14 @@ func TestECS_DescribeTasks(t *testing.T) {
 
 func TestECS_ExecuteCommand(t *testing.T) {
 	mockExecCmdIn := &ecs.ExecuteCommandInput{
-		Cluster:     aws.String("mockCluster"),
-		Command:     aws.String("mockCommand"),
-		Interactive: aws.Bool(true),
-		Container:   aws.String("mockContainer"),
-		Task:        aws.String("mockTask"),
+		Cluster:     awsv2.String("mockCluster"),
+		Command:     awsv2.String("mockCommand"),
+		Interactive: true,
+		Container:   awsv2.String("mockContainer"),
+		Task:        awsv2.String("mockTask"),
 	}
-	mockSess := &ecs.Session{
-		SessionId: aws.String("mockSessID"),
+	mockSess := &types.Session{
+		SessionId: awsv2.String("mockSessID"),
 	}
 	mockErr := errors.New("some error")
 	testCases := map[string]struct {
@@ -1543,19 +1539,19 @@ func TestECS_ExecuteCommand(t *testing.T) {
 	}{
 		"return error if fail to call ExecuteCommand": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().ExecuteCommand(mockExecCmdIn).Return(nil, mockErr)
+				m.EXPECT().ExecuteCommand(gomock.Any(), mockExecCmdIn).Return(nil, mockErr)
 			},
 			mockSessStarter: func(m *mocks.MockssmSessionStarter) {},
 			wantedError:     &ErrExecuteCommand{err: mockErr},
 		},
 		"return error if fail to start the session": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().ExecuteCommand(&ecs.ExecuteCommandInput{
-					Cluster:     aws.String("mockCluster"),
-					Command:     aws.String("mockCommand"),
-					Interactive: aws.Bool(true),
-					Container:   aws.String("mockContainer"),
-					Task:        aws.String("mockTask"),
+				m.EXPECT().ExecuteCommand(gomock.Any(), &ecs.ExecuteCommandInput{
+					Cluster:     awsv2.String("mockCluster"),
+					Command:     awsv2.String("mockCommand"),
+					Interactive: true,
+					Container:   awsv2.String("mockContainer"),
+					Task:        awsv2.String("mockTask"),
 				}).Return(&ecs.ExecuteCommandOutput{
 					Session: mockSess,
 				}, nil)
@@ -1567,7 +1563,7 @@ func TestECS_ExecuteCommand(t *testing.T) {
 		},
 		"success": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().ExecuteCommand(mockExecCmdIn).Return(&ecs.ExecuteCommandOutput{
+				m.EXPECT().ExecuteCommand(gomock.Any(), mockExecCmdIn).Return(&ecs.ExecuteCommandOutput{
 					Session: mockSess,
 				}, nil)
 			},
@@ -1618,18 +1614,18 @@ func TestECS_NetworkConfiguration(t *testing.T) {
 	}{
 		"success": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("crowded-cluster"),
-					Services: aws.StringSlice([]string{"cool-service"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("crowded-cluster"),
+					Services: []string{"cool-service"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							ServiceName: aws.String("cool-service"),
-							NetworkConfiguration: &ecs.NetworkConfiguration{
-								AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
-									AssignPublicIp: aws.String("1.2.3.4"),
-									SecurityGroups: aws.StringSlice([]string{"sg-1", "sg-2"}),
-									Subnets:        aws.StringSlice([]string{"sbn-1", "sbn-2"}),
+							ServiceName: awsv2.String("cool-service"),
+							NetworkConfiguration: &types.NetworkConfiguration{
+								AwsvpcConfiguration: &types.AwsVpcConfiguration{
+									AssignPublicIp: types.AssignPublicIp("1.2.3.4"),
+									SecurityGroups: []string{"sg-1", "sg-2"},
+									Subnets:        []string{"sbn-1", "sbn-2"},
 								},
 							},
 						},
@@ -1644,22 +1640,22 @@ func TestECS_NetworkConfiguration(t *testing.T) {
 		},
 		"fail to describe service": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("crowded-cluster"),
-					Services: aws.StringSlice([]string{"cool-service"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("crowded-cluster"),
+					Services: []string{"cool-service"},
 				}).Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("describe service cool-service: some error"),
 		},
 		"fail to find awsvpc configuration": {
 			mockAPI: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeServices(&ecs.DescribeServicesInput{
-					Cluster:  aws.String("crowded-cluster"),
-					Services: aws.StringSlice([]string{"cool-service"}),
+				m.EXPECT().DescribeServices(gomock.Any(), &ecs.DescribeServicesInput{
+					Cluster:  awsv2.String("crowded-cluster"),
+					Services: []string{"cool-service"},
 				}).Return(&ecs.DescribeServicesOutput{
-					Services: []*ecs.Service{
+					Services: []types.Service{
 						{
-							ServiceName: aws.String("cool-service"),
+							ServiceName: awsv2.String("cool-service"),
 						},
 					},
 				}, nil)

@@ -78,12 +78,12 @@ func newSvcExecOpts(vars execVars) (*svcExecOpts, error) {
 			return ecs.New(s, v2ConfigFromSessionRegion(s))
 		},
 		newCommandExecutor: func(s *session.Session) ecsCommandExecutor {
-			return awsecs.New(s)
+			return awsecs.New(v2ConfigFromSessionRegion(s))
 		},
 		randInt: func(x int) int {
 			return rand.Intn(x)
 		},
-		ssmPluginManager: exec.NewSSMPluginCommand(nil),
+		ssmPluginManager: exec.NewSSMPluginCommand(""),
 		prompter:         prompt.New(),
 		sessProvider:     sessProvider,
 	}, nil

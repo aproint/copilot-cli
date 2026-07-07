@@ -88,7 +88,7 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 		cfn:           cloudformation.New(defaultSession, cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:        prompter,
 		s3: func(session *session.Session) bucketEmptier {
-			return s3.New(session)
+			return s3.New(v2ConfigFromSessionRegion(session))
 		},
 		pipelineLister: deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSession))),
 		sel:            selector.NewAppEnvSelector(prompter, store),

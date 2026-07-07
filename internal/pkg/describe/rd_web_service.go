@@ -11,8 +11,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/aws/aws-sdk-go/aws"
-
 	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
@@ -174,7 +172,7 @@ func formatTracingConfiguration(configuration *apprunner.TraceConfiguration) *tr
 		return nil
 	}
 	return &tracing{
-		Vendor: aws.StringValue(configuration.Vendor),
+		Vendor: string(configuration.Vendor),
 	}
 }
 

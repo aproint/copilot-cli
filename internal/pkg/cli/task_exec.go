@@ -68,14 +68,14 @@ func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
 	return &taskExecOpts{
 		taskExecVars:     vars,
 		store:            ssmStore,
-		ssmPluginManager: exec.NewSSMPluginCommand(nil),
+		ssmPluginManager: exec.NewSSMPluginCommand(""),
 		prompter:         prompter,
 		newTaskSel: func(sess *session.Session) runningTaskSelector {
 			return selector.NewTaskSelector(prompter, ecs.New(sess, v2ConfigFromSessionRegion(sess)))
 		},
 		configSel: selector.NewConfigSelector(prompter, ssmStore),
 		newCommandExecutor: func(s *session.Session) ecsCommandExecutor {
-			return awsecs.New(s)
+			return awsecs.New(v2ConfigFromSessionRegion(s))
 		},
 		provider: sessProvider,
 	}, nil

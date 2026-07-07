@@ -147,8 +147,8 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 		env: in.Env,
 
 		templateFS:       template.New(),
-		s3:               awss3.New(envManagerSession),
-		prefixListGetter: ec2.New(envRegionSession),
+		s3:               awss3.New(v2ConfigFromSessionRegion(envManagerSession)),
+		prefixListGetter: ec2.New(v2ConfigFromSessionRegion(envRegionSession)),
 
 		appCFN:      deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
 		envDeployer: cfnClient,

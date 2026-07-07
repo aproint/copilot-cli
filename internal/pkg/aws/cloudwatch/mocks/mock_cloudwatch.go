@@ -5,10 +5,11 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	resourcegroups "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
-	cloudwatch "github.com/aws/aws-sdk-go/service/cloudwatch"
+	cloudwatch "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,18 +37,23 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // DescribeAlarms mocks base method.
-func (m *Mockapi) DescribeAlarms(input *cloudwatch.DescribeAlarmsInput) (*cloudwatch.DescribeAlarmsOutput, error) {
+func (m *Mockapi) DescribeAlarms(arg0 context.Context, arg1 *cloudwatch.DescribeAlarmsInput, arg2 ...func(*cloudwatch.Options)) (*cloudwatch.DescribeAlarmsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAlarms", input)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeAlarms", varargs...)
 	ret0, _ := ret[0].(*cloudwatch.DescribeAlarmsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeAlarms indicates an expected call of DescribeAlarms.
-func (mr *MockapiMockRecorder) DescribeAlarms(input interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeAlarms(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAlarms", reflect.TypeOf((*Mockapi)(nil).DescribeAlarms), input)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAlarms", reflect.TypeOf((*Mockapi)(nil).DescribeAlarms), varargs...)
 }
 
 // MockresourceGetter is a mock of resourceGetter interface.

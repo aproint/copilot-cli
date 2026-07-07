@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
@@ -63,10 +63,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 	taskWithENI = ecs.Task{
 		TaskArn: aws.String("task-1"),
-		Attachments: []*awsecs.Attachment{
+		Attachments: []awsecs.Attachment{
 			{
 				Type: aws.String(attachmentTypeName),
-				Details: []*awsecs.KeyValuePair{
+				Details: []awsecs.KeyValuePair{
 					{
 						Name:  aws.String(detailsKeyName),
 						Value: aws.String("eni-1"),

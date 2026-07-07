@@ -8,20 +8,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestService_TargetGroups(t *testing.T) {
 	t.Run("should return correct ARNs", func(t *testing.T) {
 		s := Service{
-			LoadBalancers: []*ecs.LoadBalancer{
+			LoadBalancers: []types.LoadBalancer{
 				{
-					TargetGroupArn: aws.String("group-1"),
+					TargetGroupArn: awsv2.String("group-1"),
 				},
 				{
-					TargetGroupArn: aws.String("group-2"),
+					TargetGroupArn: awsv2.String("group-2"),
 				},
 			},
 		}
@@ -34,28 +34,28 @@ func TestService_TargetGroups(t *testing.T) {
 func TestService_ServiceStatus(t *testing.T) {
 	t.Run("should include active and primary deployments in status", func(t *testing.T) {
 		inService := Service{
-			Deployments: []*ecs.Deployment{
+			Deployments: []types.Deployment{
 				{
-					Status:       aws.String("ACTIVE"),
-					Id:           aws.String("id-1"),
-					DesiredCount: aws.Int64(3),
-					RunningCount: aws.Int64(3),
+					Status:       awsv2.String("ACTIVE"),
+					Id:           awsv2.String("id-1"),
+					DesiredCount: 3,
+					RunningCount: 3,
 				},
 				{
-					Status:       aws.String("ACTIVE"),
-					Id:           aws.String("id-3"),
-					DesiredCount: aws.Int64(4),
-					RunningCount: aws.Int64(2),
+					Status:       awsv2.String("ACTIVE"),
+					Id:           awsv2.String("id-3"),
+					DesiredCount: 4,
+					RunningCount: 2,
 				},
 				{
-					Status:       aws.String("PRIMARY"),
-					Id:           aws.String("id-4"),
-					DesiredCount: aws.Int64(10),
-					RunningCount: aws.Int64(1),
+					Status:       awsv2.String("PRIMARY"),
+					Id:           awsv2.String("id-4"),
+					DesiredCount: 10,
+					RunningCount: 1,
 				},
 				{
-					Status: aws.String("INACTIVE"),
-					Id:     aws.String("id-5"),
+					Status: awsv2.String("INACTIVE"),
+					Id:     awsv2.String("id-5"),
 				},
 			},
 		}
@@ -100,7 +100,7 @@ func TestService_LastUpdatedAt(t *testing.T) {
 	mockTime2 := time.Unix(14945059, 0)
 	t.Run("should return correct last updated value", func(t *testing.T) {
 		s := Service{
-			Deployments: []*ecs.Deployment{
+			Deployments: []types.Deployment{
 				{
 					UpdatedAt: &mockTime1,
 				},
@@ -123,10 +123,10 @@ func TestService_ServiceConnectAliases(t *testing.T) {
 	}{
 		"quit early if not enabled": {
 			inService: &Service{
-				Deployments: []*ecs.Deployment{
+				Deployments: []types.Deployment{
 					{
-						ServiceConnectConfiguration: &ecs.ServiceConnectConfiguration{
-							Enabled: aws.Bool(false),
+						ServiceConnectConfiguration: &types.ServiceConnectConfiguration{
+							Enabled: false,
 						},
 					},
 				},
@@ -135,28 +135,28 @@ func TestService_ServiceConnectAliases(t *testing.T) {
 		},
 		"success": {
 			inService: &Service{
-				Deployments: []*ecs.Deployment{
+				Deployments: []types.Deployment{
 					{
-						ServiceConnectConfiguration: &ecs.ServiceConnectConfiguration{
-							Enabled:   aws.Bool(true),
-							Namespace: aws.String("foobar.local"),
-							Services: []*ecs.ServiceConnectService{
+						ServiceConnectConfiguration: &types.ServiceConnectConfiguration{
+							Enabled:   true,
+							Namespace: awsv2.String("foobar.local"),
+							Services: []types.ServiceConnectService{
 								{
-									PortName:      aws.String("frontend"),
-									DiscoveryName: aws.String("front"),
+									PortName:      awsv2.String("frontend"),
+									DiscoveryName: awsv2.String("front"),
 								},
 								{
-									PortName: aws.String("frontend"),
+									PortName: awsv2.String("frontend"),
 								},
 								{
-									PortName: aws.String("frontend"),
-									ClientAliases: []*ecs.ServiceConnectClientAlias{
+									PortName: awsv2.String("frontend"),
+									ClientAliases: []types.ServiceConnectClientAlias{
 										{
-											Port: aws.Int64(5000),
+											Port: awsv2.Int32(5000),
 										},
 										{
-											DnsName: aws.String("api"),
-											Port:    aws.Int64(80),
+											DnsName: awsv2.String("api"),
+											Port:    awsv2.Int32(80),
 										},
 									},
 								},

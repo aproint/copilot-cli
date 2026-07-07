@@ -93,7 +93,7 @@ func newSvcPauseOpts(vars svcPauseVars) (*svcPauseOpts, error) {
 		if err != nil {
 			return err
 		}
-		opts.client = apprunner.New(sess)
+		opts.client = apprunner.New(v2ConfigFromSessionRegion(sess))
 		d, err := describe.NewRDWebServiceDescriber(describe.NewServiceConfig{
 			App:         opts.appName,
 			Svc:         opts.svcName,

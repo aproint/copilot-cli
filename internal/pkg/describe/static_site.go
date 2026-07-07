@@ -71,7 +71,8 @@ func NewStaticSiteDescriber(opt NewServiceConfig) (*StaticSiteDescriber, error) 
 		if err != nil {
 			return nil, nil, err
 		}
-		return awsS3.New(sess), s3.New(sess, v2ConfigFromSessionRegion(sess)), nil
+		cfg := v2ConfigFromSessionRegion(sess)
+		return awsS3.New(cfg), s3.New(sess, cfg), nil
 	}
 	return describer, nil
 }

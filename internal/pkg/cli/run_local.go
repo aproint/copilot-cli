@@ -50,11 +50,12 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/term/syncbuffer"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	sdkecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	sdkecs "github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/rds"
 	sdksecretsmanager "github.com/aws/aws-sdk-go/service/secretsmanager"
 	sdkssm "github.com/aws/aws-sdk-go/service/ssm"
@@ -209,7 +210,7 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 		// so use the default sess and *hope* they have permissions.
 		o.ecsClient = ecs.New(o.envManagerSess, envManagerConfig)
 		o.ssm = ssm.New(envManagerConfig)
-		o.ecsExecutor = awsecs.New(o.envManagerSess)
+		o.ecsExecutor = awsecs.New(envManagerConfig)
 		o.secretsManager = secretsmanager.New(defaultConfigEnvRegion)
 
 		resources, err := cloudformation.New(o.sess, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(o.targetApp, o.targetEnv.Region)
@@ -480,8 +481,8 @@ func (o *runLocalOpts) getSSMTarget(ctx context.Context) (string, error) {
 
 		for _, ctr := range task.Containers {
 			id := aws.StringValue(ctr.RuntimeId)
-			hasECSExec := slices.ContainsFunc(ctr.ManagedAgents, func(a *sdkecs.ManagedAgent) bool {
-				return aws.StringValue(a.Name) == "ExecuteCommandAgent" && aws.StringValue(a.LastStatus) == "RUNNING"
+			hasECSExec := slices.ContainsFunc(ctr.ManagedAgents, func(a sdkecs.ManagedAgent) bool {
+				return string(a.Name) == "ExecuteCommandAgent" && aws.StringValue(a.LastStatus) == "RUNNING"
 			})
 			if id != "" && hasECSExec && aws.StringValue(ctr.LastStatus) == "RUNNING" {
 				return fmt.Sprintf("ecs:%s_%s_%s", svc.ClusterName, taskName, aws.StringValue(ctr.RuntimeId)), nil
@@ -546,10 +547,10 @@ func (o *runLocalOpts) getTask(ctx context.Context) (orchestrator.Task, error) {
 		}
 
 		for _, port := range ctr.PortMappings {
-			hostPort := strconv.FormatInt(aws.Int64Value(port.HostPort), 10)
+			hostPort := strconv.FormatInt(int64(awsv2.ToInt32(port.HostPort)), 10)
 			ctrPort := hostPort
 			if port.ContainerPort != nil {
-				ctrPort = strconv.FormatInt(aws.Int64Value(port.ContainerPort), 10)
+				ctrPort = strconv.FormatInt(int64(awsv2.ToInt32(port.ContainerPort)), 10)
 			}
 
 			for _, override := range o.portOverrides {
@@ -1087,7 +1088,7 @@ func (o *runLocalOpts) getContainerDependencies(taskDef *awsecs.TaskDefinition) 
 			dependsOn:   make(map[string]string),
 		}
 		for _, containerDep := range ctr.DependsOn {
-			dep.dependsOn[aws.StringValue(containerDep.ContainerName)] = strings.ToLower(aws.StringValue(containerDep.Condition))
+			dep.dependsOn[aws.StringValue(containerDep.ContainerName)] = strings.ToLower(string(containerDep.Condition))
 		}
 		dependencies[aws.StringValue(ctr.Name)] = dep
 	}
@@ -1113,8 +1114,8 @@ func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error)
 	var hosts []orchestrator.Host
 	for _, svc := range svcs {
 		// find the primary deployment with Service Connect enabled
-		idx := slices.IndexFunc(svc.Deployments, func(dep *sdkecs.Deployment) bool {
-			return aws.StringValue(dep.Status) == "PRIMARY" && aws.BoolValue(dep.ServiceConnectConfiguration.Enabled)
+		idx := slices.IndexFunc(svc.Deployments, func(dep sdkecs.Deployment) bool {
+			return aws.StringValue(dep.Status) == "PRIMARY" && dep.ServiceConnectConfiguration.Enabled
 		})
 		if idx == -1 {
 			continue
@@ -1124,7 +1125,7 @@ func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error)
 			for _, alias := range sc.ClientAliases {
 				hosts = append(hosts, orchestrator.Host{
 					Name: aws.StringValue(alias.DnsName),
-					Port: uint16(aws.Int64Value(alias.Port)),
+					Port: uint16(awsv2.ToInt32(alias.Port)),
 				})
 			}
 		}

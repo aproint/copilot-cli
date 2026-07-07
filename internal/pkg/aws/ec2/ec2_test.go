@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -27,17 +28,17 @@ var (
 		},
 	}
 
-	subnet1 = &ec2.Subnet{
-		SubnetId:            aws.String("subnet-1"),
-		MapPublicIpOnLaunch: aws.Bool(false),
+	subnet1 = types.Subnet{
+		SubnetId:            awsv2.String("subnet-1"),
+		MapPublicIpOnLaunch: awsv2.Bool(false),
 	}
-	subnet2 = &ec2.Subnet{
-		SubnetId:            aws.String("subnet-2"),
-		MapPublicIpOnLaunch: aws.Bool(true),
+	subnet2 = types.Subnet{
+		SubnetId:            awsv2.String("subnet-2"),
+		MapPublicIpOnLaunch: awsv2.Bool(true),
 	}
-	subnet3 = &ec2.Subnet{
-		SubnetId:            aws.String("subnet-3"),
-		MapPublicIpOnLaunch: aws.Bool(true),
+	subnet3 = types.Subnet{
+		SubnetId:            awsv2.String("subnet-3"),
+		MapPublicIpOnLaunch: awsv2.Bool(true),
 	}
 )
 
@@ -116,30 +117,30 @@ func TestEC2_ListVPC(t *testing.T) {
 	}{
 		"fail to describe vpcs": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeVpcs(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().DescribeVpcs(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("describe VPCs: some error"),
 		},
 		"success": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeVpcs(&ec2.DescribeVpcsInput{}).Return(&ec2.DescribeVpcsOutput{
-					Vpcs: []*ec2.Vpc{
+				m.EXPECT().DescribeVpcs(gomock.Any(), &ec2.DescribeVpcsInput{}).Return(&ec2.DescribeVpcsOutput{
+					Vpcs: []types.Vpc{
 						{
-							VpcId: aws.String("mockVPCID1"),
+							VpcId: awsv2.String("mockVPCID1"),
 						},
 					},
-					NextToken: aws.String("mockNextToken"),
+					NextToken: awsv2.String("mockNextToken"),
 				}, nil)
-				m.EXPECT().DescribeVpcs(&ec2.DescribeVpcsInput{
-					NextToken: aws.String("mockNextToken"),
+				m.EXPECT().DescribeVpcs(gomock.Any(), &ec2.DescribeVpcsInput{
+					NextToken: awsv2.String("mockNextToken"),
 				}).Return(&ec2.DescribeVpcsOutput{
-					Vpcs: []*ec2.Vpc{
+					Vpcs: []types.Vpc{
 						{
-							VpcId: aws.String("mockVPCID2"),
-							Tags: []*ec2.Tag{
+							VpcId: awsv2.String("mockVPCID2"),
+							Tags: []types.Tag{
 								{
-									Key:   aws.String("Name"),
-									Value: aws.String("mockVPC2Name"),
+									Key:   awsv2.String("Name"),
+									Value: awsv2.String("mockVPC2Name"),
 								},
 							},
 						},
@@ -193,44 +194,44 @@ func TestEC2_ListAZs(t *testing.T) {
 	}{
 		"return wrapped error on unexpected call error": {
 			mockClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().DescribeAvailabilityZones(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: "describe availability zones: some error",
 		},
 		"returns AZs that are available and opted-in": {
 			mockClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
-					Filters: []*ec2.Filter{
+				m.EXPECT().DescribeAvailabilityZones(gomock.Any(), &ec2.DescribeAvailabilityZonesInput{
+					Filters: []types.Filter{
 						{
-							Name:   aws.String("zone-type"),
-							Values: aws.StringSlice([]string{"availability-zone"}),
+							Name:   awsv2.String("zone-type"),
+							Values: []string{"availability-zone"},
 						},
 						{
-							Name:   aws.String("state"),
-							Values: aws.StringSlice([]string{"available"}),
+							Name:   awsv2.String("state"),
+							Values: []string{"available"},
 						},
 					},
 				}).Return(&ec2.DescribeAvailabilityZonesOutput{
-					AvailabilityZones: []*ec2.AvailabilityZone{
+					AvailabilityZones: []types.AvailabilityZone{
 						{
-							GroupName:          aws.String("us-west-2"),
-							NetworkBorderGroup: aws.String("us-west-2"),
-							OptInStatus:        aws.String("opt-in-not-required"),
-							RegionName:         aws.String("us-west-2"),
-							State:              aws.String("available"),
-							ZoneId:             aws.String("usw2-az1"),
-							ZoneName:           aws.String("us-west-2a"),
-							ZoneType:           aws.String("availability-zone"),
+							GroupName:          awsv2.String("us-west-2"),
+							NetworkBorderGroup: awsv2.String("us-west-2"),
+							OptInStatus:        types.AvailabilityZoneOptInStatusOptInNotRequired,
+							RegionName:         awsv2.String("us-west-2"),
+							State:              types.AvailabilityZoneStateAvailable,
+							ZoneId:             awsv2.String("usw2-az1"),
+							ZoneName:           awsv2.String("us-west-2a"),
+							ZoneType:           awsv2.String("availability-zone"),
 						},
 						{
-							GroupName:          aws.String("us-west-2"),
-							NetworkBorderGroup: aws.String("us-west-2"),
-							OptInStatus:        aws.String("opt-in-not-required"),
-							RegionName:         aws.String("us-west-2"),
-							State:              aws.String("available"),
-							ZoneId:             aws.String("usw2-az2"),
-							ZoneName:           aws.String("us-west-2b"),
-							ZoneType:           aws.String("availability-zone"),
+							GroupName:          awsv2.String("us-west-2"),
+							NetworkBorderGroup: awsv2.String("us-west-2"),
+							OptInStatus:        types.AvailabilityZoneOptInStatusOptInNotRequired,
+							RegionName:         awsv2.String("us-west-2"),
+							State:              types.AvailabilityZoneStateAvailable,
+							ZoneId:             awsv2.String("usw2-az2"),
+							ZoneName:           awsv2.String("us-west-2b"),
+							ZoneType:           awsv2.String("availability-zone"),
 						},
 					},
 				}, nil)
@@ -278,15 +279,15 @@ func TestEC2_managedPrefixList(t *testing.T) {
 		mockNextToken      = "mockNextToken"
 	)
 	mockError := errors.New("some error")
-	mockFilter := []*ec2.Filter{
+	mockFilter := []types.Filter{
 		{
-			Name:   aws.String("prefix-list-name"),
-			Values: aws.StringSlice([]string{mockPrefixListName}),
+			Name:   awsv2.String("prefix-list-name"),
+			Values: []string{mockPrefixListName},
 		},
 	}
-	mockPrefixList := []*ec2.ManagedPrefixList{
+	mockPrefixList := []types.ManagedPrefixList{
 		{
-			PrefixListId: aws.String(mockPrefixListId),
+			PrefixListId: awsv2.String(mockPrefixListId),
 		},
 	}
 
@@ -299,25 +300,25 @@ func TestEC2_managedPrefixList(t *testing.T) {
 	}{
 		"query returns error": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeManagedPrefixLists(gomock.Any()).Return(nil, mockError)
+				m.EXPECT().DescribeManagedPrefixLists(gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 			wantedError: fmt.Errorf("describe managed prefix list with name %s: %w", mockPrefixListName, mockError),
 		},
 		"query returns Successfully": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeManagedPrefixLists(&ec2.DescribeManagedPrefixListsInput{
+				m.EXPECT().DescribeManagedPrefixLists(gomock.Any(), &ec2.DescribeManagedPrefixListsInput{
 					Filters: mockFilter,
 				}).Return(&ec2.DescribeManagedPrefixListsOutput{
-					NextToken: aws.String(mockNextToken),
-					PrefixLists: []*ec2.ManagedPrefixList{
+					NextToken: awsv2.String(mockNextToken),
+					PrefixLists: []types.ManagedPrefixList{
 						{
-							PrefixListId: aws.String(mockPrefixListId),
+							PrefixListId: awsv2.String(mockPrefixListId),
 						},
 					},
 				}, nil)
 			},
 			wantedList: &ec2.DescribeManagedPrefixListsOutput{
-				NextToken:   aws.String(mockNextToken),
+				NextToken:   awsv2.String(mockNextToken),
 				PrefixLists: mockPrefixList,
 			},
 		},
@@ -356,10 +357,10 @@ func TestEC2_CloudFrontManagedPrefixListId(t *testing.T) {
 		mockNextToken      = "mockNextToken"
 	)
 	mockError := errors.New("some error")
-	mockFilter := []*ec2.Filter{
+	mockFilter := []types.Filter{
 		{
-			Name:   aws.String("prefix-list-name"),
-			Values: aws.StringSlice([]string{mockPrefixListName}),
+			Name:   awsv2.String("prefix-list-name"),
+			Values: []string{mockPrefixListName},
 		},
 	}
 
@@ -372,33 +373,33 @@ func TestEC2_CloudFrontManagedPrefixListId(t *testing.T) {
 	}{
 		"query returns error": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeManagedPrefixLists(gomock.Any()).Return(nil, mockError)
+				m.EXPECT().DescribeManagedPrefixLists(gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 			wantedError: fmt.Errorf("describe managed prefix list with name %s: %w", mockPrefixListName, mockError),
 		},
 		"query returns no prefix list ids": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeManagedPrefixLists(&ec2.DescribeManagedPrefixListsInput{
+				m.EXPECT().DescribeManagedPrefixLists(gomock.Any(), &ec2.DescribeManagedPrefixListsInput{
 					Filters: mockFilter,
 				}).Return(&ec2.DescribeManagedPrefixListsOutput{
-					NextToken:   aws.String(mockNextToken),
-					PrefixLists: []*ec2.ManagedPrefixList{},
+					NextToken:   awsv2.String(mockNextToken),
+					PrefixLists: []types.ManagedPrefixList{},
 				}, nil)
 			},
 			wantedError: fmt.Errorf("cannot find any prefix list with name: %s", mockPrefixListName),
 		},
 		"query returns too many prefix list ids": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeManagedPrefixLists(&ec2.DescribeManagedPrefixListsInput{
+				m.EXPECT().DescribeManagedPrefixLists(gomock.Any(), &ec2.DescribeManagedPrefixListsInput{
 					Filters: mockFilter,
 				}).Return(&ec2.DescribeManagedPrefixListsOutput{
-					NextToken: aws.String(mockNextToken),
-					PrefixLists: []*ec2.ManagedPrefixList{
+					NextToken: awsv2.String(mockNextToken),
+					PrefixLists: []types.ManagedPrefixList{
 						{
-							PrefixListId: aws.String(mockPrefixListId),
+							PrefixListId: awsv2.String(mockPrefixListId),
 						},
 						{
-							PrefixListId: aws.String(mockPrefixListId),
+							PrefixListId: awsv2.String(mockPrefixListId),
 						},
 					},
 				}, nil)
@@ -407,13 +408,13 @@ func TestEC2_CloudFrontManagedPrefixListId(t *testing.T) {
 		},
 		"query returns Successfully": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeManagedPrefixLists(&ec2.DescribeManagedPrefixListsInput{
+				m.EXPECT().DescribeManagedPrefixLists(gomock.Any(), &ec2.DescribeManagedPrefixListsInput{
 					Filters: mockFilter,
 				}).Return(&ec2.DescribeManagedPrefixListsOutput{
-					NextToken: aws.String(mockNextToken),
-					PrefixLists: []*ec2.ManagedPrefixList{
+					NextToken: awsv2.String(mockNextToken),
+					PrefixLists: []types.ManagedPrefixList{
 						{
-							PrefixListId: aws.String(mockPrefixListId),
+							PrefixListId: awsv2.String(mockPrefixListId),
 						},
 					},
 				}, nil)
@@ -453,10 +454,10 @@ func TestEC2_ListVPCSubnets(t *testing.T) {
 		mockVPCID     = "mockVPC"
 		mockNextToken = "mockNextToken"
 	)
-	mockfilter := []*ec2.Filter{
+	mockfilter := []types.Filter{
 		{
-			Name:   aws.String("vpc-id"),
-			Values: aws.StringSlice([]string{mockVPCID}),
+			Name:   awsv2.String("vpc-id"),
+			Values: []string{mockVPCID},
 		},
 	}
 	mockError := errors.New("some error")
@@ -470,83 +471,83 @@ func TestEC2_ListVPCSubnets(t *testing.T) {
 	}{
 		"fail to describe route tables": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRouteTables(gomock.Any()).Return(nil, mockError)
+				m.EXPECT().DescribeRouteTables(gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 			wantedError: fmt.Errorf("describe route tables: some error"),
 		},
 		"fail to describe subnets": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+				m.EXPECT().DescribeRouteTables(gomock.Any(), &ec2.DescribeRouteTablesInput{
 					Filters: mockfilter,
 				}).Return(&ec2.DescribeRouteTablesOutput{}, nil)
-				m.EXPECT().DescribeSubnets(gomock.Any()).Return(nil, mockError)
+				m.EXPECT().DescribeSubnets(gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 			wantedError: fmt.Errorf("describe subnets: some error"),
 		},
 		"can retrieve subnets explicitly associated with an internet gateway": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+				m.EXPECT().DescribeRouteTables(gomock.Any(), &ec2.DescribeRouteTablesInput{
 					Filters: mockfilter,
 				}).Return(&ec2.DescribeRouteTablesOutput{
-					RouteTables: []*ec2.RouteTable{
+					RouteTables: []types.RouteTable{
 						{
-							Associations: []*ec2.RouteTableAssociation{
+							Associations: []types.RouteTableAssociation{
 								{
-									SubnetId: aws.String("subnet1"),
+									SubnetId: awsv2.String("subnet1"),
 								},
 							},
-							Routes: []*ec2.Route{
+							Routes: []types.Route{
 								{
-									GatewayId: aws.String("local"),
+									GatewayId: awsv2.String("local"),
 								},
 							},
 						},
 					},
-					NextToken: aws.String(mockNextToken),
+					NextToken: awsv2.String(mockNextToken),
 				}, nil)
-				m.EXPECT().DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+				m.EXPECT().DescribeRouteTables(gomock.Any(), &ec2.DescribeRouteTablesInput{
 					Filters:   mockfilter,
-					NextToken: aws.String(mockNextToken),
+					NextToken: awsv2.String(mockNextToken),
 				}).Return(&ec2.DescribeRouteTablesOutput{
-					RouteTables: []*ec2.RouteTable{
+					RouteTables: []types.RouteTable{
 						{
-							Associations: []*ec2.RouteTableAssociation{
+							Associations: []types.RouteTableAssociation{
 								{
-									SubnetId: aws.String("subnet2"),
+									SubnetId: awsv2.String("subnet2"),
 								},
 								{
-									SubnetId: aws.String("subnet3"),
+									SubnetId: awsv2.String("subnet3"),
 								},
 							},
-							Routes: []*ec2.Route{
+							Routes: []types.Route{
 								{
-									GatewayId: aws.String("igw-0333791c413f9e2d8"),
+									GatewayId: awsv2.String("igw-0333791c413f9e2d8"),
 								},
 							},
 						},
 					},
 				}, nil)
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters: mockfilter,
 				}).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						{
-							SubnetId:  aws.String("subnet1"),
-							CidrBlock: aws.String("10.0.0.0/24"),
+							SubnetId:  awsv2.String("subnet1"),
+							CidrBlock: awsv2.String("10.0.0.0/24"),
 						},
 						{
-							SubnetId:  aws.String("subnet2"),
-							CidrBlock: aws.String("10.0.1.0/24"),
+							SubnetId:  awsv2.String("subnet2"),
+							CidrBlock: awsv2.String("10.0.1.0/24"),
 						},
 						{
-							SubnetId: aws.String("subnet3"),
-							Tags: []*ec2.Tag{
+							SubnetId: awsv2.String("subnet3"),
+							Tags: []types.Tag{
 								{
-									Key:   aws.String("Name"),
-									Value: aws.String("mySubnet"),
+									Key:   awsv2.String("Name"),
+									Value: awsv2.String("mySubnet"),
 								},
 							},
-							CidrBlock: aws.String("10.0.2.0/24"),
+							CidrBlock: awsv2.String("10.0.2.0/24"),
 						},
 					},
 				}, nil)
@@ -577,45 +578,45 @@ func TestEC2_ListVPCSubnets(t *testing.T) {
 		},
 		"can retrieve subnets that are implicitly associated with an internet gateway": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+				m.EXPECT().DescribeRouteTables(gomock.Any(), &ec2.DescribeRouteTablesInput{
 					Filters: mockfilter,
 				}).Return(&ec2.DescribeRouteTablesOutput{
-					RouteTables: []*ec2.RouteTable{
+					RouteTables: []types.RouteTable{
 						{
-							Associations: []*ec2.RouteTableAssociation{
+							Associations: []types.RouteTableAssociation{
 								{
-									Main: aws.Bool(true),
+									Main: awsv2.Bool(true),
 								},
 							},
-							Routes: []*ec2.Route{
+							Routes: []types.Route{
 								{
-									GatewayId:            aws.String("local"),
-									DestinationCidrBlock: aws.String("172.31.0.0/16"),
+									GatewayId:            awsv2.String("local"),
+									DestinationCidrBlock: awsv2.String("172.31.0.0/16"),
 								},
 								{
-									GatewayId:            aws.String("igw-3542f24c"),
-									DestinationCidrBlock: aws.String("0.0.0.0/0"),
+									GatewayId:            awsv2.String("igw-3542f24c"),
+									DestinationCidrBlock: awsv2.String("0.0.0.0/0"),
 								},
 							},
 						},
 					},
 				}, nil)
 
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters: mockfilter,
 				}).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						{
-							SubnetId:  aws.String("subnet1"),
-							CidrBlock: aws.String("172.31.16.0/20"),
+							SubnetId:  awsv2.String("subnet1"),
+							CidrBlock: awsv2.String("172.31.16.0/20"),
 						},
 						{
-							SubnetId:  aws.String("subnet2"),
-							CidrBlock: aws.String("172.31.48.0/20"),
+							SubnetId:  awsv2.String("subnet2"),
+							CidrBlock: awsv2.String("172.31.48.0/20"),
 						},
 						{
-							SubnetId:  aws.String("subnet3"),
-							CidrBlock: aws.String("172.31.32.0/20"),
+							SubnetId:  awsv2.String("subnet3"),
+							CidrBlock: awsv2.String("172.31.32.0/20"),
 						},
 					},
 				}, nil)
@@ -644,55 +645,55 @@ func TestEC2_ListVPCSubnets(t *testing.T) {
 		},
 		"prioritizes explicit route table association over implicit while detecting public subnets": {
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+				m.EXPECT().DescribeRouteTables(gomock.Any(), &ec2.DescribeRouteTablesInput{
 					Filters: mockfilter,
 				}).Return(&ec2.DescribeRouteTablesOutput{
-					RouteTables: []*ec2.RouteTable{
+					RouteTables: []types.RouteTable{
 						{
-							Associations: []*ec2.RouteTableAssociation{
+							Associations: []types.RouteTableAssociation{
 								{
-									Main:     aws.Bool(false),
-									SubnetId: aws.String("subnet1"),
+									Main:     awsv2.Bool(false),
+									SubnetId: awsv2.String("subnet1"),
 								},
 							},
-							Routes: []*ec2.Route{
+							Routes: []types.Route{
 								{
-									GatewayId:            aws.String("local"),
-									DestinationCidrBlock: aws.String("172.31.0.0/16"),
+									GatewayId:            awsv2.String("local"),
+									DestinationCidrBlock: awsv2.String("172.31.0.0/16"),
 								},
 							},
 						},
 						{
-							Associations: []*ec2.RouteTableAssociation{
+							Associations: []types.RouteTableAssociation{
 								{
-									Main: aws.Bool(true),
+									Main: awsv2.Bool(true),
 								},
 							},
-							Routes: []*ec2.Route{
+							Routes: []types.Route{
 								{
-									GatewayId:            aws.String("local"),
-									DestinationCidrBlock: aws.String("172.31.0.0/16"),
+									GatewayId:            awsv2.String("local"),
+									DestinationCidrBlock: awsv2.String("172.31.0.0/16"),
 								},
 								{
-									GatewayId:            aws.String("igw-3542f24c"),
-									DestinationCidrBlock: aws.String("0.0.0.0/0"),
+									GatewayId:            awsv2.String("igw-3542f24c"),
+									DestinationCidrBlock: awsv2.String("0.0.0.0/0"),
 								},
 							},
 						},
 					},
 				}, nil)
 
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters: mockfilter,
 				}).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						{
-							SubnetId:  aws.String("subnet1"),
-							CidrBlock: aws.String("172.31.16.0/20"),
+							SubnetId:  awsv2.String("subnet1"),
+							CidrBlock: awsv2.String("172.31.16.0/20"),
 						},
 						{
-							SubnetId:  aws.String("subnet2"),
-							CidrBlock: aws.String("172.31.48.0/20"),
+							SubnetId:  awsv2.String("subnet2"),
+							CidrBlock: awsv2.String("172.31.48.0/20"),
 						},
 					},
 				}, nil)
@@ -750,8 +751,8 @@ func TestEC2_PublicIP(t *testing.T) {
 		"failed to describe network interfaces": {
 			inENI: "eni-1",
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
-					NetworkInterfaceIds: aws.StringSlice([]string{"eni-1"}),
+				m.EXPECT().DescribeNetworkInterfaces(gomock.Any(), &ec2.DescribeNetworkInterfacesInput{
+					NetworkInterfaceIds: []string{"eni-1"},
 				}).Return(nil, errors.New("some error"))
 			},
 			wantedErr: errors.New("describe network interface with ENI eni-1: some error"),
@@ -759,10 +760,10 @@ func TestEC2_PublicIP(t *testing.T) {
 		"no association information found": {
 			inENI: "eni-1",
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
-					NetworkInterfaceIds: aws.StringSlice([]string{"eni-1"}),
+				m.EXPECT().DescribeNetworkInterfaces(gomock.Any(), &ec2.DescribeNetworkInterfacesInput{
+					NetworkInterfaceIds: []string{"eni-1"},
 				}).Return(&ec2.DescribeNetworkInterfacesOutput{
-					NetworkInterfaces: []*ec2.NetworkInterface{
+					NetworkInterfaces: []types.NetworkInterface{
 						{},
 					},
 				}, nil)
@@ -772,13 +773,13 @@ func TestEC2_PublicIP(t *testing.T) {
 		"successfully get public ip": {
 			inENI: "eni-1",
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
-					NetworkInterfaceIds: aws.StringSlice([]string{"eni-1"}),
+				m.EXPECT().DescribeNetworkInterfaces(gomock.Any(), &ec2.DescribeNetworkInterfacesInput{
+					NetworkInterfaceIds: []string{"eni-1"},
 				}).Return(&ec2.DescribeNetworkInterfacesOutput{
-					NetworkInterfaces: []*ec2.NetworkInterface{
+					NetworkInterfaces: []types.NetworkInterface{
 						{
-							Association: &ec2.NetworkInterfaceAssociation{
-								PublicIp: aws.String("1.2.3"),
+							Association: &types.NetworkInterfaceAssociation{
+								PublicIp: awsv2.String("1.2.3"),
 							},
 						},
 					},
@@ -810,7 +811,7 @@ func TestEC2_PublicIP(t *testing.T) {
 }
 
 func TestEC2_SubnetIDs(t *testing.T) {
-	mockNextToken := aws.String("mockNextToken")
+	mockNextToken := awsv2.String("mockNextToken")
 	testCases := map[string]struct {
 		inFilter []Filter
 
@@ -822,7 +823,7 @@ func TestEC2_SubnetIDs(t *testing.T) {
 		"failed to get subnets": {
 			inFilter: inAppEnvFilters,
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters: toEC2Filter(inAppEnvFilters),
 				}).Return(nil, errors.New("error describing subnets"))
 			},
@@ -831,10 +832,10 @@ func TestEC2_SubnetIDs(t *testing.T) {
 		"cannot get any subnets": {
 			inFilter: inAppEnvFilters,
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters: toEC2Filter(inAppEnvFilters),
 				}).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{},
+					Subnets: []types.Subnet{},
 				}, nil)
 			},
 			wantedError: fmt.Errorf("cannot find any subnets"),
@@ -842,10 +843,10 @@ func TestEC2_SubnetIDs(t *testing.T) {
 		"successfully get subnets": {
 			inFilter: inAppEnvFilters,
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters: toEC2Filter(inAppEnvFilters),
 				}).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						subnet1, subnet2,
 					},
 				}, nil)
@@ -855,19 +856,19 @@ func TestEC2_SubnetIDs(t *testing.T) {
 		"successfully get subnets with pagination": {
 			inFilter: inAppEnvFilters,
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters: toEC2Filter(inAppEnvFilters),
 				}).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						subnet1, subnet2,
 					},
 					NextToken: mockNextToken,
 				}, nil)
-				m.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
+				m.EXPECT().DescribeSubnets(gomock.Any(), &ec2.DescribeSubnetsInput{
 					Filters:   toEC2Filter(inAppEnvFilters),
 					NextToken: mockNextToken,
 				}).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						subnet3,
 					},
 				}, nil)
@@ -910,7 +911,7 @@ func TestEC2_SecurityGroups(t *testing.T) {
 		"failed to get security groups": {
 			inFilter: inAppEnvFilters,
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+				m.EXPECT().DescribeSecurityGroups(gomock.Any(), &ec2.DescribeSecurityGroupsInput{
 					Filters: toEC2Filter(inAppEnvFilters),
 				}).Return(nil, errors.New("error getting security groups"))
 			},
@@ -920,15 +921,15 @@ func TestEC2_SecurityGroups(t *testing.T) {
 		"get security groups success": {
 			inFilter: inAppEnvFilters,
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+				m.EXPECT().DescribeSecurityGroups(gomock.Any(), &ec2.DescribeSecurityGroupsInput{
 					Filters: toEC2Filter(inAppEnvFilters),
 				}).Return(&ec2.DescribeSecurityGroupsOutput{
-					SecurityGroups: []*ec2.SecurityGroup{
+					SecurityGroups: []types.SecurityGroup{
 						{
-							GroupId: aws.String("sg-1"),
+							GroupId: awsv2.String("sg-1"),
 						},
 						{
-							GroupId: aws.String("sg-2"),
+							GroupId: awsv2.String("sg-2"),
 						},
 					},
 				}, nil)
@@ -971,19 +972,19 @@ func TestEC2_HasDNSSupport(t *testing.T) {
 		"fail to descibe VPC attribute": {
 			vpcID: "mockVPCID",
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeVpcAttribute(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().DescribeVpcAttribute(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("describe enableDnsSupport attribute for VPC mockVPCID: some error"),
 		},
 		"success": {
 			vpcID: "mockVPCID",
 			mockEC2Client: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeVpcAttribute(&ec2.DescribeVpcAttributeInput{
-					VpcId:     aws.String("mockVPCID"),
-					Attribute: aws.String(ec2.VpcAttributeNameEnableDnsSupport),
+				m.EXPECT().DescribeVpcAttribute(gomock.Any(), &ec2.DescribeVpcAttributeInput{
+					VpcId:     awsv2.String("mockVPCID"),
+					Attribute: types.VpcAttributeNameEnableDnsSupport,
 				}).Return(&ec2.DescribeVpcAttributeOutput{
-					EnableDnsSupport: &ec2.AttributeBooleanValue{
-						Value: aws.Bool(true),
+					EnableDnsSupport: &types.AttributeBooleanValue{
+						Value: awsv2.Bool(true),
 					},
 				}, nil)
 			},

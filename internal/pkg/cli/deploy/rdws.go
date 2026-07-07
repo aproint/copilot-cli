@@ -59,7 +59,7 @@ func NewRDWSDeployer(in *WorkloadDeployerInput) (*rdwsDeployer, error) {
 	}
 	return &rdwsDeployer{
 		svcDeployer:            svcDeployer,
-		customResourceS3Client: s3.New(svcDeployer.defaultSessWithEnvRegion),
+		customResourceS3Client: s3.New(v2ConfigFromSessionRegion(svcDeployer.defaultSessWithEnvRegion)),
 		appVersionGetter:       versionGetter,
 		rdwsMft:                rdwsMft,
 	}, nil

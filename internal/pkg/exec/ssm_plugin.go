@@ -12,9 +12,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 const (
@@ -26,7 +24,7 @@ const (
 
 // SSMPluginCommand represents commands that can be run to trigger the ssm plugin.
 type SSMPluginCommand struct {
-	sess *session.Session
+	region string
 	runner
 	http httpClient
 
@@ -38,22 +36,22 @@ type SSMPluginCommand struct {
 }
 
 // NewSSMPluginCommand returns a SSMPluginCommand.
-func NewSSMPluginCommand(s *session.Session) SSMPluginCommand {
+func NewSSMPluginCommand(region string) SSMPluginCommand {
 	return SSMPluginCommand{
 		runner: NewCmd(),
-		sess:   s,
+		region: region,
 		http:   http.DefaultClient,
 	}
 }
 
 // StartSession starts a session using the ssm plugin.
-func (s SSMPluginCommand) StartSession(ssmSess *ecs.Session) error {
+func (s SSMPluginCommand) StartSession(ssmSess *types.Session) error {
 	response, err := json.Marshal(ssmSess)
 	if err != nil {
 		return fmt.Errorf("marshal session response: %w", err)
 	}
 	if err := s.runner.InteractiveRun(ssmPluginBinaryName,
-		[]string{string(response), aws.StringValue(s.sess.Config.Region), startSessionAction}); err != nil {
+		[]string{string(response), s.region, startSessionAction}); err != nil {
 		return fmt.Errorf("start session: %w", err)
 	}
 	return nil

@@ -12,9 +12,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -307,7 +307,7 @@ func TestTaskExec_Execute(t *testing.T) {
 	mockTask := &ecs.Task{
 		TaskArn:    aws.String(mockTaskARN),
 		ClusterArn: aws.String(mockClusterARN),
-		Containers: []*awsecs.Container{
+		Containers: []awsecs.Container{
 			{
 				Name: aws.String(mockContainerName),
 			},
@@ -333,7 +333,7 @@ func TestTaskExec_Execute(t *testing.T) {
 			inTask: &ecs.Task{
 				TaskArn:    aws.String(mockBadTaskARN),
 				ClusterArn: aws.String(mockClusterARN),
-				Containers: []*awsecs.Container{
+				Containers: []awsecs.Container{
 					{
 						Name: aws.String(mockContainerName),
 					},

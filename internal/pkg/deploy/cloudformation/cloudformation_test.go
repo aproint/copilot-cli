@@ -18,9 +18,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go/aws"
 	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -350,9 +350,9 @@ Resources:
 		},
 	}, nil).AnyTimes()
 	mockECS.EXPECT().Service("cluster", "service").Return(&ecs.Service{
-		Deployments: []*awsecs.Deployment{
+		Deployments: []awsecs.Deployment{
 			{
-				RolloutState:   aws.String("COMPLETED"),
+				RolloutState:   awsecs.DeploymentRolloutStateCompleted,
 				Status:         aws.String("PRIMARY"),
 				TaskDefinition: aws.String("arn:aws:ecs:us-west-2:1111:task-definition/hello:10"),
 				UpdatedAt:      aws.Time(deploymentTime),

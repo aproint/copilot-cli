@@ -23,11 +23,11 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
+	sdkecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	sdkecs "github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/mock/gomock"
@@ -273,34 +273,34 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 
 	taskDef := &awsecs.TaskDefinition{
 		TaskRoleArn: aws.String("mock-arn"),
-		ContainerDefinitions: []*sdkecs.ContainerDefinition{
+		ContainerDefinitions: []sdkecs.ContainerDefinition{
 			{
 				Name: aws.String("foo"),
-				Environment: []*sdkecs.KeyValuePair{
+				Environment: []sdkecs.KeyValuePair{
 					{
 						Name:  aws.String("FOO_VAR"),
 						Value: aws.String("foo-value"),
 					},
 				},
-				Secrets: []*sdkecs.Secret{
+				Secrets: []sdkecs.Secret{
 					{
 						Name:      aws.String("SHARED_SECRET"),
 						ValueFrom: aws.String("mysecret"),
 					},
 				},
-				PortMappings: []*sdkecs.PortMapping{
+				PortMappings: []sdkecs.PortMapping{
 					{
-						HostPort:      aws.Int64(80),
-						ContainerPort: aws.Int64(8080),
+						HostPort:      aws.Int32(int32(80)),
+						ContainerPort: aws.Int32(int32(8080)),
 					},
 					{
-						HostPort: aws.Int64(9999),
+						HostPort: aws.Int32(int32(9999)),
 					},
 				},
 				Essential: aws.Bool(true),
-				DependsOn: []*sdkecs.ContainerDependency{
+				DependsOn: []sdkecs.ContainerDependency{
 					{
-						Condition:     aws.String("START"),
+						Condition:     sdkecs.ContainerConditionStart,
 						ContainerName: aws.String("bar"),
 					},
 				},
@@ -308,25 +308,25 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 			{
 				Name:      aws.String("bar"),
 				Essential: aws.Bool(true),
-				Environment: []*sdkecs.KeyValuePair{
+				Environment: []sdkecs.KeyValuePair{
 					{
 						Name:  aws.String("BAR_VAR"),
 						Value: aws.String("bar-value"),
 					},
 				},
-				Secrets: []*sdkecs.Secret{
+				Secrets: []sdkecs.Secret{
 					{
 						Name:      aws.String("SHARED_SECRET"),
 						ValueFrom: aws.String("mysecret"),
 					},
 				},
-				PortMappings: []*sdkecs.PortMapping{
+				PortMappings: []sdkecs.PortMapping{
 					{
-						HostPort: aws.Int64(10000),
+						HostPort: aws.Int32(int32(10000)),
 					},
 					{
-						HostPort:      aws.Int64(77),
-						ContainerPort: aws.Int64(7777),
+						HostPort:      aws.Int32(int32(77)),
+						ContainerPort: aws.Int32(int32(7777)),
 					},
 				},
 			},
@@ -334,52 +334,52 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 	}
 	alteredTaskDef := &awsecs.TaskDefinition{
 		TaskRoleArn: aws.String("mock-arn"),
-		ContainerDefinitions: []*sdkecs.ContainerDefinition{
+		ContainerDefinitions: []sdkecs.ContainerDefinition{
 			{
 				Name: aws.String("foo"),
-				Environment: []*sdkecs.KeyValuePair{
+				Environment: []sdkecs.KeyValuePair{
 					{
 						Name:  aws.String("FOO_VAR"),
 						Value: aws.String("foo-value"),
 					},
 				},
-				Secrets: []*sdkecs.Secret{
+				Secrets: []sdkecs.Secret{
 					{
 						Name:      aws.String("SHARED_SECRET"),
 						ValueFrom: aws.String("mysecret"),
 					},
 				},
-				PortMappings: []*sdkecs.PortMapping{
+				PortMappings: []sdkecs.PortMapping{
 					{
-						HostPort:      aws.Int64(80),
-						ContainerPort: aws.Int64(8081),
+						HostPort:      aws.Int32(int32(80)),
+						ContainerPort: aws.Int32(int32(8081)),
 					},
 					{
-						HostPort: aws.Int64(9999),
+						HostPort: aws.Int32(int32(9999)),
 					},
 				},
 			},
 			{
 				Name: aws.String("bar"),
-				Environment: []*sdkecs.KeyValuePair{
+				Environment: []sdkecs.KeyValuePair{
 					{
 						Name:  aws.String("BAR_VAR"),
 						Value: aws.String("bar-value"),
 					},
 				},
-				Secrets: []*sdkecs.Secret{
+				Secrets: []sdkecs.Secret{
 					{
 						Name:      aws.String("SHARED_SECRET"),
 						ValueFrom: aws.String("mysecret"),
 					},
 				},
-				PortMappings: []*sdkecs.PortMapping{
+				PortMappings: []sdkecs.PortMapping{
 					{
-						HostPort: aws.Int64(10000),
+						HostPort: aws.Int32(int32(10000)),
 					},
 					{
-						HostPort:      aws.Int64(77),
-						ContainerPort: aws.Int64(7777),
+						HostPort:      aws.Int32(int32(77)),
+						ContainerPort: aws.Int32(int32(7777)),
 					},
 				},
 			},
@@ -537,13 +537,13 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
-							Containers: []*sdkecs.Container{
+							Containers: []sdkecs.Container{
 								{
 									RuntimeId:  aws.String("runtime-id"),
 									LastStatus: aws.String("RUNNING"),
-									ManagedAgents: []*sdkecs.ManagedAgent{
+									ManagedAgents: []sdkecs.ManagedAgent{
 										{
-											Name:       aws.String("ExecuteCommandAgent"),
+											Name:       sdkecs.ManagedAgentNameExecuteCommandAgent,
 											LastStatus: aws.String("RUNNING"),
 										},
 									},
@@ -744,7 +744,7 @@ ecs exec: all containers failed to retrieve credentials`),
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
-							Containers: []*sdkecs.Container{
+							Containers: []sdkecs.Container{
 								{
 									RuntimeId:  aws.String("runtime-id"),
 									LastStatus: aws.String("RUNNING"),
@@ -801,13 +801,13 @@ ecs exec: all containers failed to retrieve credentials`),
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
-							Containers: []*sdkecs.Container{
+							Containers: []sdkecs.Container{
 								{
 									RuntimeId:  aws.String("runtime-id"),
 									LastStatus: aws.String("RUNNING"),
-									ManagedAgents: []*sdkecs.ManagedAgent{
+									ManagedAgents: []sdkecs.ManagedAgent{
 										{
-											Name:       aws.String("ExecuteCommandAgent"),
+											Name:       sdkecs.ManagedAgentNameExecuteCommandAgent,
 											LastStatus: aws.String("RUNNING"),
 										},
 									},
@@ -881,13 +881,13 @@ ecs exec: all containers failed to retrieve credentials`),
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
-							Containers: []*sdkecs.Container{
+							Containers: []sdkecs.Container{
 								{
 									RuntimeId:  aws.String("runtime-id"),
 									LastStatus: aws.String("RUNNING"),
-									ManagedAgents: []*sdkecs.ManagedAgent{
+									ManagedAgents: []sdkecs.ManagedAgent{
 										{
-											Name:       aws.String("ExecuteCommandAgent"),
+											Name:       sdkecs.ManagedAgentNameExecuteCommandAgent,
 											LastStatus: aws.String("RUNNING"),
 										},
 									},
@@ -1258,7 +1258,7 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"overrides parsed and applied correctly": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
 					},
@@ -1291,10 +1291,10 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"overrides merged with existing env vars correctly": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
-						Environment: []*sdkecs.KeyValuePair{
+						Environment: []sdkecs.KeyValuePair{
 							{
 								Name:  aws.String("RANDOM_FOO"),
 								Value: aws.String("foo"),
@@ -1311,7 +1311,7 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 					},
 					{
 						Name: aws.String("bar"),
-						Environment: []*sdkecs.KeyValuePair{
+						Environment: []sdkecs.KeyValuePair{
 							{
 								Name:  aws.String("RANDOM_BAR"),
 								Value: aws.String("bar"),
@@ -1354,10 +1354,10 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"error getting secret": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("SECRET"),
 								ValueFrom: aws.String("defaultSSM"),
@@ -1373,10 +1373,10 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"error getting secret if invalid arn": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("SECRET"),
 								ValueFrom: aws.String("arn:aws:ecs:us-west-2:123456789:service/mycluster/myservice"),
@@ -1389,16 +1389,16 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"error if secret redefines a var": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
-						Environment: []*sdkecs.KeyValuePair{
+						Environment: []sdkecs.KeyValuePair{
 							{
 								Name:  aws.String("SHOULD_BE_A_VAR"),
 								Value: aws.String("foo"),
 							},
 						},
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("SHOULD_BE_A_VAR"),
 								ValueFrom: aws.String("bad"),
@@ -1411,10 +1411,10 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"correct service used based on arn": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("SSM"),
 								ValueFrom: aws.String("arn:aws:ssm:us-east-2:123456789:parameter/myparam"),
@@ -1449,10 +1449,10 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"only unique secrets pulled": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("ONE"),
 								ValueFrom: aws.String("shared"),
@@ -1465,7 +1465,7 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 					},
 					{
 						Name: aws.String("bar"),
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("THREE"),
 								ValueFrom: aws.String("shared"),
@@ -1502,10 +1502,10 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"secrets set via overrides not pulled": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name: aws.String("foo"),
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("ONE"),
 								ValueFrom: aws.String("shared"),
@@ -1518,7 +1518,7 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 					},
 					{
 						Name: aws.String("bar"),
-						Secrets: []*sdkecs.Secret{
+						Secrets: []sdkecs.Secret{
 							{
 								Name:      aws.String("THREE"),
 								ValueFrom: aws.String("shared"),
@@ -1564,10 +1564,10 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 		},
 		"region env vars set": {
 			taskDef: &awsecs.TaskDefinition{
-				ContainerDefinitions: []*sdkecs.ContainerDefinition{
+				ContainerDefinitions: []sdkecs.ContainerDefinition{
 					{
 						Name:        aws.String("foo"),
-						Environment: []*sdkecs.KeyValuePair{},
+						Environment: []sdkecs.KeyValuePair{},
 					},
 				},
 			},
@@ -1667,17 +1667,17 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 	}
 	ecsServices := []*awsecs.Service{
 		{
-			Deployments: []*sdkecs.Deployment{
+			Deployments: []sdkecs.Deployment{
 				{
 					Status: aws.String("ACTIVE"),
 					ServiceConnectConfiguration: &sdkecs.ServiceConnectConfiguration{
-						Enabled: aws.Bool(true),
-						Services: []*sdkecs.ServiceConnectService{
+						Enabled: true,
+						Services: []sdkecs.ServiceConnectService{
 							{
-								ClientAliases: []*sdkecs.ServiceConnectClientAlias{
+								ClientAliases: []sdkecs.ServiceConnectClientAlias{
 									{
 										DnsName: aws.String("old"),
-										Port:    aws.Int64(80),
+										Port:    aws.Int32(int32(80)),
 									},
 								},
 							},
@@ -1687,13 +1687,13 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 				{
 					Status: aws.String("PRIMARY"),
 					ServiceConnectConfiguration: &sdkecs.ServiceConnectConfiguration{
-						Enabled: aws.Bool(true),
-						Services: []*sdkecs.ServiceConnectService{
+						Enabled: true,
+						Services: []sdkecs.ServiceConnectService{
 							{
-								ClientAliases: []*sdkecs.ServiceConnectClientAlias{
+								ClientAliases: []sdkecs.ServiceConnectClientAlias{
 									{
 										DnsName: aws.String("primary"),
-										Port:    aws.Int64(80),
+										Port:    aws.Int32(int32(80)),
 									},
 								},
 							},
@@ -1703,17 +1703,17 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 			},
 		},
 		{
-			Deployments: []*sdkecs.Deployment{
+			Deployments: []sdkecs.Deployment{
 				{
 					Status: aws.String("INACTIVE"),
 					ServiceConnectConfiguration: &sdkecs.ServiceConnectConfiguration{
-						Enabled: aws.Bool(true),
-						Services: []*sdkecs.ServiceConnectService{
+						Enabled: true,
+						Services: []sdkecs.ServiceConnectService{
 							{
-								ClientAliases: []*sdkecs.ServiceConnectClientAlias{
+								ClientAliases: []sdkecs.ServiceConnectClientAlias{
 									{
 										DnsName: aws.String("inactive"),
-										Port:    aws.Int64(80),
+										Port:    aws.Int32(int32(80)),
 									},
 								},
 							},

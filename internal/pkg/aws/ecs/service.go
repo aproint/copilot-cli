@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ecs"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 )
 
 // Service wraps up ECS Service struct.
-type Service ecs.Service
+type Service types.Service
 
 // Deployment contains information of a ECS service Deployment.
 type Deployment struct {
@@ -50,23 +50,23 @@ func (s *Service) ServiceStatus() ServiceStatus {
 	var deployments []Deployment
 	for _, dp := range s.Deployments {
 		deployments = append(deployments, Deployment{
-			Id:             aws.StringValue(dp.Id),
-			DesiredCount:   aws.Int64Value(dp.DesiredCount),
-			RunningCount:   aws.Int64Value(dp.RunningCount),
-			UpdatedAt:      aws.TimeValue(dp.UpdatedAt),
-			LaunchType:     aws.StringValue(dp.LaunchType),
-			TaskDefinition: aws.StringValue(dp.TaskDefinition),
-			Status:         aws.StringValue(dp.Status),
+			Id:             awsv2.ToString(dp.Id),
+			DesiredCount:   int64(dp.DesiredCount),
+			RunningCount:   int64(dp.RunningCount),
+			UpdatedAt:      awsv2.ToTime(dp.UpdatedAt),
+			LaunchType:     string(dp.LaunchType),
+			TaskDefinition: awsv2.ToString(dp.TaskDefinition),
+			Status:         awsv2.ToString(dp.Status),
 		})
 	}
 
 	return ServiceStatus{
-		Status:           aws.StringValue(s.Status),
-		DesiredCount:     aws.Int64Value(s.DesiredCount),
-		RunningCount:     aws.Int64Value(s.RunningCount),
+		Status:           awsv2.ToString(s.Status),
+		DesiredCount:     int64(s.DesiredCount),
+		RunningCount:     int64(s.RunningCount),
 		Deployments:      deployments,
-		LastDeploymentAt: aws.TimeValue(s.Deployments[0].UpdatedAt), // FIXME Service assumed to have at least one deployment
-		TaskDefinition:   aws.StringValue(s.Deployments[0].TaskDefinition),
+		LastDeploymentAt: awsv2.ToTime(s.Deployments[0].UpdatedAt), // FIXME Service assumed to have at least one deployment
+		TaskDefinition:   awsv2.ToString(s.Deployments[0].TaskDefinition),
 	}
 }
 
@@ -77,26 +77,26 @@ func (s *Service) ServiceConnectAliases() []string {
 	}
 	lastDeployment := s.Deployments[0]
 	scConfig := lastDeployment.ServiceConnectConfiguration
-	if scConfig == nil || !aws.BoolValue(scConfig.Enabled) {
+	if scConfig == nil || !scConfig.Enabled {
 		return nil
 	}
 	var aliases []string
 	for _, service := range scConfig.Services {
-		defaultName := aws.StringValue(service.PortName)
-		if aws.StringValue(service.DiscoveryName) != "" {
-			defaultName = aws.StringValue(service.DiscoveryName)
+		defaultName := awsv2.ToString(service.PortName)
+		if awsv2.ToString(service.DiscoveryName) != "" {
+			defaultName = awsv2.ToString(service.DiscoveryName)
 		}
-		defaultAlias := fmt.Sprintf("%s.%s", defaultName, aws.StringValue(scConfig.Namespace))
+		defaultAlias := fmt.Sprintf("%s.%s", defaultName, awsv2.ToString(scConfig.Namespace))
 		if len(service.ClientAliases) == 0 {
 			aliases = append(aliases, defaultAlias)
 			continue
 		}
 		for _, clientAlias := range service.ClientAliases {
 			alias := defaultAlias
-			if aws.StringValue(clientAlias.DnsName) != "" {
-				alias = aws.StringValue(clientAlias.DnsName)
+			if awsv2.ToString(clientAlias.DnsName) != "" {
+				alias = awsv2.ToString(clientAlias.DnsName)
 			}
-			aliases = append(aliases, fmt.Sprintf("%s:%v", alias, aws.Int64Value(clientAlias.Port)))
+			aliases = append(aliases, fmt.Sprintf("%s:%v", alias, awsv2.ToInt32(clientAlias.Port)))
 		}
 	}
 	return aliases
@@ -104,14 +104,14 @@ func (s *Service) ServiceConnectAliases() []string {
 
 // LastUpdatedAt returns the last updated time of the ECS service.
 func (s *Service) LastUpdatedAt() time.Time {
-	return aws.TimeValue(s.Deployments[0].UpdatedAt)
+	return awsv2.ToTime(s.Deployments[0].UpdatedAt)
 }
 
 // TargetGroups returns the ARNs of target groups attached to the service.
 func (s *Service) TargetGroups() []string {
 	var targetGroupARNs []string
 	for _, lb := range s.LoadBalancers {
-		targetGroupARNs = append(targetGroupARNs, aws.StringValue(lb.TargetGroupArn))
+		targetGroupARNs = append(targetGroupARNs, awsv2.ToString(lb.TargetGroupArn))
 	}
 	return targetGroupARNs
 }

@@ -111,7 +111,7 @@ func newDeleteTaskOpts(vars deleteTaskVars) (*deleteTaskOpts, error) {
 			return ecr.New(v2ConfigFromSessionRegion(session))
 		},
 		newBucketEmptier: func(session *session.Session) bucketEmptier {
-			return s3.New(session)
+			return s3.New(v2ConfigFromSessionRegion(session))
 		},
 	}, nil
 }

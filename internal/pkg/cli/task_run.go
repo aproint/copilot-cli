@@ -218,8 +218,8 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 			return fmt.Errorf("configure task runner: %w", err)
 		}
 		opts.deployer = cloudformation.New(opts.sess, cloudformation.WithProgressTracker(os.Stderr))
-		opts.defaultClusterGetter = awsecs.New(opts.sess)
-		opts.publicIPGetter = ec2.New(opts.sess)
+		opts.defaultClusterGetter = awsecs.New(v2ConfigFromSessionRegion(opts.sess))
+		opts.publicIPGetter = ec2.New(v2ConfigFromSessionRegion(opts.sess))
 		return nil
 	}
 
@@ -234,7 +234,7 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 	}
 
 	opts.configureECSServiceDescriber = func(session *session.Session) ecs.ECSServiceDescriber {
-		return awsecs.New(session)
+		return awsecs.New(v2ConfigFromSessionRegion(session))
 	}
 	opts.configureServiceDescriber = func(session *session.Session) ecs.ServiceDescriber {
 		return ecs.New(session, v2ConfigFromSessionRegion(session))
@@ -243,7 +243,7 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 		return ecs.New(session, v2ConfigFromSessionRegion(session))
 	}
 	opts.configureUploader = func(session *session.Session) uploader {
-		return s3.New(session)
+		return s3.New(v2ConfigFromSessionRegion(session))
 	}
 	opts.envCompatibilityChecker = func(app, env string) (versionCompatibilityChecker, error) {
 		envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
@@ -264,8 +264,8 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 }
 
 func (o *runTaskOpts) configureRunner() (taskRunner, error) {
-	vpcGetter := ec2.New(o.sess)
-	ecsService := awsecs.New(o.sess)
+	vpcGetter := ec2.New(v2ConfigFromSessionRegion(o.sess))
+	ecsService := awsecs.New(v2ConfigFromSessionRegion(o.sess))
 
 	if o.env != "" {
 		deployStore, err := deploy.NewStore(o.provider, o.store)

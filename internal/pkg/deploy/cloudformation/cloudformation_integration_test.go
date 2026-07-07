@@ -6,6 +6,7 @@
 package cloudformation_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math/rand"
@@ -18,6 +19,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/iam"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	awss3 "github.com/aproint/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
@@ -396,7 +398,9 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 	cfClient := awsCF.New(sess)
 	identity := identity.New(sess)
 	s3ManagerClient := s3manager.NewUploader(sess)
-	s3Client := awss3.New(sess)
+	s3Config, err := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), aws.StringValue(sess.Config.Region))
+	require.NoError(t, err)
+	s3Client := awss3.New(s3Config)
 	iamClient := iam.New(sess)
 	id, err := identity.Get()
 	require.NoError(t, err)

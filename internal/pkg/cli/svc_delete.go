@@ -101,7 +101,7 @@ func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 	}
 	opts.newSvcCleaner = func(sess *awssession.Session, env *config.Environment, manifestType string) cleaner {
 		if manifestType == manifestinfo.StaticSiteType {
-			return clean.StaticSite(opts.appName, env.Name, opts.name, s3.New(sess, v2ConfigFromSessionRegion(sess)), awss3.New(sess))
+			return clean.StaticSite(opts.appName, env.Name, opts.name, s3.New(sess, v2ConfigFromSessionRegion(sess)), awss3.New(v2ConfigFromSessionRegion(sess)))
 		}
 		return &clean.NoOp{}
 	}

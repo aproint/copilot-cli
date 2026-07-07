@@ -13,8 +13,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs/mocks"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go/aws"
-	awsecs "github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -588,7 +589,7 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 				m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
 				m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
 				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
-					Deployments: []*awsecs.Deployment{},
+					Deployments: []awsecs.Deployment{},
 				}, nil)
 			},
 		},
@@ -605,7 +606,7 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 				m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
 				m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
 				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
-					Deployments: []*awsecs.Deployment{
+					Deployments: []awsecs.Deployment{
 						{},
 					},
 				}, nil)
@@ -624,7 +625,7 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 				m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
 				m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
 				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
-					Deployments: []*awsecs.Deployment{
+					Deployments: []awsecs.Deployment{
 						{
 							ServiceConnectConfiguration: &awsecs.ServiceConnectConfiguration{
 								Namespace: aws.String("namespace"),
@@ -651,7 +652,7 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
 					ServiceArn: aws.String(mockSvcARN),
 					ClusterArn: aws.String("cluster1"),
-					Deployments: []*awsecs.Deployment{
+					Deployments: []awsecs.Deployment{
 						{
 							ServiceConnectConfiguration: &awsecs.ServiceConnectConfiguration{
 								Namespace: aws.String("namespace"),
@@ -683,7 +684,7 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
 					ServiceArn: aws.String(mockSvcARN),
 					ClusterArn: aws.String("cluster1"),
-					Deployments: []*awsecs.Deployment{
+					Deployments: []awsecs.Deployment{
 						{
 							ServiceConnectConfiguration: &awsecs.ServiceConnectConfiguration{
 								Namespace: aws.String("namespace"),
@@ -790,7 +791,7 @@ func TestClient_LastUpdatedAt(t *testing.T) {
 					m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil),
 					m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil),
 					m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
-						Deployments: []*awsecs.Deployment{
+						Deployments: []awsecs.Deployment{
 							{
 								UpdatedAt: &mockTime,
 							},
@@ -977,13 +978,13 @@ func TestClient_listActiveCopilotTasks(t *testing.T) {
 						Return([]*ecs.Task{
 							{
 								TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/123456789"),
-								Tags: []*awsecs.Tag{
+								Tags: []awsecs.Tag{
 									{Key: aws.String("copilot-task")},
 								},
 							},
 							{
 								TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/123456789"),
-								Tags: []*awsecs.Tag{
+								Tags: []awsecs.Tag{
 									{Key: aws.String("copilot-application")},
 								},
 							},
@@ -992,7 +993,7 @@ func TestClient_listActiveCopilotTasks(t *testing.T) {
 							},
 							{
 								TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/987765654"),
-								Tags: []*awsecs.Tag{
+								Tags: []awsecs.Tag{
 									{Key: aws.String("copilot-task")},
 								},
 							},
@@ -1002,7 +1003,7 @@ func TestClient_listActiveCopilotTasks(t *testing.T) {
 			wanted: []*ecs.Task{
 				{
 					TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/123456789"),
-					Tags: []*awsecs.Tag{
+					Tags: []awsecs.Tag{
 						{Key: aws.String("copilot-task")},
 					},
 				},
@@ -1017,13 +1018,13 @@ func TestClient_listActiveCopilotTasks(t *testing.T) {
 						Return([]*ecs.Task{
 							{
 								TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/123456789"),
-								Tags: []*awsecs.Tag{
+								Tags: []awsecs.Tag{
 									{Key: aws.String("copilot-task")},
 								},
 							},
 							{
 								TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/123456789"),
-								Tags: []*awsecs.Tag{
+								Tags: []awsecs.Tag{
 									{Key: aws.String("copilot-application")},
 								},
 							},
@@ -1033,13 +1034,13 @@ func TestClient_listActiveCopilotTasks(t *testing.T) {
 			wanted: []*ecs.Task{
 				{
 					TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/123456789"),
-					Tags: []*awsecs.Tag{
+					Tags: []awsecs.Tag{
 						{Key: aws.String("copilot-task")},
 					},
 				},
 				{
 					TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/123456789"),
-					Tags: []*awsecs.Tag{
+					Tags: []awsecs.Tag{
 						{Key: aws.String("copilot-application")},
 					},
 				},
@@ -1093,7 +1094,7 @@ func TestClient_StopWorkloadTasks(t *testing.T) {
 	mockECSTask := []*ecs.Task{
 		{
 			TaskArn: aws.String("deadbeef"),
-			Tags: []*awsecs.Tag{
+			Tags: []awsecs.Tag{
 				{
 					Key: aws.String("copilot-service"),
 				},
@@ -1101,7 +1102,7 @@ func TestClient_StopWorkloadTasks(t *testing.T) {
 		},
 		{
 			TaskArn: aws.String("abcd"),
-			Tags: []*awsecs.Tag{
+			Tags: []awsecs.Tag{
 				{
 					Key: aws.String("copilot-service"),
 				},
@@ -1223,7 +1224,7 @@ func TestClient_StopOneOffTasks(t *testing.T) {
 	mockECSTask := []*ecs.Task{
 		{
 			TaskArn: aws.String("deadbeef"),
-			Tags: []*awsecs.Tag{
+			Tags: []awsecs.Tag{
 				{
 					Key: aws.String("copilot-task"),
 				},
@@ -1341,7 +1342,7 @@ func Test_StopDefaultClusterTasks(t *testing.T) {
 	mockECSTask := []*ecs.Task{
 		{
 			TaskArn: aws.String("deadbeef"),
-			Tags: []*awsecs.Tag{
+			Tags: []awsecs.Tag{
 				{
 					Key: aws.String("copilot-task"),
 				},
@@ -1349,7 +1350,7 @@ func Test_StopDefaultClusterTasks(t *testing.T) {
 		},
 		{
 			TaskArn: aws.String("deadbeef"),
-			Tags: []*awsecs.Tag{
+			Tags: []awsecs.Tag{
 				{
 					Key: aws.String("copilot-service"),
 				},
@@ -1449,11 +1450,11 @@ func TestServiceDescriber_TaskDefinition(t *testing.T) {
 				m.EXPECT().TaskDefinition("phonetool-test-svc").Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
-					ContainerDefinitions: []*awsecs.ContainerDefinition{
+					ContainerDefinitions: []awsecs.ContainerDefinition{
 						{
 							Name:  aws.String("the-container"),
 							Image: aws.String("beautiful-image"),
-							Environment: []*awsecs.KeyValuePair{
+							Environment: []awsecs.KeyValuePair{
 								{
 									Name:  aws.String("weather"),
 									Value: aws.String("snowy"),
@@ -1463,7 +1464,7 @@ func TestServiceDescriber_TaskDefinition(t *testing.T) {
 									Value: aws.String("low"),
 								},
 							},
-							Secrets: []*awsecs.Secret{
+							Secrets: []awsecs.Secret{
 								{
 									Name:      aws.String("secret-1"),
 									ValueFrom: aws.String("first walk to Hokkaido"),
@@ -1473,8 +1474,8 @@ func TestServiceDescriber_TaskDefinition(t *testing.T) {
 									ValueFrom: aws.String("then get on the HAYABUSA"),
 								},
 							},
-							EntryPoint: aws.StringSlice([]string{"do", "not", "enter"}),
-							Command:    aws.StringSlice([]string{"--force", "--verbose"}),
+							EntryPoint: []string{"do", "not", "enter"},
+							Command:    []string{"--force", "--verbose"},
 						},
 					},
 				}, nil)
@@ -1482,11 +1483,11 @@ func TestServiceDescriber_TaskDefinition(t *testing.T) {
 			wantedTaskDefinition: &ecs.TaskDefinition{
 				ExecutionRoleArn: aws.String("execution-role"),
 				TaskRoleArn:      aws.String("task-role"),
-				ContainerDefinitions: []*awsecs.ContainerDefinition{
+				ContainerDefinitions: []awsecs.ContainerDefinition{
 					{
 						Name:  aws.String("the-container"),
 						Image: aws.String("beautiful-image"),
-						Environment: []*awsecs.KeyValuePair{
+						Environment: []awsecs.KeyValuePair{
 							{
 								Name:  aws.String("weather"),
 								Value: aws.String("snowy"),
@@ -1496,7 +1497,7 @@ func TestServiceDescriber_TaskDefinition(t *testing.T) {
 								Value: aws.String("low"),
 							},
 						},
-						Secrets: []*awsecs.Secret{
+						Secrets: []awsecs.Secret{
 							{
 								Name:      aws.String("secret-1"),
 								ValueFrom: aws.String("first walk to Hokkaido"),
@@ -1506,8 +1507,8 @@ func TestServiceDescriber_TaskDefinition(t *testing.T) {
 								ValueFrom: aws.String("then get on the HAYABUSA"),
 							},
 						},
-						EntryPoint: aws.StringSlice([]string{"do", "not", "enter"}),
-						Command:    aws.StringSlice([]string{"--force", "--verbose"}),
+						EntryPoint: []string{"do", "not", "enter"},
+						Command:    []string{"--force", "--verbose"},
 					},
 				},
 			},
@@ -1826,10 +1827,10 @@ func Test_HasNonZeroExitCode(t *testing.T) {
 							TaskDefinitionArn: aws.String("arn:aws:ecs:us-west-2:1233454566:task-definition/CdkExampleStacknametaskdefinitionCA96DCAA:1"),
 							StoppedReason:     aws.String("Task failed to start"),
 							LastStatus:        aws.String("STOPPED"),
-							Containers: []*awsecs.Container{
+							Containers: []awsecs.Container{
 								{
 									Name:     aws.String("the-one-and-only-one-container"),
-									ExitCode: aws.Int64(1),
+									ExitCode: awsv2.Int32(1),
 								},
 							},
 						},
@@ -1837,14 +1838,14 @@ func Test_HasNonZeroExitCode(t *testing.T) {
 					m.ecsClient.EXPECT().TaskDefinition("arn:aws:ecs:us-west-2:1233454566:task-definition/CdkExampleStacknametaskdefinitionCA96DCAA:1").Return(&ecs.TaskDefinition{
 						ExecutionRoleArn: aws.String("execution-role"),
 						TaskRoleArn:      aws.String("task-role"),
-						ContainerDefinitions: []*awsecs.ContainerDefinition{
+						ContainerDefinitions: []awsecs.ContainerDefinition{
 							{
 								Name:       aws.String("the-one-and-only-one-container"),
 								Image:      aws.String("beautiful-image"),
-								EntryPoint: aws.StringSlice([]string{"enter", "here"}),
-								Command:    aws.StringSlice([]string{"do", "not", "enter", "here"}),
+								EntryPoint: []string{"enter", "here"},
+								Command:    []string{"do", "not", "enter", "here"},
 								Essential:  aws.Bool(true),
-								Environment: []*awsecs.KeyValuePair{
+								Environment: []awsecs.KeyValuePair{
 									{
 										Name:  aws.String("enter"),
 										Value: aws.String("no"),
@@ -1854,7 +1855,7 @@ func Test_HasNonZeroExitCode(t *testing.T) {
 										Value: aws.String("yes"),
 									},
 								},
-								Secrets: []*awsecs.Secret{
+								Secrets: []awsecs.Secret{
 									{
 										Name:      aws.String("truth"),
 										ValueFrom: aws.String("go-ask-the-wise"),

@@ -25,9 +25,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template/artifactpath"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	awselb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	"github.com/aws/aws-sdk-go/aws"
 	awscfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	awselb "github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -731,16 +731,16 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 
 func TestEnvDeployer_Validate(t *testing.T) {
 	listenerRuleNoRedirect := elbv2.Rule{
-		Actions: []*awselb.Action{
+		Actions: []awselb.Action{
 			{
-				Type: aws.String(awselb.ActionTypeEnumForward),
+				Type: awselb.ActionTypeEnumForward,
 			},
 		},
 	}
 	listenerRuleWithRedirect := elbv2.Rule{
-		Actions: []*awselb.Action{
+		Actions: []awselb.Action{
 			{
-				Type: aws.String(awselb.ActionTypeEnumRedirect),
+				Type: awselb.ActionTypeEnumRedirect,
 			},
 		},
 	}

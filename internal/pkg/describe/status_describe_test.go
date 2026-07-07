@@ -16,9 +16,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
+	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	"github.com/aws/aws-sdk-go/aws"
 	ecsapi "github.com/aws/aws-sdk-go/service/ecs"
-	elbv2api "github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -353,38 +353,38 @@ func TestServiceStatus_Describe(t *testing.T) {
 					m.alarmStatusGetter.EXPECT().AlarmStatuses(gomock.Any()).Return(nil, nil),
 					m.targetHealthGetter.EXPECT().TargetsHealth("group-1").Return([]*elbv2.TargetHealth{
 						{
-							Target: &elbv2api.TargetDescription{
+							Target: &elbv2types.TargetDescription{
 								Id: aws.String("1.2.3.4"),
 							},
-							TargetHealth: &elbv2api.TargetHealth{
-								State:  aws.String("unhealthy"),
-								Reason: aws.String("Target.ResponseCodeMismatch"),
+							TargetHealth: &elbv2types.TargetHealth{
+								State:  elbv2types.TargetHealthStateEnumUnhealthy,
+								Reason: elbv2types.TargetHealthReasonEnumResponseCodeMismatch,
 							},
 						},
 						{
-							Target: &elbv2api.TargetDescription{
+							Target: &elbv2types.TargetDescription{
 								Id: aws.String("4.3.2.1"),
 							},
-							TargetHealth: &elbv2api.TargetHealth{
-								State: aws.String("healthy"),
+							TargetHealth: &elbv2types.TargetHealth{
+								State: elbv2types.TargetHealthStateEnumHealthy,
 							},
 						},
 					}, nil),
 					m.targetHealthGetter.EXPECT().TargetsHealth("group-2").Return([]*elbv2.TargetHealth{
 						{
-							Target: &elbv2api.TargetDescription{
+							Target: &elbv2types.TargetDescription{
 								Id: aws.String("1.2.3.4"),
 							},
-							TargetHealth: &elbv2api.TargetHealth{
-								State: aws.String("healthy"),
+							TargetHealth: &elbv2types.TargetHealth{
+								State: elbv2types.TargetHealthStateEnumHealthy,
 							},
 						},
 						{
-							Target: &elbv2api.TargetDescription{
+							Target: &elbv2types.TargetDescription{
 								Id: aws.String("4.3.2.1"),
 							},
-							TargetHealth: &elbv2api.TargetHealth{
-								State: aws.String("healthy"),
+							TargetHealth: &elbv2types.TargetHealth{
+								State: elbv2types.TargetHealthStateEnumHealthy,
 							},
 						},
 					}, nil),
@@ -852,16 +852,16 @@ func Test_targetHealthForTasks(t *testing.T) {
 		"include target health in output even if it's not matchable to a task": {
 			inTargetsHealth: []*elbv2.TargetHealth{
 				{
-					Target: &elbv2api.TargetDescription{
+					Target: &elbv2types.TargetDescription{
 						Id: aws.String("42.42.42.42"),
 					},
-					TargetHealth: &elbv2api.TargetHealth{},
+					TargetHealth: &elbv2types.TargetHealth{},
 				},
 				{
-					Target: &elbv2api.TargetDescription{
+					Target: &elbv2types.TargetDescription{
 						Id: aws.String("24.24.24.24"),
 					},
-					TargetHealth: &elbv2api.TargetHealth{},
+					TargetHealth: &elbv2types.TargetHealth{},
 				},
 			},
 			inTasks: []*awsecs.Task{
@@ -913,21 +913,21 @@ func Test_targetHealthForTasks(t *testing.T) {
 		"target health should be matched to a task if applicable": {
 			inTargetsHealth: []*elbv2.TargetHealth{
 				{
-					Target: &elbv2api.TargetDescription{
+					Target: &elbv2types.TargetDescription{
 						Id: aws.String("42.42.42.42"),
 					},
-					TargetHealth: &elbv2api.TargetHealth{
+					TargetHealth: &elbv2types.TargetHealth{
 						Description: aws.String("unhealthy because this and that"),
-						State:       aws.String("unhealthy"),
-						Reason:      aws.String("Target.Timeout"),
+						State:       elbv2types.TargetHealthStateEnumUnhealthy,
+						Reason:      elbv2types.TargetHealthReasonEnumTimeout,
 					},
 				},
 				{
-					Target: &elbv2api.TargetDescription{
+					Target: &elbv2types.TargetDescription{
 						Id: aws.String("24.24.24.24"),
 					},
-					TargetHealth: &elbv2api.TargetHealth{
-						State: aws.String("healthy"),
+					TargetHealth: &elbv2types.TargetHealth{
+						State: elbv2types.TargetHealthStateEnumHealthy,
 					},
 				},
 			},

@@ -166,7 +166,7 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 			return deploycfn.WrapWithTemplateOverrider(stack, overrider), nil
 		},
 		envDescriber: envDescriber,
-		lbDescriber:  elbv2.New(envManagerSession),
+		lbDescriber:  elbv2.New(v2ConfigFromSessionRegion(envManagerSession)),
 		newServiceStackDescriber: func(svc string) stackDescriber {
 			return stack.NewStackDescriber(cfnstack.NameForWorkload(in.App.Name, in.Env.Name, svc), envManagerSession)
 		},

@@ -80,7 +80,7 @@ func NewLBWSDeployer(in *WorkloadDeployerInput) (*lbWebSvcDeployer, error) {
 	return &lbWebSvcDeployer{
 		svcDeployer:      svcDeployer,
 		appVersionGetter: versionGetter,
-		elbGetter:        elbv2.New(svcDeployer.envSess),
+		elbGetter:        elbv2.New(v2ConfigFromSessionRegion(svcDeployer.envSess)),
 		lbMft:            lbMft,
 		newAliasCertValidator: func(optionalRegion *string) aliasCertValidator {
 			sess := svcDeployer.envSess.Copy(&aws.Config{

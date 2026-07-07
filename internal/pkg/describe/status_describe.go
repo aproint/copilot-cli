@@ -108,7 +108,7 @@ func NewECSStatusDescriber(opt *NewServiceStatusConfig) (*ecsStatusDescriber, er
 		cwSvcGetter:        cloudwatch.New(sess, v2ConfigFromSessionRegion(sess)),
 		ecsSvcGetter:       awsecs.New(sess),
 		aasSvcGetter:       aas.New(v2ConfigFromSessionRegion(sess)),
-		targetHealthGetter: elbv2.New(sess),
+		targetHealthGetter: elbv2.New(v2ConfigFromSessionRegion(sess)),
 	}, nil
 }
 

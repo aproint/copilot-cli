@@ -64,7 +64,7 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		if err != nil {
 			return nil, err
 		}
-		return elbv2.New(sess), nil
+		return elbv2.New(v2ConfigFromSessionRegion(sess)), nil
 	}
 	describer.initECSServiceDescribers = func(env string) (ecsDescriber, error) {
 		if describer, ok := describer.ecsServiceDescribers[env]; ok {

@@ -8,8 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	request "github.com/aws/aws-sdk-go/aws/request"
-	elbv2 "github.com/aws/aws-sdk-go/service/elbv2"
+	elasticloadbalancingv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,81 +36,81 @@ func (m *Mockapi) EXPECT() *MockapiMockRecorder {
 }
 
 // DescribeListeners mocks base method.
-func (m *Mockapi) DescribeListeners(input *elbv2.DescribeListenersInput) (*elbv2.DescribeListenersOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeListeners", input)
-	ret0, _ := ret[0].(*elbv2.DescribeListenersOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeListeners indicates an expected call of DescribeListeners.
-func (mr *MockapiMockRecorder) DescribeListeners(input interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeListeners", reflect.TypeOf((*Mockapi)(nil).DescribeListeners), input)
-}
-
-// DescribeLoadBalancers mocks base method.
-func (m *Mockapi) DescribeLoadBalancers(input *elbv2.DescribeLoadBalancersInput) (*elbv2.DescribeLoadBalancersOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeLoadBalancers", input)
-	ret0, _ := ret[0].(*elbv2.DescribeLoadBalancersOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeLoadBalancers indicates an expected call of DescribeLoadBalancers.
-func (mr *MockapiMockRecorder) DescribeLoadBalancers(input interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancers", reflect.TypeOf((*Mockapi)(nil).DescribeLoadBalancers), input)
-}
-
-// DescribeRules mocks base method.
-func (m *Mockapi) DescribeRules(arg0 *elbv2.DescribeRulesInput) (*elbv2.DescribeRulesOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeRules", arg0)
-	ret0, _ := ret[0].(*elbv2.DescribeRulesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeRules indicates an expected call of DescribeRules.
-func (mr *MockapiMockRecorder) DescribeRules(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRules", reflect.TypeOf((*Mockapi)(nil).DescribeRules), arg0)
-}
-
-// DescribeRulesWithContext mocks base method.
-func (m *Mockapi) DescribeRulesWithContext(arg0 context.Context, arg1 *elbv2.DescribeRulesInput, arg2 ...request.Option) (*elbv2.DescribeRulesOutput, error) {
+func (m *Mockapi) DescribeListeners(arg0 context.Context, arg1 *elasticloadbalancingv2.DescribeListenersInput, arg2 ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeListenersOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "DescribeRulesWithContext", varargs...)
-	ret0, _ := ret[0].(*elbv2.DescribeRulesOutput)
+	ret := m.ctrl.Call(m, "DescribeListeners", varargs...)
+	ret0, _ := ret[0].(*elasticloadbalancingv2.DescribeListenersOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DescribeRulesWithContext indicates an expected call of DescribeRulesWithContext.
-func (mr *MockapiMockRecorder) DescribeRulesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// DescribeListeners indicates an expected call of DescribeListeners.
+func (mr *MockapiMockRecorder) DescribeListeners(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRulesWithContext", reflect.TypeOf((*Mockapi)(nil).DescribeRulesWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeListeners", reflect.TypeOf((*Mockapi)(nil).DescribeListeners), varargs...)
+}
+
+// DescribeLoadBalancers mocks base method.
+func (m *Mockapi) DescribeLoadBalancers(arg0 context.Context, arg1 *elasticloadbalancingv2.DescribeLoadBalancersInput, arg2 ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeLoadBalancersOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeLoadBalancers", varargs...)
+	ret0, _ := ret[0].(*elasticloadbalancingv2.DescribeLoadBalancersOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeLoadBalancers indicates an expected call of DescribeLoadBalancers.
+func (mr *MockapiMockRecorder) DescribeLoadBalancers(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancers", reflect.TypeOf((*Mockapi)(nil).DescribeLoadBalancers), varargs...)
+}
+
+// DescribeRules mocks base method.
+func (m *Mockapi) DescribeRules(arg0 context.Context, arg1 *elasticloadbalancingv2.DescribeRulesInput, arg2 ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeRulesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeRules", varargs...)
+	ret0, _ := ret[0].(*elasticloadbalancingv2.DescribeRulesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeRules indicates an expected call of DescribeRules.
+func (mr *MockapiMockRecorder) DescribeRules(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRules", reflect.TypeOf((*Mockapi)(nil).DescribeRules), varargs...)
 }
 
 // DescribeTargetHealth mocks base method.
-func (m *Mockapi) DescribeTargetHealth(arg0 *elbv2.DescribeTargetHealthInput) (*elbv2.DescribeTargetHealthOutput, error) {
+func (m *Mockapi) DescribeTargetHealth(arg0 context.Context, arg1 *elasticloadbalancingv2.DescribeTargetHealthInput, arg2 ...func(*elasticloadbalancingv2.Options)) (*elasticloadbalancingv2.DescribeTargetHealthOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeTargetHealth", arg0)
-	ret0, _ := ret[0].(*elbv2.DescribeTargetHealthOutput)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTargetHealth", varargs...)
+	ret0, _ := ret[0].(*elasticloadbalancingv2.DescribeTargetHealthOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeTargetHealth indicates an expected call of DescribeTargetHealth.
-func (mr *MockapiMockRecorder) DescribeTargetHealth(arg0 interface{}) *gomock.Call {
+func (mr *MockapiMockRecorder) DescribeTargetHealth(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTargetHealth", reflect.TypeOf((*Mockapi)(nil).DescribeTargetHealth), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTargetHealth", reflect.TypeOf((*Mockapi)(nil).DescribeTargetHealth), varargs...)
 }

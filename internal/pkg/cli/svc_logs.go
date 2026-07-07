@@ -88,15 +88,12 @@ type wkldLogOpts struct {
 
 func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc logs"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	configStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)

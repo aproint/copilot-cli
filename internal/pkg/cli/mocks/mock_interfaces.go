@@ -37,7 +37,6 @@ import (
 	workspace "github.com/aproint/copilot-cli/internal/pkg/workspace"
 	aws "github.com/aws/aws-sdk-go-v2/aws"
 	types "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
-	session "github.com/aws/aws-sdk-go/aws/session"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -1923,21 +1922,6 @@ func (m *MockdefaultSessionProvider) EXPECT() *MockdefaultSessionProviderMockRec
 	return m.recorder
 }
 
-// Default mocks base method.
-func (m *MockdefaultSessionProvider) Default() (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Default")
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Default indicates an expected call of Default.
-func (mr *MockdefaultSessionProviderMockRecorder) Default() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Default", reflect.TypeOf((*MockdefaultSessionProvider)(nil).Default))
-}
-
 // DefaultConfig mocks base method.
 func (m *MockdefaultSessionProvider) DefaultConfig(ctx context.Context) (aws.Config, error) {
 	m.ctrl.T.Helper()
@@ -1991,21 +1975,6 @@ func (mr *MockregionalSessionProviderMockRecorder) DefaultConfigWithRegion(ctx, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultConfigWithRegion", reflect.TypeOf((*MockregionalSessionProvider)(nil).DefaultConfigWithRegion), ctx, region)
 }
 
-// DefaultWithRegion mocks base method.
-func (m *MockregionalSessionProvider) DefaultWithRegion(region string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DefaultWithRegion", region)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DefaultWithRegion indicates an expected call of DefaultWithRegion.
-func (mr *MockregionalSessionProviderMockRecorder) DefaultWithRegion(region interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultWithRegion", reflect.TypeOf((*MockregionalSessionProvider)(nil).DefaultWithRegion), region)
-}
-
 // MocksessionFromRoleProvider is a mock of sessionFromRoleProvider interface.
 type MocksessionFromRoleProvider struct {
 	ctrl     *gomock.Controller
@@ -2042,21 +2011,6 @@ func (m *MocksessionFromRoleProvider) ConfigFromRole(ctx context.Context, roleAR
 func (mr *MocksessionFromRoleProviderMockRecorder) ConfigFromRole(ctx, roleARN, region interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromRole", reflect.TypeOf((*MocksessionFromRoleProvider)(nil).ConfigFromRole), ctx, roleARN, region)
-}
-
-// FromRole mocks base method.
-func (m *MocksessionFromRoleProvider) FromRole(roleARN, region string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromRole", roleARN, region)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FromRole indicates an expected call of FromRole.
-func (mr *MocksessionFromRoleProviderMockRecorder) FromRole(roleARN, region interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromRole", reflect.TypeOf((*MocksessionFromRoleProvider)(nil).FromRole), roleARN, region)
 }
 
 // MocksessionFromStaticProvider is a mock of sessionFromStaticProvider interface.
@@ -2097,21 +2051,6 @@ func (mr *MocksessionFromStaticProviderMockRecorder) ConfigFromStaticCreds(acces
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromStaticCreds", reflect.TypeOf((*MocksessionFromStaticProvider)(nil).ConfigFromStaticCreds), accessKeyID, secretAccessKey, sessionToken)
 }
 
-// FromStaticCreds mocks base method.
-func (m *MocksessionFromStaticProvider) FromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromStaticCreds", accessKeyID, secretAccessKey, sessionToken)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FromStaticCreds indicates an expected call of FromStaticCreds.
-func (mr *MocksessionFromStaticProviderMockRecorder) FromStaticCreds(accessKeyID, secretAccessKey, sessionToken interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromStaticCreds", reflect.TypeOf((*MocksessionFromStaticProvider)(nil).FromStaticCreds), accessKeyID, secretAccessKey, sessionToken)
-}
-
 // MocksessionFromProfileProvider is a mock of sessionFromProfileProvider interface.
 type MocksessionFromProfileProvider struct {
 	ctrl     *gomock.Controller
@@ -2148,21 +2087,6 @@ func (m *MocksessionFromProfileProvider) ConfigFromProfile(ctx context.Context, 
 func (mr *MocksessionFromProfileProviderMockRecorder) ConfigFromProfile(ctx, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromProfile", reflect.TypeOf((*MocksessionFromProfileProvider)(nil).ConfigFromProfile), ctx, name)
-}
-
-// FromProfile mocks base method.
-func (m *MocksessionFromProfileProvider) FromProfile(name string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromProfile", name)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FromProfile indicates an expected call of FromProfile.
-func (mr *MocksessionFromProfileProviderMockRecorder) FromProfile(name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromProfile", reflect.TypeOf((*MocksessionFromProfileProvider)(nil).FromProfile), name)
 }
 
 // MocksessionProvider is a mock of sessionProvider interface.
@@ -2233,21 +2157,6 @@ func (mr *MocksessionProviderMockRecorder) ConfigFromStaticCreds(accessKeyID, se
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromStaticCreds", reflect.TypeOf((*MocksessionProvider)(nil).ConfigFromStaticCreds), accessKeyID, secretAccessKey, sessionToken)
 }
 
-// Default mocks base method.
-func (m *MocksessionProvider) Default() (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Default")
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Default indicates an expected call of Default.
-func (mr *MocksessionProviderMockRecorder) Default() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Default", reflect.TypeOf((*MocksessionProvider)(nil).Default))
-}
-
 // DefaultConfig mocks base method.
 func (m *MocksessionProvider) DefaultConfig(ctx context.Context) (aws.Config, error) {
 	m.ctrl.T.Helper()
@@ -2276,66 +2185,6 @@ func (m *MocksessionProvider) DefaultConfigWithRegion(ctx context.Context, regio
 func (mr *MocksessionProviderMockRecorder) DefaultConfigWithRegion(ctx, region interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultConfigWithRegion", reflect.TypeOf((*MocksessionProvider)(nil).DefaultConfigWithRegion), ctx, region)
-}
-
-// DefaultWithRegion mocks base method.
-func (m *MocksessionProvider) DefaultWithRegion(region string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DefaultWithRegion", region)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DefaultWithRegion indicates an expected call of DefaultWithRegion.
-func (mr *MocksessionProviderMockRecorder) DefaultWithRegion(region interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultWithRegion", reflect.TypeOf((*MocksessionProvider)(nil).DefaultWithRegion), region)
-}
-
-// FromProfile mocks base method.
-func (m *MocksessionProvider) FromProfile(name string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromProfile", name)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FromProfile indicates an expected call of FromProfile.
-func (mr *MocksessionProviderMockRecorder) FromProfile(name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromProfile", reflect.TypeOf((*MocksessionProvider)(nil).FromProfile), name)
-}
-
-// FromRole mocks base method.
-func (m *MocksessionProvider) FromRole(roleARN, region string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromRole", roleARN, region)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FromRole indicates an expected call of FromRole.
-func (mr *MocksessionProviderMockRecorder) FromRole(roleARN, region interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromRole", reflect.TypeOf((*MocksessionProvider)(nil).FromRole), roleARN, region)
-}
-
-// FromStaticCreds mocks base method.
-func (m *MocksessionProvider) FromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (*session.Session, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromStaticCreds", accessKeyID, secretAccessKey, sessionToken)
-	ret0, _ := ret[0].(*session.Session)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FromStaticCreds indicates an expected call of FromStaticCreds.
-func (mr *MocksessionProviderMockRecorder) FromStaticCreds(accessKeyID, secretAccessKey, sessionToken interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromStaticCreds", reflect.TypeOf((*MocksessionProvider)(nil).FromStaticCreds), accessKeyID, secretAccessKey, sessionToken)
 }
 
 // Mockdescriber is a mock of describer interface.

@@ -55,15 +55,12 @@ type taskExecOpts struct {
 
 func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("task exec"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	ssmStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	ssmStore := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	return &taskExecOpts{
 		taskExecVars:     vars,

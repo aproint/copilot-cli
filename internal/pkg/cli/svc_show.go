@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -51,15 +52,12 @@ type showSvcOpts struct {
 
 func newShowSvcOpts(vars showSvcVars) (*showSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc show"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	ssmStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	ssmStore := newSSMConfigStoreFromConfig(defaultConfig)
 	deployStore, err := deploy.NewStore(sessProvider, ssmStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)

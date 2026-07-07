@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -40,14 +41,11 @@ func newOverrideWorkloadOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, 
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc override"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
-	cfgStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	cfgStore := newSSMConfigStoreFromConfig(defaultConfig)
 	vars.requiresEnv = true
 	prompt := prompt.New()
 	cmd := &overrideWorkloadOpts{

@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -96,19 +97,16 @@ func newInitJobOpts(vars initJobVars) (*initJobOpts, error) {
 	}
 
 	p := sessions.ImmutableProvider(sessions.UserAgentExtras("job init"))
-	sess, err := p.Default()
+	defaultConfig, err := p.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(sess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	jobInitter := &initialize.WorkloadInitializer{
 		Store:    store,
 		Ws:       ws,
 		Prog:     termprogress.NewSpinner(log.DiagnosticWriter),
-		Deployer: cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr)),
+		Deployer: cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 	}
 
 	prompter := prompt.New()

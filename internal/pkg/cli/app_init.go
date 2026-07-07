@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/spf13/afero"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
 	"github.com/spf13/cobra"
@@ -66,26 +66,25 @@ type initAppOpts struct {
 }
 
 func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
-	sess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app init")).Default()
+	cfg, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app init")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
 	fs := afero.NewOsFs()
-	cfg := v2ConfigFromSessionRegion(sess)
 	identity := identity.New(cfg)
-	iamClient := iam.New(v2ConfigFromSessionRegion(sess))
+	iamClient := iam.New(cfg)
 	return &initAppOpts{
 		initAppVars:    vars,
 		identity:       identity,
-		store:          config.NewSSMStore(identity, config.NewSSMClient(cfg), aws.ToString(sess.Config.Region)),
-		route53:        route53.New(v2ConfigFromSessionRegion(sess)),
-		cfn:            cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr)),
+		store:          config.NewSSMStore(identity, config.NewSSMClient(cfg), cfg.Region),
+		route53:        route53.New(cfg),
+		cfn:            cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:         prompt.New(),
 		prog:           termprogress.NewSpinner(log.DiagnosticWriter),
 		iam:            iamClient,
 		iamRoleManager: iamClient,
 		isSessionFromEnvVars: func() (bool, error) {
-			return sessions.AreCredsFromEnvVars(sess)
+			return sessions.AreV2CredsFromEnvVars(context.Background(), cfg)
 		},
 		existingWorkspace: func() (wsAppManager, error) {
 			return workspace.Use(fs)

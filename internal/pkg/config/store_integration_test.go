@@ -6,13 +6,13 @@
 package config_test
 
 import (
+	"context"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
 	"github.com/aproint/copilot-cli/internal/pkg/config"
@@ -24,10 +24,10 @@ func init() {
 }
 
 func Test_SSM_Application_Integration(t *testing.T) {
-	defaultSess, err := sessions.ImmutableProvider().Default()
+	defaultConfig, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	require.NoError(t, err)
 
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store := config.NewSSMStore(identity.New(defaultConfig), ssm.NewFromConfig(defaultConfig), defaultConfig.Region)
 	applicationToCreate := config.Application{Name: randStringBytes(10), Version: "1.0"}
 	defer store.DeleteApplication(applicationToCreate.Name)
 
@@ -53,10 +53,10 @@ func Test_SSM_Application_Integration(t *testing.T) {
 }
 
 func Test_SSM_Environment_Integration(t *testing.T) {
-	defaultSess, err := sessions.ImmutableProvider().Default()
+	defaultConfig, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	require.NoError(t, err)
 
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store := config.NewSSMStore(identity.New(defaultConfig), ssm.NewFromConfig(defaultConfig), defaultConfig.Region)
 	applicationToCreate := config.Application{Name: randStringBytes(10), Version: "1.0"}
 	testEnvironment := config.Environment{Name: "test", App: applicationToCreate.Name, Region: "us-west-2", AccountID: " 1234"}
 	prodEnvironment := config.Environment{Name: "prod", App: applicationToCreate.Name, Region: "us-west-2", AccountID: " 1234"}
@@ -111,10 +111,10 @@ func Test_SSM_Environment_Integration(t *testing.T) {
 }
 
 func Test_SSM_Service_Integration(t *testing.T) {
-	defaultSess, err := sessions.ImmutableProvider().Default()
+	defaultConfig, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	require.NoError(t, err)
 
-	store := config.NewSSMStore(identity.New(defaultSess), ssm.New(defaultSess), aws.StringValue(defaultSess.Config.Region))
+	store := config.NewSSMStore(identity.New(defaultConfig), ssm.NewFromConfig(defaultConfig), defaultConfig.Region)
 	applicationToCreate := config.Application{Name: randStringBytes(10), Version: "1.0"}
 	apiService := config.Workload{Name: "api", App: applicationToCreate.Name, Type: "Load Balanced Web Service"}
 	feService := config.Workload{Name: "front-end", App: applicationToCreate.Name, Type: "Load Balanced Web Service"}

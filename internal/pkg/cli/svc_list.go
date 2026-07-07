@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -37,15 +38,12 @@ func newListSvcOpts(vars listWkldVars) (*listSvcOpts, error) {
 		return nil, err
 	}
 
-	sess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("svc ls")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("svc ls")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	store, err := newSSMConfigStore(sess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	svcLister := &list.SvcListWriter{
 		Ws:    ws,
 		Store: store,

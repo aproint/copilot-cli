@@ -5,47 +5,47 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	credentials "github.com/aws/aws-sdk-go/aws/credentials"
-	session "github.com/aws/aws-sdk-go/aws/session"
+	aws "github.com/aws/aws-sdk-go-v2/aws"
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MocksessionValidator is a mock of sessionValidator interface.
-type MocksessionValidator struct {
+// Mockv2ConfigValidator is a mock of v2ConfigValidator interface.
+type Mockv2ConfigValidator struct {
 	ctrl     *gomock.Controller
-	recorder *MocksessionValidatorMockRecorder
+	recorder *Mockv2ConfigValidatorMockRecorder
 }
 
-// MocksessionValidatorMockRecorder is the mock recorder for MocksessionValidator.
-type MocksessionValidatorMockRecorder struct {
-	mock *MocksessionValidator
+// Mockv2ConfigValidatorMockRecorder is the mock recorder for Mockv2ConfigValidator.
+type Mockv2ConfigValidatorMockRecorder struct {
+	mock *Mockv2ConfigValidator
 }
 
-// NewMocksessionValidator creates a new mock instance.
-func NewMocksessionValidator(ctrl *gomock.Controller) *MocksessionValidator {
-	mock := &MocksessionValidator{ctrl: ctrl}
-	mock.recorder = &MocksessionValidatorMockRecorder{mock}
+// NewMockv2ConfigValidator creates a new mock instance.
+func NewMockv2ConfigValidator(ctrl *gomock.Controller) *Mockv2ConfigValidator {
+	mock := &Mockv2ConfigValidator{ctrl: ctrl}
+	mock.recorder = &Mockv2ConfigValidatorMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MocksessionValidator) EXPECT() *MocksessionValidatorMockRecorder {
+func (m *Mockv2ConfigValidator) EXPECT() *Mockv2ConfigValidatorMockRecorder {
 	return m.recorder
 }
 
-// ValidateCredentials mocks base method.
-func (m *MocksessionValidator) ValidateCredentials(sess *session.Session) (credentials.Value, error) {
+// ValidateV2Credentials mocks base method.
+func (m *Mockv2ConfigValidator) ValidateV2Credentials(arg0 context.Context, arg1 aws.Config) (aws.Credentials, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateCredentials", sess)
-	ret0, _ := ret[0].(credentials.Value)
+	ret := m.ctrl.Call(m, "ValidateV2Credentials", arg0, arg1)
+	ret0, _ := ret[0].(aws.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ValidateCredentials indicates an expected call of ValidateCredentials.
-func (mr *MocksessionValidatorMockRecorder) ValidateCredentials(sess interface{}) *gomock.Call {
+// ValidateV2Credentials indicates an expected call of ValidateV2Credentials.
+func (mr *Mockv2ConfigValidatorMockRecorder) ValidateV2Credentials(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCredentials", reflect.TypeOf((*MocksessionValidator)(nil).ValidateCredentials), sess)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateV2Credentials", reflect.TypeOf((*Mockv2ConfigValidator)(nil).ValidateV2Credentials), arg0, arg1)
 }

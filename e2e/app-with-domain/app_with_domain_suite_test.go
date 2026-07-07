@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/e2e/internal/client"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -45,7 +44,7 @@ var _ = AfterSuite(func() {
 
 // isStackSetOperationInProgress returns if the current stack set is in operation.
 func isStackSetOperationInProgress(s string) bool {
-	return strings.Contains(s, cloudformation.ErrCodeOperationInProgressException)
+	return strings.Contains(s, "OperationInProgressException")
 }
 
 // isImagePushingToECRInProgress returns if we are pushing images to ECR. Pushing images concurrently would fail because

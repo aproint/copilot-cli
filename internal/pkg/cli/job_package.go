@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"slices"
@@ -53,14 +54,11 @@ type packageJobOpts struct {
 
 func newPackageJobOpts(vars packageJobVars) (*packageJobOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job package"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {

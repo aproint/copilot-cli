@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -188,14 +189,11 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 		return nil, err
 	}
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc init"))
-	sess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(sess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {
@@ -207,7 +205,7 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 		Store:    store,
 		Ws:       ws,
 		Prog:     termprogress.NewSpinner(log.DiagnosticWriter),
-		Deployer: cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr)),
+		Deployer: cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 	}
 	dfSel, err := selector.NewDockerfileSelector(prompter, fs)
 	if err != nil {

@@ -72,26 +72,23 @@ type deleteAppOpts struct {
 
 func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 	provider := sessions.ImmutableProvider(sessions.UserAgentExtras("app delete"))
-	defaultSession, err := provider.Default()
+	defaultConfig, err := provider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
 	prompter := prompt.New()
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	return &deleteAppOpts{
 		deleteAppVars: vars,
 		spinner:       termprogress.NewSpinner(log.DiagnosticWriter),
 		store:         store,
 		sessProvider:  provider,
-		cfn:           cloudformation.New(v2ConfigFromSessionRegion(defaultSession), cloudformation.WithProgressTracker(os.Stderr)),
+		cfn:           cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:        prompter,
 		s3: func(cfg aws.Config) bucketEmptier {
 			return s3.New(cfg)
 		},
-		pipelineLister: deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSession))),
+		pipelineLister: deploy.NewPipelineStore(rg.New(defaultConfig)),
 		sel:            selector.NewAppEnvSelector(prompter, store),
 		svcDeleteExecutor: func(appName, svcName string) (executor, error) {
 			opts, err := newDeleteSvcOpts(deleteSvcVars{

@@ -189,14 +189,11 @@ type initEnvOpts struct {
 
 func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env init"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
@@ -206,8 +203,8 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 		initEnvVars:  vars,
 		sessProvider: sessProvider,
 		store:        store,
-		appDeployer:  deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
-		identity:     identity.New(v2ConfigFromSessionRegion(defaultSession)),
+		appDeployer:  deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
+		identity:     identity.New(defaultConfig),
 		prog:         termprogress.NewSpinner(log.DiagnosticWriter),
 		prompt:       prompter,
 		selCreds: func() (credsSelector, error) {
@@ -225,7 +222,7 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 			return describe.NewAppDescriber(appName)
 		},
 		selApp:         selector.NewAppEnvSelector(prompt.New(), store),
-		appCFN:         deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
+		appCFN:         deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
 		manifestWriter: ws,
 		envLister:      ws,
 

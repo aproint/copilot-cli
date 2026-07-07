@@ -72,14 +72,11 @@ type deleteJobOpts struct {
 
 func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 	provider := sessions.ImmutableProvider(sessions.UserAgentExtras("job delete"))
-	defaultSession, err := provider.Default()
+	defaultConfig, err := provider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	return &deleteJobOpts{
 		deleteJobVars: vars,
@@ -89,7 +86,7 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 		prompt:  prompt.New(),
 		sel:     selector.NewConfigSelector(prompter, store),
 		sess:    provider,
-		appCFN:  cloudformation.New(v2ConfigFromSessionRegion(defaultSession), cloudformation.WithProgressTracker(os.Stderr)),
+		appCFN:  cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		newWlDeleter: func(cfg aws.Config) wlDeleter {
 			return cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
 		},

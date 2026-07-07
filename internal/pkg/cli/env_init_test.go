@@ -16,7 +16,6 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	deploycfn "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
@@ -1306,9 +1305,6 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				appVersionGetter: mocks.NewMockversionGetter(ctrl),
 			}
 			tc.setupMocks(m)
-			provider := sessions.ImmutableProvider()
-			sess, _ := provider.DefaultWithRegion("us-west-2")
-
 			opts := &initEnvOpts{
 				initEnvVars: initEnvVars{
 					name:    "test",
@@ -1326,7 +1322,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				iam:         m.iam,
 				cfn:         m.cfn,
 				prog:        m.progress,
-				cfg:         v2ConfigFromSessionRegion(sess),
+				cfg:         aws.Config{Region: "us-west-2"},
 				appCFN:      m.appCFN,
 				newAppVersionGetter: func(appName string) (versionGetter, error) {
 					return m.appVersionGetter, nil

@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -60,17 +61,13 @@ func newShowPipelineOpts(vars showPipelineVars) (*showPipelineOpts, error) {
 		return nil, err
 	}
 
-	defaultSession, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline show")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline show")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
-	v2Config := v2ConfigFromSessionRegion(defaultSession)
-	codepipeline := codepipeline.New(v2Config, v2Config)
-	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
+	codepipeline := codepipeline.New(defaultConfig, defaultConfig)
+	pipelineLister := deploy.NewPipelineStore(rg.New(defaultConfig))
 	prompter := prompt.New()
 	opts := &showPipelineOpts{
 		showPipelineVars:       vars,

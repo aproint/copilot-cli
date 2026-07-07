@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -30,14 +31,11 @@ type listJobOpts struct {
 }
 
 func newListJobOpts(vars listWkldVars) (*listJobOpts, error) {
-	defaultSession, err := sessions.ImmutableProvider(sessions.UserAgentExtras("job ls")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("job ls")).DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err

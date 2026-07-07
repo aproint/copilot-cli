@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -84,9 +85,9 @@ type packageEnvOpts struct {
 
 func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env package"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
 	fs := afero.NewOsFs()
@@ -94,11 +95,7 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfgStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
-	cfg := v2ConfigFromSessionRegion(defaultSess)
+	cfgStore := newSSMConfigStoreFromConfig(defaultConfig)
 
 	opts := &packageEnvOpts{
 		packageEnvVars: vars,
@@ -106,7 +103,7 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 		cfgStore:        cfgStore,
 		ws:              ws,
 		sel:             selector.NewLocalEnvironmentSelector(prompt.New(), cfgStore, ws),
-		caller:          identity.New(cfg),
+		caller:          identity.New(defaultConfig),
 		fs:              fs,
 		tplWriter:       os.Stdout,
 		paramsWriter:    discardFile{},

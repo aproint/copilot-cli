@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -79,26 +80,22 @@ func newDeletePipelineOpts(vars deletePipelineVars) (*deletePipelineOpts, error)
 		return nil, err
 	}
 
-	defaultSess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline delete")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline delete")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	ssmStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	ssmStore := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
-	v2Config := v2ConfigFromSessionRegion(defaultSess)
-	codepipeline := codepipeline.New(v2Config, v2Config)
-	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
+	codepipeline := codepipeline.New(defaultConfig, defaultConfig)
+	pipelineLister := deploy.NewPipelineStore(rg.New(defaultConfig))
 
 	opts := &deletePipelineOpts{
 		deletePipelineVars:     vars,
 		codepipeline:           codepipeline,
 		prog:                   termprogress.NewSpinner(log.DiagnosticWriter),
 		prompt:                 prompter,
-		secretsmanager:         secretsmanager.New(v2Config),
-		pipelineDeployer:       cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr)),
+		secretsmanager:         secretsmanager.New(defaultConfig),
+		pipelineDeployer:       cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		deployedPipelineLister: pipelineLister,
 		ws:                     ws,
 		store:                  ssmStore,

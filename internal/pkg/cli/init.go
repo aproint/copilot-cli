@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -103,14 +104,11 @@ type initOpts struct {
 func newInitOpts(vars initVars) (*initOpts, error) {
 	fs := afero.NewOsFs()
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("init"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	configStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 	prompt := prompt.New()
 	sel := selector.NewConfigSelector(prompt, configStore)
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
@@ -119,9 +117,9 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 	}
 	snsSel := selector.NewDeploySelect(prompt, configStore, deployStore)
 	spin := termprogress.NewSpinner(log.DiagnosticWriter)
-	id := identity.New(v2ConfigFromSessionRegion(defaultSess))
-	deployer := cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr))
-	iamClient := iam.New(v2ConfigFromSessionRegion(defaultSess))
+	id := identity.New(defaultConfig)
+	deployer := cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr))
+	iamClient := iam.New(defaultConfig)
 	initAppCmd := &initAppOpts{
 		initAppVars: initAppVars{
 			name: vars.appName,
@@ -132,7 +130,7 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		cfn:      deployer,
 		prog:     spin,
 		isSessionFromEnvVars: func() (bool, error) {
-			return sessions.AreCredsFromEnvVars(defaultSess)
+			return sessions.AreV2CredsFromEnvVars(context.Background(), defaultConfig)
 		},
 		existingWorkspace: func() (wsAppManager, error) {
 			return workspace.Use(fs)
@@ -152,8 +150,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		newAppVersionGetter: func(appName string) (versionGetter, error) {
 			return describe.NewAppDescriber(appName)
 		},
-		appCFN:          cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr)),
-		cfg:             v2ConfigFromSessionRegion(defaultSess),
+		appCFN:          cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
+		cfg:             defaultConfig,
 		templateVersion: version.LatestTemplateVersion(),
 	}
 	deployEnvCmd := &deployEnvOpts{

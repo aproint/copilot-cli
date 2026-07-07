@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -71,14 +72,11 @@ type deployEnvOpts struct {
 
 func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env deploy"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -102,7 +100,7 @@ func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
 
 		fs:              fs,
 		ws:              ws,
-		identity:        identity.New(v2ConfigFromSessionRegion(defaultSess)),
+		identity:        identity.New(defaultConfig),
 		templateVersion: version.LatestTemplateVersion(),
 		newInterpolator: newManifestInterpolator,
 	}

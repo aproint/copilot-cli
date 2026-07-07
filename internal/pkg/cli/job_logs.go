@@ -45,14 +45,11 @@ type jobLogsOpts struct {
 
 func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job logs"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	configStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {

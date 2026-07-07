@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
@@ -128,15 +129,12 @@ func (o *resumeSvcOpts) validateAndAskSvcEnvName() error {
 
 func newResumeSvcOpts(vars resumeSvcVars) (*resumeSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc resume"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	configStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 	deployStore, err := deploy.NewStore(sessProvider, configStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)
@@ -161,11 +159,11 @@ func newResumeSvcOpts(vars resumeSvcVars) (*resumeSvcOpts, error) {
 		}
 		switch svc.Type {
 		case manifestinfo.RequestDrivenWebServiceType:
-			sess, err := sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+			cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 			if err != nil {
 				return err
 			}
-			a = apprunner.New(v2ConfigFromSessionRegion(sess))
+			a = apprunner.New(cfg)
 			d, err = describe.NewRDWebServiceDescriber(describe.NewServiceConfig{
 				App:         opts.appName,
 				Svc:         opts.svcName,

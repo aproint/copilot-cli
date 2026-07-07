@@ -99,15 +99,12 @@ func newSvcDeployOpts(vars deployWkldVars) (*deploySvcOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc deploy"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 
 	opts := &deploySvcOpts{

@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -43,15 +44,11 @@ func buildAppListCommand() *cobra.Command {
 			opts := listAppOpts{
 				w: os.Stdout,
 			}
-			sess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app ls")).Default()
+			defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app ls")).DefaultConfig(context.Background())
 			if err != nil {
-				return fmt.Errorf("default session: %v", err)
+				return fmt.Errorf("default config: %v", err)
 			}
-			store, err := newSSMConfigStore(sess)
-			if err != nil {
-				return err
-			}
-			opts.store = store
+			opts.store = newSSMConfigStoreFromConfig(defaultConfig)
 			return opts.Execute()
 		}),
 	}

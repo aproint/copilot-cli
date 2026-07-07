@@ -79,15 +79,12 @@ func newDeleteTaskOpts(vars deleteTaskVars) (*deleteTaskOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("task delete"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
 
-	store, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	return &deleteTaskOpts{
 		deleteTaskVars: vars,

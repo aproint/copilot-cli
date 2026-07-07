@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -116,15 +117,11 @@ type deployPipelineOpts struct {
 
 func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline deploy"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
-	v2Config := v2ConfigFromSessionRegion(defaultSession)
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 
 	prompter := prompt.New()
 	ws, err := workspace.Use(afero.NewOsFs())
@@ -139,8 +136,8 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 
 	opts := &deployPipelineOpts{
 		ws:                 ws,
-		pipelineDeployer:   deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
-		region:             aws.ToString(defaultSession.Config.Region),
+		pipelineDeployer:   deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
+		region:             defaultConfig.Region,
 		deployPipelineVars: vars,
 		store:              store,
 		prog:               termprogress.NewSpinner(log.DiagnosticWriter),
@@ -148,7 +145,7 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 		diffWriter:         os.Stdout,
 		sessProvider:       sessProvider,
 		sel:                selector.NewWsPipelineSelector(prompter, ws),
-		codestar:           cs.New(v2Config),
+		codestar:           cs.New(defaultConfig),
 		templateVersion:    version.LatestTemplateVersion(),
 		pipelineStackConfig: func(in *deploy.CreatePipelineInput) stackConfiguration {
 			return stack.NewPipelineStackConfig(in)
@@ -191,7 +188,7 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 	}
 	opts.configureDeployedPipelineLister = func() deployedPipelineLister {
 		// Initialize the client only after the appName is asked.
-		return deploy.NewPipelineStore(rg.New(v2Config))
+		return deploy.NewPipelineStore(rg.New(defaultConfig))
 	}
 	opts.pipelineVersionGetter = func(appName, name string, isLegacy bool) (versionGetter, error) {
 		return describe.NewPipelineStackDescriber(appName, name, isLegacy)

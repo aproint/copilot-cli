@@ -52,14 +52,11 @@ type showAppOpts struct {
 
 func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("app show"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)
@@ -70,8 +67,8 @@ func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 		w:              log.OutputWriter,
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		deployStore:    deployStore,
-		codepipeline:   codepipeline.New(v2ConfigFromSessionRegion(defaultSession), v2ConfigFromSessionRegion(defaultSession)),
-		pipelineLister: deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSession))),
+		codepipeline:   codepipeline.New(defaultConfig, defaultConfig),
+		pipelineLister: deploy.NewPipelineStore(rg.New(defaultConfig)),
 		newVersionGetter: func(s string) (versionGetter, error) {
 			d, err := describe.NewAppDescriber(s)
 			if err != nil {

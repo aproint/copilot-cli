@@ -47,14 +47,11 @@ type jobRunOpts struct {
 func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job deploy"))
 
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	configStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	configStore := newSSMConfigStoreFromConfig(defaultConfig)
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err

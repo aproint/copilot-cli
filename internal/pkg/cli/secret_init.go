@@ -73,7 +73,7 @@ type secretInitOpts struct {
 
 func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("secret init"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +83,7 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 		return nil, err
 	}
 
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	opts := secretInitOpts{
 		secretInitVars: vars,

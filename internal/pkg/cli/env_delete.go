@@ -106,14 +106,11 @@ type deleteEnvOpts struct {
 
 func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env delete"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
-	store, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 
 	prompter := prompt.New()
 	return &deleteEnvOpts{
@@ -129,19 +126,18 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 			if err != nil {
 				return err
 			}
-			sess, err := sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+			cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 			if err != nil {
-				return fmt.Errorf("create session from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
+				return fmt.Errorf("create config from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
 			}
-			o.rg = &resourceGroupsClient{client: resourcegroupstaggingapi.NewFromConfig(v2ConfigFromSessionRegion(sess))}
-			o.iam = iam.New(v2ConfigFromSessionRegion(sess))
-			o.s3 = s3.New(v2ConfigFromSessionRegion(sess))
-			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), v2ConfigFromSessionRegion(sess))
-			o.deployer = cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr))
-			o.envDeleterFromApp = cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr))
-			defaultV2Config := v2ConfigFromSessionRegion(defaultSess)
-			o.pipelineGetter = codepipeline.New(defaultV2Config, defaultV2Config)
-			o.deployedPipelineLister = deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSess)))
+			o.rg = &resourceGroupsClient{client: resourcegroupstaggingapi.NewFromConfig(cfg)}
+			o.iam = iam.New(cfg)
+			o.s3 = s3.New(cfg)
+			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), cfg)
+			o.deployer = cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
+			o.envDeleterFromApp = cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr))
+			o.pipelineGetter = codepipeline.New(defaultConfig, defaultConfig)
+			o.deployedPipelineLister = deploy.NewPipelineStore(rg.New(defaultConfig))
 			return nil
 		},
 	}, nil

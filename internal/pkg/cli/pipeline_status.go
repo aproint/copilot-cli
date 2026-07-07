@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -59,17 +60,13 @@ func newPipelineStatusOpts(vars pipelineStatusVars) (*pipelineStatusOpts, error)
 		return nil, err
 	}
 
-	session, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline status")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline status")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	store, err := newSSMConfigStore(session)
-	if err != nil {
-		return nil, err
-	}
-	v2Config := v2ConfigFromSessionRegion(session)
-	codepipeline := codepipeline.New(v2Config, v2Config)
-	pipelineLister := deploy.NewPipelineStore(rg.New(v2Config))
+	store := newSSMConfigStoreFromConfig(defaultConfig)
+	codepipeline := codepipeline.New(defaultConfig, defaultConfig)
+	pipelineLister := deploy.NewPipelineStore(rg.New(defaultConfig))
 	prompter := prompt.New()
 	return &pipelineStatusOpts{
 		w:                      log.OutputWriter,

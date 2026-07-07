@@ -61,9 +61,9 @@ func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
 		return nil, err
 	}
 
-	defaultSession, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline ls")).Default()
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline ls")).DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
 
 	var wsAppName string
@@ -71,15 +71,11 @@ func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
 		wsAppName = tryReadingAppName()
 	}
 
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
-	v2Config := v2ConfigFromSessionRegion(defaultSession)
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	return &listPipelineOpts{
 		listPipelineVars: vars,
-		pipelineLister:   deploy.NewPipelineStore(rg.New(v2Config)),
+		pipelineLister:   deploy.NewPipelineStore(rg.New(defaultConfig)),
 		prompt:           prompter,
 		sel:              selector.NewConfigSelector(prompter, store),
 		store:            store,

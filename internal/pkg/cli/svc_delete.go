@@ -74,15 +74,12 @@ type deleteSvcOpts struct {
 
 func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc delete"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	opts := &deleteSvcOpts{
 		deleteSvcVars: vars,
@@ -92,7 +89,7 @@ func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
 		prompt:  prompter,
 		sess:    sessProvider,
 		sel:     selector.NewConfigSelector(prompter, store),
-		appCFN:  cloudformation.New(v2ConfigFromSessionRegion(defaultSession), cloudformation.WithProgressTracker(os.Stderr)),
+		appCFN:  cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		getSvcCFN: func(cfg aws.Config) wlDeleter {
 			return cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
 		},

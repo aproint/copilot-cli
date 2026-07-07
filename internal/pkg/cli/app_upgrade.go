@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -54,22 +55,18 @@ type appUpgradeOpts struct {
 }
 
 func newAppUpgradeOpts(vars appUpgradeVars) (*appUpgradeOpts, error) {
-	sess, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app upgrade")).Default()
+	cfg, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app upgrade")).DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	store, err := newSSMConfigStore(sess)
-	if err != nil {
-		return nil, err
-	}
-	cfg := v2ConfigFromSessionRegion(sess)
+	store := newSSMConfigStoreFromConfig(cfg)
 	return &appUpgradeOpts{
 		appUpgradeVars: vars,
 		store:          store,
 		identity:       identity.New(cfg),
-		route53:        route53.New(v2ConfigFromSessionRegion(sess)),
+		route53:        route53.New(cfg),
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
-		upgrader:       cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr)),
+		upgrader:       cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr)),
 		newVersionGetter: func(appName string) (versionGetter, error) {
 			d, err := describe.NewAppDescriber(appName)
 			if err != nil {

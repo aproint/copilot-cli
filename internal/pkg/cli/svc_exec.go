@@ -58,14 +58,11 @@ type svcExecOpts struct {
 
 func newSvcExecOpts(vars execVars) (*svcExecOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc exec"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	ssmStore, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	ssmStore := newSSMConfigStoreFromConfig(defaultConfig)
 	deployStore, err := deploy.NewStore(sessProvider, ssmStore)
 	if err != nil {
 		return nil, fmt.Errorf("connect to deploy store: %w", err)

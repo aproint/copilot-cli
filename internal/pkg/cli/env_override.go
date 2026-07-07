@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -33,14 +34,11 @@ func newOverrideEnvOpts(vars overrideVars) (*overrideEnvOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env override"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
-	cfgStore, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	cfgStore := newSSMConfigStoreFromConfig(defaultConfig)
 	vars.requiresEnv = true
 	prompt := prompt.New()
 	cmd := &overrideEnvOpts{

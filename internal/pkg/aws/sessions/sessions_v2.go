@@ -24,10 +24,6 @@ import (
 
 type v2ConfigLoader func(context.Context, ...func(*v2config.LoadOptions) error) (awsv2.Config, error)
 
-type v2ConfigValidator interface {
-	ValidateV2Credentials(context.Context, awsv2.Config) (awsv2.Credentials, error)
-}
-
 // DefaultConfig returns an SDK v2 config configured against the default AWS profile.
 // DefaultConfig assumes that a region must be present with the config, otherwise it returns an error.
 func (p *Provider) DefaultConfig(ctx context.Context) (awsv2.Config, error) {

@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -114,14 +115,11 @@ type deployOpts struct {
 
 func newDeployOpts(vars deployVars) (*deployOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("deploy"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %v", err)
+		return nil, fmt.Errorf("default config: %v", err)
 	}
-	store, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -137,7 +135,7 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 		newWorkloadAdder: func() wkldInitializerWithoutManifest {
 			return &initialize.WorkloadInitializer{
 				Store:    store,
-				Deployer: cloudformation.New(v2ConfigFromSessionRegion(defaultSess)),
+				Deployer: cloudformation.New(defaultConfig),
 				Ws:       ws,
 				Prog:     termprogress.NewSpinner(log.DiagnosticWriter),
 			}

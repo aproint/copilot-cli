@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -55,15 +56,11 @@ type packagePipelineOpts struct {
 
 func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline package"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("default session: %w", err)
+		return nil, fmt.Errorf("default config: %w", err)
 	}
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
-	v2Config := v2ConfigFromSessionRegion(defaultSession)
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
@@ -71,7 +68,7 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 	}
 	opts := &packagePipelineOpts{
 		packagePipelineVars: vars,
-		pipelineDeployer:    deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
+		pipelineDeployer:    deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
 		tmplWriter:          os.Stdout,
 		ws:                  ws,
 		store:               store,
@@ -114,7 +111,7 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 		svcBuffer: &bytes.Buffer{},
 		jobBuffer: &bytes.Buffer{},
 		configureDeployedPipelineLister: func() deployedPipelineLister {
-			return deploy.NewPipelineStore(rg.New(v2Config))
+			return deploy.NewPipelineStore(rg.New(defaultConfig))
 		},
 	}
 	return opts, nil

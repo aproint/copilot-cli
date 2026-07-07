@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"encoding"
 	"errors"
 	"fmt"
@@ -187,7 +188,7 @@ type initStorageOpts struct {
 
 func newStorageInitOpts(vars initStorageVars) (*initStorageOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("storage init"))
-	defaultSession, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -198,10 +199,7 @@ func newStorageInitOpts(vars initStorageVars) (*initStorageOpts, error) {
 		return nil, err
 	}
 
-	store, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
 	return &initStorageOpts{
 		initStorageVars: vars,

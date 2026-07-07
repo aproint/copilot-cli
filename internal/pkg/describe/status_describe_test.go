@@ -16,9 +16,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	ecsapi "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

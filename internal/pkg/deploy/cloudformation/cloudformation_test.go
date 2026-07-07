@@ -18,9 +18,10 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sdkcloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	sdkcloudformationtypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/aws/aws-sdk-go/aws"
-	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -254,18 +255,18 @@ func testDeployWorkload_StreamUntilStackCreationFails(t *testing.T, stackName st
 	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
 	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", nil)
 	m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String(stackName),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_FAILED"), // Send failure event for stack.
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_FAILED"), // Send failure event for stack.
 				Timestamp:          aws.Time(time.Now()),
 			},
 		},
 	}, nil).AnyTimes()
 	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
-		StackStatus: aws.String("CREATE_FAILED"),
+		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_FAILED"),
 	}, nil)
 	m.EXPECT().ErrorEvents(stackName).Return(
 		[]cloudformation.StackEvent{
@@ -273,7 +274,7 @@ func testDeployWorkload_StreamUntilStackCreationFails(t *testing.T, stackName st
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String(stackName),
 				PhysicalResourceId: aws.String("AWS::AppRunner::Service"),
-				ResourceStatus:     aws.String("CREATE_FAILED"), // Send failure event for stack.
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_FAILED"), // Send failure event for stack.
 				Timestamp:          aws.Time(time.Now()),
 			},
 		}, nil)
@@ -304,9 +305,9 @@ func testDeployWorkload_RenderNewlyCreatedStackWithECSService(t *testing.T, stac
 
 	mockCFN.EXPECT().Create(gomock.Any()).Return("1234", nil)
 	mockCFN.EXPECT().DescribeChangeSet("1234", stackName).Return(&cloudformation.ChangeSetDescription{
-		Changes: []*sdkcloudformation.Change{
+		Changes: []sdkcloudformationtypes.Change{
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					LogicalResourceId: aws.String("Service"),
 					ResourceType:      aws.String("AWS::ECS::Service"),
 				},
@@ -323,13 +324,13 @@ Resources:
 	mockCFN.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("1"),
 				LogicalResourceId:  aws.String("Service"),
 				PhysicalResourceId: aws.String("arn:aws:ecs:us-west-2:1111:service/cluster/service"),
 				ResourceType:       aws.String("AWS::ECS::Service"),
-				ResourceStatus:     aws.String("CREATE_IN_PROGRESS"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_IN_PROGRESS"),
 				Timestamp:          aws.Time(deploymentTime),
 			},
 			{
@@ -337,14 +338,14 @@ Resources:
 				LogicalResourceId:  aws.String("Service"),
 				PhysicalResourceId: aws.String("arn:aws:ecs:us-west-2:1111:service/cluster/service"),
 				ResourceType:       aws.String("AWS::ECS::Service"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(deploymentTime),
 			},
 			{
 				EventId:           aws.String("3"),
 				LogicalResourceId: aws.String(stackName),
 				ResourceType:      aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:    aws.String("CREATE_COMPLETE"),
+				ResourceStatus:    sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:         aws.Time(deploymentTime),
 			},
 		},
@@ -361,7 +362,7 @@ Resources:
 	}, nil)
 	mockECS.EXPECT().StoppedServiceTasks("cluster", "service").Return(nil, nil)
 	mockCFN.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
-		StackStatus: aws.String("CREATE_COMPLETE"),
+		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: mockCFN, ecsClient: mockECS, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
@@ -392,12 +393,12 @@ func testDeployWorkload_WithEnvControllerRenderer_NoStackUpdates(t *testing.T, s
 
 	mockCFN.EXPECT().Create(gomock.Any()).Return("1234", nil)
 	mockCFN.EXPECT().DescribeChangeSet("1234", svcStackName).Return(&cloudformation.ChangeSetDescription{
-		Changes: []*sdkcloudformation.Change{
+		Changes: []sdkcloudformationtypes.Change{
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					LogicalResourceId: aws.String("EnvControllerAction"),
 					ResourceType:      aws.String("Custom::EnvControllerFunction"),
-					Action:            aws.String(sdkcloudformation.ChangeActionAdd),
+					Action:            sdkcloudformationtypes.ChangeActionAdd,
 				},
 			},
 		},
@@ -409,7 +410,7 @@ Resources:
       'aws:copilot:description': "Updating environment"
 `, nil)
 	mockCFN.EXPECT().Describe(svcStackName).Return(&cloudformation.StackDescription{
-		Tags: []*sdkcloudformation.Tag{
+		Tags: []sdkcloudformationtypes.Tag{
 			{
 				Key:   aws.String("copilot-application"),
 				Value: aws.String("my-app"),
@@ -429,12 +430,12 @@ Resources:
 	mockCFN.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(svcStackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:           aws.String("1"),
 				LogicalResourceId: aws.String(svcStackName),
 				ResourceType:      aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:    aws.String("CREATE_COMPLETE"),
+				ResourceStatus:    sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:         aws.Time(deploymentTime),
 			},
 		},
@@ -442,11 +443,11 @@ Resources:
 	mockCFN.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String("my-app-my-env"),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{}, // No updates for the env stack.
+		StackEvents: []sdkcloudformationtypes.StackEvent{}, // No updates for the env stack.
 	}, nil).AnyTimes()
 
 	mockCFN.EXPECT().Describe(svcStackName).Return(&cloudformation.StackDescription{
-		StackStatus: aws.String("CREATE_COMPLETE"),
+		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: mockCFN, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
@@ -474,15 +475,15 @@ func testDeployWorkload_RenderNewlyCreatedStackWithAddons(t *testing.T, stackNam
 	// Mocks for the parent stack.
 	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
 	m.EXPECT().DescribeChangeSet("1234", stackName).Return(&cloudformation.ChangeSetDescription{
-		Changes: []*sdkcloudformation.Change{
+		Changes: []sdkcloudformationtypes.Change{
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					LogicalResourceId:  aws.String("Cluster"),
 					PhysicalResourceId: aws.String("AWS::ECS::Cluster"),
 				},
 			},
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					ChangeSetId:        aws.String("5678"),
 					LogicalResourceId:  aws.String("AddonsStack"),
 					PhysicalResourceId: aws.String("arn:aws:cloudformation:us-west-2:12345:stack/my-nested-stack/d0a825a0-e4cd-xmpl-b9fb-061c69e99205"),
@@ -506,40 +507,40 @@ Resources:
 	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("1"),
 				LogicalResourceId:  aws.String("Cluster"),
 				PhysicalResourceId: aws.String("AWS::ECS::Cluster"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 			{
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String("AddonsStack"),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 			{
 				EventId:            aws.String("3"),
 				LogicalResourceId:  aws.String(stackName),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 		},
 	}, nil).AnyTimes()
 
 	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
-		StackStatus: aws.String("CREATE_COMPLETE"),
+		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 
 	// Mocks for the addons stack.
 	m.EXPECT().DescribeChangeSet("5678", "my-nested-stack").Return(&cloudformation.ChangeSetDescription{
-		Changes: []*sdkcloudformation.Change{
+		Changes: []sdkcloudformationtypes.Change{
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					LogicalResourceId:  aws.String("MyTable"),
 					PhysicalResourceId: aws.String("AWS::DynamoDB::Table"),
 				},
@@ -557,19 +558,19 @@ Resources:
 	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String("my-nested-stack"),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("1"),
 				LogicalResourceId:  aws.String("MyTable"),
 				PhysicalResourceId: aws.String("AWS::DynamoDB::Table"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 			{
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String("my-nested-stack"),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 		},
@@ -712,18 +713,18 @@ func testDeployTask_StreamUntilStackCreationFails(t *testing.T, stackName string
 	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
 	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", nil)
 	m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String(stackName),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_FAILED"), // Send failure event for stack.
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_FAILED"), // Send failure event for stack.
 				Timestamp:          aws.Time(time.Now()),
 			},
 		},
 	}, nil).AnyTimes()
 	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
-		StackStatus: aws.String("CREATE_FAILED"),
+		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_FAILED"),
 	}, nil)
 	m.EXPECT().ErrorEvents(stackName).Return(
 		[]cloudformation.StackEvent{
@@ -731,7 +732,7 @@ func testDeployTask_StreamUntilStackCreationFails(t *testing.T, stackName string
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String(stackName),
 				PhysicalResourceId: aws.String("AWS::AppRunner::Service"),
-				ResourceStatus:     aws.String("CREATE_FAILED"), // Send failure event for stack.
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_FAILED"), // Send failure event for stack.
 				Timestamp:          aws.Time(time.Now()),
 			},
 		}, nil)
@@ -753,15 +754,15 @@ func testDeployTask_RenderNewlyCreatedStackWithAddons(t *testing.T, stackName st
 	// Mocks for the parent stack.
 	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
 	m.EXPECT().DescribeChangeSet("1234", stackName).Return(&cloudformation.ChangeSetDescription{
-		Changes: []*sdkcloudformation.Change{
+		Changes: []sdkcloudformationtypes.Change{
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					LogicalResourceId:  aws.String("Cluster"),
 					PhysicalResourceId: aws.String("AWS::ECS::Cluster"),
 				},
 			},
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					ChangeSetId:        aws.String("5678"),
 					LogicalResourceId:  aws.String("AddonsStack"),
 					PhysicalResourceId: aws.String("arn:aws:cloudformation:us-west-2:12345:stack/my-nested-stack/d0a825a0-e4cd-xmpl-b9fb-061c69e99205"),
@@ -785,40 +786,40 @@ Resources:
 	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("1"),
 				LogicalResourceId:  aws.String("Cluster"),
 				PhysicalResourceId: aws.String("AWS::ECS::Cluster"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 			{
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String("AddonsStack"),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 			{
 				EventId:            aws.String("3"),
 				LogicalResourceId:  aws.String(stackName),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 		},
 	}, nil).AnyTimes()
 
 	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
-		StackStatus: aws.String("CREATE_COMPLETE"),
+		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 
 	// Mocks for the addons stack.
 	m.EXPECT().DescribeChangeSet("5678", "my-nested-stack").Return(&cloudformation.ChangeSetDescription{
-		Changes: []*sdkcloudformation.Change{
+		Changes: []sdkcloudformationtypes.Change{
 			{
-				ResourceChange: &sdkcloudformation.ResourceChange{
+				ResourceChange: &sdkcloudformationtypes.ResourceChange{
 					LogicalResourceId:  aws.String("MyTable"),
 					PhysicalResourceId: aws.String("AWS::DynamoDB::Table"),
 				},
@@ -836,19 +837,19 @@ Resources:
 	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String("my-nested-stack"),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
-		StackEvents: []*sdkcloudformation.StackEvent{
+		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("1"),
 				LogicalResourceId:  aws.String("MyTable"),
 				PhysicalResourceId: aws.String("AWS::DynamoDB::Table"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 			{
 				EventId:            aws.String("2"),
 				LogicalResourceId:  aws.String("my-nested-stack"),
 				PhysicalResourceId: aws.String("AWS::CloudFormation::Stack"),
-				ResourceStatus:     aws.String("CREATE_COMPLETE"),
+				ResourceStatus:     sdkcloudformationtypes.ResourceStatus("CREATE_COMPLETE"),
 				Timestamp:          aws.Time(time.Now()),
 			},
 		},

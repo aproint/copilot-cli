@@ -25,9 +25,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template/artifactpath"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscfn "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	awselb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
-	"github.com/aws/aws-sdk-go/aws"
-	awscfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -545,7 +545,7 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				},
 				appCFN:      m.appCFN,
 				envDeployer: m.envDeployer,
-				newStack: func(_ *cfnstack.EnvConfig, _ string, _ []*awscfn.Parameter) (cloudformation.StackConfiguration, error) {
+				newStack: func(_ *cfnstack.EnvConfig, _ string, _ []awscfn.Parameter) (cloudformation.StackConfiguration, error) {
 					return m.stackSerializer, nil
 				},
 				parseAddons: m.parseAddons,
@@ -707,7 +707,7 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 				envDeployer:      m.envDeployer,
 				prefixListGetter: m.prefixListGetter,
 				parseAddons:      m.parseAddons,
-				newStack: func(_ *cfnstack.EnvConfig, _ string, _ []*awscfn.Parameter) (cloudformation.StackConfiguration, error) {
+				newStack: func(_ *cfnstack.EnvConfig, _ string, _ []awscfn.Parameter) (cloudformation.StackConfiguration, error) {
 					return m.stackSerializer, nil
 				},
 			}
@@ -1038,7 +1038,7 @@ If you'd like to use these services without a CDN, ensure each service's A recor
 			d := &envDeployer{
 				app: tc.app,
 				env: &config.Environment{
-					Name: aws.StringValue(tc.mft.Name),
+					Name: aws.ToString(tc.mft.Name),
 				},
 				envDescriber: m.envDescriber,
 				lbDescriber:  m.lbDescriber,

@@ -13,8 +13,8 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sdkcloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 func TestCloudFormation_PipelineExists(t *testing.T) {

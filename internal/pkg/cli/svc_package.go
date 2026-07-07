@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -17,7 +18,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/exec"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
@@ -72,7 +73,7 @@ type packageSvcOpts struct {
 	// cached variables
 	targetApp         *config.Application
 	targetEnv         *config.Environment
-	envSess           *session.Session
+	envConfig         aws.Config
 	rawMft            string
 	appliedDynamicMft manifest.DynamicWorkload
 	rootUserARN       string
@@ -295,21 +296,21 @@ func (o *packageSvcOpts) validateOrAskEnvName() error {
 func (o *packageSvcOpts) configureClients() error {
 	o.gitShortCommit = imageTagFromGit(o.runner) // Best effort assign git tag.
 	// client to retrieve an application's resources created with CloudFormation.
-	defaultSess, err := o.sessProvider.Default()
+	defaultConfig, err := o.sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return fmt.Errorf("create default session: %w", err)
+		return fmt.Errorf("create default config: %w", err)
 	}
 	targetEnv, err := o.getTargetEnv()
 	if err != nil {
 		return err
 	}
-	envSess, err := o.sessProvider.FromRole(targetEnv.ManagerRoleARN, targetEnv.Region)
+	envConfig, err := o.sessProvider.ConfigFromRole(context.Background(), targetEnv.ManagerRoleARN, targetEnv.Region)
 	if err != nil {
 		return err
 	}
-	o.envSess = envSess
+	o.envConfig = envConfig
 	// client to retrieve caller identity.
-	caller, err := identity.New(v2ConfigFromSessionRegion(defaultSess)).Get()
+	caller, err := identity.New(defaultConfig).Get()
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
@@ -351,7 +352,7 @@ func (o *packageSvcOpts) getStackGenerator(env *config.Environment) (workloadSta
 		ws:           o.ws,
 		interpolator: o.newInterpolator(o.appName, o.envName),
 		unmarshal:    o.unmarshal,
-		sess:         o.envSess,
+		cfg:          o.envConfig,
 	})
 	if err != nil {
 		return nil, err

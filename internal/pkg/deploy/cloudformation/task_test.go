@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
-	"github.com/aws/aws-sdk-go/aws"
-	awscfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscfn "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/stretchr/testify/require"
@@ -53,7 +53,7 @@ func TestCloudFormation_DeployTask(t *testing.T) {
 }
 
 var mockDescription1 = &cloudformation.StackDescription{
-	Tags: []*awscfn.Tag{
+	Tags: []awscfn.Tag{
 		{
 			Key: aws.String("copilot-task"),
 		},
@@ -70,7 +70,7 @@ var mockDescription1 = &cloudformation.StackDescription{
 	RoleARN:   aws.String("arn:aws:iam::123456789012:role/appname-test-CFNExecutionRole"),
 }
 var mockDescription2 = &cloudformation.StackDescription{
-	Tags: []*awscfn.Tag{
+	Tags: []awscfn.Tag{
 		{
 			Key: aws.String("copilot-task"),
 		},
@@ -88,7 +88,7 @@ var mockDescription2 = &cloudformation.StackDescription{
 }
 
 var mockDescription3 = &cloudformation.StackDescription{
-	Tags: []*awscfn.Tag{
+	Tags: []awscfn.Tag{
 		{
 			Key: aws.String("copilot-task"),
 		},
@@ -120,7 +120,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 					StackName: "task-database",
 					App:       "appname",
 					Env:       "test",
-					RoleARN:   aws.StringValue(mockDescription1.RoleARN),
+					RoleARN:   aws.ToString(mockDescription1.RoleARN),
 				},
 			},
 		},

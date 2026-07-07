@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -67,12 +68,11 @@ func NewStaticSiteDescriber(opt NewServiceConfig) (*StaticSiteDescriber, error) 
 		if err != nil {
 			return nil, nil, fmt.Errorf("get environment %s: %w", env, err)
 		}
-		sess, err := sessions.ImmutableProvider().FromRole(environment.ManagerRoleARN, environment.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), environment.ManagerRoleARN, environment.Region)
 		if err != nil {
 			return nil, nil, err
 		}
-		cfg := v2ConfigFromSessionRegion(sess)
-		return awsS3.New(cfg), s3.New(sess, cfg), nil
+		return awsS3.New(cfg), s3.New(cfg), nil
 	}
 	return describer, nil
 }

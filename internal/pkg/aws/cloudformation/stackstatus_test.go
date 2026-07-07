@@ -6,7 +6,7 @@ package cloudformation
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,23 +17,23 @@ func TestStackStatus_InProgress(t *testing.T) {
 		wanted bool
 	}{
 		"should be false if stack is created Successfully": {
-			status: cloudformation.StackStatusCreateComplete,
+			status: string(types.StackStatusCreateComplete),
 			wanted: false,
 		},
 		"should be false if stack creation failed": {
-			status: cloudformation.StackStatusCreateFailed,
+			status: string(types.StackStatusCreateFailed),
 			wanted: false,
 		},
 		"should be true if stack creation is in progress": {
-			status: cloudformation.StackStatusCreateInProgress,
+			status: string(types.StackStatusCreateInProgress),
 			wanted: true,
 		},
 		"should be true if stack update is in progress": {
-			status: cloudformation.StackStatusUpdateInProgress,
+			status: string(types.StackStatusUpdateInProgress),
 			wanted: true,
 		},
 		"should be true if stack deletion is in progress": {
-			status: cloudformation.StackStatusDeleteInProgress,
+			status: string(types.StackStatusDeleteInProgress),
 			wanted: true,
 		},
 	}
@@ -53,15 +53,15 @@ func TestStackStatus_UpsertInProgress(t *testing.T) {
 		wanted bool
 	}{
 		"should be true for update in progress": {
-			status: cloudformation.StackStatusUpdateInProgress,
+			status: string(types.StackStatusUpdateInProgress),
 			wanted: true,
 		},
 		"should be true for create in progress": {
-			status: cloudformation.StackStatusCreateInProgress,
+			status: string(types.StackStatusCreateInProgress),
 			wanted: true,
 		},
 		"should be false if created": {
-			status: cloudformation.StackStatusCreateComplete,
+			status: string(types.StackStatusCreateComplete),
 			wanted: false,
 		},
 	}

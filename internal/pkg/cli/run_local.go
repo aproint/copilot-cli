@@ -51,14 +51,10 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/syncbuffer"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
 	sdkecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/rds"
-	sdksecretsmanager "github.com/aws/aws-sdk-go/service/secretsmanager"
-	sdkssm "github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
+	rdstypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -90,8 +86,8 @@ type taggedResourceGetter interface {
 }
 
 type rdsDescriber interface {
-	DescribeDBInstancesPagesWithContext(context.Context, *rds.DescribeDBInstancesInput, func(*rds.DescribeDBInstancesOutput, bool) bool, ...request.Option) error
-	DescribeDBClustersPagesWithContext(context.Context, *rds.DescribeDBClustersInput, func(*rds.DescribeDBClustersOutput, bool) bool, ...request.Option) error
+	DescribeDBInstances(context.Context, *rds.DescribeDBInstancesInput, ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error)
+	DescribeDBClusters(context.Context, *rds.DescribeDBClustersInput, ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error)
 }
 
 type recursiveWatcher interface {
@@ -117,27 +113,27 @@ type runLocalVars struct {
 type runLocalOpts struct {
 	runLocalVars
 
-	sel            deploySelector
-	ecsClient      ecsClient
-	ecsExecutor    ecsCommandExecutor
-	ssm            secretGetter
-	secretsManager secretGetter
-	sessProvider   sessionProvider
-	sess           *session.Session
-	envManagerSess *session.Session
-	targetEnv      *config.Environment
-	targetApp      *config.Application
-	store          store
-	ws             wsWlDirReader
-	cmd            execRunner
-	dockerEngine   dockerEngineRunner
-	repository     repositoryService
-	prog           progress
-	orchestrator   containerOrchestrator
-	hostFinder     hostFinder
-	envChecker     versionCompatibilityChecker
-	debounceTime   time.Duration
-	dockerExcludes []string
+	sel              deploySelector
+	ecsClient        ecsClient
+	ecsExecutor      ecsCommandExecutor
+	ssm              secretGetter
+	secretsManager   secretGetter
+	sessProvider     sessionProvider
+	defaultConfig    awsv2.Config
+	envManagerConfig awsv2.Config
+	targetEnv        *config.Environment
+	targetApp        *config.Application
+	store            store
+	ws               wsWlDirReader
+	cmd              execRunner
+	dockerEngine     dockerEngineRunner
+	repository       repositoryService
+	prog             progress
+	orchestrator     containerOrchestrator
+	hostFinder       hostFinder
+	envChecker       versionCompatibilityChecker
+	debounceTime     time.Duration
+	dockerExcludes   []string
 
 	newRecursiveWatcher  func() (recursiveWatcher, error)
 	buildContainerImages func(mft manifest.DynamicWorkload) (map[string]string, error)
@@ -152,15 +148,12 @@ type runLocalOpts struct {
 
 func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("run local"))
-	defaultSess, err := sessProvider.Default()
+	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	store, err := newSSMConfigStore(defaultSess)
-	if err != nil {
-		return nil, err
-	}
+	store := newSSMConfigStoreFromConfig(defaultConfig)
 	deployStore, err := deploy.NewStore(sessProvider, store)
 	if err != nil {
 		return nil, err
@@ -181,44 +174,37 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 		newInterpolator:    newManifestInterpolator,
 		sessProvider:       sessProvider,
 		unmarshal:          manifest.UnmarshalWorkload,
-		sess:               defaultSess,
+		defaultConfig:      defaultConfig,
 		cmd:                exec.NewCmd(),
 		dockerEngine:       dockerengine.New(exec.NewCmd()),
 		labeledTermPrinter: labeledTermPrinter,
 		prog:               termprogress.NewSpinner(log.DiagnosticWriter),
 	}
 	o.configureClients = func() error {
-		defaultSessEnvRegion, err := o.sessProvider.DefaultWithRegion(o.targetEnv.Region)
-		if err != nil {
-			return fmt.Errorf("create default session with region %s: %w", o.targetEnv.Region, err)
-		}
 		defaultConfigEnvRegion, err := o.sessProvider.DefaultConfigWithRegion(context.Background(), o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("create default config with region %s: %w", o.targetEnv.Region, err)
-		}
-		o.envManagerSess, err = o.sessProvider.FromRole(o.targetEnv.ManagerRoleARN, o.targetEnv.Region)
-		if err != nil {
-			return fmt.Errorf("create env manager session %s: %w", o.targetEnv.Region, err)
 		}
 		envManagerConfig, err := o.sessProvider.ConfigFromRole(context.Background(), o.targetEnv.ManagerRoleARN, o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("create env manager config %s: %w", o.targetEnv.Region, err)
 		}
+		o.envManagerConfig = envManagerConfig
 
 		// EnvManagerRole has permissions to get task def and get SSM values.
 		// However, it doesn't have permissions to get secrets from secrets manager,
-		// so use the default sess and *hope* they have permissions.
-		o.ecsClient = ecs.New(o.envManagerSess, envManagerConfig)
+		// so use the default config and *hope* it has permissions.
+		o.ecsClient = ecs.New(envManagerConfig)
 		o.ssm = ssm.New(envManagerConfig)
 		o.ecsExecutor = awsecs.New(envManagerConfig)
 		o.secretsManager = secretsmanager.New(defaultConfigEnvRegion)
 
-		resources, err := cloudformation.New(o.sess, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(o.targetApp, o.targetEnv.Region)
+		resources, err := cloudformation.New(o.defaultConfig, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(o.targetApp, o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("get application %s resources from region %s: %w", o.appName, o.envName, err)
 		}
 		repoName := clideploy.RepoName(o.appName, o.wkldName)
-		o.repository = repository.NewWithURI(ecr.New(v2ConfigFromSessionRegion(defaultSessEnvRegion)), repoName, resources.RepositoryURLs[o.wkldName])
+		o.repository = repository.NewWithURI(ecr.New(defaultConfigEnvRegion), repoName, resources.RepositoryURLs[o.wkldName])
 
 		idPrefix := fmt.Sprintf("%s-%s-%s-", o.appName, o.envName, o.wkldName)
 		colorGen := termcolor.ColorGenerator()
@@ -234,9 +220,9 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 			app:  o.appName,
 			env:  o.envName,
 			wkld: o.wkldName,
-			ecs:  ecs.New(o.envManagerSess, envManagerConfig),
+			ecs:  ecs.New(envManagerConfig),
 			rg:   resourcegroups.New(envManagerConfig),
-			rds:  rds.New(o.envManagerSess),
+			rds:  rds.NewFromConfig(envManagerConfig),
 		}
 		envDesc, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
 			App:         o.appName,
@@ -468,7 +454,7 @@ func (o *runLocalOpts) getSSMTarget(ctx context.Context) (string, error) {
 
 	for _, task := range svc.Tasks {
 		// TaskArn should have the format: arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName
-		taskARN, err := arn.Parse(aws.StringValue(task.TaskArn))
+		taskARN, err := awsarn.Parse(awsv2.ToString(task.TaskArn))
 		if err != nil {
 			return "", fmt.Errorf("parse task arn: %w", err)
 		}
@@ -480,12 +466,12 @@ func (o *runLocalOpts) getSSMTarget(ctx context.Context) (string, error) {
 		taskName := split[2]
 
 		for _, ctr := range task.Containers {
-			id := aws.StringValue(ctr.RuntimeId)
+			id := awsv2.ToString(ctr.RuntimeId)
 			hasECSExec := slices.ContainsFunc(ctr.ManagedAgents, func(a sdkecs.ManagedAgent) bool {
-				return string(a.Name) == "ExecuteCommandAgent" && aws.StringValue(a.LastStatus) == "RUNNING"
+				return string(a.Name) == "ExecuteCommandAgent" && awsv2.ToString(a.LastStatus) == "RUNNING"
 			})
-			if id != "" && hasECSExec && aws.StringValue(ctr.LastStatus) == "RUNNING" {
-				return fmt.Sprintf("ecs:%s_%s_%s", svc.ClusterName, taskName, aws.StringValue(ctr.RuntimeId)), nil
+			if id != "" && hasECSExec && awsv2.ToString(ctr.LastStatus) == "RUNNING" {
+				return fmt.Sprintf("ecs:%s_%s_%s", svc.ClusterName, taskName, awsv2.ToString(ctr.RuntimeId)), nil
 			}
 		}
 	}
@@ -528,7 +514,7 @@ func (o *runLocalOpts) getTask(ctx context.Context) (orchestrator.Task, error) {
 	}
 
 	if o.proxy {
-		pauseSecrets, err := sessionEnvVars(ctx, o.envManagerSess)
+		pauseSecrets, err := configEnvVars(ctx, o.envManagerConfig)
 		if err != nil {
 			return orchestrator.Task{}, fmt.Errorf("get pause container secrets: %w", err)
 		}
@@ -536,9 +522,9 @@ func (o *runLocalOpts) getTask(ctx context.Context) (orchestrator.Task, error) {
 	}
 
 	for _, ctr := range td.ContainerDefinitions {
-		name := aws.StringValue(ctr.Name)
+		name := awsv2.ToString(ctr.Name)
 		def := orchestrator.ContainerDefinition{
-			ImageURI:    aws.StringValue(ctr.Image),
+			ImageURI:    awsv2.ToString(ctr.Image),
 			EnvVars:     envVars[name].EnvVars(),
 			Secrets:     envVars[name].Secrets(),
 			Ports:       make(map[string]string, len(ctr.PortMappings)),
@@ -582,7 +568,7 @@ func (o *runLocalOpts) prepareTask(ctx context.Context) (orchestrator.Task, erro
 		ws:           o.ws,
 		interpolator: o.newInterpolator(o.appName, o.envName),
 		unmarshal:    o.unmarshal,
-		sess:         o.envManagerSess,
+		cfg:          o.envManagerConfig,
 	})
 	if err != nil {
 		return orchestrator.Task{}, err
@@ -727,8 +713,8 @@ func (o *runLocalOpts) watchLocalFiles(stopCh <-chan struct{}) (<-chan interface
 	return watchCh, watchErrCh, nil
 }
 
-func sessionEnvVars(ctx context.Context, sess *session.Session) (map[string]string, error) {
-	creds, err := sess.Config.Credentials.GetWithContext(ctx)
+func configEnvVars(ctx context.Context, cfg awsv2.Config) (map[string]string, error) {
+	creds, err := cfg.Credentials.Retrieve(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get IAM credentials: %w", err)
 	}
@@ -738,28 +724,27 @@ func sessionEnvVars(ctx context.Context, sess *session.Session) (map[string]stri
 		"AWS_SECRET_ACCESS_KEY": creds.SecretAccessKey,
 		"AWS_SESSION_TOKEN":     creds.SessionToken,
 	}
-	if sess.Config.Region != nil {
-		env["AWS_DEFAULT_REGION"] = aws.StringValue(sess.Config.Region)
-		env["AWS_REGION"] = aws.StringValue(sess.Config.Region)
+	if cfg.Region != "" {
+		env["AWS_DEFAULT_REGION"] = cfg.Region
+		env["AWS_REGION"] = cfg.Region
 	}
 	return env, nil
 }
 
 func (o *runLocalOpts) taskRoleCredentials(ctx context.Context) (map[string]string, error) {
-	// assumeRoleMethod tries to directly call sts:AssumeRole for TaskRole using default session
-	// calls sts:AssumeRole through aws-sdk-go here https://github.com/aws/aws-sdk-go/blob/ac58203a9054cc9d901429bdd94edfc0a7a1de46/aws/credentials/stscreds/assume_role_provider.go#L352
+	// assumeRoleMethod tries to directly call sts:AssumeRole for TaskRole using the default config.
 	assumeRoleMethod := func() (map[string]string, error) {
 		taskDef, err := o.ecsClient.TaskDefinition(o.appName, o.envName, o.wkldName)
 		if err != nil {
 			return nil, err
 		}
 
-		taskRoleSess, err := o.sessProvider.FromRole(aws.StringValue(taskDef.TaskRoleArn), o.targetEnv.Region)
+		taskRoleConfig, err := o.sessProvider.ConfigFromRole(ctx, awsv2.ToString(taskDef.TaskRoleArn), o.targetEnv.Region)
 		if err != nil {
 			return nil, err
 		}
 
-		return sessionEnvVars(ctx, taskRoleSess)
+		return configEnvVars(ctx, taskRoleConfig)
 	}
 
 	// ecsExecMethod tries to use ECS Exec to retrive credentials from running container
@@ -779,14 +764,14 @@ func (o *runLocalOpts) taskRoleCredentials(ctx context.Context) (map[string]stri
 		var wg sync.WaitGroup
 		containerErr := make(chan error)
 		for _, task := range svcDesc.Tasks {
-			taskID, err := awsecs.TaskID(aws.StringValue(task.TaskArn))
+			taskID, err := awsecs.TaskID(awsv2.ToString(task.TaskArn))
 			if err != nil {
 				return nil, err
 			}
 
 			for _, container := range task.Containers {
 				wg.Add(1)
-				containerName := aws.StringValue(container.Name)
+				containerName := awsv2.ToString(container.Name)
 				go func() {
 					defer wg.Done()
 					err := o.ecsExecutor.ExecuteCommand(awsecs.ExecuteCommandInput{
@@ -928,7 +913,7 @@ func (c containerEnv) Secrets() map[string]string {
 func (o *runLocalOpts) getEnvVars(ctx context.Context, taskDef *awsecs.TaskDefinition) (map[string]containerEnv, error) {
 	envVars := make(map[string]containerEnv, len(taskDef.ContainerDefinitions))
 	for _, ctr := range taskDef.ContainerDefinitions {
-		envVars[aws.StringValue(ctr.Name)] = make(map[string]envVarValue)
+		envVars[awsv2.ToString(ctr.Name)] = make(map[string]envVarValue)
 	}
 
 	for _, e := range taskDef.EnvironmentVariables() {
@@ -946,7 +931,7 @@ func (o *runLocalOpts) getEnvVars(ctx context.Context, taskDef *awsecs.TaskDefin
 	}
 
 	// inject session variables if they haven't been already set
-	sessionVars, err := sessionEnvVars(ctx, o.sess)
+	sessionVars, err := configEnvVars(ctx, o.defaultConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1061,11 +1046,11 @@ func (o *runLocalOpts) getSecret(ctx context.Context, valueFrom string) (string,
 	// SSM secrets can be specified as parameter name instead of an ARN.
 	// Default to ssm if valueFrom is not an ARN.
 	getter := o.ssm
-	if parsed, err := arn.Parse(valueFrom); err == nil { // only overwrite if successful
+	if parsed, err := awsarn.Parse(valueFrom); err == nil { // only overwrite if successful
 		switch parsed.Service {
-		case sdkssm.ServiceName:
+		case "ssm":
 			getter = o.ssm
-		case sdksecretsmanager.ServiceName:
+		case "secretsmanager":
 			getter = o.secretsManager
 		default:
 			return "", fmt.Errorf("invalid ARN; not a SSM or Secrets Manager ARN")
@@ -1084,13 +1069,13 @@ func (o *runLocalOpts) getContainerDependencies(taskDef *awsecs.TaskDefinition) 
 	dependencies := make(map[string]containerDependency, len(taskDef.ContainerDefinitions))
 	for _, ctr := range taskDef.ContainerDefinitions {
 		dep := containerDependency{
-			isEssential: aws.BoolValue(ctr.Essential),
+			isEssential: awsv2.ToBool(ctr.Essential),
 			dependsOn:   make(map[string]string),
 		}
 		for _, containerDep := range ctr.DependsOn {
-			dep.dependsOn[aws.StringValue(containerDep.ContainerName)] = strings.ToLower(string(containerDep.Condition))
+			dep.dependsOn[awsv2.ToString(containerDep.ContainerName)] = strings.ToLower(string(containerDep.Condition))
 		}
-		dependencies[aws.StringValue(ctr.Name)] = dep
+		dependencies[awsv2.ToString(ctr.Name)] = dep
 	}
 	return dependencies
 }
@@ -1115,7 +1100,7 @@ func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error)
 	for _, svc := range svcs {
 		// find the primary deployment with Service Connect enabled
 		idx := slices.IndexFunc(svc.Deployments, func(dep sdkecs.Deployment) bool {
-			return aws.StringValue(dep.Status) == "PRIMARY" && dep.ServiceConnectConfiguration.Enabled
+			return awsv2.ToString(dep.Status) == "PRIMARY" && dep.ServiceConnectConfiguration.Enabled
 		})
 		if idx == -1 {
 			continue
@@ -1124,7 +1109,7 @@ func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error)
 		for _, sc := range svc.Deployments[idx].ServiceConnectConfiguration.Services {
 			for _, alias := range sc.ClientAliases {
 				hosts = append(hosts, orchestrator.Host{
-					Name: aws.StringValue(alias.DnsName),
+					Name: awsv2.ToString(alias.DnsName),
 					Port: uint16(awsv2.ToInt32(alias.Port)),
 				})
 			}
@@ -1155,11 +1140,11 @@ func (h *hostDiscoverer) rdsHosts(ctx context.Context) ([]orchestrator.Host, err
 		return nil, nil
 	}
 
-	dbFilter := &rds.Filter{
-		Name: aws.String("db-instance-id"),
+	dbFilter := &rdstypes.Filter{
+		Name: awsv2.String("db-instance-id"),
 	}
-	clusterFilter := &rds.Filter{
-		Name: aws.String("db-cluster-id"),
+	clusterFilter := &rdstypes.Filter{
+		Name: awsv2.String("db-cluster-id"),
 	}
 	for i := range resources {
 		// we don't want resources that belong to other services
@@ -1168,48 +1153,54 @@ func (h *hostDiscoverer) rdsHosts(ctx context.Context) ([]orchestrator.Host, err
 			continue
 		}
 
-		arn, err := arn.Parse(resources[i].ARN)
+		arn, err := awsarn.Parse(resources[i].ARN)
 		if err != nil {
 			return nil, fmt.Errorf("invalid arn %q: %w", resources[i].ARN, err)
 		}
 
 		switch {
 		case strings.HasPrefix(arn.Resource, "db:"):
-			dbFilter.Values = append(dbFilter.Values, aws.String(resources[i].ARN))
+			dbFilter.Values = append(dbFilter.Values, resources[i].ARN)
 		case strings.HasPrefix(arn.Resource, "cluster:"):
-			clusterFilter.Values = append(clusterFilter.Values, aws.String(resources[i].ARN))
+			clusterFilter.Values = append(clusterFilter.Values, resources[i].ARN)
 		}
 	}
 
 	if len(dbFilter.Values) > 0 {
-		err = h.rds.DescribeDBInstancesPagesWithContext(ctx, &rds.DescribeDBInstancesInput{
-			Filters: []*rds.Filter{dbFilter},
-		}, func(out *rds.DescribeDBInstancesOutput, lastPage bool) bool {
+		paginator := rds.NewDescribeDBInstancesPaginator(h.rds, &rds.DescribeDBInstancesInput{
+			Filters: []rdstypes.Filter{*dbFilter},
+		})
+		for paginator.HasMorePages() {
+			out, err := paginator.NextPage(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("describe instances: %w", err)
+			}
 			for _, db := range out.DBInstances {
 				if db.Endpoint != nil {
 					hosts = append(hosts, orchestrator.Host{
-						Name: aws.StringValue(db.Endpoint.Address),
-						Port: uint16(aws.Int64Value(db.Endpoint.Port)),
+						Name: awsv2.ToString(db.Endpoint.Address),
+						Port: uint16(awsv2.ToInt32(db.Endpoint.Port)),
 					})
 				}
 			}
-			return true
-		})
-		if err != nil {
-			return nil, fmt.Errorf("describe instances: %w", err)
 		}
 	}
 
 	if len(clusterFilter.Values) > 0 {
-		err = h.rds.DescribeDBClustersPagesWithContext(ctx, &rds.DescribeDBClustersInput{
-			Filters: []*rds.Filter{clusterFilter},
-		}, func(out *rds.DescribeDBClustersOutput, lastPage bool) bool {
+		paginator := rds.NewDescribeDBClustersPaginator(h.rds, &rds.DescribeDBClustersInput{
+			Filters: []rdstypes.Filter{*clusterFilter},
+		})
+		for paginator.HasMorePages() {
+			out, err := paginator.NextPage(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("describe clusters: %w", err)
+			}
 			for _, db := range out.DBClusters {
 				add := func(s *string) {
 					if s != nil {
 						hosts = append(hosts, orchestrator.Host{
-							Name: aws.StringValue(s),
-							Port: uint16(aws.Int64Value(db.Port)),
+							Name: awsv2.ToString(s),
+							Port: uint16(awsv2.ToInt32(db.Port)),
 						})
 					}
 				}
@@ -1217,13 +1208,9 @@ func (h *hostDiscoverer) rdsHosts(ctx context.Context) ([]orchestrator.Host, err
 				add(db.Endpoint)
 				add(db.ReaderEndpoint)
 				for i := range db.CustomEndpoints {
-					add(db.CustomEndpoints[i])
+					add(&db.CustomEndpoints[i])
 				}
 			}
-			return true
-		})
-		if err != nil {
-			return nil, fmt.Errorf("describe clusters: %w", err)
 		}
 	}
 

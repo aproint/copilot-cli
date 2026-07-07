@@ -8,7 +8,7 @@ package deploy
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 )
 
 const appDNSDelegationRoleName = "DNSDelegationRole"

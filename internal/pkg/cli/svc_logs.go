@@ -22,7 +22,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
 )
 
@@ -115,21 +115,17 @@ func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
 		if err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
-		sess, err := sessProvider.FromRole(env.ManagerRoleARN, env.Region)
-		if err != nil {
-			return err
-		}
 		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
-		opts.ecs = ecs.New(sess, cfg)
+		opts.ecs = ecs.New(cfg)
 
 		newWorkloadLoggerOpts := &logging.NewWorkloadLoggerOpts{
 			App:  opts.appName,
 			Env:  opts.envName,
 			Name: opts.name,
-			Sess: sess,
+			Cfg:  cfg,
 		}
 		if opts.targetSvcType != manifestinfo.RequestDrivenWebServiceType {
 			opts.logsSvc = logging.NewECSServiceClient(newWorkloadLoggerOpts)
@@ -249,9 +245,9 @@ func (o *svcLogsOpts) latestStoppedTaskID() (string, error) {
 	}
 	if len(svcDesc.StoppedTasks) > 0 {
 		sort.Slice(svcDesc.StoppedTasks, func(i, j int) bool {
-			return svcDesc.StoppedTasks[i].StoppingAt.After(aws.TimeValue(svcDesc.StoppedTasks[j].StoppingAt))
+			return svcDesc.StoppedTasks[i].StoppingAt.After(aws.ToTime(svcDesc.StoppedTasks[j].StoppingAt))
 		})
-		taskID, err := awsecs.TaskID(aws.StringValue(svcDesc.StoppedTasks[0].TaskArn))
+		taskID, err := awsecs.TaskID(aws.ToString(svcDesc.StoppedTasks[0].TaskArn))
 		if err != nil {
 			return "", err
 		}

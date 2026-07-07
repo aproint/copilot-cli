@@ -10,7 +10,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"gopkg.in/yaml.v3"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
@@ -18,8 +18,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/term/progress"
-	"github.com/aws/aws-sdk-go/aws"
-	awscfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // CreateAndRenderEnvironment creates the CloudFormation stack for an environment, and render the stack creation to out.
@@ -111,15 +111,15 @@ func (cf CloudFormation) ForceUpdateOutputID(app, env string) (string, error) {
 		return "", err
 	}
 	for _, output := range stackDescr.Outputs {
-		if aws.StringValue(output.OutputKey) == template.LastForceDeployIDOutputName {
-			return aws.StringValue(output.OutputValue), nil
+		if aws.ToString(output.OutputKey) == template.LastForceDeployIDOutputName {
+			return aws.ToString(output.OutputValue), nil
 		}
 	}
 	return "", nil
 }
 
 // DeployedEnvironmentParameters returns the environment stack's parameters.
-func (cf CloudFormation) DeployedEnvironmentParameters(appName, envName string) ([]*awscfn.Parameter, error) {
+func (cf CloudFormation) DeployedEnvironmentParameters(appName, envName string) ([]types.Parameter, error) {
 	isInitial, err := cf.isInitialDeployment(appName, envName)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func (cf CloudFormation) waitAndDescribeStack(stackName string) (*cloudformation
 			return nil, fmt.Errorf("describe stack %s: %w", stackName, err)
 		}
 
-		if cloudformation.StackStatus(aws.StringValue(stackDescription.StackStatus)).InProgress() {
+		if cloudformation.StackStatus(stackDescription.StackStatus).InProgress() {
 			// There is already an update happening to the environment stack.
 			// Best-effort try to wait for the existing update to be over before retrying.
 			_ = cf.cfnClient.WaitForUpdate(context.Background(), stackName)

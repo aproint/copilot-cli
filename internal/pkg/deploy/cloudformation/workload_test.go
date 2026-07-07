@@ -11,8 +11,9 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sdkcloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	sdkcloudformationtypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -32,10 +33,10 @@ func (m *mockStackConfig) Template() (string, error) {
 	return m.template, nil
 }
 
-func (m *mockStackConfig) Parameters() ([]*sdkcloudformation.Parameter, error) {
-	var params []*sdkcloudformation.Parameter
+func (m *mockStackConfig) Parameters() ([]*sdkcloudformationtypes.Parameter, error) {
+	var params []*sdkcloudformationtypes.Parameter
 	for k, v := range m.parameters {
-		params = append(params, &sdkcloudformation.Parameter{
+		params = append(params, &sdkcloudformationtypes.Parameter{
 			ParameterKey:   aws.String(k),
 			ParameterValue: aws.String(v),
 		})
@@ -47,10 +48,10 @@ func (m *mockStackConfig) SerializedParameters() (string, error) {
 	return "", nil
 }
 
-func (m *mockStackConfig) Tags() []*sdkcloudformation.Tag {
-	var tags []*sdkcloudformation.Tag
+func (m *mockStackConfig) Tags() []*sdkcloudformationtypes.Tag {
+	var tags []*sdkcloudformationtypes.Tag
 	for k, v := range m.tags {
-		tags = append(tags, &sdkcloudformation.Tag{
+		tags = append(tags, &sdkcloudformationtypes.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		})

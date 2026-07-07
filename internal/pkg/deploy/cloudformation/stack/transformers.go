@@ -20,7 +20,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
@@ -141,7 +141,7 @@ func convertContainerHealthCheck(hc manifest.ContainerHealthCheck) *template.Con
 	return &template.ContainerHealthCheck{
 		Command:     hc.Command,
 		Interval:    aws.Int64(int64(hc.Interval.Seconds())),
-		Retries:     aws.Int64(int64(aws.IntValue(hc.Retries))),
+		Retries:     aws.Int64(int64(aws.ToInt(hc.Retries))),
 		StartPeriod: aws.Int64(int64(hc.StartPeriod.Seconds())),
 		Timeout:     aws.Int64(int64(hc.Timeout.Seconds())),
 	}
@@ -152,14 +152,14 @@ func convertHostedZone(alias manifest.Alias, defaultHostedZone *string) (templat
 	if len(alias.AdvancedAliases) != 0 {
 		for _, alias := range alias.AdvancedAliases {
 			if alias.HostedZone != nil {
-				if isDuplicateAliasEntry(aliasesFor[*alias.HostedZone], aws.StringValue(alias.Alias)) {
+				if isDuplicateAliasEntry(aliasesFor[*alias.HostedZone], aws.ToString(alias.Alias)) {
 					continue
 				}
 				aliasesFor[*alias.HostedZone] = append(aliasesFor[*alias.HostedZone], *alias.Alias)
 				continue
 			}
 			if defaultHostedZone != nil {
-				if isDuplicateAliasEntry(aliasesFor[*defaultHostedZone], aws.StringValue(alias.Alias)) {
+				if isDuplicateAliasEntry(aliasesFor[*defaultHostedZone], aws.ToString(alias.Alias)) {
 					continue
 				}
 				aliasesFor[*defaultHostedZone] = append(aliasesFor[*defaultHostedZone], *alias.Alias)
@@ -239,8 +239,8 @@ func convertCapacityProviders(a manifest.AdvancedCount) []*template.CapacityProv
 		return cps
 	}
 	// Scaling with spot
-	spotFrom := aws.IntValue(rc.SpotFrom)
-	min := aws.IntValue(rc.Min)
+	spotFrom := aws.ToInt(rc.SpotFrom)
+	min := aws.ToInt(rc.Min)
 	// If spotFrom value is greater than or equal to the autoscaling min,
 	// then the base value on the Fargate capacity provider must be set
 	// to one less than spotFrom
@@ -367,7 +367,7 @@ func convertHTTPHealthCheck(hc *manifest.HealthCheckArgsOrString) template.HTTPH
 		GracePeriod:        manifest.DefaultHealthCheckGracePeriod,
 		HealthyThreshold:   hc.Advanced.HealthyThreshold,
 		UnhealthyThreshold: hc.Advanced.UnhealthyThreshold,
-		SuccessCodes:       aws.StringValue(hc.Advanced.SuccessCodes),
+		SuccessCodes:       aws.ToString(hc.Advanced.SuccessCodes),
 	}
 
 	if hc.IsZero() {
@@ -382,7 +382,7 @@ func convertHTTPHealthCheck(hc *manifest.HealthCheckArgsOrString) template.HTTPH
 		opts.HealthCheckPath = convertPath(*hc.Advanced.Path)
 	}
 	if hc.Advanced.Port != nil {
-		opts.Port = strconv.Itoa(aws.IntValue(hc.Advanced.Port))
+		opts.Port = strconv.Itoa(aws.ToInt(hc.Advanced.Port))
 	}
 	if hc.Advanced.Interval != nil {
 		opts.Interval = aws.Int64(int64(hc.Advanced.Interval.Seconds()))
@@ -404,7 +404,7 @@ func convertNLBHealthCheck(nlbHC *manifest.NLBHealthCheckArgs) template.NLBHealt
 		GracePeriod:        aws.Int64(int64(manifest.DefaultHealthCheckGracePeriod)),
 	}
 	if nlbHC.Port != nil {
-		hc.Port = strconv.Itoa(aws.IntValue(nlbHC.Port))
+		hc.Port = strconv.Itoa(aws.ToInt(nlbHC.Port))
 	}
 	if nlbHC.Timeout != nil {
 		hc.Timeout = aws.Int64(int64(nlbHC.Timeout.Seconds()))
@@ -437,8 +437,8 @@ func convertELBAccessLogsConfig(mft *manifest.Environment) *template.ELBAccessLo
 	}
 
 	return &template.ELBAccessLogs{
-		BucketName: aws.StringValue(elbAccessLogsArgs.BucketName),
-		Prefix:     aws.StringValue(elbAccessLogsArgs.Prefix),
+		BucketName: aws.ToString(elbAccessLogsArgs.BucketName),
+		Prefix:     aws.ToString(elbAccessLogsArgs.Prefix),
 	}
 }
 
@@ -501,7 +501,7 @@ func (s *LoadBalancedWebService) convertALBListener() (*template.ALBListener, er
 	for _, routingRule := range rrConfig.RoutingRules() {
 		httpRedirect := true
 		if routingRule.RedirectToHTTPS != nil {
-			httpRedirect = aws.BoolValue(routingRule.RedirectToHTTPS)
+			httpRedirect = aws.ToBool(routingRule.RedirectToHTTPS)
 		}
 		rule, err := routingRuleConfigConverter{
 			rule:            routingRule,
@@ -642,14 +642,14 @@ func (conv routingRuleConfigConverter) convert() (*template.ALBListenerRule, err
 	}
 
 	config := &template.ALBListenerRule{
-		Path:                convertPath(aws.StringValue(conv.rule.Path)),
+		Path:                convertPath(aws.ToString(conv.rule.Path)),
 		TargetContainer:     targetContainer,
 		TargetPort:          targetPort,
 		Aliases:             aliases,
 		HTTPHealthCheck:     convertHTTPHealthCheck(&conv.rule.HealthCheck),
 		AllowedSourceIps:    convertAllowedSourceIPs(conv.rule.AllowedSourceIps),
-		Stickiness:          strconv.FormatBool(aws.BoolValue(conv.rule.Stickiness)),
-		HTTPVersion:         aws.StringValue(convertHTTPVersion(conv.rule.ProtocolVersion)),
+		Stickiness:          strconv.FormatBool(aws.ToBool(conv.rule.Stickiness)),
+		HTTPVersion:         aws.ToString(convertHTTPVersion(conv.rule.ProtocolVersion)),
 		RedirectToHTTPS:     conv.redirectToHTTPS,
 		DeregistrationDelay: convertDeregistrationDelay(conv.rule.DeregistrationDelay),
 	}
@@ -703,8 +703,8 @@ func (s *LoadBalancedWebService) convertNetworkLoadBalancer() (networkLoadBalanc
 		}
 
 		listeners[idx] = template.NetworkLoadBalancerListener{
-			Port:                aws.StringValue(port),
-			Protocol:            strings.ToUpper(aws.StringValue(protocol)),
+			Port:                aws.ToString(port),
+			Protocol:            strings.ToUpper(aws.ToString(protocol)),
 			TargetContainer:     targetContainer,
 			TargetPort:          targetPort,
 			SSLPolicy:           listener.SSLPolicy,
@@ -775,7 +775,7 @@ func (s *LoadBalancedWebService) convertImportedALB() (*template.ImportedALB, er
 }
 
 func convertExecuteCommand(e *manifest.ExecuteCommand) *template.ExecuteCommandOpts {
-	if e.Config.IsEmpty() && !aws.BoolValue(e.Enable) {
+	if e.Config.IsEmpty() && !aws.ToBool(e.Enable) {
 		return nil
 	}
 	return &template.ExecuteCommandOpts{}
@@ -797,7 +797,7 @@ func convertServiceConnectServer(s manifest.ServiceConnectBoolOrArgs, target *ma
 	return &template.ServiceConnectServer{
 		Name:  target.Container,
 		Port:  target.Port,
-		Alias: aws.StringValue(s.Alias),
+		Alias: aws.ToString(s.Alias),
 	}
 }
 
@@ -847,7 +847,7 @@ func convertStorageOpts(wlName *string, in manifest.Storage) *template.StorageOp
 func convertEphemeral(in *int) *int {
 	// Min value for extensible ephemeral storage is 21; if customer specifies 20, which is the default size,
 	// we shouldn't let CF error out. Instead, we'll just omit it from the config.
-	if aws.IntValue(in) == 20 {
+	if aws.ToInt(in) == 20 {
 		return nil
 	}
 	return in
@@ -925,7 +925,7 @@ func convertEFSPermissions(input map[string]*manifest.Volume) []*template.EFSPer
 		// Write defaults to false.
 		write := defaultWritePermission
 		if volume.ReadOnly != nil {
-			write = !aws.BoolValue(volume.ReadOnly)
+			write = !aws.ToBool(volume.ReadOnly)
 		}
 		accessPointID := volume.EFS.Advanced.AuthConfig.AccessPointID
 		output = append(output, &template.EFSPermission{
@@ -972,7 +972,7 @@ func convertManagedFSInfo(wlName *string, input map[string]*manifest.Volume) *te
 // See https://stackoverflow.com/a/14210379/5890422 for discussion of the possibility of collisions in CRC32 with
 // small numbers of hashes.
 func getRandomUIDGID(name *string) uint32 {
-	return crc32.ChecksumIEEE([]byte(aws.StringValue(name)))
+	return crc32.ChecksumIEEE([]byte(aws.ToString(name)))
 }
 
 func convertVolumes(input map[string]*manifest.Volume) []*template.Volume {
@@ -1022,7 +1022,7 @@ func convertVolumes(input map[string]*manifest.Volume) []*template.Volume {
 func convertEFSConfiguration(in manifest.EFSVolumeConfiguration) *template.EFSVolumeConfiguration {
 	// Set default values correctly.
 	rootDir := in.RootDirectory
-	if aws.StringValue(rootDir) == "" {
+	if aws.ToString(rootDir) == "" {
 		rootDir = aws.String(defaultRootDirectory)
 	}
 	// Set default values for IAM and AccessPointID
@@ -1035,7 +1035,7 @@ func convertEFSConfiguration(in manifest.EFSVolumeConfiguration) *template.EFSVo
 		}
 	}
 	// AuthConfig exists; check the properties.
-	if aws.BoolValue(in.AuthConfig.IAM) {
+	if aws.ToBool(in.AuthConfig.IAM) {
 		iam = aws.String(enabled)
 	}
 
@@ -1049,9 +1049,9 @@ func convertEFSConfiguration(in manifest.EFSVolumeConfiguration) *template.EFSVo
 
 func convertFileSystemID(in manifest.EFSVolumeConfiguration) template.FileSystemID {
 	if in.FileSystemID.Plain != nil {
-		return template.PlainFileSystemID(aws.StringValue(in.FileSystemID.Plain))
+		return template.PlainFileSystemID(aws.ToString(in.FileSystemID.Plain))
 	}
-	return template.ImportedFileSystemID(aws.StringValue(in.FileSystemID.FromCFN.Name))
+	return template.ImportedFileSystemID(aws.ToString(in.FileSystemID.FromCFN.Name))
 }
 
 func convertNetworkConfig(network manifest.NetworkConfig) template.NetworkOpts {
@@ -1069,9 +1069,9 @@ func convertNetworkConfig(network manifest.NetworkConfig) template.NetworkOpts {
 	outSGs := make([]template.SecurityGroup, len(inSGs))
 	for i, sg := range inSGs {
 		if sg.Plain != nil {
-			outSGs[i] = template.PlainSecurityGroup(aws.StringValue(sg.Plain))
+			outSGs[i] = template.PlainSecurityGroup(aws.ToString(sg.Plain))
 		} else {
-			outSGs[i] = template.ImportedSecurityGroup(aws.StringValue(sg.FromCFN.Name))
+			outSGs[i] = template.ImportedSecurityGroup(aws.ToString(sg.FromCFN.Name))
 		}
 	}
 	opts.SecurityGroups = outSGs
@@ -1132,7 +1132,7 @@ func convertDeploymentControllerConfig(in manifest.DeploymentControllerConfig) t
 		MinHealthyPercent: minHealthyPercentDefault,
 		MaxPercent:        maxPercentDefault,
 	}
-	if strings.EqualFold(aws.StringValue(in.Rolling), manifest.ECSRecreateRollingUpdateStrategy) {
+	if strings.EqualFold(aws.ToString(in.Rolling), manifest.ECSRecreateRollingUpdateStrategy) {
 		out.MinHealthyPercent = minHealthyPercentRecreate
 		out.MaxPercent = maxPercentRecreate
 	}
@@ -1225,7 +1225,7 @@ func convertTopicSubscription(t manifest.TopicSubscription) (
 	if err != nil {
 		return nil, err
 	}
-	if aws.BoolValue(t.Queue.Enabled) {
+	if aws.ToBool(t.Queue.Enabled) {
 		return &template.TopicSubscription{
 			Name:         t.Name,
 			Service:      t.Service,
@@ -1268,7 +1268,7 @@ func convertQueue(in manifest.SQSQueue) *template.SQSQueue {
 		return queue
 	}
 
-	if aws.BoolValue(in.FIFO.Enable) {
+	if aws.ToBool(in.FIFO.Enable) {
 		queue.FIFOQueueConfig = &template.FIFOQueueConfig{}
 		return queue
 	}
@@ -1279,7 +1279,7 @@ func convertQueue(in manifest.SQSQueue) *template.SQSQueue {
 			DeduplicationScope:        in.FIFO.Advanced.DeduplicationScope,
 			FIFOThroughputLimit:       in.FIFO.Advanced.FIFOThroughputLimit,
 		}
-		if aws.BoolValue(in.FIFO.Advanced.HighThroughputFifo) {
+		if aws.ToBool(in.FIFO.Advanced.HighThroughputFifo) {
 			queue.FIFOQueueConfig.FIFOThroughputLimit = aws.String(sqsFIFOThroughputLimitPerMessageGroupId)
 			queue.FIFOQueueConfig.DeduplicationScope = aws.String(sqsDedupeScopeMessageGroup)
 		}

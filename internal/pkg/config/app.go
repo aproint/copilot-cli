@@ -5,11 +5,12 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 )
 
 // Application is a named collection of environments and services.
@@ -36,9 +37,9 @@ func (s *Store) CreateApplication(application *Application) error {
 	_, err = s.ssm.PutParameter(&ssm.PutParameterInput{
 		Name:        aws.String(applicationPath),
 		Description: aws.String("Copilot Application"),
-		Type:        aws.String(ssm.ParameterTypeString),
+		Type:        types.ParameterTypeString,
 		Value:       aws.String(data),
-		Tags: []*ssm.Tag{
+		Tags: []types.Tag{
 			{
 				Key:   aws.String("copilot-application"),
 				Value: aws.String(application.Name),
@@ -47,11 +48,9 @@ func (s *Store) CreateApplication(application *Application) error {
 	})
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterAlreadyExists:
-				return nil
-			}
+		var existsErr *types.ParameterAlreadyExists
+		if errors.As(err, &existsErr) {
+			return nil
 		}
 		return fmt.Errorf("create application %s: %w", application.Name, err)
 	}
@@ -71,7 +70,7 @@ func (s *Store) UpdateApplication(application *Application) error {
 	if _, err = s.ssm.PutParameter(&ssm.PutParameterInput{
 		Name:        aws.String(applicationPath),
 		Description: aws.String("Copilot Application"),
-		Type:        aws.String(ssm.ParameterTypeString),
+		Type:        types.ParameterTypeString,
 		Value:       aws.String(data),
 		Overwrite:   aws.Bool(true),
 	}); err != nil {
@@ -88,22 +87,20 @@ func (s *Store) GetApplication(applicationName string) (*Application, error) {
 	})
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterNotFound:
-				account, region := s.getCallerAccountAndRegion()
-				return nil, &ErrNoSuchApplication{
-					ApplicationName: applicationName,
-					AccountID:       account,
-					Region:          region,
-				}
+		var notFoundErr *types.ParameterNotFound
+		if errors.As(err, &notFoundErr) {
+			account, region := s.getCallerAccountAndRegion()
+			return nil, &ErrNoSuchApplication{
+				ApplicationName: applicationName,
+				AccountID:       account,
+				Region:          region,
 			}
 		}
 		return nil, fmt.Errorf("get application %s: %w", applicationName, err)
 	}
 
 	var application Application
-	if err := json.Unmarshal([]byte(*applicationParam.Parameter.Value), &application); err != nil {
+	if err := json.Unmarshal([]byte(aws.ToString(applicationParam.Parameter.Value)), &application); err != nil {
 		return nil, fmt.Errorf("read configuration for application %s: %w", applicationName, err)
 	}
 	return &application, nil
@@ -136,16 +133,12 @@ func (s *Store) DeleteApplication(name string) error {
 	})
 
 	if err != nil {
-		awserr, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
-
-		if awserr.Code() == ssm.ErrCodeParameterNotFound {
+		var notFoundErr *types.ParameterNotFound
+		if errors.As(err, &notFoundErr) {
 			return nil
 		}
 
-		return fmt.Errorf("delete SSM param %s: %w", paramName, awserr)
+		return err
 	}
 
 	return nil

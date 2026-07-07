@@ -7,29 +7,11 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
-
-// mockProvider implements the AWS SDK's credentials.Provider interface.
-type mockProvider struct {
-	value credentials.Value
-	err   error
-}
-
-func (m mockProvider) Retrieve() (credentials.Value, error) {
-	if m.err != nil {
-		return credentials.Value{}, m.err
-	}
-	return m.value, nil
-}
-
-func (m mockProvider) IsExpired() bool {
-	return false
-}
 
 func TestCredsSelect_Creds(t *testing.T) {
 	testCases := map[string]struct {
@@ -54,7 +36,7 @@ func TestCredsSelect_Creds(t *testing.T) {
 				}, gomock.Any()).Return("[profile prod]", nil)
 
 				provider := mocks.NewMockSessionProvider(ctrl)
-				provider.EXPECT().FromProfile("prod").Return(&session.Session{}, nil)
+				provider.EXPECT().ConfigFromProfile(gomock.Any(), "prod").Return(aws.Config{}, nil)
 
 				return &CredsSelect{
 					Prompt:  prompter,
@@ -72,16 +54,12 @@ func TestCredsSelect_Creds(t *testing.T) {
 				prompter.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("Enter temporary credentials", nil)
 
 				provider := mocks.NewMockSessionProvider(ctrl)
-				provider.EXPECT().Default().Return(&session.Session{
-					Config: &aws.Config{
-						Credentials: credentials.NewCredentials(mockProvider{
-							value: credentials.Value{
-								AccessKeyID:     "11111",
-								SecretAccessKey: "22222",
-								SessionToken:    "33333",
-							},
-						}),
-					},
+				provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{
+					Credentials: aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
+						"11111",
+						"22222",
+						"33333",
+					)),
 				}, nil)
 
 				prompter.EXPECT().Get("What's your AWS Access Key ID?", "", gomock.Any(), gomock.Any()).
@@ -91,8 +69,8 @@ func TestCredsSelect_Creds(t *testing.T) {
 				prompter.EXPECT().Get("What's your AWS Session Token?", "", nil, gomock.Any()).
 					Return("****************3333", nil)
 
-				provider.EXPECT().FromStaticCreds("11111", "22222", "33333").
-					Return(&session.Session{}, nil)
+				provider.EXPECT().ConfigFromStaticCreds("11111", "22222", "33333").
+					Return(aws.Config{}, nil)
 
 				return &CredsSelect{
 					Prompt:  prompter,

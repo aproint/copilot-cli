@@ -11,13 +11,11 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-
 	"github.com/dustin/go-humanize/english"
 
 	"github.com/google/uuid"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 // Constants for template paths.
@@ -415,7 +413,7 @@ func (s secretsManagerName) ValueFrom() string {
 
 // Service returns the name of the SecretsManager service for populating the ARN.
 func (s secretsManagerName) Service() string {
-	return secretsmanager.ServiceName
+	return "secretsmanager"
 }
 
 // SecretFromSecretsManager returns a Secret that refers to SecretsManager secret name.
@@ -1077,5 +1075,5 @@ func requiresVPCConnector(o WorkloadOpts) bool {
 
 // ARN determines the arn for a topic using the SNSTopic name and account information
 func (t Topic) ARN() string {
-	return fmt.Sprintf(snsARNPattern, t.Partition, t.Region, t.AccountID, t.App, t.Env, t.Svc, aws.StringValue(t.Name))
+	return fmt.Sprintf(snsARNPattern, t.Partition, t.Region, t.AccountID, t.App, t.Env, t.Svc, aws.ToString(t.Name))
 }

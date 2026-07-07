@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/google/uuid"
 )
 
@@ -29,7 +30,7 @@ type ChangeSetDescription struct {
 	ExecutionStatus string
 	StatusReason    string
 	CreationTime    time.Time
-	Changes         []*cloudformation.Change
+	Changes         []types.Change
 }
 
 type changeSetType int
@@ -37,9 +38,9 @@ type changeSetType int
 func (t changeSetType) String() string {
 	switch t {
 	case updateChangeSetType:
-		return cloudformation.ChangeSetTypeUpdate
+		return string(types.ChangeSetTypeUpdate)
 	default:
-		return cloudformation.ChangeSetTypeCreate
+		return string(types.ChangeSetTypeCreate)
 	}
 }
 
@@ -92,33 +93,33 @@ func (cs *changeSet) String() string {
 // create creates a ChangeSet, waits until it's created, and returns the ChangeSet ID on success.
 func (cs *changeSet) create(conf *stackConfig) error {
 	input := &cloudformation.CreateChangeSetInput{
-		ChangeSetName:       aws.String(cs.name),
-		StackName:           aws.String(cs.stackName),
-		ChangeSetType:       aws.String(cs.csType.String()),
+		ChangeSetName:       awsv2.String(cs.name),
+		StackName:           awsv2.String(cs.stackName),
+		ChangeSetType:       types.ChangeSetType(cs.csType.String()),
 		Parameters:          conf.Parameters,
 		Tags:                conf.Tags,
 		RoleARN:             conf.RoleARN,
-		IncludeNestedStacks: aws.Bool(true),
-		Capabilities: aws.StringSlice([]string{
-			cloudformation.CapabilityCapabilityIam,
-			cloudformation.CapabilityCapabilityNamedIam,
-			cloudformation.CapabilityCapabilityAutoExpand,
-		}),
+		IncludeNestedStacks: awsv2.Bool(true),
+		Capabilities: []types.Capability{
+			types.CapabilityCapabilityIam,
+			types.CapabilityCapabilityNamedIam,
+			types.CapabilityCapabilityAutoExpand,
+		},
 	}
 	if conf.TemplateBody != "" {
-		input.TemplateBody = aws.String(conf.TemplateBody)
+		input.TemplateBody = awsv2.String(conf.TemplateBody)
 	}
 	if conf.TemplateURL != "" {
-		input.TemplateURL = aws.String(conf.TemplateURL)
+		input.TemplateURL = awsv2.String(conf.TemplateURL)
 	}
 
-	out, err := cs.client.CreateChangeSet(input)
+	out, err := cs.client.CreateChangeSet(context.Background(), input)
 	if err != nil {
 		return fmt.Errorf("create %s: %w", cs, err)
 	}
-	err = cs.client.WaitUntilChangeSetCreateCompleteWithContext(context.Background(), &cloudformation.DescribeChangeSetInput{
+	err = cs.client.WaitUntilChangeSetCreateComplete(context.Background(), &cloudformation.DescribeChangeSetInput{
 		ChangeSetName: out.Id,
-	}, waiters...)
+	}, waiterMaxDuration, withChangeSetCreateCompleteDelay)
 	if err != nil {
 		return fmt.Errorf("wait for creation of %s: %w", cs, err)
 	}
@@ -126,7 +127,7 @@ func (cs *changeSet) create(conf *stackConfig) error {
 	// Using the full ID is essential in case the ChangeSet execution status is obsolete.
 	// If we call DescribeChangeSet using the ChangeSet name and Stack name on an obsolete changeset, the results is empty.
 	// On the other hand, if you DescribeChangeSet using the full ID then the ChangeSet summary is retrieved correctly.
-	cs.name = aws.StringValue(out.Id)
+	cs.name = awsv2.ToString(out.Id)
 	return nil
 }
 
@@ -134,20 +135,22 @@ func (cs *changeSet) create(conf *stackConfig) error {
 func (cs *changeSet) describe() (*ChangeSetDescription, error) {
 	var executionStatus, statusReason string
 	var creationTime time.Time
-	var changes []*cloudformation.Change
+	var changes []types.Change
 	var nextToken *string
 	for {
-		out, err := cs.client.DescribeChangeSet(&cloudformation.DescribeChangeSetInput{
-			ChangeSetName: aws.String(cs.name),
-			StackName:     aws.String(cs.stackName),
+		out, err := cs.client.DescribeChangeSet(context.Background(), &cloudformation.DescribeChangeSetInput{
+			ChangeSetName: awsv2.String(cs.name),
+			StackName:     awsv2.String(cs.stackName),
 			NextToken:     nextToken,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("describe %s: %w", cs, err)
 		}
-		executionStatus = aws.StringValue(out.ExecutionStatus)
-		statusReason = aws.StringValue(out.StatusReason)
-		creationTime = aws.TimeValue(out.CreationTime)
+		executionStatus = string(out.ExecutionStatus)
+		statusReason = awsv2.ToString(out.StatusReason)
+		if out.CreationTime != nil {
+			creationTime = *out.CreationTime
+		}
 		changes = append(changes, out.Changes...)
 		nextToken = out.NextToken
 
@@ -169,7 +172,7 @@ func (cs *changeSet) execute() error {
 	if err != nil {
 		return err
 	}
-	if descr.ExecutionStatus != cloudformation.ExecutionStatusAvailable {
+	if descr.ExecutionStatus != string(types.ExecutionStatusAvailable) {
 		// Ignore execute request if the change set does not contain any modifications.
 		if descr.StatusReason == noChangesReason {
 			return nil
@@ -182,9 +185,9 @@ func (cs *changeSet) execute() error {
 			descr: descr,
 		}
 	}
-	_, err = cs.client.ExecuteChangeSet(&cloudformation.ExecuteChangeSetInput{
-		ChangeSetName: aws.String(cs.name),
-		StackName:     aws.String(cs.stackName),
+	_, err = cs.client.ExecuteChangeSet(context.Background(), &cloudformation.ExecuteChangeSetInput{
+		ChangeSetName: awsv2.String(cs.name),
+		StackName:     awsv2.String(cs.stackName),
 	})
 	if err != nil {
 		return fmt.Errorf("execute %s: %w", cs, err)
@@ -198,7 +201,7 @@ func (cs *changeSet) executeWithNoRollback() error {
 	if err != nil {
 		return err
 	}
-	if descr.ExecutionStatus != cloudformation.ExecutionStatusAvailable {
+	if descr.ExecutionStatus != string(types.ExecutionStatusAvailable) {
 		// Ignore execute request if the change set does not contain any modifications.
 		if descr.StatusReason == noChangesReason {
 			return nil
@@ -211,10 +214,10 @@ func (cs *changeSet) executeWithNoRollback() error {
 			descr: descr,
 		}
 	}
-	_, err = cs.client.ExecuteChangeSet(&cloudformation.ExecuteChangeSetInput{
-		ChangeSetName:   aws.String(cs.name),
-		StackName:       aws.String(cs.stackName),
-		DisableRollback: aws.Bool(true),
+	_, err = cs.client.ExecuteChangeSet(context.Background(), &cloudformation.ExecuteChangeSetInput{
+		ChangeSetName:   awsv2.String(cs.name),
+		StackName:       awsv2.String(cs.stackName),
+		DisableRollback: awsv2.Bool(true),
 	})
 	if err != nil {
 		return fmt.Errorf("execute %s: %w", cs, err)
@@ -253,9 +256,9 @@ func (cs *changeSet) createAndExecute(conf *stackConfig) error {
 
 // delete removes the change set.
 func (cs *changeSet) delete() error {
-	_, err := cs.client.DeleteChangeSet(&cloudformation.DeleteChangeSetInput{
-		ChangeSetName: aws.String(cs.name),
-		StackName:     aws.String(cs.stackName),
+	_, err := cs.client.DeleteChangeSet(context.Background(), &cloudformation.DeleteChangeSetInput{
+		ChangeSetName: awsv2.String(cs.name),
+		StackName:     awsv2.String(cs.stackName),
 	})
 	if err != nil {
 		return fmt.Errorf("delete %s: %w", cs, err)

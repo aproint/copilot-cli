@@ -14,7 +14,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 // VPCGetter wraps methods of getting VPC info.
@@ -99,11 +99,11 @@ func taskFamilyName(groupName string) string {
 }
 
 func newTaskFromECS(ecsTask *ecs.Task) *Task {
-	taskARN := aws.StringValue(ecsTask.TaskArn)
+	taskARN := aws.ToString(ecsTask.TaskArn)
 	eni, _ := ecsTask.ENI() //  Best-effort parse the ENI. If we can't find an IP address, we won't show it to the customers instead of erroring.
 	return &Task{
 		TaskARN:    taskARN,
-		ClusterARN: aws.StringValue(ecsTask.ClusterArn),
+		ClusterARN: aws.ToString(ecsTask.ClusterArn),
 		StartedAt:  ecsTask.StartedAt,
 		ENI:        eni,
 	}

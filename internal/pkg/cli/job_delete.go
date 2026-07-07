@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -25,7 +26,7 @@ import (
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -64,9 +65,9 @@ type deleteJobOpts struct {
 	sess            sessionProvider
 	spinner         progress
 	appCFN          jobRemoverFromApp
-	newWlDeleter    func(sess *session.Session) wlDeleter
-	newImageRemover func(sess *session.Session) imageRemover
-	newTaskStopper  func(sess *session.Session) taskStopper
+	newWlDeleter    func(aws.Config) wlDeleter
+	newImageRemover func(aws.Config) imageRemover
+	newTaskStopper  func(aws.Config) taskStopper
 }
 
 func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
@@ -88,15 +89,15 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 		prompt:  prompt.New(),
 		sel:     selector.NewConfigSelector(prompter, store),
 		sess:    provider,
-		appCFN:  cloudformation.New(defaultSession, cloudformation.WithProgressTracker(os.Stderr)),
-		newWlDeleter: func(session *session.Session) wlDeleter {
-			return cloudformation.New(session, cloudformation.WithProgressTracker(os.Stderr))
+		appCFN:  cloudformation.New(v2ConfigFromSessionRegion(defaultSession), cloudformation.WithProgressTracker(os.Stderr)),
+		newWlDeleter: func(cfg aws.Config) wlDeleter {
+			return cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
 		},
-		newImageRemover: func(session *session.Session) imageRemover {
-			return ecr.New(v2ConfigFromSessionRegion(session))
+		newImageRemover: func(cfg aws.Config) imageRemover {
+			return ecr.New(cfg)
 		},
-		newTaskStopper: func(session *session.Session) taskStopper {
-			return ecs.New(session, v2ConfigFromSessionRegion(session))
+		newTaskStopper: func(cfg aws.Config) taskStopper {
+			return ecs.New(cfg)
 		},
 	}, nil
 }
@@ -248,24 +249,24 @@ func (o *deleteJobOpts) appEnvironments() ([]*config.Environment, error) {
 
 func (o *deleteJobOpts) deleteJobs(envs []*config.Environment) error {
 	for _, env := range envs {
-		sess, err := o.sess.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := o.sess.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
 		// Delete job stack
-		if err = o.deleteStack(sess, env); err != nil {
+		if err = o.deleteStack(cfg, env); err != nil {
 			return err
 		}
 		// Delete orphan tasks
-		if err = o.deleteTasks(sess, env.Name); err != nil {
+		if err = o.deleteTasks(cfg, env.Name); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (o *deleteJobOpts) deleteStack(sess *session.Session, env *config.Environment) error {
-	cfClient := o.newWlDeleter(sess)
+func (o *deleteJobOpts) deleteStack(cfg aws.Config, env *config.Environment) error {
+	cfClient := o.newWlDeleter(cfg)
 	if err := cfClient.DeleteWorkload(deploy.DeleteWorkloadInput{
 		Name:             o.name,
 		EnvName:          env.Name,
@@ -277,9 +278,9 @@ func (o *deleteJobOpts) deleteStack(sess *session.Session, env *config.Environme
 	return nil
 }
 
-func (o *deleteJobOpts) deleteTasks(sess *session.Session, env string) error {
+func (o *deleteJobOpts) deleteTasks(cfg aws.Config, env string) error {
 	o.spinner.Start(fmt.Sprintf(fmtJobTasksStopStart, o.name, env))
-	if err := o.newTaskStopper(sess).StopWorkloadTasks(o.appName, env, o.name); err != nil {
+	if err := o.newTaskStopper(cfg).StopWorkloadTasks(o.appName, env, o.name); err != nil {
 		o.spinner.Stop(log.Serrorf(fmtJobTasksStopFailed, o.name, env, err))
 		return fmt.Errorf("stop tasks for environment %s: %w", env, err)
 	}
@@ -306,11 +307,11 @@ func (o *deleteJobOpts) emptyECRRepos(envs []*config.Environment) error {
 
 	repoName := clideploy.RepoName(o.appName, o.name)
 	for _, region := range uniqueRegions {
-		sess, err := o.sess.DefaultWithRegion(region)
+		cfg, err := o.sess.DefaultConfigWithRegion(context.Background(), region)
 		if err != nil {
 			return err
 		}
-		client := o.newImageRemover(sess)
+		client := o.newImageRemover(cfg)
 		if err := client.ClearRepository(repoName); err != nil {
 			return err
 		}

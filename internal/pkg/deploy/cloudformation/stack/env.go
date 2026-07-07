@@ -14,9 +14,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/google/uuid"
 )
 
@@ -333,11 +333,11 @@ func (e *Env) transformParameters(currParams, oldParams []*cloudformation.Parame
 	// Make a map out of `currParams` and out of `oldParams`.
 	curr := make(map[string]*cloudformation.Parameter)
 	for _, p := range currParams {
-		curr[aws.StringValue(p.ParameterKey)] = p
+		curr[aws.ToString(p.ParameterKey)] = p
 	}
 	old := make(map[string]*cloudformation.Parameter)
 	for _, p := range oldParams {
-		old[aws.StringValue(p.ParameterKey)] = p
+		old[aws.ToString(p.ParameterKey)] = p
 	}
 
 	// Remove or transform each of the current parameters.
@@ -365,7 +365,7 @@ func transformEnvControllerParameters(new, old *cloudformation.Parameter) *cloud
 	for _, f := range template.AvailableEnvFeatures() {
 		isEnvControllerManaged[f] = struct{}{}
 	}
-	if _, ok := isEnvControllerManaged[aws.StringValue(new.ParameterKey)]; !ok {
+	if _, ok := isEnvControllerManaged[aws.ToString(new.ParameterKey)]; !ok {
 		return new
 	}
 	if old == nil { // The EnvController-managed parameter doesn't exist in the old stack. Use the new value.
@@ -384,7 +384,7 @@ func (e *Env) transformServiceDiscoveryEndpoint(new, old *cloudformation.Paramet
 	if new == nil {
 		return nil
 	}
-	if aws.StringValue(new.ParameterKey) != EnvParamServiceDiscoveryEndpoint {
+	if aws.ToString(new.ParameterKey) != EnvParamServiceDiscoveryEndpoint {
 		return new
 	}
 	if old == nil {
@@ -488,7 +488,7 @@ func (e *Env) cdnConfig() *template.CDNConfig {
 	mftConfig := e.in.Mft.CDNConfig.Config
 	config := &template.CDNConfig{
 		ImportedCertificate: mftConfig.Certificate,
-		TerminateTLS:        aws.BoolValue(mftConfig.TerminateTLS),
+		TerminateTLS:        aws.ToBool(mftConfig.TerminateTLS),
 	}
 	if !mftConfig.Static.IsEmpty() {
 		config.Static = &template.CDNStaticAssetConfig{
@@ -587,7 +587,7 @@ func (e *Env) telemetryConfig() *template.Telemetry {
 	// If a manifest is present, it is the only place we look at.
 	if e.in.Mft != nil {
 		return &template.Telemetry{
-			EnableContainerInsights: aws.BoolValue(e.in.Mft.Observability.ContainerInsights),
+			EnableContainerInsights: aws.ToBool(e.in.Mft.Observability.ContainerInsights),
 		}
 	}
 

@@ -13,7 +13,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/apprunner/types"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 const (
@@ -38,7 +37,7 @@ type Client struct {
 }
 
 // New inits a new Client.
-func New(_ *session.Session, rgConfig awsv2.Config) *Client {
+func New(rgConfig awsv2.Config) *Client {
 	return &Client{
 		rgGetter:        resourcegroups.New(rgConfig),
 		appRunnerClient: apprunner.New(rgConfig),

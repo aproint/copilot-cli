@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
@@ -85,8 +85,8 @@ func (cf CloudFormation) pipelinePhysicalResourceID(stackName string) (string, e
 		return "", err
 	}
 	for _, resource := range stackResources {
-		if aws.StringValue(resource.LogicalResourceId) == cfnLogicalResourceIDPipeline && aws.StringValue(resource.ResourceType) == cfnResourceTypePipeline {
-			return aws.StringValue(resource.PhysicalResourceId), nil
+		if aws.ToString(resource.LogicalResourceId) == cfnLogicalResourceIDPipeline && aws.ToString(resource.ResourceType) == cfnResourceTypePipeline {
+			return aws.ToString(resource.PhysicalResourceId), nil
 		}
 	}
 	return "", fmt.Errorf(`cannot find a resource in stack %s with logical ID "%s" of type "%s"`, stackName, cfnLogicalResourceIDPipeline, cfnResourceTypePipeline)

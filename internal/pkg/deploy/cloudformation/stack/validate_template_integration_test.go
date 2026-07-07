@@ -6,6 +6,7 @@
 package stack_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,8 +18,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +44,7 @@ func TestAutoscalingIntegration_Validate(t *testing.T) {
 	ws, err := workspace.Use(fs)
 	require.NoError(t, err)
 
-	_, err = addon.ParseFromWorkload(aws.StringValue(v.Name), ws)
+	_, err = addon.ParseFromWorkload(aws.ToString(v.Name), ws)
 	var notFound *addon.ErrAddonsNotFound
 	require.ErrorAs(t, err, &notFound)
 
@@ -57,7 +58,7 @@ func TestAutoscalingIntegration_Validate(t *testing.T) {
 		Manifest: v,
 		RuntimeConfig: stack.RuntimeConfig{
 			PushedImages: map[string]stack.ECRImage{
-				aws.StringValue(v.Name): {
+				aws.ToString(v.Name): {
 					RepoURL:  imageURL,
 					ImageTag: imageTag,
 				},
@@ -75,12 +76,12 @@ func TestAutoscalingIntegration_Validate(t *testing.T) {
 	require.NoError(t, err)
 	tpl, err := serializer.Template()
 	require.NoError(t, err)
-	sess, err := sessions.ImmutableProvider().Default()
+	cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	require.NoError(t, err)
-	cfn := cloudformation.New(sess)
+	cfn := cloudformation.NewFromConfig(cfg)
 
 	t.Run("CloudFormation template must be valid", func(t *testing.T) {
-		_, err := cfn.ValidateTemplate(&cloudformation.ValidateTemplateInput{
+		_, err := cfn.ValidateTemplate(context.Background(), &cloudformation.ValidateTemplateInput{
 			TemplateBody: aws.String(tpl),
 		})
 		require.NoError(t, err)
@@ -107,7 +108,7 @@ func TestScheduledJob_Validate(t *testing.T) {
 	ws, err := workspace.Use(fs)
 	require.NoError(t, err)
 
-	_, err = addon.ParseFromWorkload(aws.StringValue(v.Name), ws)
+	_, err = addon.ParseFromWorkload(aws.ToString(v.Name), ws)
 	var notFound *addon.ErrAddonsNotFound
 	require.ErrorAs(t, err, &notFound)
 
@@ -132,12 +133,12 @@ func TestScheduledJob_Validate(t *testing.T) {
 	tpl, err := serializer.Template()
 	require.NoError(t, err, "template should render")
 
-	sess, err := sessions.ImmutableProvider().Default()
+	cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	require.NoError(t, err)
-	cfn := cloudformation.New(sess)
+	cfn := cloudformation.NewFromConfig(cfg)
 
 	t.Run("CF template should be valid", func(t *testing.T) {
-		_, err := cfn.ValidateTemplate(&cloudformation.ValidateTemplateInput{
+		_, err := cfn.ValidateTemplate(context.Background(), &cloudformation.ValidateTemplateInput{
 			TemplateBody: aws.String(tpl),
 		})
 		require.NoError(t, err)

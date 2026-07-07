@@ -13,11 +13,10 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/google/shlex"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/yaml.v3"
 )
 
@@ -68,7 +67,7 @@ type DynamicWorkload interface {
 	ApplyEnv(envName string) (DynamicWorkload, error)
 	Validate() error
 	RequiredEnvironmentFeatures() []string
-	Load(sess *session.Session) error
+	Load(cfg aws.Config) error
 	Manifest() any
 }
 
@@ -87,7 +86,7 @@ func UnmarshalWorkload(in []byte) (DynamicWorkload, error) {
 	if err := yaml.Unmarshal(in, &am); err != nil {
 		return nil, fmt.Errorf("unmarshal to workload manifest: %w", err)
 	}
-	typeVal := aws.StringValue(am.Type)
+	typeVal := aws.ToString(am.Type)
 	var m workloadManifest
 	switch typeVal {
 	case manifestinfo.LoadBalancedWebServiceType:
@@ -162,7 +161,7 @@ func (i *Image) UnmarshalYAML(value *yaml.Node) error {
 
 // GetLocation returns the location of the image.
 func (i Image) GetLocation() string {
-	return aws.StringValue(i.Location)
+	return aws.ToString(i.Location)
 }
 
 // BuildConfig populates a docker.BuildArguments struct from the fields available in the manifest.
@@ -205,12 +204,12 @@ func (i *ImageLocationOrBuild) dockerfile() string {
 	// Prefer to use the "Dockerfile" string in BuildArgs. Otherwise,
 	// "BuildString". If no dockerfile specified, return "".
 	if i.Build.BuildArgs.Dockerfile != nil {
-		return aws.StringValue(i.Build.BuildArgs.Dockerfile)
+		return aws.ToString(i.Build.BuildArgs.Dockerfile)
 	}
 
 	var dfPath string
 	if i.Build.BuildString != nil {
-		dfPath = aws.StringValue(i.Build.BuildString)
+		dfPath = aws.ToString(i.Build.BuildString)
 	}
 
 	return dfPath
@@ -218,7 +217,7 @@ func (i *ImageLocationOrBuild) dockerfile() string {
 
 // context returns the build context directory if it exists, otherwise an empty string.
 func (i *ImageLocationOrBuild) context() string {
-	return aws.StringValue(i.Build.BuildArgs.Context)
+	return aws.ToString(i.Build.BuildArgs.Context)
 }
 
 // args returns the args section, if it exists, to override args in the dockerfile.
@@ -360,7 +359,7 @@ type BuildArgsOrString struct {
 }
 
 func (b *BuildArgsOrString) isEmpty() bool {
-	if aws.StringValue(b.BuildString) == "" && b.BuildArgs.isEmpty() {
+	if aws.ToString(b.BuildString) == "" && b.BuildArgs.isEmpty() {
 		return true
 	}
 	return false
@@ -431,7 +430,7 @@ func (f *FIFOTopicAdvanceConfigOrBool) IsEmpty() bool {
 
 // IsEnabled returns true if the FIFO is enabled on the SQS queue.
 func (f *FIFOTopicAdvanceConfigOrBool) IsEnabled() bool {
-	return aws.BoolValue(f.Enable) || !f.Advanced.IsEmpty()
+	return aws.ToBool(f.Enable) || !f.Advanced.IsEmpty()
 }
 
 // FIFOTopicAdvanceConfig represents the advanced fifo topic config.
@@ -475,7 +474,7 @@ func (c *NetworkConfig) IsEmpty() bool {
 }
 
 func (c *NetworkConfig) requiredEnvFeatures() []string {
-	if aws.StringValue((*string)(c.VPC.Placement.PlacementString)) == string(PrivateSubnetPlacement) {
+	if aws.ToString((*string)(c.VPC.Placement.PlacementString)) == string(PrivateSubnetPlacement) {
 		return []string{template.NATFeatureName}
 	}
 	return nil
@@ -489,7 +488,7 @@ type ServiceConnectBoolOrArgs struct {
 
 // Enabled returns if ServiceConnect is enabled or not.
 func (s *ServiceConnectBoolOrArgs) Enabled() bool {
-	return aws.BoolValue(s.EnableServiceConnect) || !s.ServiceConnectArgs.isEmpty()
+	return aws.ToBool(s.EnableServiceConnect) || !s.ServiceConnectArgs.isEmpty()
 }
 
 // UnmarshalYAML overrides the default YAML unmarshaling logic for the ServiceConnect
@@ -696,7 +695,7 @@ func (s *SecurityGroupsIDsOrConfig) GetIDs() []StringOrFromCFN {
 // in SecurityGroupsIDsOrConfig.AdvancedConfig. Otherwise, false is returned.
 func (s *SecurityGroupsIDsOrConfig) IsDefaultSecurityGroupDenied() bool {
 	if !s.AdvancedConfig.isEmpty() {
-		return aws.BoolValue(s.AdvancedConfig.DenyDefault)
+		return aws.ToBool(s.AdvancedConfig.DenyDefault)
 	}
 	return false
 }
@@ -741,20 +740,20 @@ func (p *PlatformArgsOrString) UnmarshalYAML(value *yaml.Node) error {
 
 // OS returns the operating system family.
 func (p *PlatformArgsOrString) OS() string {
-	if p := aws.StringValue((*string)(p.PlatformString)); p != "" {
+	if p := aws.ToString((*string)(p.PlatformString)); p != "" {
 		args := strings.Split(p, "/")
 		return strings.ToLower(args[0])
 	}
-	return strings.ToLower(aws.StringValue(p.PlatformArgs.OSFamily))
+	return strings.ToLower(aws.ToString(p.PlatformArgs.OSFamily))
 }
 
 // Arch returns the architecture of PlatformArgsOrString.
 func (p *PlatformArgsOrString) Arch() string {
-	if p := aws.StringValue((*string)(p.PlatformString)); p != "" {
+	if p := aws.ToString((*string)(p.PlatformString)); p != "" {
 		args := strings.Split(p, "/")
 		return strings.ToLower(args[1])
 	}
-	return strings.ToLower(aws.StringValue(p.PlatformArgs.Arch))
+	return strings.ToLower(aws.ToString(p.PlatformArgs.Arch))
 }
 
 // PlatformArgs represents the specifics of a target OS.
@@ -768,7 +767,7 @@ type PlatformString string
 
 // String implements the fmt.Stringer interface.
 func (p *PlatformArgs) String() string {
-	return fmt.Sprintf("('%s', '%s')", aws.StringValue(p.OSFamily), aws.StringValue(p.Arch))
+	return fmt.Sprintf("('%s', '%s')", aws.ToString(p.OSFamily), aws.ToString(p.Arch))
 }
 
 // IsEmpty returns if the platform field is empty.
@@ -859,7 +858,7 @@ func (cfg PublishConfig) publishedTopics() []Topic {
 	pubs := make([]Topic, len(cfg.Topics))
 	for i, topic := range cfg.Topics {
 		if topic.FIFO.IsEnabled() {
-			topic.Name = aws.String(aws.StringValue(topic.Name) + ".fifo")
+			topic.Name = aws.String(aws.ToString(topic.Name) + ".fifo")
 		}
 		pubs[i] = topic
 	}

@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"golang.org/x/mod/semver"
 
 	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
@@ -40,7 +40,7 @@ type aliasCertValidator interface {
 
 type svcDeployer struct {
 	*workloadDeployer
-	newSvcUpdater func(func(*session.Session) serviceForceUpdater) serviceForceUpdater
+	newSvcUpdater func(func(aws.Config) serviceForceUpdater) serviceForceUpdater
 	now           func() time.Time
 }
 
@@ -51,8 +51,8 @@ func newSvcDeployer(in *WorkloadDeployerInput) (*svcDeployer, error) {
 	}
 	return &svcDeployer{
 		workloadDeployer: wkldDeployer,
-		newSvcUpdater: func(f func(*session.Session) serviceForceUpdater) serviceForceUpdater {
-			return f(wkldDeployer.envSess)
+		newSvcUpdater: func(f func(aws.Config) serviceForceUpdater) serviceForceUpdater {
+			return f(wkldDeployer.envAWSConfig)
 		},
 		now: time.Now,
 	}, nil

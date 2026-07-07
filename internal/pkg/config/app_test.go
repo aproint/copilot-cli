@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +36,7 @@ func TestStore_ListApplications(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, rootApplicationPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String("/copilot/applications/chicken"),
 							Value: aws.String(testApplicationString),
@@ -56,7 +56,7 @@ func TestStore_ListApplications(t *testing.T) {
 			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, rootApplicationPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String("/copilot/applications/chicken"),
 							Value: aws.String("oops"),
@@ -84,7 +84,7 @@ func TestStore_ListApplications(t *testing.T) {
 				if !lastPageInPaginatedResp {
 					lastPageInPaginatedResp = true
 					return &ssm.GetParametersByPathOutput{
-						Parameters: []*ssm.Parameter{
+						Parameters: []types.Parameter{
 							{
 								Name:  aws.String("/copilot/applications/chicken"),
 								Value: aws.String(testApplicationString),
@@ -94,7 +94,7 @@ func TestStore_ListApplications(t *testing.T) {
 					}, nil
 				}
 				return &ssm.GetParametersByPathOutput{
-					Parameters: []*ssm.Parameter{
+					Parameters: []types.Parameter{
 						{
 							Name:  aws.String("/copilot/applications/cow"),
 							Value: aws.String(cowApplicationString),
@@ -153,7 +153,7 @@ func TestStore_GetApplication(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String(testApplicationString),
 					},
@@ -166,7 +166,7 @@ func TestStore_GetApplication(t *testing.T) {
 		"with no existing application": {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "No Parameter", fmt.Errorf("No Parameter"))
+				return nil, &types.ParameterNotFound{}
 			},
 			mockIdentityServiceGet: func() (identity.Caller, error) {
 				return identity.Caller{
@@ -182,7 +182,7 @@ func TestStore_GetApplication(t *testing.T) {
 		"with no existing application and failed STS call": {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "No Parameter", fmt.Errorf("No Parameter"))
+				return nil, &types.ParameterNotFound{}
 			},
 			mockIdentityServiceGet: func() (identity.Caller, error) {
 				return identity.Caller{}, fmt.Errorf("Error")
@@ -197,7 +197,7 @@ func TestStore_GetApplication(t *testing.T) {
 			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &types.Parameter{
 						Name:  aws.String(testApplicationPath),
 						Value: aws.String("oops"),
 					},
@@ -243,7 +243,7 @@ func TestStore_GetApplication(t *testing.T) {
 }
 
 func TestStore_CreateApplication(t *testing.T) {
-	tagForApplicationParam := []*ssm.Tag{
+	tagForApplicationParam := []types.Tag{
 		{
 			Key:   aws.String("copilot-application"),
 			Value: aws.String("phonetool"),
@@ -262,7 +262,7 @@ func TestStore_CreateApplication(t *testing.T) {
 				require.Equal(t, fmt.Sprintf(`{"name":"phonetool","account":"1234","domain":"phonetool.com","domainHostedZoneID":"mockHostedZoneID","version":"%s","tags":{"owner":"boss"}}`, schemaVersion), *param.Value)
 				require.Equal(t, tagForApplicationParam, param.Tags)
 				return &ssm.PutParameterOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil
 			},
 			wantedErr: nil,
@@ -271,7 +271,7 @@ func TestStore_CreateApplication(t *testing.T) {
 			inApplication: &Application{Name: "phonetool", AccountID: "1234"},
 			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, tagForApplicationParam, param.Tags)
-				return nil, awserr.New(ssm.ErrCodeParameterAlreadyExists, "Already exists", fmt.Errorf("Already Exists"))
+				return nil, &types.ParameterAlreadyExists{}
 			},
 			wantedErr: nil,
 		},
@@ -320,7 +320,7 @@ func TestStore_UpdateApplication(t *testing.T) {
 				require.Equal(t, fmt.Sprintf(`{"name":"phonetool","account":"1234","domain":"phonetool.com","domainHostedZoneID":"mockHostedZoneID","version":"%s","tags":{"owner":"boss"}}`, schemaVersion), *param.Value)
 
 				return &ssm.PutParameterOutput{
-					Version: aws.Int64(1),
+					Version: 1,
 				}, nil
 			},
 			wantedErr: nil,
@@ -377,7 +377,7 @@ func TestDeleteApplication(t *testing.T) {
 			mockDeleteParameter: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
 				require.Equal(t, fmt.Sprintf(fmtApplicationPath, mockApplicationName), *in.Name)
 
-				return nil, awserr.New(ssm.ErrCodeParameterNotFound, "whatevs", mockError)
+				return nil, &types.ParameterNotFound{}
 			},
 			want: nil,
 		},

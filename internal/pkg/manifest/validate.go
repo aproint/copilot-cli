@@ -18,8 +18,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/graph"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/dustin/go-humanize/english"
 )
 
@@ -100,7 +100,7 @@ func (l LoadBalancedWebService) validate() error {
 		return err
 	}
 	if err = validateTargetContainer(validateTargetContainerOpts{
-		mainContainerName: aws.StringValue(l.Name),
+		mainContainerName: aws.ToString(l.Name),
 		mainContainerPort: l.ImageConfig.Port,
 		targetContainer:   l.HTTPOrBool.Main.TargetContainer,
 		sidecarConfig:     l.Sidecars,
@@ -109,7 +109,7 @@ func (l LoadBalancedWebService) validate() error {
 	}
 	for idx, rule := range l.HTTPOrBool.AdditionalRoutingRules {
 		if err = validateTargetContainer(validateTargetContainerOpts{
-			mainContainerName: aws.StringValue(l.Name),
+			mainContainerName: aws.ToString(l.Name),
 			mainContainerPort: l.ImageConfig.Port,
 			targetContainer:   rule.TargetContainer,
 			sidecarConfig:     l.Sidecars,
@@ -118,7 +118,7 @@ func (l LoadBalancedWebService) validate() error {
 		}
 	}
 	if err = validateTargetContainer(validateTargetContainerOpts{
-		mainContainerName: aws.StringValue(l.Name),
+		mainContainerName: aws.ToString(l.Name),
 		mainContainerPort: l.ImageConfig.Port,
 		targetContainer:   l.NLBConfig.Listener.TargetContainer,
 		sidecarConfig:     l.Sidecars,
@@ -127,7 +127,7 @@ func (l LoadBalancedWebService) validate() error {
 	}
 	for idx, listener := range l.NLBConfig.AdditionalListeners {
 		if err = validateTargetContainer(validateTargetContainerOpts{
-			mainContainerName: aws.StringValue(l.Name),
+			mainContainerName: aws.ToString(l.Name),
 			mainContainerPort: l.ImageConfig.Port,
 			targetContainer:   listener.TargetContainer,
 			sidecarConfig:     l.Sidecars,
@@ -138,13 +138,13 @@ func (l LoadBalancedWebService) validate() error {
 	if err = validateContainerDeps(validateDependenciesOpts{
 		sidecarConfig:     l.Sidecars,
 		imageConfig:       l.ImageConfig.Image,
-		mainContainerName: aws.StringValue(l.Name),
+		mainContainerName: aws.ToString(l.Name),
 		logging:           l.Logging,
 	}); err != nil {
 		return fmt.Errorf("validate container dependencies: %w", err)
 	}
 	if err = validateExposedPorts(validateExposedPortsOpts{
-		mainContainerName: aws.StringValue(l.Name),
+		mainContainerName: aws.ToString(l.Name),
 		mainContainerPort: l.ImageConfig.Port,
 		sidecarConfig:     l.Sidecars,
 		alb:               &l.HTTPOrBool.HTTP,
@@ -196,12 +196,12 @@ func (w WorkerDeploymentConfig) validate() error {
 func (d DeploymentControllerConfig) validate() error {
 	if d.Rolling != nil {
 		for _, validStrategy := range ecsRollingUpdateStrategies {
-			if strings.EqualFold(aws.StringValue(d.Rolling), validStrategy) {
+			if strings.EqualFold(aws.ToString(d.Rolling), validStrategy) {
 				return nil
 			}
 		}
 		return fmt.Errorf("invalid rolling deployment strategy %q, must be one of %s",
-			aws.StringValue(d.Rolling),
+			aws.ToString(d.Rolling),
 			english.WordSeries(ecsRollingUpdateStrategies, "or"))
 	}
 	return nil
@@ -298,7 +298,7 @@ func (b BackendService) validate() error {
 		return err
 	}
 	if err = validateTargetContainer(validateTargetContainerOpts{
-		mainContainerName: aws.StringValue(b.Name),
+		mainContainerName: aws.ToString(b.Name),
 		mainContainerPort: b.ImageConfig.Port,
 		targetContainer:   b.HTTP.Main.TargetContainer,
 		sidecarConfig:     b.Sidecars,
@@ -307,7 +307,7 @@ func (b BackendService) validate() error {
 	}
 	for idx, rule := range b.HTTP.AdditionalRoutingRules {
 		if err = validateTargetContainer(validateTargetContainerOpts{
-			mainContainerName: aws.StringValue(b.Name),
+			mainContainerName: aws.ToString(b.Name),
 			mainContainerPort: b.ImageConfig.Port,
 			targetContainer:   rule.TargetContainer,
 			sidecarConfig:     b.Sidecars,
@@ -318,13 +318,13 @@ func (b BackendService) validate() error {
 	if err = validateContainerDeps(validateDependenciesOpts{
 		sidecarConfig:     b.Sidecars,
 		imageConfig:       b.ImageConfig.Image,
-		mainContainerName: aws.StringValue(b.Name),
+		mainContainerName: aws.ToString(b.Name),
 		logging:           b.Logging,
 	}); err != nil {
 		return fmt.Errorf("validate container dependencies: %w", err)
 	}
 	if err = validateExposedPorts(validateExposedPortsOpts{
-		mainContainerName: aws.StringValue(b.Name),
+		mainContainerName: aws.ToString(b.Name),
 		mainContainerPort: b.ImageConfig.Port,
 		sidecarConfig:     b.Sidecars,
 		alb:               &b.HTTP,
@@ -453,7 +453,7 @@ func (w WorkerService) validate() error {
 	if err = validateContainerDeps(validateDependenciesOpts{
 		sidecarConfig:     w.Sidecars,
 		imageConfig:       w.ImageConfig.Image,
-		mainContainerName: aws.StringValue(w.Name),
+		mainContainerName: aws.ToString(w.Name),
 		logging:           w.Logging,
 	}); err != nil {
 		return fmt.Errorf("validate container dependencies: %w", err)
@@ -529,7 +529,7 @@ func (s ScheduledJob) validate() error {
 	if err = validateContainerDeps(validateDependenciesOpts{
 		sidecarConfig:     s.Sidecars,
 		imageConfig:       s.ImageConfig.Image,
-		mainContainerName: aws.StringValue(s.Name),
+		mainContainerName: aws.ToString(s.Name),
 		logging:           s.Logging,
 	}); err != nil {
 		return fmt.Errorf("validate container dependencies: %w", err)
@@ -1050,7 +1050,7 @@ func (c NetworkLoadBalancerConfiguration) validate() error {
 }
 
 func (c NetworkLoadBalancerListener) validate() error {
-	if aws.StringValue(c.Port) == "" {
+	if aws.ToString(c.Port) == "" {
 		return &errFieldMustBeSpecified{
 			missingField: "port",
 		}
@@ -1072,7 +1072,7 @@ func validateNLBPort(port *string) error {
 	if protocol == nil {
 		return nil
 	}
-	protocolVal := aws.StringValue(protocol)
+	protocolVal := aws.ToString(protocol)
 	var isValidProtocol bool
 	for _, valid := range nlbValidProtocols {
 		if strings.EqualFold(protocolVal, valid) {
@@ -1112,7 +1112,7 @@ func (t TaskConfig) validate() error {
 		}
 	}
 	if t.EnvFile != nil {
-		envFile := aws.StringValue(t.EnvFile)
+		envFile := aws.ToString(t.EnvFile)
 		if filepath.Ext(envFile) != envFileExt {
 			return fmt.Errorf("environment file %s must have a %s file extension", envFile, envFileExt)
 		}
@@ -1145,10 +1145,10 @@ func (p PlatformArgs) validate() error {
 	}
 	prettyValidPlatforms := strings.Join(ss, ", ")
 
-	os := strings.ToLower(aws.StringValue(p.OSFamily))
-	arch := strings.ToLower(aws.StringValue(p.Arch))
+	os := strings.ToLower(aws.ToString(p.OSFamily))
+	arch := strings.ToLower(aws.ToString(p.Arch))
 	for _, vap := range validAdvancedPlatforms {
-		if os == aws.StringValue(vap.OSFamily) && arch == aws.StringValue(vap.Arch) {
+		if os == aws.ToString(vap.OSFamily) && arch == aws.ToString(vap.Arch) {
 			return nil
 		}
 	}
@@ -1367,7 +1367,7 @@ func (r RangeConfig) validate() error {
 			missingField: "min/max",
 		}
 	}
-	min, max, spotFrom := aws.IntValue(r.Min), aws.IntValue(r.Max), aws.IntValue(r.SpotFrom)
+	min, max, spotFrom := aws.ToInt(r.Min), aws.ToInt(r.Max), aws.ToInt(r.SpotFrom)
 	if min < 0 || max < 0 || spotFrom < 0 {
 		return &errRangeValueLessThanZero{
 			min:      min,
@@ -1403,7 +1403,7 @@ func (s Storage) validate() error {
 		return nil
 	}
 	if s.Ephemeral != nil {
-		ephemeral := aws.IntValue(s.Ephemeral)
+		ephemeral := aws.ToInt(s.Ephemeral)
 		if ephemeral < ephemeralMinValueGiB || ephemeral > ephemeralMaxValueGiB {
 			return fmt.Errorf(`validate "ephemeral": ephemeral storage must be between 20 GiB and 200 GiB`)
 		}
@@ -1433,7 +1433,7 @@ func (v Volume) validate() error {
 
 // validate returns nil if MountPointOpts is configured correctly.
 func (m MountPointOpts) validate() error {
-	path := aws.StringValue(m.ContainerPath)
+	path := aws.ToString(m.ContainerPath)
 	if path == "" {
 		return &errFieldMustBeSpecified{
 			missingField: "path",
@@ -1483,14 +1483,14 @@ func (e EFSVolumeConfiguration) validate() error {
 		return fmt.Errorf(`validate "auth": %w`, err)
 	}
 	if e.AuthConfig.AccessPointID != nil {
-		if (aws.StringValue(e.RootDirectory) == "" || aws.StringValue(e.RootDirectory) == "/") &&
-			(e.AuthConfig.IAM == nil || aws.BoolValue(e.AuthConfig.IAM)) {
+		if (aws.ToString(e.RootDirectory) == "" || aws.ToString(e.RootDirectory) == "/") &&
+			(e.AuthConfig.IAM == nil || aws.ToBool(e.AuthConfig.IAM)) {
 			return nil
 		}
 		return fmt.Errorf(`"root_dir" must be either empty or "/" and "auth.iam" must be true when "access_point_id" is used`)
 	}
 	if e.RootDirectory != nil {
-		if err := validateVolumePath(aws.StringValue(e.RootDirectory)); err != nil {
+		if err := validateVolumePath(aws.ToString(e.RootDirectory)); err != nil {
 			return fmt.Errorf(`validate "root_dir": %w`, err)
 		}
 	}
@@ -1511,7 +1511,7 @@ func (l Logging) validate() error {
 		return nil
 	}
 	if l.EnvFile != nil {
-		envFile := aws.StringValue(l.EnvFile)
+		envFile := aws.ToString(l.EnvFile)
 		if filepath.Ext(envFile) != envFileExt {
 			return fmt.Errorf("environment file %s must have a %s file extension", envFile, envFileExt)
 		}
@@ -1534,7 +1534,7 @@ func (s SidecarConfig) validate() error {
 		return err
 	}
 	if protocol != nil {
-		protocolVal := aws.StringValue(protocol)
+		protocolVal := aws.ToString(protocol)
 		var isValidProtocol bool
 		for _, valid := range validContainerProtocols {
 			if strings.EqualFold(protocolVal, valid) {
@@ -1553,7 +1553,7 @@ func (s SidecarConfig) validate() error {
 		return fmt.Errorf(`validate "depends_on": %w`, err)
 	}
 	if s.EnvFile != nil {
-		envFile := aws.StringValue(s.EnvFile)
+		envFile := aws.ToString(s.EnvFile)
 		if filepath.Ext(envFile) != envFileExt {
 			return fmt.Errorf("environment file %s must have a %s file extension", envFile, envFileExt)
 		}
@@ -1572,7 +1572,7 @@ func (s SidecarConfig) validateImage() error {
 
 // validate returns nil if SidecarMountPoint is configured correctly.
 func (s SidecarMountPoint) validate() error {
-	if aws.StringValue(s.SourceVolume) == "" {
+	if aws.ToString(s.SourceVolume) == "" {
 		return &errFieldMustBeSpecified{
 			missingField: "source_volume",
 		}
@@ -1739,12 +1739,12 @@ func (o Observability) validate() error {
 		return nil
 	}
 	for _, validVendor := range tracingValidVendors {
-		if strings.EqualFold(aws.StringValue(o.Tracing), validVendor) {
+		if strings.EqualFold(aws.ToString(o.Tracing), validVendor) {
 			return nil
 		}
 	}
 	return fmt.Errorf("invalid tracing vendor %s: %s %s",
-		aws.StringValue(o.Tracing),
+		aws.ToString(o.Tracing),
 		english.PluralWord(len(tracingValidVendors), "the valid vendor is", "valid vendors are"),
 		english.WordSeries(tracingValidVendors, "and"))
 }
@@ -1776,7 +1776,7 @@ func (p PublishConfig) validate() error {
 
 // validate returns nil if Topic is configured correctly.
 func (t Topic) validate() error {
-	if err := validatePubSubName(aws.StringValue(t.Name)); err != nil {
+	if err := validatePubSubName(aws.ToString(t.Name)); err != nil {
 		return err
 	}
 	return t.FIFO.validate()
@@ -1813,10 +1813,10 @@ func (s SubscribeConfig) validate() error {
 
 // validate returns nil if TopicSubscription is configured correctly.
 func (t TopicSubscription) validate() error {
-	if err := validatePubSubName(aws.StringValue(t.Name)); err != nil {
+	if err := validatePubSubName(aws.ToString(t.Name)); err != nil {
 		return err
 	}
-	svcName := aws.StringValue(t.Service)
+	svcName := aws.ToString(t.Service)
 	if svcName == "" {
 		return &errFieldMustBeSpecified{
 			missingField: "service",
@@ -1865,7 +1865,7 @@ func (q FIFOAdvanceConfig) validate() error {
 	if err := q.validateFIFOThroughputLimit(); err != nil {
 		return err
 	}
-	if aws.StringValue(q.FIFOThroughputLimit) == sqsFIFOThroughputLimitPerMessageGroupID && aws.StringValue(q.DeduplicationScope) == sqsDeduplicationScopeQueue {
+	if aws.ToString(q.FIFOThroughputLimit) == sqsFIFOThroughputLimitPerMessageGroupID && aws.ToString(q.DeduplicationScope) == sqsDeduplicationScopeQueue {
 		return fmt.Errorf(`"throughput_limit" must be set to "perQueue" when "deduplication_scope" is set to "queue"`)
 	}
 	return nil
@@ -1902,14 +1902,14 @@ func (q FIFOAdvanceConfig) validateHighThroughputFIFO() error {
 }
 
 func (q FIFOAdvanceConfig) validateDeduplicationScope() error {
-	if q.DeduplicationScope != nil && !slices.Contains(validSQSDeduplicationScopeValues, aws.StringValue(q.DeduplicationScope)) {
+	if q.DeduplicationScope != nil && !slices.Contains(validSQSDeduplicationScopeValues, aws.ToString(q.DeduplicationScope)) {
 		return fmt.Errorf(`validate "deduplication_scope": deduplication scope value must be one of %s`, english.WordSeries(validSQSDeduplicationScopeValues, "or"))
 	}
 	return nil
 }
 
 func (q FIFOAdvanceConfig) validateFIFOThroughputLimit() error {
-	if q.FIFOThroughputLimit != nil && !slices.Contains(validSQSFIFOThroughputLimitValues, aws.StringValue(q.FIFOThroughputLimit)) {
+	if q.FIFOThroughputLimit != nil && !slices.Contains(validSQSFIFOThroughputLimitValues, aws.ToString(q.FIFOThroughputLimit)) {
 		return fmt.Errorf(`validate "throughput_limit": fifo throughput limit value must be one of %s`, english.WordSeries(validSQSFIFOThroughputLimitValues, "or"))
 	}
 	return nil
@@ -1955,7 +1955,7 @@ func (cfg fromCFN) validate() error {
 	if cfg.isEmpty() {
 		return nil
 	}
-	if len(aws.StringValue(cfg.Name)) == 0 {
+	if len(aws.ToString(cfg.Name)) == 0 {
 		return errors.New("name cannot be an empty string")
 	}
 	return nil
@@ -2043,7 +2043,7 @@ func validateTargetContainer(opts validateTargetContainerOpts) error {
 	if opts.targetContainer == nil {
 		return nil
 	}
-	targetContainer := aws.StringValue(opts.targetContainer)
+	targetContainer := aws.ToString(opts.targetContainer)
 	if targetContainer == opts.mainContainerName {
 		if opts.mainContainerPort == nil {
 			return fmt.Errorf("target container %q doesn't expose a port", targetContainer)
@@ -2110,7 +2110,7 @@ func validateAndPopulateMainContainerPort(portExposedTo map[uint16]containerName
 		return nil
 	}
 
-	targetPort := aws.Uint16Value(opts.mainContainerPort)
+	targetPort := aws.ToUint16(opts.mainContainerPort)
 	targetProtocol := defaultProtocol
 	if existingContainerNameAndProtocol, ok := portExposedTo[targetPort]; ok {
 		targetProtocol = existingContainerNameAndProtocol.containerProtocol
@@ -2128,13 +2128,13 @@ func validateAndPopulateSidecarContainerPorts(portExposedTo map[uint16]container
 		if err != nil {
 			return err
 		}
-		parsedPort, err := strconv.ParseUint(aws.StringValue(sidecarPort), 10, 16)
+		parsedPort, err := strconv.ParseUint(aws.ToString(sidecarPort), 10, 16)
 		if err != nil {
 			return err
 		}
 		protocol := defaultProtocol
 		if sidecarProtocol != nil {
-			protocol = aws.StringValue(sidecarProtocol)
+			protocol = aws.ToString(sidecarProtocol)
 		}
 
 		if err = validateAndPopulateExposedPortMapping(portExposedTo, uint16(parsedPort), protocol, name); err != nil {
@@ -2154,7 +2154,7 @@ func validateAndPopulateALBPorts(portExposedTo map[uint16]containerNameAndProtoc
 		if rule.TargetPort == nil {
 			continue
 		}
-		targetPort := aws.Uint16Value(rule.TargetPort)
+		targetPort := aws.ToUint16(rule.TargetPort)
 
 		// Prefer `http.target_container`, then existing exposed port mapping, then fallback on name of main container
 		targetContainer := opts.mainContainerName
@@ -2162,7 +2162,7 @@ func validateAndPopulateALBPorts(portExposedTo map[uint16]containerNameAndProtoc
 			targetContainer = existingContainerNameAndProtocol.containerName
 		}
 		if rule.TargetContainer != nil {
-			targetContainer = aws.StringValue(rule.TargetContainer)
+			targetContainer = aws.ToString(rule.TargetContainer)
 		}
 
 		if err := validateAndPopulateExposedPortMapping(portExposedTo, targetPort, TCP, targetContainer); err != nil {
@@ -2196,20 +2196,20 @@ func validateAndPopulateNLBListenerPorts(listener NetworkLoadBalancerListener, p
 		return err
 	}
 
-	port, err := strconv.ParseUint(aws.StringValue(nlbReceiverPort), 10, 16)
+	port, err := strconv.ParseUint(aws.ToString(nlbReceiverPort), 10, 16)
 	if err != nil {
 		return err
 	}
 
 	targetPort := uint16(port)
 	if listener.TargetPort != nil {
-		targetPort = uint16(aws.IntValue(listener.TargetPort))
+		targetPort = uint16(aws.ToInt(listener.TargetPort))
 	}
 
 	// Prefer `nlb.port`, then fallback on default protocol
 	targetProtocol := defaultProtocol
 	if nlbProtocol != nil {
-		targetProtocol = strings.ToUpper(aws.StringValue(nlbProtocol))
+		targetProtocol = strings.ToUpper(aws.ToString(nlbProtocol))
 	}
 
 	// Handle TLS termination of container exposed port protocol
@@ -2223,7 +2223,7 @@ func validateAndPopulateNLBListenerPorts(listener NetworkLoadBalancerListener, p
 		targetContainer = existingContainerNameAndProtocol.containerName
 	}
 	if listener.TargetContainer != nil {
-		targetContainer = aws.StringValue(listener.TargetContainer)
+		targetContainer = aws.ToString(listener.TargetContainer)
 	}
 
 	return validateAndPopulateExposedPortMapping(portExposedTo, targetPort, targetProtocol, targetContainer)
@@ -2346,7 +2346,7 @@ func isValidSubSvcName(name string) bool {
 }
 
 func validateWindows(opts validateWindowsOpts) error {
-	if aws.BoolValue(opts.readOnlyFS) {
+	if aws.ToBool(opts.readOnlyFS) {
 		return fmt.Errorf(`%q can not be set to 'true' when deploying a Windows container`, "readonly_fs")
 	}
 	for _, volume := range opts.efsVolumes {
@@ -2383,7 +2383,7 @@ func (r *RoutingRule) validateConditionValuesPerRule() error {
 	}
 	if len(aliases)+len(allowedSourceIps) >= maxConditionsPerRule {
 		return &errMaxConditionValuesPerRule{
-			path:             aws.StringValue(r.Path),
+			path:             aws.ToString(r.Path),
 			aliases:          aliases,
 			allowedSourceIps: allowedSourceIps,
 		}

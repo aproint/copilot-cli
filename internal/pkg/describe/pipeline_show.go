@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -44,12 +45,11 @@ type PipelineDescriber struct {
 
 // NewPipelineDescriber instantiates a new pipeline describer
 func NewPipelineDescriber(pipeline deploy.Pipeline, showResources bool) (*PipelineDescriber, error) {
-	sess, err := sessions.ImmutableProvider().Default()
+	v2Config, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	v2Config := v2ConfigFromSessionRegion(sess)
 	pipelineSvc := codepipeline.New(v2Config, v2Config)
 
 	return &PipelineDescriber{
@@ -57,7 +57,7 @@ func NewPipelineDescriber(pipeline deploy.Pipeline, showResources bool) (*Pipeli
 
 		pipelineSvc:   pipelineSvc,
 		showResources: showResources,
-		cfn:           describestack.NewStackDescriber(stack.NameForPipeline(pipeline.AppName, pipeline.Name, pipeline.IsLegacy), sess),
+		cfn:           describestack.NewStackDescriber(stack.NameForPipeline(pipeline.AppName, pipeline.Name, pipeline.IsLegacy), v2Config),
 	}, nil
 }
 

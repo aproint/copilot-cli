@@ -4,6 +4,8 @@
 package describe
 
 import (
+	"context"
+
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	describestack "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
@@ -17,12 +19,12 @@ type PipelineStackDescriber struct {
 
 // NewPipelineStackDescriber instantiates a new pipeline stack describer
 func NewPipelineStackDescriber(appName, name string, isLegacy bool) (*PipelineStackDescriber, error) {
-	sess, err := sessions.ImmutableProvider().Default()
+	cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	return &PipelineStackDescriber{
-		cfn: describestack.NewStackDescriber(stack.NameForPipeline(appName, name, isLegacy), sess),
+		cfn: describestack.NewStackDescriber(stack.NameForPipeline(appName, name, isLegacy), cfg),
 	}, nil
 }
 

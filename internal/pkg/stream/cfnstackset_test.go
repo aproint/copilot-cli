@@ -8,8 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-
+	"github.com/aws/smithy-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset"
@@ -210,7 +209,10 @@ func TestStackSetStreamer_Fetch(t *testing.T) {
 		// GIVEN
 		client := &mockStackSetClient{
 			describeOpFn: func(_, _ string) (stackset.Operation, error) {
-				return stackset.Operation{}, awserr.New("RequestThrottled", "throttle err", errors.New("abc"))
+				return stackset.Operation{}, &smithy.GenericAPIError{
+					Code:    "RequestThrottled",
+					Message: "throttle err",
+				}
 			},
 		}
 		startTime := time.Date(2020, time.November, 23, 16, 0, 0, 0, time.UTC)

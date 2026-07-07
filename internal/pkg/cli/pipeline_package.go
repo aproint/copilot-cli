@@ -71,7 +71,7 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 	}
 	opts := &packagePipelineOpts{
 		packagePipelineVars: vars,
-		pipelineDeployer:    deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
+		pipelineDeployer:    deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
 		tmplWriter:          os.Stdout,
 		ws:                  ws,
 		store:               store,

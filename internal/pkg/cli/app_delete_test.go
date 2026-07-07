@@ -15,7 +15,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -295,7 +295,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 			mockPipelineLister := mocks.NewMockdeployedPipelineLister(ctrl)
 
 			mockBucketEmptier := mocks.NewMockbucketEmptier(ctrl)
-			mockGetBucketEmptier := func(session *session.Session) bucketEmptier {
+			mockGetBucketEmptier := func(aws.Config) bucketEmptier {
 				return mockBucketEmptier
 			}
 

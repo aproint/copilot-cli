@@ -11,7 +11,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/imdario/mergo"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
@@ -190,7 +190,7 @@ func (s *LoadBalancedWebService) Dockerfile() string {
 // Port returns the exposed port in the manifest.
 // A LoadBalancedWebService always has a port exposed therefore the boolean is always true.
 func (s *LoadBalancedWebService) Port() (port uint16, ok bool) {
-	return aws.Uint16Value(s.ImageConfig.Port), true
+	return aws.ToUint16(s.ImageConfig.Port), true
 }
 
 // Publish returns the list of topics where notifications can be published.
@@ -207,7 +207,7 @@ func (s *LoadBalancedWebService) BuildArgs(contextDir string) (map[string]*Docke
 	// Creating an map to store buildArgs of all sidecar images and main container image.
 	buildArgsPerContainer := make(map[string]*DockerBuildArgs, len(s.Sidecars)+1)
 	if required {
-		buildArgsPerContainer[aws.StringValue(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
+		buildArgsPerContainer[aws.ToString(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
 	}
 	return buildArgs(contextDir, buildArgsPerContainer, s.Sidecars)
 }
@@ -222,7 +222,7 @@ func (s *LoadBalancedWebService) EnvFiles() map[string]string {
 // ContainerDependencies returns a map of ContainerDependency objects for the LoadBalancedWebService
 // including dependencies for its main container, any logging sidecar, and additional sidecars.
 func (s *LoadBalancedWebService) ContainerDependencies() map[string]ContainerDependency {
-	return containerDependencies(aws.StringValue(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
+	return containerDependencies(aws.ToString(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
 }
 
 func (s *LoadBalancedWebService) subnets() *SubnetListOrArgs {
@@ -286,24 +286,24 @@ func (c *NetworkLoadBalancerListener) IsEmpty() bool {
 func (listener NetworkLoadBalancerListener) HealthCheckPort(mainContainerPort *uint16) (uint16, error) {
 	// healthCheckPort is defined by Listener.HealthCheck.Port, with fallback on Listener.TargetPort, then Listener.Port.
 	if listener.HealthCheck.Port != nil {
-		return uint16(aws.IntValue(listener.HealthCheck.Port)), nil
+		return uint16(aws.ToInt(listener.HealthCheck.Port)), nil
 	}
 	if listener.TargetPort != nil {
-		return uint16(aws.IntValue(listener.TargetPort)), nil
+		return uint16(aws.ToInt(listener.TargetPort)), nil
 	}
 	if listener.Port != nil {
 		port, _, err := ParsePortMapping(listener.Port)
 		if err != nil {
 			return 0, err
 		}
-		parsedPort, err := strconv.ParseUint(aws.StringValue(port), 10, 16)
+		parsedPort, err := strconv.ParseUint(aws.ToString(port), 10, 16)
 		if err != nil {
 			return 0, err
 		}
 		return uint16(parsedPort), nil
 	}
 	if mainContainerPort != nil {
-		return aws.Uint16Value(mainContainerPort), nil
+		return aws.ToUint16(mainContainerPort), nil
 	}
 	return 0, nil
 }
@@ -311,7 +311,7 @@ func (listener NetworkLoadBalancerListener) HealthCheckPort(mainContainerPort *u
 // ExposedPorts returns all the ports that are container ports available to receive traffic.
 func (lbws *LoadBalancedWebService) ExposedPorts() (ExposedPortsIndex, error) {
 	exposedPorts := make(map[uint16]ExposedPort)
-	workloadName := aws.StringValue(lbws.Name)
+	workloadName := aws.ToString(lbws.Name)
 	// port from sidecar[x].image.port.
 	for name, sidecar := range lbws.Sidecars {
 		newExposedPorts, err := sidecar.exposePorts(exposedPorts, name)

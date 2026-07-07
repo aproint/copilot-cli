@@ -24,8 +24,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 var (
@@ -80,13 +79,14 @@ func NewLBWSDeployer(in *WorkloadDeployerInput) (*lbWebSvcDeployer, error) {
 	return &lbWebSvcDeployer{
 		svcDeployer:      svcDeployer,
 		appVersionGetter: versionGetter,
-		elbGetter:        elbv2.New(v2ConfigFromSessionRegion(svcDeployer.envSess)),
+		elbGetter:        elbv2.New(svcDeployer.envAWSConfig),
 		lbMft:            lbMft,
 		newAliasCertValidator: func(optionalRegion *string) aliasCertValidator {
-			sess := svcDeployer.envSess.Copy(&aws.Config{
-				Region: optionalRegion,
-			})
-			return acm.New(v2ConfigFromSessionRegion(sess))
+			cfg := svcDeployer.envAWSConfig
+			if optionalRegion != nil {
+				cfg.Region = aws.ToString(optionalRegion)
+			}
+			return acm.New(cfg)
 		},
 	}, nil
 }
@@ -144,7 +144,7 @@ func (d *lbWebSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*s
 	}
 	var opts []stack.LoadBalancedWebServiceOption
 	if d.lbMft.HTTPOrBool.ImportedALB != nil {
-		lb, err := d.elbGetter.LoadBalancer(aws.StringValue(d.lbMft.HTTPOrBool.ImportedALB))
+		lb, err := d.elbGetter.LoadBalancer(aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
 		if err != nil {
 			return nil, err
 		}
@@ -174,8 +174,8 @@ func (d *lbWebSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*s
 
 	return &svcStackConfigurationOutput{
 		conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
-		svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-			return ecs.New(s, v2ConfigFromSessionRegion(s))
+		svcUpdater: d.newSvcUpdater(func(cfg aws.Config) serviceForceUpdater {
+			return ecs.New(cfg)
 		}),
 	}, nil
 }
@@ -205,9 +205,9 @@ func (d *lbWebSvcDeployer) validateImportedALBConfig() error {
 	if d.lbMft.HTTPOrBool.ImportedALB == nil {
 		return nil
 	}
-	alb, err := d.elbGetter.LoadBalancer(aws.StringValue(d.lbMft.HTTPOrBool.ImportedALB))
+	alb, err := d.elbGetter.LoadBalancer(aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
 	if err != nil {
-		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.StringValue(d.lbMft.HTTPOrBool.ImportedALB), err)
+		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB), err)
 	}
 	if len(alb.Listeners) == 0 || len(alb.Listeners) > 2 {
 		return fmt.Errorf(`imported ALB %q must have either one or two listeners`, alb.ARN)
@@ -277,7 +277,7 @@ func (d *lbWebSvcDeployer) validateRuntimeRoutingRule(rule manifest.RoutingRule)
 		return nil
 	}
 	if d.app.Domain != "" {
-		err := validateMinAppVersion(d.app.Name, aws.StringValue(d.lbMft.Name), d.appVersionGetter, version.AppTemplateMinAlias)
+		err := validateMinAppVersion(d.app.Name, aws.ToString(d.lbMft.Name), d.appVersionGetter, version.AppTemplateMinAlias)
 		if err != nil {
 			return fmt.Errorf("alias not supported: %w", err)
 		}
@@ -303,7 +303,7 @@ func (d *lbWebSvcDeployer) validateNLBRuntime() error {
 		log.Errorf(ecsNLBAliasUsedWithoutDomainFriendlyText)
 		return fmt.Errorf("cannot specify nlb.alias when application is not associated with a domain")
 	}
-	err := validateMinAppVersion(d.app.Name, aws.StringValue(d.lbMft.Name), d.appVersionGetter, version.AppTemplateMinAlias)
+	err := validateMinAppVersion(d.app.Name, aws.ToString(d.lbMft.Name), d.appVersionGetter, version.AppTemplateMinAlias)
 	if err != nil {
 		return fmt.Errorf("alias not supported: %w", err)
 	}

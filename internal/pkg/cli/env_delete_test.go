@@ -17,8 +17,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	stackdescr "github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -199,9 +200,9 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 			given: func(t *testing.T, ctrl *gomock.Controller) *deleteEnvOpts {
 				m := mocks.NewMockresourceGetter(ctrl)
 				m.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{
+					ResourceTagMappingList: []types.ResourceTagMapping{
 						{
-							Tags: []*resourcegroupstaggingapi.Tag{
+							Tags: []types.Tag{
 								{
 									Key:   aws.String(deploy.ServiceTagKey),
 									Value: aws.String("frontend"),
@@ -231,7 +232,7 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 			given: func(t *testing.T, ctrl *gomock.Controller) *deleteEnvOpts {
 				rg := mocks.NewMockresourceGetter(ctrl)
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{},
+					ResourceTagMappingList: []types.ResourceTagMapping{},
 				}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
@@ -269,7 +270,7 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 			given: func(t *testing.T, ctrl *gomock.Controller) *deleteEnvOpts {
 				rg := mocks.NewMockresourceGetter(ctrl)
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
 				lister.EXPECT().ListDeployedPipelines("phonetool").Return([]deploy.Pipeline{}, nil)
@@ -333,7 +334,7 @@ Resources:
 			given: func(t *testing.T, ctrl *gomock.Controller) *deleteEnvOpts {
 				rg := mocks.NewMockresourceGetter(ctrl)
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
 				lister.EXPECT().ListDeployedPipelines("phonetool").Return([]deploy.Pipeline{}, nil)
@@ -354,7 +355,7 @@ Resources:
 				descr.EXPECT().Resources().Return([]*stackdescr.Resource{}, nil)
 
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				deployer.EXPECT().DeleteEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error"))
 
@@ -392,7 +393,7 @@ Resources:
 				}
 				rg := mocks.NewMockresourceGetter(ctrl)
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
 				lister.EXPECT().ListDeployedPipelines("phonetool").Return([]deploy.Pipeline{}, nil)
@@ -416,7 +417,7 @@ Resources:
 				descr.EXPECT().Resources().Return([]*stackdescr.Resource{}, nil)
 
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				deployer.EXPECT().DeleteEnvironment("phonetool", "test", "execARN").Return(nil)
 
@@ -480,7 +481,7 @@ Resources:
 				}
 				rg := mocks.NewMockresourceGetter(ctrl)
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
 				lister.EXPECT().ListDeployedPipelines("phonetool").Return([]deploy.Pipeline{}, nil)
@@ -569,7 +570,7 @@ Resources:
 				}
 				rg := mocks.NewMockresourceGetter(ctrl)
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
 				lister.EXPECT().ListDeployedPipelines("phonetool").Return([]deploy.Pipeline{}, nil)
@@ -657,7 +658,7 @@ Resources:
 				}
 				rg := mocks.NewMockresourceGetter(ctrl)
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{}}, nil)
+					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
 				lister.EXPECT().ListDeployedPipelines("phonetool").Return([]deploy.Pipeline{}, nil)
@@ -691,10 +692,10 @@ Resources:
 				)
 
 				rg.EXPECT().GetResources(gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
-					ResourceTagMappingList: []*resourcegroupstaggingapi.ResourceTagMapping{
+					ResourceTagMappingList: []types.ResourceTagMapping{
 						{
 							ResourceARN: aws.String("arn:aws:s3:::mockapp-mockenv-mockbucket"),
-							Tags: []*resourcegroupstaggingapi.Tag{
+							Tags: []types.Tag{
 								{
 									Key:   aws.String(stack.StackNameTagKey),
 									Value: aws.String("mockapp-mockenv"),

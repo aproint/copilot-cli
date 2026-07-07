@@ -108,7 +108,7 @@ func newInitJobOpts(vars initJobVars) (*initJobOpts, error) {
 		Store:    store,
 		Ws:       ws,
 		Prog:     termprogress.NewSpinner(log.DiagnosticWriter),
-		Deployer: cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),
+		Deployer: cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr)),
 	}
 
 	prompter := prompt.New()

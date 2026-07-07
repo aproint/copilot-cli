@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
@@ -39,7 +39,7 @@ location: mockLocation`),
 				require.EqualError(t, err, tc.wantedError.Error())
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, "mockLocation", aws.StringValue(i.Location))
+				require.Equal(t, "mockLocation", aws.ToString(i.Location))
 			}
 		})
 	}

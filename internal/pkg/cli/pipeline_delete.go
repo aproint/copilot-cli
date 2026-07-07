@@ -22,7 +22,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 
 	"github.com/spf13/cobra"
@@ -98,7 +98,7 @@ func newDeletePipelineOpts(vars deletePipelineVars) (*deletePipelineOpts, error)
 		prog:                   termprogress.NewSpinner(log.DiagnosticWriter),
 		prompt:                 prompter,
 		secretsmanager:         secretsmanager.New(v2Config),
-		pipelineDeployer:       cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr)),
+		pipelineDeployer:       cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr)),
 		deployedPipelineLister: pipelineLister,
 		ws:                     ws,
 		store:                  ssmStore,
@@ -228,7 +228,7 @@ func (o *deletePipelineOpts) getSecret() error {
 	}
 
 	for _, tag := range output.Tags {
-		if aws.StringValue(tag.Key) == deploy.AppTagKey && aws.StringValue(tag.Value) == output.CreatedDate.UTC().Format(time.UnixDate) {
+		if aws.ToString(tag.Key) == deploy.AppTagKey && aws.ToString(tag.Value) == output.CreatedDate.UTC().Format(time.UnixDate) {
 			return nil
 		}
 	}

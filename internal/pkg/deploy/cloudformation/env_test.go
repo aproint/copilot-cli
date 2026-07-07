@@ -10,8 +10,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	awscfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscfn "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ func TestCloudFormation_DeployedEnvironmentParameters(t *testing.T) {
 		inEnvName string
 		inClient  func(ctrl *gomock.Controller) *mocks.MockcfnClient
 
-		wantedParams []*awscfn.Parameter
+		wantedParams []awscfn.Parameter
 		wantedErr    error
 	}{
 		"error retrieving metadata": {
@@ -51,7 +51,7 @@ func TestCloudFormation_DeployedEnvironmentParameters(t *testing.T) {
 				m := mocks.NewMockcfnClient(ctrl)
 				m.EXPECT().Metadata(gomock.Any()).Return(`Version: `, nil)
 				m.EXPECT().Describe("phonetool-test").Return(&cloudformation.StackDescription{
-					Parameters: []*awscfn.Parameter{
+					Parameters: []awscfn.Parameter{
 						{
 							ParameterKey:   aws.String("name"),
 							ParameterValue: aws.String("test"),
@@ -61,7 +61,7 @@ func TestCloudFormation_DeployedEnvironmentParameters(t *testing.T) {
 				return m
 			},
 
-			wantedParams: []*awscfn.Parameter{
+			wantedParams: []awscfn.Parameter{
 				{
 					ParameterKey:   aws.String("name"),
 					ParameterValue: aws.String("test"),
@@ -113,7 +113,7 @@ func TestCloudFormation_ForceUpdateID(t *testing.T) {
 			inClient: func(ctrl *gomock.Controller) *mocks.MockcfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
 				m.EXPECT().Describe("phonetool-test").Return(&cloudformation.StackDescription{
-					Outputs: []*awscfn.Output{
+					Outputs: []awscfn.Output{
 						{
 							OutputKey:   aws.String(template.LastForceDeployIDOutputName),
 							OutputValue: aws.String("mockForceUpdateID"),
@@ -183,13 +183,13 @@ func TestCloudFormation_UpdateEnvironmentTemplate(t *testing.T) {
 			inExecRoleARN:  "arn",
 			inClient: func(t *testing.T, ctrl *gomock.Controller) *mocks.MockcfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				params := []*awscfn.Parameter{
+				params := []awscfn.Parameter{
 					{
 						ParameterKey:   aws.String("ALBWorkloads"),
 						ParameterValue: aws.String("frontend"),
 					},
 				}
-				tags := []*awscfn.Tag{
+				tags := []awscfn.Tag{
 					{
 						Key:   aws.String("copilot-application"),
 						Value: aws.String("phonetool"),

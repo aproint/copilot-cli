@@ -4,10 +4,11 @@
 package cloudformation
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/smithy-go"
 )
 
 // ErrChangeSetEmpty occurs when the change set does not contain any new or updated resources.
@@ -69,11 +70,12 @@ func (e *ErrStackUpdateInProgress) Error() string {
 
 // stackDoesNotExist returns true if the underlying error is a stack doesn't exist.
 func stackDoesNotExist(err error) bool {
-	if aerr, ok := err.(awserr.Error); ok {
-		switch aerr.Code() {
+	var aerr smithy.APIError
+	if ok := errors.As(err, &aerr); ok {
+		switch aerr.ErrorCode() {
 		case "ValidationError":
 			// A ValidationError occurs if we describe a stack which doesn't exist.
-			if strings.Contains(aerr.Message(), "does not exist") {
+			if strings.Contains(aerr.ErrorMessage(), "does not exist") {
 				return true
 			}
 		}
@@ -84,10 +86,11 @@ func stackDoesNotExist(err error) bool {
 // cancelUpdateStackNotInUpdateProgress returns true if the underlying error is CancelUpdateStack
 // cannot be called for a stack that is not in UPDATE_IN_PROGRESS state.
 func cancelUpdateStackNotInUpdateProgress(err error) bool {
-	if aerr, ok := err.(awserr.Error); ok {
-		switch aerr.Code() {
+	var aerr smithy.APIError
+	if ok := errors.As(err, &aerr); ok {
+		switch aerr.ErrorCode() {
 		case "ValidationError":
-			if strings.Contains(aerr.Message(), "CancelUpdateStack cannot be called from current stack status") {
+			if strings.Contains(aerr.ErrorMessage(), "CancelUpdateStack cannot be called from current stack status") {
 				return true
 			}
 		}

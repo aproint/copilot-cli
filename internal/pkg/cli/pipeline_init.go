@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -22,8 +23,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 
 	"github.com/aproint/copilot-cli/internal/pkg/exec"
-
-	"github.com/aws/aws-sdk-go/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
@@ -222,16 +221,12 @@ func newInitPipelineOpts(vars initPipelineVars) (*initPipelineOpts, error) {
 	}
 
 	p := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline init"))
-	defaultSession, err := p.Default()
+	v2Config, err := p.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	ssmStore, err := newSSMConfigStore(defaultSession)
-	if err != nil {
-		return nil, err
-	}
-	v2Config := v2ConfigFromSessionRegion(defaultSession)
+	ssmStore := newSSMConfigStoreFromConfig(v2Config)
 	prompter := prompt.New()
 
 	wsAppName := tryReadingAppName()
@@ -245,7 +240,7 @@ func newInitPipelineOpts(vars initPipelineVars) (*initPipelineOpts, error) {
 		secretsmanager:   secretsmanager.New(v2Config),
 		parser:           template.New(),
 		sessProvider:     p,
-		cfnClient:        cloudformation.New(defaultSession, cloudformation.WithProgressTracker(os.Stderr)),
+		cfnClient:        cloudformation.New(v2Config, cloudformation.WithProgressTracker(os.Stderr)),
 		store:            ssmStore,
 		prompt:           prompter,
 		sel:              selector.NewAppEnvSelector(prompter, ssmStore),
@@ -530,11 +525,11 @@ func (o *initPipelineOpts) parseCodeCommitRepoDetails() error {
 	o.ccRegion = repoDetails.region
 
 	// If the CodeCommit region is different than that of the app, pipeline init errors out.
-	sess, err := o.sessProvider.Default()
+	cfg, err := o.sessProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return fmt.Errorf("retrieve default session: %w", err)
+		return fmt.Errorf("retrieve default config: %w", err)
 	}
-	region := aws.StringValue(sess.Config.Region)
+	region := cfg.Region
 	if o.ccRegion == "" {
 		o.ccRegion = region
 	}

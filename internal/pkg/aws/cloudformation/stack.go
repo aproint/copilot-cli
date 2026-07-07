@@ -4,8 +4,8 @@
 package cloudformation
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // Stack represents a AWS CloudFormation stack.
@@ -17,8 +17,8 @@ type Stack struct {
 type stackConfig struct {
 	TemplateBody    string
 	TemplateURL     string
-	Parameters      []*cloudformation.Parameter
-	Tags            []*cloudformation.Tag
+	Parameters      []types.Parameter
+	Tags            []types.Tag
 	RoleARN         *string
 	DisableRollback bool
 }
@@ -57,11 +57,11 @@ func NewStackWithURL(name, templateURL string, opts ...StackOption) *Stack {
 // WithParameters passes parameters to a stack.
 func WithParameters(params map[string]string) StackOption {
 	return func(s *Stack) {
-		var flatParams []*cloudformation.Parameter
+		var flatParams []types.Parameter
 		for k, v := range params {
-			flatParams = append(flatParams, &cloudformation.Parameter{
-				ParameterKey:   aws.String(k),
-				ParameterValue: aws.String(v),
+			flatParams = append(flatParams, types.Parameter{
+				ParameterKey:   awsv2.String(k),
+				ParameterValue: awsv2.String(v),
 			})
 		}
 		s.Parameters = flatParams
@@ -71,11 +71,11 @@ func WithParameters(params map[string]string) StackOption {
 // WithTags applies the tags to a stack.
 func WithTags(tags map[string]string) StackOption {
 	return func(s *Stack) {
-		var flatTags []*cloudformation.Tag
+		var flatTags []types.Tag
 		for k, v := range tags {
-			flatTags = append(flatTags, &cloudformation.Tag{
-				Key:   aws.String(k),
-				Value: aws.String(v),
+			flatTags = append(flatTags, types.Tag{
+				Key:   awsv2.String(k),
+				Value: awsv2.String(v),
 			})
 		}
 		s.Tags = flatTags
@@ -85,7 +85,7 @@ func WithTags(tags map[string]string) StackOption {
 // WithRoleARN specifies the role that CloudFormation will assume when creating the stack.
 func WithRoleARN(roleARN string) StackOption {
 	return func(s *Stack) {
-		s.RoleARN = aws.String(roleARN)
+		s.RoleARN = awsv2.String(roleARN)
 	}
 }
 
@@ -97,16 +97,16 @@ func WithDisableRollback() StackOption {
 }
 
 // StackEvent is an alias the SDK's StackEvent type.
-type StackEvent cloudformation.StackEvent
+type StackEvent types.StackEvent
 
 // StackDescription is an alias the SDK's Stack type.
-type StackDescription cloudformation.Stack
+type StackDescription types.Stack
 
 // StackResource is an alias the SDK's StackResource type.
-type StackResource cloudformation.StackResource
+type StackResource types.StackResource
 
 // SDK returns the underlying struct from the AWS SDK.
-func (d *StackDescription) SDK() *cloudformation.Stack {
-	raw := cloudformation.Stack(*d)
+func (d *StackDescription) SDK() *types.Stack {
+	raw := types.Stack(*d)
 	return &raw
 }

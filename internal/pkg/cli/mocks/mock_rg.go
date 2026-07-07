@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	resourcegroupstaggingapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	resourcegroupstaggingapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	gomock "github.com/golang/mock/gomock"
 )
 

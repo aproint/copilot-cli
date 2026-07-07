@@ -13,8 +13,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -134,7 +133,7 @@ func (s *ECSDeploymentStreamer) Subscribe() <-chan ECSService {
 func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 	out, err := s.client.Service(s.cluster, s.service)
 	if err != nil {
-		if request.IsErrorThrottle(err) {
+		if isThrottleError(err) {
 			s.ecsRetries += 1
 			return nextFetchDate(s.clock, s.rand, s.ecsRetries), false, nil
 		}
@@ -145,18 +144,18 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 	var deployments []ECSDeployment
 	var primaryDeploymentId string
 	for _, deployment := range out.Deployments {
-		status := aws.StringValue(deployment.Status)
+		status := aws.ToString(deployment.Status)
 		rollingDeploy := ECSDeployment{
 			Status:          status,
-			TaskDefRevision: parseRevisionFromTaskDefARN(aws.StringValue(deployment.TaskDefinition)),
+			TaskDefRevision: parseRevisionFromTaskDefARN(aws.ToString(deployment.TaskDefinition)),
 			DesiredCount:    int(deployment.DesiredCount),
 			RunningCount:    int(deployment.RunningCount),
 			FailedCount:     int(deployment.FailedTasks),
 			PendingCount:    int(deployment.PendingCount),
 			RolloutState:    string(deployment.RolloutState),
-			CreatedAt:       aws.TimeValue(deployment.CreatedAt),
-			UpdatedAt:       aws.TimeValue(deployment.UpdatedAt),
-			Id:              aws.StringValue(deployment.Id),
+			CreatedAt:       aws.ToTime(deployment.CreatedAt),
+			UpdatedAt:       aws.ToTime(deployment.UpdatedAt),
+			Id:              aws.ToString(deployment.Id),
 		}
 		deployments = append(deployments, rollingDeploy)
 		if isDeploymentDone(rollingDeploy, s.deploymentCreationTime) {
@@ -168,7 +167,7 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 	}
 	stoppedSvcTasks, err := s.client.StoppedServiceTasks(s.cluster, s.service)
 	if err != nil {
-		if request.IsErrorThrottle(err) {
+		if isThrottleError(err) {
 			s.ecsRetries += 1
 			return nextFetchDate(s.clock, s.rand, s.ecsRetries), false, nil
 		}
@@ -178,8 +177,8 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 
 	var stoppedTasks []ecs.Task
 	for _, st := range stoppedSvcTasks {
-		if stoppingAt := aws.TimeValue(st.StoppingAt); aws.StringValue(st.StartedBy) != primaryDeploymentId || stoppingAt.Before(s.deploymentCreationTime) ||
-			(strings.Contains(aws.StringValue(st.StoppedReason), ecsScalingActivity)) {
+		if stoppingAt := aws.ToTime(st.StoppingAt); aws.ToString(st.StartedBy) != primaryDeploymentId || stoppingAt.Before(s.deploymentCreationTime) ||
+			(strings.Contains(aws.ToString(st.StoppedReason), ecsScalingActivity)) {
 			continue
 		}
 		stoppedTasks = append(stoppedTasks, ecs.Task{
@@ -191,19 +190,19 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 		})
 	}
 	sort.SliceStable(stoppedTasks, func(i, j int) bool {
-		return aws.TimeValue(stoppedTasks[i].StoppingAt).After(aws.TimeValue(stoppedTasks[j].StoppingAt))
+		return aws.ToTime(stoppedTasks[i].StoppingAt).After(aws.ToTime(stoppedTasks[j].StoppingAt))
 	})
 
 	var failureMsgs []string
 	for _, event := range out.Events {
-		if createdAt := aws.TimeValue(event.CreatedAt); createdAt.Before(s.deploymentCreationTime) {
+		if createdAt := aws.ToTime(event.CreatedAt); createdAt.Before(s.deploymentCreationTime) {
 			break
 		}
-		id := aws.StringValue(event.Id)
+		id := aws.ToString(event.Id)
 		if _, ok := s.pastEventIDs[id]; ok {
 			break
 		}
-		if msg := aws.StringValue(event.Message); isFailureServiceEvent(msg) {
+		if msg := aws.ToString(event.Message); isFailureServiceEvent(msg) {
 			failureMsgs = append(failureMsgs, msg)
 		}
 		s.pastEventIDs[id] = true
@@ -214,7 +213,7 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 		alarmNames := out.DeploymentConfiguration.Alarms.AlarmNames
 		alarms, err = s.cw.AlarmStatuses(cloudwatch.WithNames(alarmNames))
 		if err != nil {
-			if request.IsErrorThrottle(err) {
+			if isThrottleError(err) {
 				s.cwRetries += 1
 				return nextFetchDate(s.clock, s.rand, s.cwRetries), false, nil
 			}

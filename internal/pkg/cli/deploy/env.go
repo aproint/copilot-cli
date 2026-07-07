@@ -36,7 +36,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/template/diff"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
-	awscfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	awscfn "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 )
@@ -53,7 +53,7 @@ type appResourcesGetter interface {
 
 type environmentDeployer interface {
 	UpdateAndRenderEnvironment(conf deploycfn.StackConfiguration, bucketARN string, detach bool, opts ...cloudformation.StackOption) error
-	DeployedEnvironmentParameters(app, env string) ([]*awscfn.Parameter, error)
+	DeployedEnvironmentParameters(app, env string) ([]awscfn.Parameter, error)
 	ForceUpdateOutputID(app, env string) (string, error)
 }
 
@@ -92,7 +92,7 @@ type envDeployer struct {
 	envDeployer              environmentDeployer
 	tmplGetter               deployedTemplateGetter
 	patcher                  patcher
-	newStack                 func(input *cfnstack.EnvConfig, forceUpdateID string, prevParams []*awscfn.Parameter) (deploycfn.StackConfiguration, error)
+	newStack                 func(input *cfnstack.EnvConfig, forceUpdateID string, prevParams []awscfn.Parameter) (deploycfn.StackConfiguration, error)
 	envDescriber             envDescriber
 	lbDescriber              lbDescriber
 	newServiceStackDescriber func(string) stackDescriber
@@ -117,17 +117,17 @@ type NewEnvDeployerInput struct {
 
 // NewEnvDeployer constructs an environment deployer.
 func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
-	defaultSession, err := in.SessionProvider.Default()
+	defaultConfig, err := in.SessionProvider.DefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("get default session: %w", err)
+		return nil, fmt.Errorf("get default config: %w", err)
 	}
-	envRegionSession, err := in.SessionProvider.DefaultWithRegion(in.Env.Region)
+	envRegionConfig, err := in.SessionProvider.DefaultConfigWithRegion(context.Background(), in.Env.Region)
 	if err != nil {
-		return nil, fmt.Errorf("get default session in env region %s: %w", in.Env.Region, err)
+		return nil, fmt.Errorf("get default config in env region %s: %w", in.Env.Region, err)
 	}
-	envManagerSession, err := in.SessionProvider.FromRole(in.Env.ManagerRoleARN, in.Env.Region)
+	envManagerConfig, err := in.SessionProvider.ConfigFromRole(context.Background(), in.Env.ManagerRoleARN, in.Env.Region)
 	if err != nil {
-		return nil, fmt.Errorf("get env session: %w", err)
+		return nil, fmt.Errorf("get env config: %w", err)
 	}
 	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
 		App:         in.App.Name,
@@ -141,16 +141,16 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 	if overrider == nil {
 		overrider = new(override.Noop)
 	}
-	cfnClient := deploycfn.New(envManagerSession, deploycfn.WithProgressTracker(os.Stderr))
+	cfnClient := deploycfn.New(envManagerConfig, deploycfn.WithProgressTracker(os.Stderr))
 	deployer := &envDeployer{
 		app: in.App,
 		env: in.Env,
 
 		templateFS:       template.New(),
-		s3:               awss3.New(v2ConfigFromSessionRegion(envManagerSession)),
-		prefixListGetter: ec2.New(v2ConfigFromSessionRegion(envRegionSession)),
+		s3:               awss3.New(envManagerConfig),
+		prefixListGetter: ec2.New(envRegionConfig),
 
-		appCFN:      deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
+		appCFN:      deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
 		envDeployer: cfnClient,
 		tmplGetter:  cfnClient,
 		patcher: &patch.EnvironmentPatcher{
@@ -158,17 +158,17 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 			TemplatePatcher: cfnClient,
 			Env:             in.Env,
 		},
-		newStack: func(in *cfnstack.EnvConfig, lastForceUpdateID string, oldParams []*awscfn.Parameter) (deploycfn.StackConfiguration, error) {
-			stack, err := cfnstack.NewEnvConfigFromExistingStack(in, lastForceUpdateID, oldParams)
+		newStack: func(in *cfnstack.EnvConfig, lastForceUpdateID string, oldParams []awscfn.Parameter) (deploycfn.StackConfiguration, error) {
+			stack, err := cfnstack.NewEnvConfigFromExistingStack(in, lastForceUpdateID, parameterPtrs(oldParams))
 			if err != nil {
 				return nil, err
 			}
 			return deploycfn.WrapWithTemplateOverrider(stack, overrider), nil
 		},
 		envDescriber: envDescriber,
-		lbDescriber:  elbv2.New(v2ConfigFromSessionRegion(envManagerSession)),
+		lbDescriber:  elbv2.New(envManagerConfig),
 		newServiceStackDescriber: func(svc string) stackDescriber {
-			return stack.NewStackDescriber(cfnstack.NameForWorkload(in.App.Name, in.Env.Name, svc), envManagerSession)
+			return stack.NewStackDescriber(cfnstack.NameForWorkload(in.App.Name, in.Env.Name, svc), envManagerConfig)
 		},
 		parseAddons: sync.OnceValues(func() (stackBuilder, error) {
 			return addon.ParseFromEnv(in.Workspace)
@@ -176,6 +176,14 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 		ws: in.Workspace,
 	}
 	return deployer, nil
+}
+
+func parameterPtrs(params []awscfn.Parameter) []*awscfn.Parameter {
+	out := make([]*awscfn.Parameter, 0, len(params))
+	for i := range params {
+		out = append(out, &params[i])
+	}
+	return out
 }
 
 // Validate returns an error if the environment manifest is incompatible with services and application configurations.

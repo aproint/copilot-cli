@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -21,8 +22,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
 )
 
@@ -47,8 +47,8 @@ type svcExecOpts struct {
 	execVars
 	store              store
 	sel                deploySelector
-	newSvcDescriber    func(*session.Session) serviceDescriber
-	newCommandExecutor func(*session.Session) ecsCommandExecutor
+	newSvcDescriber    func(aws.Config) serviceDescriber
+	newCommandExecutor func(aws.Config) ecsCommandExecutor
 	ssmPluginManager   ssmPluginManager
 	prompter           prompter
 	sessProvider       sessionProvider
@@ -74,11 +74,11 @@ func newSvcExecOpts(vars execVars) (*svcExecOpts, error) {
 		execVars: vars,
 		store:    ssmStore,
 		sel:      selector.NewDeploySelect(prompt.New(), ssmStore, deployStore),
-		newSvcDescriber: func(s *session.Session) serviceDescriber {
-			return ecs.New(s, v2ConfigFromSessionRegion(s))
+		newSvcDescriber: func(cfg aws.Config) serviceDescriber {
+			return ecs.New(cfg)
 		},
-		newCommandExecutor: func(s *session.Session) ecsCommandExecutor {
-			return awsecs.New(v2ConfigFromSessionRegion(s))
+		newCommandExecutor: func(cfg aws.Config) ecsCommandExecutor {
+			return awsecs.New(cfg)
 		},
 		randInt: func(x int) int {
 			return rand.Intn(x)
@@ -114,11 +114,11 @@ func (o *svcExecOpts) Execute() error {
 	if wkld.Type == manifestinfo.RequestDrivenWebServiceType {
 		return fmt.Errorf("executing a command in a running container part of a service is not supported for services with type: '%s'", manifestinfo.RequestDrivenWebServiceType)
 	}
-	sess, err := o.envSession()
+	cfg, err := o.envConfig()
 	if err != nil {
 		return err
 	}
-	svcDesc, err := o.newSvcDescriber(sess).DescribeService(o.appName, o.envName, o.name)
+	svcDesc, err := o.newSvcDescriber(cfg).DescribeService(o.appName, o.envName, o.name)
 	if err != nil {
 		return fmt.Errorf("describe ECS service for %s in environment %s: %w", o.name, o.envName, err)
 	}
@@ -129,7 +129,7 @@ func (o *svcExecOpts) Execute() error {
 	container := o.selectContainer()
 	log.Infof("Execute %s in container %s in task %s.\n", color.HighlightCode(o.command),
 		color.HighlightUserInput(container), color.HighlightResource(taskID))
-	if err = o.newCommandExecutor(sess).ExecuteCommand(awsecs.ExecuteCommandInput{
+	if err = o.newCommandExecutor(cfg).ExecuteCommand(awsecs.ExecuteCommandInput{
 		Cluster:   svcDesc.ClusterName,
 		Command:   o.command,
 		Container: container,
@@ -181,12 +181,12 @@ func (o *svcExecOpts) validateAndAskSvcEnvName() error {
 	return nil
 }
 
-func (o *svcExecOpts) envSession() (*session.Session, error) {
+func (o *svcExecOpts) envConfig() (aws.Config, error) {
 	env, err := o.store.GetEnvironment(o.appName, o.envName)
 	if err != nil {
-		return nil, fmt.Errorf("get environment %s: %w", o.envName, err)
+		return aws.Config{}, fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
-	return o.sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+	return o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 }
 
 func (o *svcExecOpts) selectTask(tasks []*awsecs.Task) (string, error) {
@@ -195,7 +195,7 @@ func (o *svcExecOpts) selectTask(tasks []*awsecs.Task) (string, error) {
 	}
 	if o.taskID != "" {
 		for _, task := range tasks {
-			taskID, err := awsecs.TaskID(aws.StringValue(task.TaskArn))
+			taskID, err := awsecs.TaskID(aws.ToString(task.TaskArn))
 			if err != nil {
 				return "", err
 			}
@@ -205,7 +205,7 @@ func (o *svcExecOpts) selectTask(tasks []*awsecs.Task) (string, error) {
 		}
 		return "", fmt.Errorf("found no running task whose ID is prefixed with %s", o.taskID)
 	}
-	taskID, err := awsecs.TaskID(aws.StringValue(tasks[o.randInt(len(tasks))].TaskArn))
+	taskID, err := awsecs.TaskID(aws.ToString(tasks[o.randInt(len(tasks))].TaskArn))
 	if err != nil {
 		return "", err
 	}
@@ -221,7 +221,7 @@ func (o *svcExecOpts) selectContainer() string {
 }
 
 func validateSSMBinary(prompt prompter, manager ssmPluginManager, skipConfirmation *bool) error {
-	if skipConfirmation != nil && !aws.BoolValue(skipConfirmation) {
+	if skipConfirmation != nil && !aws.ToBool(skipConfirmation) {
 		return nil
 	}
 	err := manager.ValidateBinary()

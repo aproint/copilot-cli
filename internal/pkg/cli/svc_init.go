@@ -18,7 +18,7 @@ import (
 	"github.com/dustin/go-humanize/english"
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerfile"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 
@@ -207,7 +207,7 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 		Store:    store,
 		Ws:       ws,
 		Prog:     termprogress.NewSpinner(log.DiagnosticWriter),
-		Deployer: cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),
+		Deployer: cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr)),
 	}
 	dfSel, err := selector.NewDockerfileSelector(prompter, fs)
 	if err != nil {

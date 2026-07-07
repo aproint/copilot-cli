@@ -8,7 +8,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/imdario/mergo"
 )
 
@@ -152,7 +152,7 @@ func (j *ScheduledJob) BuildArgs(contextDir string) (map[string]*DockerBuildArgs
 	// Creating an map to store buildArgs of all sidecar images and main container image.
 	buildArgsPerContainer := make(map[string]*DockerBuildArgs, len(j.Sidecars)+1)
 	if required {
-		buildArgsPerContainer[aws.StringValue(j.Name)] = j.ImageConfig.Image.BuildConfig(contextDir)
+		buildArgsPerContainer[aws.ToString(j.Name)] = j.ImageConfig.Image.BuildConfig(contextDir)
 	}
 	return buildArgs(contextDir, buildArgsPerContainer, j.Sidecars)
 }
@@ -167,7 +167,7 @@ func (j *ScheduledJob) EnvFiles() map[string]string {
 // ContainerDependencies returns a map of ContainerDependency objects for ScheduledJob
 // including dependencies for its main container, any logging sidecar, and additional sidecars.
 func (s *ScheduledJob) ContainerDependencies() map[string]ContainerDependency {
-	return containerDependencies(aws.StringValue(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
+	return containerDependencies(aws.ToString(s.Name), s.ImageConfig.Image, s.Logging, s.Sidecars)
 }
 
 // newDefaultScheduledJob returns an empty ScheduledJob with only the default values set.

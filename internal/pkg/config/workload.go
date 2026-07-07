@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 )
 
 // Workload represents a deployable long-running service or task.
@@ -53,9 +53,9 @@ func (s *Store) createWorkload(wkld *Workload) error {
 	_, err = s.ssm.PutParameter(&ssm.PutParameterInput{
 		Name:        aws.String(wkldPath),
 		Description: aws.String(fmt.Sprintf("Copilot %s %s", wkld.Type, wkld.Name)),
-		Type:        aws.String(ssm.ParameterTypeString),
+		Type:        types.ParameterTypeString,
 		Value:       aws.String(data),
-		Tags: []*ssm.Tag{
+		Tags: []types.Tag{
 			{
 				Key:   aws.String("copilot-application"),
 				Value: aws.String(wkld.App),
@@ -67,11 +67,9 @@ func (s *Store) createWorkload(wkld *Workload) error {
 		},
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterAlreadyExists:
-				return nil
-			}
+		var existsErr *types.ParameterAlreadyExists
+		if errors.As(err, &existsErr) {
+			return nil
 		}
 		return err
 	}
@@ -156,18 +154,16 @@ func (s *Store) getWorkloadParam(appName, name string) ([]byte, error) {
 		Name: aws.String(wlPath),
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterNotFound:
-				return nil, &errNoSuchWorkload{
-					App:  appName,
-					Name: name,
-				}
+		var notFoundErr *types.ParameterNotFound
+		if errors.As(err, &notFoundErr) {
+			return nil, &errNoSuchWorkload{
+				App:  appName,
+				Name: name,
 			}
 		}
 		return nil, err
 	}
-	return []byte(*wlParam.Parameter.Value), nil
+	return []byte(aws.ToString(wlParam.Parameter.Value)), nil
 }
 
 // ListServices returns all services belonging to a particular application.
@@ -258,11 +254,9 @@ func (s *Store) deleteWorkload(appName, wkldName string) error {
 	})
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterNotFound:
-				return nil
-			}
+		var notFoundErr *types.ParameterNotFound
+		if errors.As(err, &notFoundErr) {
+			return nil
 		}
 		return err
 	}

@@ -37,7 +37,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/spf13/cobra"
 
@@ -139,8 +139,8 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 
 	opts := &deployPipelineOpts{
 		ws:                 ws,
-		pipelineDeployer:   deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
-		region:             aws.StringValue(defaultSession.Config.Region),
+		pipelineDeployer:   deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
+		region:             aws.ToString(defaultSession.Config.Region),
 		deployPipelineVars: vars,
 		store:              store,
 		prog:               termprogress.NewSpinner(log.DiagnosticWriter),

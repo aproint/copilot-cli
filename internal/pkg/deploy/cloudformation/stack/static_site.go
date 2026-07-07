@@ -13,8 +13,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // StaticSite represents the configuration needed to create a CloudFormation stack from a static site service manifest.
@@ -62,8 +62,8 @@ func NewStaticSite(cfg *StaticSiteConfig) (*StaticSite, error) {
 	}
 	return &StaticSite{
 		wkld: &wkld{
-			name:               aws.StringValue(cfg.Manifest.Name),
-			env:                aws.StringValue(cfg.EnvManifest.Name),
+			name:               aws.ToString(cfg.Manifest.Name),
+			env:                aws.ToString(cfg.EnvManifest.Name),
 			app:                cfg.App.Name,
 			permBound:          cfg.App.PermissionsBoundary,
 			artifactBucketName: cfg.ArtifactBucketName,

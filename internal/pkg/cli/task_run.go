@@ -18,7 +18,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/template/artifactpath"
 	"golang.org/x/mod/semver"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/spf13/pflag"
 
@@ -27,7 +27,7 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
 	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecr"
@@ -48,7 +48,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/dustin/go-humanize/english"
 	"github.com/google/shlex"
@@ -161,7 +160,7 @@ type runTaskOpts struct {
 	publicIPGetter       publicIPGetter
 
 	provider          sessionProvider
-	sess              *session.Session
+	cfg               aws.Config
 	targetEnvironment *config.Environment
 
 	// Configurer functions.
@@ -170,10 +169,10 @@ type runTaskOpts struct {
 	// NOTE: configureEventsWriter is only called when tailing logs (i.e. --follow is specified)
 	configureEventsWriter func(tasks []*task.Task)
 
-	configureECSServiceDescriber func(session *session.Session) ecs.ECSServiceDescriber
-	configureServiceDescriber    func(session *session.Session) ecs.ServiceDescriber
-	configureJobDescriber        func(session *session.Session) ecs.JobDescriber
-	configureUploader            func(session *session.Session) uploader
+	configureECSServiceDescriber func(aws.Config) ecs.ECSServiceDescriber
+	configureServiceDescriber    func(aws.Config) ecs.ServiceDescriber
+	configureJobDescriber        func(aws.Config) ecs.JobDescriber
+	configureUploader            func(aws.Config) uploader
 
 	// Functions to generate a task run command.
 	runTaskRequestFromECSService func(client ecs.ECSServiceDescriber, cluster, service string) (*ecs.RunTaskRequest, error)
@@ -217,33 +216,33 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 		if err != nil {
 			return fmt.Errorf("configure task runner: %w", err)
 		}
-		opts.deployer = cloudformation.New(opts.sess, cloudformation.WithProgressTracker(os.Stderr))
-		opts.defaultClusterGetter = awsecs.New(v2ConfigFromSessionRegion(opts.sess))
-		opts.publicIPGetter = ec2.New(v2ConfigFromSessionRegion(opts.sess))
+		opts.deployer = cloudformation.New(opts.cfg, cloudformation.WithProgressTracker(os.Stderr))
+		opts.defaultClusterGetter = awsecs.New(opts.cfg)
+		opts.publicIPGetter = ec2.New(opts.cfg)
 		return nil
 	}
 
 	opts.configureRepository = func() error {
 		repoName := fmt.Sprintf(deploy.FmtTaskECRRepoName, opts.groupName)
-		opts.repository = repository.New(ecr.New(v2ConfigFromSessionRegion(opts.sess)), repoName)
+		opts.repository = repository.New(ecr.New(opts.cfg), repoName)
 		return nil
 	}
 
 	opts.configureEventsWriter = func(tasks []*task.Task) {
-		opts.eventsWriter = logging.NewTaskClient(opts.sess, opts.groupName, tasks)
+		opts.eventsWriter = logging.NewTaskClient(opts.cfg, opts.groupName, tasks)
 	}
 
-	opts.configureECSServiceDescriber = func(session *session.Session) ecs.ECSServiceDescriber {
-		return awsecs.New(v2ConfigFromSessionRegion(session))
+	opts.configureECSServiceDescriber = func(cfg aws.Config) ecs.ECSServiceDescriber {
+		return awsecs.New(cfg)
 	}
-	opts.configureServiceDescriber = func(session *session.Session) ecs.ServiceDescriber {
-		return ecs.New(session, v2ConfigFromSessionRegion(session))
+	opts.configureServiceDescriber = func(cfg aws.Config) ecs.ServiceDescriber {
+		return ecs.New(cfg)
 	}
-	opts.configureJobDescriber = func(session *session.Session) ecs.JobDescriber {
-		return ecs.New(session, v2ConfigFromSessionRegion(session))
+	opts.configureJobDescriber = func(cfg aws.Config) ecs.JobDescriber {
+		return ecs.New(cfg)
 	}
-	opts.configureUploader = func(session *session.Session) uploader {
-		return s3.New(v2ConfigFromSessionRegion(session))
+	opts.configureUploader = func(cfg aws.Config) uploader {
+		return s3.New(cfg)
 	}
 	opts.envCompatibilityChecker = func(app, env string) (versionCompatibilityChecker, error) {
 		envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
@@ -264,8 +263,8 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 }
 
 func (o *runTaskOpts) configureRunner() (taskRunner, error) {
-	vpcGetter := ec2.New(v2ConfigFromSessionRegion(o.sess))
-	ecsService := awsecs.New(v2ConfigFromSessionRegion(o.sess))
+	vpcGetter := ec2.New(o.cfg)
+	ecsService := awsecs.New(o.cfg)
 
 	if o.env != "" {
 		deployStore, err := deploy.NewStore(o.provider, o.store)
@@ -284,7 +283,7 @@ func (o *runTaskOpts) configureRunner() (taskRunner, error) {
 			return nil, fmt.Errorf("create describer for environment %s in application %s: %w", o.env, o.appName, err)
 		}
 
-		ecsClient := ecs.New(o.sess, v2ConfigFromSessionRegion(o.sess))
+		ecsClient := ecs.New(o.cfg)
 		return &task.EnvRunner{
 			Count:     o.count,
 			GroupName: o.groupName,
@@ -315,13 +314,13 @@ func (o *runTaskOpts) configureRunner() (taskRunner, error) {
 		VPCGetter:             vpcGetter,
 		ClusterGetter:         ecsService,
 		Starter:               ecsService,
-		NonZeroExitCodeGetter: ecs.New(o.sess, v2ConfigFromSessionRegion(o.sess)),
+		NonZeroExitCodeGetter: ecs.New(o.cfg),
 	}, nil
 
 }
 
 func (o *runTaskOpts) configureSessAndEnv() error {
-	var sess *session.Session
+	var cfg aws.Config
 	var env *config.Environment
 
 	if o.env != "" {
@@ -331,20 +330,20 @@ func (o *runTaskOpts) configureSessAndEnv() error {
 			return err
 		}
 
-		sess, err = o.provider.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err = o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
-			return fmt.Errorf("get session from role %s and region %s: %w", env.ManagerRoleARN, env.Region, err)
+			return fmt.Errorf("get config from role %s and region %s: %w", env.ManagerRoleARN, env.Region, err)
 		}
 	} else {
 		var err error
-		sess, err = o.provider.Default()
+		cfg, err = o.provider.DefaultConfig(context.Background())
 		if err != nil {
-			return fmt.Errorf("get default session: %w", err)
+			return fmt.Errorf("get default config: %w", err)
 		}
 	}
 
 	o.targetEnvironment = env
-	o.sess = sess
+	o.cfg = cfg
 	return nil
 }
 
@@ -795,21 +794,21 @@ func (o *runTaskOpts) runTaskCommand() (cliStringer, error) {
 		if err != nil {
 			return nil, err
 		}
-		sess, err := o.provider.Default()
+		cfg, err := o.provider.DefaultConfig(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("get default session: %s", err)
+			return nil, fmt.Errorf("get default config: %s", err)
 		}
-		return o.runTaskCommandFromECSService(sess, clusterName, serviceName)
+		return o.runTaskCommandFromECSService(cfg, clusterName, serviceName)
 	}
 	parts := strings.Split(o.generateCommandTarget, "/")
 	switch len(parts) {
 	case 2:
 		clusterName, serviceName := parts[0], parts[1]
-		sess, err := o.provider.Default()
+		cfg, err := o.provider.DefaultConfig(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("get default session: %s", err)
+			return nil, fmt.Errorf("get default config: %s", err)
 		}
-		cmd, err = o.runTaskCommandFromECSService(sess, clusterName, serviceName)
+		cmd, err = o.runTaskCommandFromECSService(cfg, clusterName, serviceName)
 		if err != nil {
 			return nil, err
 		}
@@ -819,11 +818,11 @@ func (o *runTaskOpts) runTaskCommand() (cliStringer, error) {
 		if err != nil {
 			return nil, err
 		}
-		sess, err := o.provider.FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
-			return nil, fmt.Errorf("get environment session: %s", err)
+			return nil, fmt.Errorf("get environment config: %s", err)
 		}
-		cmd, err = o.runTaskCommandFromWorkload(sess, appName, envName, workloadName)
+		cmd, err = o.runTaskCommandFromWorkload(cfg, appName, envName, workloadName)
 		if err != nil {
 			return nil, err
 		}
@@ -842,8 +841,8 @@ func (o *runTaskOpts) parseARN() (string, string, error) {
 	return svcARN.ClusterName(), svcARN.ServiceName(), nil
 }
 
-func (o *runTaskOpts) runTaskCommandFromECSService(sess *session.Session, clusterName, serviceName string) (cliStringer, error) {
-	cmd, err := o.runTaskRequestFromECSService(o.configureECSServiceDescriber(sess), clusterName, serviceName)
+func (o *runTaskOpts) runTaskCommandFromECSService(cfg aws.Config, clusterName, serviceName string) (cliStringer, error) {
+	cmd, err := o.runTaskRequestFromECSService(o.configureECSServiceDescriber(cfg), clusterName, serviceName)
 	if err != nil {
 		var errMultipleContainers *ecs.ErrMultipleContainersInTaskDef
 		if errors.As(err, &errMultipleContainers) {
@@ -854,7 +853,7 @@ func (o *runTaskOpts) runTaskCommandFromECSService(sess *session.Session, cluste
 	return cmd, nil
 }
 
-func (o *runTaskOpts) runTaskCommandFromWorkload(sess *session.Session, appName, envName, workloadName string) (cliStringer, error) {
+func (o *runTaskOpts) runTaskCommandFromWorkload(cfg aws.Config, appName, envName, workloadName string) (cliStringer, error) {
 	workloadType, err := o.workloadType(appName, workloadName)
 	if err != nil {
 		return nil, err
@@ -866,12 +865,12 @@ func (o *runTaskOpts) runTaskCommandFromWorkload(sess *session.Session, appName,
 		if err := o.validateEnvCompatibilityForGenerateJobCmd(appName, envName); err != nil {
 			return nil, err
 		}
-		cmd, err = o.runTaskRequestFromJob(o.configureJobDescriber(sess), appName, envName, workloadName)
+		cmd, err = o.runTaskRequestFromJob(o.configureJobDescriber(cfg), appName, envName, workloadName)
 		if err != nil {
 			return nil, fmt.Errorf("generate task run command from job %s of application %s deployed in environment %s: %w", workloadName, appName, envName, err)
 		}
 	case workloadTypeSvc:
-		cmd, err = o.runTaskRequestFromService(o.configureServiceDescriber(sess), appName, envName, workloadName)
+		cmd, err = o.runTaskRequestFromService(o.configureServiceDescriber(cfg), appName, envName, workloadName)
 		if err != nil {
 			return nil, fmt.Errorf("generate task run command from service %s of application %s deployed in environment %s: %w", workloadName, appName, envName, err)
 		}
@@ -1077,7 +1076,7 @@ func (o *runTaskOpts) pushEnvFileToS3(bucket string) (string, error) {
 	}
 	reader := bytes.NewReader(content)
 
-	uploader := o.configureUploader(o.sess)
+	uploader := o.configureUploader(o.cfg)
 	url, err := uploader.Upload(bucket, artifactpath.EnvFiles(o.envFile, content), reader)
 	if err != nil {
 		return "", fmt.Errorf("put env file %s artifact to bucket %s: %w", o.envFile, bucket, err)
@@ -1087,7 +1086,7 @@ func (o *runTaskOpts) pushEnvFileToS3(bucket string) (string, error) {
 		return "", fmt.Errorf("parse s3 url: %w", err)
 	}
 	// The app and environment are always within the same partition.
-	partition, err := partitions.Region(aws.StringValue(o.sess.Config.Region)).Partition()
+	partition, err := partitions.Region(o.cfg.Region).Partition()
 	if err != nil {
 		return "", err
 	}

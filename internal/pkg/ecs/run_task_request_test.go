@@ -12,8 +12,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/ecs/mocks"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

@@ -11,7 +11,7 @@ import (
 	"sort"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 

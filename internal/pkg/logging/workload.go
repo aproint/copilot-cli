@@ -14,8 +14,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatchlogs"
 	"github.com/aproint/copilot-cli/internal/pkg/describe"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -39,7 +38,7 @@ type NewWorkloadLoggerOpts struct {
 	App  string
 	Env  string
 	Name string
-	Sess *session.Session
+	Cfg  aws.Config
 }
 
 // newWorkloadLogger returns a workloadLogger for the service under env and app.
@@ -49,7 +48,7 @@ func newWorkloadLogger(opts *NewWorkloadLoggerOpts) *workloadLogger {
 		app:          opts.App,
 		env:          opts.Env,
 		name:         opts.Name,
-		eventsGetter: cloudwatchlogs.New(v2ConfigFromSessionRegion(opts.Sess)),
+		eventsGetter: cloudwatchlogs.New(opts.Cfg),
 		w:            log.OutputWriter,
 		now:          time.Now,
 	}

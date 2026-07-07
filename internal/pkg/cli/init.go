@@ -34,7 +34,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -120,7 +120,7 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 	snsSel := selector.NewDeploySelect(prompt, configStore, deployStore)
 	spin := termprogress.NewSpinner(log.DiagnosticWriter)
 	id := identity.New(v2ConfigFromSessionRegion(defaultSess))
-	deployer := cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr))
+	deployer := cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr))
 	iamClient := iam.New(v2ConfigFromSessionRegion(defaultSess))
 	initAppCmd := &initAppOpts{
 		initAppVars: initAppVars{
@@ -152,8 +152,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		newAppVersionGetter: func(appName string) (versionGetter, error) {
 			return describe.NewAppDescriber(appName)
 		},
-		appCFN:          cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr)),
-		sess:            defaultSess,
+		appCFN:          cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr)),
+		cfg:             v2ConfigFromSessionRegion(defaultSess),
 		templateVersion: version.LatestTemplateVersion(),
 	}
 	deployEnvCmd := &deployEnvOpts{
@@ -483,7 +483,7 @@ func (o *initOpts) deployEnv() error {
 	if err := o.askShouldDeploy(); err != nil {
 		return err
 	}
-	if !aws.BoolValue(o.shouldDeploy) {
+	if !aws.ToBool(o.shouldDeploy) {
 		// User chose not to deploy the service, exit.
 		return nil
 	}
@@ -514,7 +514,7 @@ func (o *initOpts) deployEnv() error {
 }
 
 func (o *initOpts) deploySvc() error {
-	if !aws.BoolValue(o.shouldDeploy) {
+	if !aws.ToBool(o.shouldDeploy) {
 		return nil
 	}
 	if deployOpts, ok := o.deploySvcCmd.(*deploySvcOpts); ok {
@@ -537,7 +537,7 @@ func (o *initOpts) deploySvc() error {
 }
 
 func (o *initOpts) deployJob() error {
-	if !aws.BoolValue(o.shouldDeploy) {
+	if !aws.ToBool(o.shouldDeploy) {
 		return nil
 	}
 	if deployOpts, ok := o.deployJobCmd.(*deployJobOpts); ok {
@@ -643,7 +643,7 @@ func BuildInitCmd() *cobra.Command {
 			}
 
 			// ShouldDeploy will always be set after flags or prompting.
-			if !aws.BoolValue(opts.shouldDeploy) {
+			if !aws.ToBool(opts.shouldDeploy) {
 				log.Info("\nNo problem, you can deploy your service later:\n")
 				log.Infof("- Run %s to create your environment.\n", color.HighlightCode("copilot env init"))
 				log.Infof("- Run %s to deploy your service.\n", color.HighlightCode("copilot deploy"))

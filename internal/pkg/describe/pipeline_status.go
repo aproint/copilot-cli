@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -34,12 +35,11 @@ type PipelineStatus struct {
 
 // NewPipelineStatusDescriber instantiates a new PipelineStatus struct.
 func NewPipelineStatusDescriber(pipeline deploy.Pipeline) (*PipelineStatusDescriber, error) {
-	sess, err := sessions.ImmutableProvider().Default()
+	v2Config, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	v2Config := v2ConfigFromSessionRegion(sess)
 	pipelineSvc := codepipeline.New(v2Config, v2Config)
 	return &PipelineStatusDescriber{
 		pipeline:    pipeline,

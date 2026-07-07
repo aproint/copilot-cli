@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudfront"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 )
 
 var (
@@ -49,7 +49,7 @@ func (e EnvironmentConfig) validate() error {
 	if e.CDNEnabled() {
 		cdnCert := e.CDNConfig.Config.Certificate
 		if e.HTTPConfig.Public.Certificates == nil {
-			if cdnCert != nil && !aws.BoolValue(e.CDNConfig.Config.TerminateTLS) {
+			if cdnCert != nil && !aws.ToBool(e.CDNConfig.Config.TerminateTLS) {
 				return errors.New(`"cdn.terminate_tls" must be true if "cdn.certificate" is set without "http.public.certificates"`)
 			}
 		} else {
@@ -135,7 +135,7 @@ func (cfg portsConfig) validate() error {
 		var targetErr *errInvalidRange
 		if errors.As(err, &targetErr) {
 			return &errInvalidRange{
-				value:       aws.StringValue((*string)(cfg.Range)),
+				value:       aws.ToString((*string)(cfg.Range)),
 				validFormat: "${from_port}-${to_port}",
 			}
 		}
@@ -161,14 +161,14 @@ func (cfg securityGroupConfig) validate() error {
 
 func (cfg environmentVPCConfig) validateImportedVPC() error {
 	for idx, subnet := range cfg.Subnets.Public {
-		if aws.StringValue(subnet.SubnetID) == "" {
+		if aws.ToString(subnet.SubnetID) == "" {
 			return fmt.Errorf(`validate public[%d]: %w`, idx, &errFieldMustBeSpecified{
 				missingField: "id",
 			})
 		}
 	}
 	for idx, subnet := range cfg.Subnets.Private {
-		if aws.StringValue(subnet.SubnetID) == "" {
+		if aws.ToString(subnet.SubnetID) == "" {
 			return fmt.Errorf(`validate private[%d]: %w`, idx, &errFieldMustBeSpecified{
 				missingField: "id",
 			})
@@ -194,25 +194,25 @@ func (cfg environmentVPCConfig) validateManagedVPC() error {
 	)
 	var exists = struct{}{}
 	for idx, subnet := range cfg.Subnets.Public {
-		if aws.StringValue((*string)(subnet.CIDR)) == "" {
+		if aws.ToString((*string)(subnet.CIDR)) == "" {
 			return fmt.Errorf(`validate public[%d]: %w`, idx, &errFieldMustBeSpecified{
 				missingField: "cidr",
 			})
 		}
-		publicCIDRs[aws.StringValue((*string)(subnet.CIDR))] = exists
-		if aws.StringValue(subnet.AZ) != "" {
-			publicAZs[aws.StringValue(subnet.AZ)] = exists
+		publicCIDRs[aws.ToString((*string)(subnet.CIDR))] = exists
+		if aws.ToString(subnet.AZ) != "" {
+			publicAZs[aws.ToString(subnet.AZ)] = exists
 		}
 	}
 	for idx, subnet := range cfg.Subnets.Private {
-		if aws.StringValue((*string)(subnet.CIDR)) == "" {
+		if aws.ToString((*string)(subnet.CIDR)) == "" {
 			return fmt.Errorf(`validate private[%d]: %w`, idx, &errFieldMustBeSpecified{
 				missingField: "cidr",
 			})
 		}
-		privateCIDRs[aws.StringValue((*string)(subnet.CIDR))] = exists
-		if aws.StringValue(subnet.AZ) != "" {
-			privateAZs[aws.StringValue(subnet.AZ)] = exists
+		privateCIDRs[aws.ToString((*string)(subnet.CIDR))] = exists
+		if aws.ToString(subnet.AZ) != "" {
+			privateAZs[aws.ToString(subnet.AZ)] = exists
 		}
 	}
 	// NOTE: the following are constraints on az:
@@ -433,7 +433,7 @@ func (c EnvironmentConfig) validateInternalALBSubnets() error {
 	isImported := make(map[string]bool)
 	for _, placementSubnet := range c.HTTPConfig.Private.InternalALBSubnets {
 		for _, subnet := range append(c.Network.VPC.Subnets.Private, c.Network.VPC.Subnets.Public...) {
-			if placementSubnet == aws.StringValue(subnet.SubnetID) {
+			if placementSubnet == aws.ToString(subnet.SubnetID) {
 				isImported[placementSubnet] = true
 			}
 		}

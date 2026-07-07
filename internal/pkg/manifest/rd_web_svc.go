@@ -6,7 +6,7 @@ package manifest
 import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/imdario/mergo"
 )
 
@@ -68,7 +68,7 @@ func (c *RequestDrivenWebServiceNetworkConfig) IsEmpty() bool {
 }
 
 func (c *RequestDrivenWebServiceNetworkConfig) requiredEnvFeatures() []string {
-	if aws.StringValue((*string)(c.VPC.Placement.PlacementString)) == string(PrivateSubnetPlacement) {
+	if aws.ToString((*string)(c.VPC.Placement.PlacementString)) == string(PrivateSubnetPlacement) {
 		return []string{template.NATFeatureName}
 	}
 	return nil
@@ -143,7 +143,7 @@ func (s *RequestDrivenWebService) Dockerfile() string {
 // Port returns the exposed the exposed port in the manifest.
 // A RequestDrivenWebService always has a port exposed therefore the boolean is always true.
 func (s *RequestDrivenWebService) Port() (port uint16, ok bool) {
-	return aws.Uint16Value(s.ImageConfig.Port), true
+	return aws.ToUint16(s.ImageConfig.Port), true
 }
 
 // Publish returns the list of topics where notifications can be published.
@@ -168,7 +168,7 @@ func (s *RequestDrivenWebService) BuildArgs(contextDir string) (map[string]*Dock
 	// Creating an map to store buildArgs of all sidecar images and main container image.
 	buildArgsPerContainer := make(map[string]*DockerBuildArgs, 1)
 	if required {
-		buildArgsPerContainer[aws.StringValue(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
+		buildArgsPerContainer[aws.ToString(s.Name)] = s.ImageConfig.Image.BuildConfig(contextDir)
 	}
 	return buildArgsPerContainer, nil
 }

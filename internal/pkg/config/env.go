@@ -5,12 +5,13 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 )
 
 // Environment represents a deployment environment in an application.
@@ -81,9 +82,9 @@ func (s *Store) CreateEnvironment(environment *Environment) error {
 	_, err = s.ssm.PutParameter(&ssm.PutParameterInput{
 		Name:        aws.String(environmentPath),
 		Description: aws.String(fmt.Sprintf("The %s deployment stage", environment.Name)),
-		Type:        aws.String(ssm.ParameterTypeString),
+		Type:        types.ParameterTypeString,
 		Value:       aws.String(data),
-		Tags: []*ssm.Tag{
+		Tags: []types.Tag{
 			{
 				Key:   aws.String("copilot-application"),
 				Value: aws.String(environment.App),
@@ -95,11 +96,9 @@ func (s *Store) CreateEnvironment(environment *Environment) error {
 		},
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterAlreadyExists:
-				return nil
-			}
+		var existsErr *types.ParameterAlreadyExists
+		if errors.As(err, &existsErr) {
+			return nil
 		}
 		return fmt.Errorf("create environment %s in application %s: %w", environment.Name, environment.App, err)
 	}
@@ -115,20 +114,18 @@ func (s *Store) GetEnvironment(appName string, environmentName string) (*Environ
 	})
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterNotFound:
-				return nil, &ErrNoSuchEnvironment{
-					ApplicationName: appName,
-					EnvironmentName: environmentName,
-				}
+		var notFoundErr *types.ParameterNotFound
+		if errors.As(err, &notFoundErr) {
+			return nil, &ErrNoSuchEnvironment{
+				ApplicationName: appName,
+				EnvironmentName: environmentName,
 			}
 		}
 		return nil, fmt.Errorf("get environment %s in application %s: %w", environmentName, appName, err)
 	}
 
 	var env Environment
-	err = json.Unmarshal([]byte(*environmentParam.Parameter.Value), &env)
+	err = json.Unmarshal([]byte(aws.ToString(environmentParam.Parameter.Value)), &env)
 	if err != nil {
 		return nil, fmt.Errorf("read configuration for environment %s in application %s: %w", environmentName, appName, err)
 	}
@@ -165,11 +162,9 @@ func (s *Store) DeleteEnvironment(appName, environmentName string) error {
 	})
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ssm.ErrCodeParameterNotFound:
-				return nil
-			}
+		var notFoundErr *types.ParameterNotFound
+		if errors.As(err, &notFoundErr) {
+			return nil
 		}
 		return fmt.Errorf("delete environment %s from application %s: %w", environmentName, appName, err)
 	}

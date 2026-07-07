@@ -5,8 +5,9 @@ package deploy
 
 import (
 	"fmt"
+
 	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/acm"
 	awsecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
@@ -18,7 +19,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 type backendSvcDeployer struct {
@@ -44,9 +44,9 @@ func NewBackendDeployer(in *WorkloadDeployerInput) (*backendSvcDeployer, error) 
 	}
 	return &backendSvcDeployer{
 		svcDeployer:        svcDeployer,
-		elbGetter:          elbv2.New(v2ConfigFromSessionRegion(svcDeployer.envSess)),
+		elbGetter:          elbv2.New(svcDeployer.envAWSConfig),
 		backendMft:         bsMft,
-		aliasCertValidator: acm.New(v2ConfigFromSessionRegion(svcDeployer.envSess)),
+		aliasCertValidator: acm.New(svcDeployer.envAWSConfig),
 	}, nil
 }
 
@@ -100,7 +100,7 @@ func (d *backendSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (
 	}
 	var opts []stack.BackendServiceOption
 	if d.backendMft.HTTP.ImportedALB != nil {
-		lb, err := d.elbGetter.LoadBalancer(aws.StringValue(d.backendMft.HTTP.ImportedALB))
+		lb, err := d.elbGetter.LoadBalancer(aws.ToString(d.backendMft.HTTP.ImportedALB))
 		if err != nil {
 			return nil, err
 		}
@@ -129,8 +129,8 @@ func (d *backendSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (
 
 	return &svcStackConfigurationOutput{
 		conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
-		svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-			return ecs.New(s, v2ConfigFromSessionRegion(s))
+		svcUpdater: d.newSvcUpdater(func(cfg aws.Config) serviceForceUpdater {
+			return ecs.New(cfg)
 		}),
 	}, nil
 }
@@ -157,12 +157,12 @@ func (d *backendSvcDeployer) validateImportedALBConfig() error {
 	if d.backendMft.HTTP.ImportedALB == nil {
 		return nil
 	}
-	alb, err := d.elbGetter.LoadBalancer(aws.StringValue(d.backendMft.HTTP.ImportedALB))
+	alb, err := d.elbGetter.LoadBalancer(aws.ToString(d.backendMft.HTTP.ImportedALB))
 	if err != nil {
-		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.StringValue(d.backendMft.HTTP.ImportedALB), err)
+		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.ToString(d.backendMft.HTTP.ImportedALB), err)
 	}
 	if alb.Scheme != "internal" {
-		return fmt.Errorf(`imported ALB %q for Backend Service %q should have "internal" Scheme value`, alb.ARN, aws.StringValue(d.backendMft.Name))
+		return fmt.Errorf(`imported ALB %q for Backend Service %q should have "internal" Scheme value`, alb.ARN, aws.ToString(d.backendMft.Name))
 	}
 	if len(alb.Listeners) == 0 {
 		return fmt.Errorf(`imported ALB %q must have at least one listener. For two listeners, one must be of protocol HTTP and the other of protocol HTTPS`, alb.ARN)

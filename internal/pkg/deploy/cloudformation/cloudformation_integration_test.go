@@ -28,7 +28,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	awsv1 "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awsCF "github.com/aws/aws-sdk-go/service/cloudformation"
@@ -50,11 +52,11 @@ func init() {
 func Test_App_Infrastructure(t *testing.T) {
 	sess, err := testSession(nil)
 	require.NoError(t, err)
-	identity := identity.New(sess)
+	identity := identity.New(v2ConfigFromSessionRegion(sess))
 	callerInfo, err := identity.Get()
 	require.NoError(t, err)
 	require.NoError(t, err)
-	deployer := cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
+	deployer := cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr))
 	cfClient := awsCF.New(sess)
 	require.NoError(t, err)
 	version.Version = "v1.28.0"
@@ -394,14 +396,14 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 	version.Version = "v1.28.0"
 	sess, err := testSession(nil)
 	require.NoError(t, err)
-	deployer := cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
+	deployer := cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr))
 	cfClient := awsCF.New(sess)
-	identity := identity.New(sess)
+	identity := identity.New(v2ConfigFromSessionRegion(sess))
 	s3ManagerClient := s3manager.NewUploader(sess)
-	s3Config, err := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), aws.StringValue(sess.Config.Region))
+	s3Config, err := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), aws.ToString(sess.Config.Region))
 	require.NoError(t, err)
 	s3Client := awss3.New(s3Config)
-	iamClient := iam.New(sess)
+	iamClient := iam.New(v2ConfigFromSessionRegion(sess))
 	id, err := identity.Get()
 	require.NoError(t, err)
 
@@ -523,7 +525,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 		require.NoError(t, err)
 		lastForceUpdateID, err := deployer.ForceUpdateOutputID(environmentToDeploy.App.Name, environmentToDeploy.Name)
 		require.NoError(t, err)
-		conf, err := stack.NewEnvConfigFromExistingStack(&environmentToDeploy, lastForceUpdateID, oldParams)
+		conf, err := stack.NewEnvConfigFromExistingStack(&environmentToDeploy, lastForceUpdateID, parameterPtrs(oldParams))
 		require.NoError(t, err)
 		// Deploy the environment and wait for it to be complete.
 		require.NoError(t, deployer.UpdateAndRenderEnvironment(conf, environmentToDeploy.ArtifactBucketARN, false))
@@ -538,7 +540,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 		deployedStack := output.Stacks[0]
 		expectedResultsForKey := map[string]func(*awsCF.Output){
 			"EnabledFeatures": func(output *awsCF.Output) {
-				require.Equal(t, ",,,,,", aws.StringValue(output.OutputValue), "no env features enabled by default")
+				require.Equal(t, ",,,,,", aws.ToString(output.OutputValue), "no env features enabled by default")
 			},
 			"EnvironmentManagerRoleARN": func(output *awsCF.Output) {
 				require.Equal(t,
@@ -641,7 +643,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 					"EnvironmentSecurityGroup value should not be nil")
 			},
 			"LastForceDeployID": func(output *awsCF.Output) {
-				require.Equal(t, lastForceUpdateID, aws.StringValue(output.OutputValue), "last force update id does not change by default")
+				require.Equal(t, lastForceUpdateID, aws.ToString(output.OutputValue), "last force update id does not change by default")
 			},
 		}
 		require.True(t, len(deployedStack.Outputs) == len(expectedResultsForKey),
@@ -670,12 +672,25 @@ func testSession(region *string) (*session.Session, error) {
 
 	// override with the provided region
 	return session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			CredentialsChainVerboseErrors: aws.Bool(true),
+		Config: awsv1.Config{
+			CredentialsChainVerboseErrors: awsv1.Bool(true),
 			Region:                        region,
 		},
 		SharedConfigState: session.SharedConfigEnable,
 	})
+}
+
+func v2ConfigFromSessionRegion(sess *session.Session) aws.Config {
+	cfg, _ := sessions.ImmutableProvider().DefaultConfigWithRegion(context.Background(), aws.ToString(sess.Config.Region))
+	return cfg
+}
+
+func parameterPtrs(params []types.Parameter) []*types.Parameter {
+	ptrs := make([]*types.Parameter, 0, len(params))
+	for i := range params {
+		ptrs = append(ptrs, &params[i])
+	}
+	return ptrs
 }
 
 func randStringBytes(n int) string {

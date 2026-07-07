@@ -12,7 +12,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 var awsSDKLayerForRegion = map[string]*string{
@@ -71,7 +71,7 @@ func NewRequestDrivenWebService(cfg RequestDrivenWebServiceConfig) (*RequestDriv
 	return &RequestDrivenWebService{
 		appRunnerWkld: &appRunnerWkld{
 			wkld: &wkld{
-				name:               aws.StringValue(cfg.Manifest.Name),
+				name:               aws.ToString(cfg.Manifest.Name),
 				env:                cfg.Env,
 				app:                cfg.App.Name,
 				permBound:          cfg.App.PermissionsBoundary,
@@ -143,10 +143,10 @@ func (s *RequestDrivenWebService) Template() (string, error) {
 		ServiceDiscoveryEndpoint: s.rc.ServiceDiscoveryEndpoint,
 
 		Observability: template.ObservabilityOpts{
-			Tracing: strings.ToUpper(aws.StringValue(s.manifest.Observability.Tracing)),
+			Tracing: strings.ToUpper(aws.ToString(s.manifest.Observability.Tracing)),
 		},
 		PermissionsBoundary:  s.permBound,
-		Private:              aws.BoolValue(s.manifest.Private.Basic) || s.manifest.Private.Advanced.Endpoint != nil,
+		Private:              aws.ToBool(s.manifest.Private.Basic) || s.manifest.Private.Advanced.Endpoint != nil,
 		AppRunnerVPCEndpoint: s.manifest.Private.Advanced.Endpoint,
 		Count:                s.manifest.Count,
 		Secrets:              convertSecrets(s.manifest.RequestDrivenWebServiceConfig.Secrets),

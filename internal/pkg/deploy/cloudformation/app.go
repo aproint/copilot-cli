@@ -22,8 +22,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
-	sdkcloudformationiface "github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
 type errNoRegionalResources struct {
@@ -68,7 +66,7 @@ func (cf CloudFormation) DeployApp(in *deploy.CreateAppInput) error {
 		stackset.WithDescription(appConfig.StackSetDescription()),
 		stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
 		stackset.WithAdministrationRoleARN(stackSetAdminRoleARN),
-		stackset.WithTags(toMap(appConfig.Tags())))
+		stackset.WithTags(toMapPtr(appConfig.Tags())))
 }
 
 // UpgradeApplication upgrades the application stack to the latest version.
@@ -566,12 +564,8 @@ func (cf CloudFormation) AddEnvToApp(opts *AddEnvToAppOpts) error {
 	return nil
 }
 
-var getRegionFromClient = func(client sdkcloudformationiface.CloudFormationAPI) (string, error) {
-	concrete, ok := client.(*sdkcloudformation.CloudFormation)
-	if !ok {
-		return "", errors.New("failed to retrieve the region")
-	}
-	return *concrete.Client.Config.Region, nil
+var getRegionFromClient = func(client any) (string, error) {
+	return "", errors.New("failed to retrieve the region")
 }
 
 // AddPipelineResourcesToApp conditionally adds resources needed to support
@@ -630,7 +624,7 @@ func (cf CloudFormation) deployAppConfig(appConfig *stack.AppStackConfig, resour
 				stackset.WithDescription(appConfig.StackSetDescription()),
 				stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
 				stackset.WithAdministrationRoleARN(stackSetAdminRoleARN),
-				stackset.WithTags(toMap(appConfig.Tags())))
+				stackset.WithTags(toMapPtr(appConfig.Tags())))
 		},
 		now: time.Now,
 	}

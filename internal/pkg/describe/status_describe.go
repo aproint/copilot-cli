@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -96,7 +97,7 @@ func NewECSStatusDescriber(opt *NewServiceStatusConfig) (*ecsStatusDescriber, er
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s: %w", opt.Env, err)
 	}
-	sess, err := sessions.ImmutableProvider().FromRole(env.ManagerRoleARN, env.Region)
+	cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("session for role %s and region %s: %w", env.ManagerRoleARN, env.Region, err)
 	}
@@ -104,11 +105,11 @@ func NewECSStatusDescriber(opt *NewServiceStatusConfig) (*ecsStatusDescriber, er
 		app:                opt.App,
 		env:                opt.Env,
 		svc:                opt.Svc,
-		svcDescriber:       ecs.New(sess, v2ConfigFromSessionRegion(sess)),
-		cwSvcGetter:        cloudwatch.New(v2ConfigFromSessionRegion(sess), v2ConfigFromSessionRegion(sess)),
-		ecsSvcGetter:       awsecs.New(v2ConfigFromSessionRegion(sess)),
-		aasSvcGetter:       aas.New(v2ConfigFromSessionRegion(sess)),
-		targetHealthGetter: elbv2.New(v2ConfigFromSessionRegion(sess)),
+		svcDescriber:       ecs.New(cfg),
+		cwSvcGetter:        cloudwatch.New(cfg, cfg),
+		ecsSvcGetter:       awsecs.New(cfg),
+		aasSvcGetter:       aas.New(cfg),
+		targetHealthGetter: elbv2.New(cfg),
 	}, nil
 }
 
@@ -129,7 +130,7 @@ func NewAppRunnerStatusDescriber(opt *NewServiceStatusConfig) (*appRunnerStatusD
 		env:          opt.Env,
 		svc:          opt.Svc,
 		svcDescriber: appRunnerSvcDescriber,
-		eventsGetter: cloudwatchlogs.New(v2ConfigFromSessionRegion(appRunnerSvcDescriber.sess)),
+		eventsGetter: cloudwatchlogs.New(appRunnerSvcDescriber.cfg),
 	}, nil
 }
 
@@ -145,12 +146,11 @@ func NewStaticSiteStatusDescriber(opt *NewServiceStatusConfig) (*staticSiteStatu
 		if err != nil {
 			return nil, nil, fmt.Errorf("get environment %s: %w", env, err)
 		}
-		sess, err := sessions.ImmutableProvider().FromRole(environment.ManagerRoleARN, environment.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), environment.ManagerRoleARN, environment.Region)
 		if err != nil {
 			return nil, nil, err
 		}
-		cfg := v2ConfigFromSessionRegion(sess)
-		return awsS3.New(cfg), s3.New(sess, cfg), nil
+		return awsS3.New(cfg), s3.New(cfg), nil
 	}
 	return describer, nil
 }
@@ -170,7 +170,7 @@ func (s *ecsStatusDescriber) Describe() (HumanJSONStringer, error) {
 	for _, task := range svcDesc.Tasks {
 		status, err := task.TaskStatus()
 		if err != nil {
-			return nil, fmt.Errorf("get status for task %s: %w", aws.StringValue(task.TaskArn), err)
+			return nil, fmt.Errorf("get status for task %s: %w", aws.ToString(task.TaskArn), err)
 		}
 		taskStatus = append(taskStatus, *status)
 	}
@@ -179,7 +179,7 @@ func (s *ecsStatusDescriber) Describe() (HumanJSONStringer, error) {
 	for _, task := range svcDesc.StoppedTasks {
 		status, err := task.TaskStatus()
 		if err != nil {
-			return nil, fmt.Errorf("get status for stopped task %s: %w", aws.StringValue(task.TaskArn), err)
+			return nil, fmt.Errorf("get status for stopped task %s: %w", aws.ToString(task.TaskArn), err)
 		}
 		stoppedTaskStatus = append(stoppedTaskStatus, *status)
 	}
@@ -328,7 +328,7 @@ func targetHealthForTasks(targetsHealth []*elbv2.TargetHealth, tasks []*awsecs.T
 			continue
 		}
 
-		taskID, err := awsecs.TaskID(aws.StringValue(task.TaskArn))
+		taskID, err := awsecs.TaskID(aws.ToString(task.TaskArn))
 		if err != nil {
 			continue
 		}

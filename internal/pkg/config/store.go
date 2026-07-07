@@ -10,12 +10,13 @@ application.
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 // Parameter name formats for resources in an application. Applications are laid out in SSM
@@ -48,6 +49,31 @@ type SSM interface {
 	GetParametersByPath(in *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
 	GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 	DeleteParameter(in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error)
+}
+
+type ssmClient struct {
+	client *ssm.Client
+}
+
+// NewSSMClient adapts the SDK v2 SSM client to Store's narrow SSM interface.
+func NewSSMClient(cfg aws.Config) SSM {
+	return &ssmClient{client: ssm.NewFromConfig(cfg)}
+}
+
+func (c *ssmClient) PutParameter(in *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+	return c.client.PutParameter(context.Background(), in)
+}
+
+func (c *ssmClient) GetParametersByPath(in *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error) {
+	return c.client.GetParametersByPath(context.Background(), in)
+}
+
+func (c *ssmClient) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+	return c.client.GetParameter(context.Background(), in)
+}
+
+func (c *ssmClient) DeleteParameter(in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+	return c.client.DeleteParameter(context.Background(), in)
 }
 
 // Store is in charge of fetching and creating applications, environment, services and other workloads, and pipeline configuration in SSM.

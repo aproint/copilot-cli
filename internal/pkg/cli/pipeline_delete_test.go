@@ -11,8 +11,8 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/secretsmanager"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
-	"github.com/aws/aws-sdk-go/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"

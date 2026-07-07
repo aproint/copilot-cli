@@ -23,7 +23,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const basicNameRegex = `^[a-z][a-z0-9\-]+$`
@@ -783,11 +783,11 @@ func validateSubscriptionKey(val interface{}) error {
 	if err != nil {
 		return errSubscribeBadFormat
 	}
-	if err := validatePubSubName(aws.StringValue(sub.Name)); err != nil {
-		return fmt.Errorf("invalid topic subscription topic name `%s`: %w", aws.StringValue(sub.Name), err)
+	if err := validatePubSubName(aws.ToString(sub.Name)); err != nil {
+		return fmt.Errorf("invalid topic subscription topic name `%s`: %w", aws.ToString(sub.Name), err)
 	}
-	if err = basicNameValidation(aws.StringValue(sub.Service)); err != nil {
-		return fmt.Errorf("invalid topic subscription service name `%s`: %w", aws.StringValue(sub.Service), err)
+	if err = basicNameValidation(aws.ToString(sub.Service)); err != nil {
+		return fmt.Errorf("invalid topic subscription service name `%s`: %w", aws.ToString(sub.Service), err)
 	}
 	return nil
 }

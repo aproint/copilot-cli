@@ -18,7 +18,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 )
 
 const (
@@ -151,7 +151,7 @@ func newECSServiceDescriber(opt NewServiceConfig) (*ecsServiceDescriber, error) 
 	}
 	return &ecsServiceDescriber{
 		WorkloadStackDescriber: stackDescriber,
-		ecsClient:              ecs.New(stackDescriber.sess, v2ConfigFromSessionRegion(stackDescriber.sess)),
+		ecsClient:              ecs.New(stackDescriber.cfg),
 	}, nil
 }
 
@@ -168,7 +168,7 @@ func newAppRunnerServiceDescriber(opt NewServiceConfig) (*appRunnerServiceDescri
 
 	return &appRunnerServiceDescriber{
 		WorkloadStackDescriber: stackDescriber,
-		apprunnerClient:        apprunner.New(v2ConfigFromSessionRegion(stackDescriber.sess)),
+		apprunnerClient:        apprunner.New(stackDescriber.cfg),
 	}, nil
 }
 

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/yaml.v3"
 )
 
@@ -180,9 +180,9 @@ func (v *Variable) RequiresImport() bool {
 // Value returns the value, whether it is used for import or not.
 func (v *Variable) Value() string {
 	if v.RequiresImport() {
-		return aws.StringValue(v.FromCFN.Name)
+		return aws.ToString(v.FromCFN.Name)
 	}
-	return aws.StringValue(v.Plain)
+	return aws.ToString(v.Plain)
 }
 
 // ContainerPlatform returns the platform for the service.
@@ -239,11 +239,11 @@ func (s *Secret) RequiresImport() bool {
 // Value returns the secret value provided by clients.
 func (s *Secret) Value() string {
 	if !s.fromSecretsManager.IsEmpty() {
-		return aws.StringValue(s.fromSecretsManager.Name)
+		return aws.ToString(s.fromSecretsManager.Name)
 	} else if s.RequiresImport() {
-		return aws.StringValue(s.from.FromCFN.Name)
+		return aws.ToString(s.from.FromCFN.Name)
 	}
-	return aws.StringValue(s.from.Plain)
+	return aws.ToString(s.from.Plain)
 }
 
 // secretsManagerSecret represents the name of a secret stored in SecretsManager.
@@ -312,10 +312,10 @@ type SidecarConfig struct {
 // If the image needs to be build, return "" and false.
 func (cfg *SidecarConfig) ImageURI() (string, bool) {
 	if cfg.Image.Basic != nil {
-		return aws.StringValue(cfg.Image.Basic), true
+		return aws.ToString(cfg.Image.Basic), true
 	}
 	if cfg.Image.Advanced.Location != nil {
-		return aws.StringValue(cfg.Image.Advanced.Location), true
+		return aws.ToString(cfg.Image.Advanced.Location), true
 	}
 	return "", false
 }
@@ -415,13 +415,13 @@ func (hc *ContainerHealthCheck) ApplyIfNotSet(other *ContainerHealthCheck) {
 func envFiles(name *string, tc TaskConfig, lc Logging, sc map[string]*SidecarConfig) map[string]string {
 	envFiles := make(map[string]string)
 	// Grab the workload container's env file, if present.
-	envFiles[aws.StringValue(name)] = aws.StringValue(tc.EnvFile)
+	envFiles[aws.ToString(name)] = aws.ToString(tc.EnvFile)
 	// Grab sidecar env files, if present.
 	for sidecarName, sidecar := range sc {
-		envFiles[sidecarName] = aws.StringValue(sidecar.EnvFile)
+		envFiles[sidecarName] = aws.ToString(sidecar.EnvFile)
 	}
 	// If the Firelens Sidecar Pattern has an env file specified, get it as well.
-	envFiles[FirelensContainerName] = aws.StringValue(lc.EnvFile)
+	envFiles[FirelensContainerName] = aws.ToString(lc.EnvFile)
 	return envFiles
 }
 
@@ -453,7 +453,7 @@ func containerDependencies(name string, img Image, lc Logging, sc map[string]*Si
 	for name, config := range sc {
 		containerDependencies[name] = ContainerDependency{
 			DependsOn:   config.DependsOn,
-			IsEssential: config.Essential == nil || aws.BoolValue(config.Essential),
+			IsEssential: config.Essential == nil || aws.ToBool(config.Essential),
 		}
 	}
 	return containerDependencies

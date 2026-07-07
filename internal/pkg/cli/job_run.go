@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
@@ -17,7 +18,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -70,7 +71,7 @@ func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
 		sessProvider: sessProvider,
 	}
 	opts.newRunner = func() (runner, error) {
-		sess, err := opts.envSession()
+		cfg, err := opts.envConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -80,8 +81,8 @@ func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
 			Env: opts.envName,
 			Job: opts.jobName,
 
-			CFN:          cloudformation.New(sess),
-			StateMachine: stepfunctions.New(v2ConfigFromSessionRegion(sess)),
+			CFN:          cloudformation.New(cfg),
+			StateMachine: stepfunctions.New(cfg),
 		}), nil
 	}
 	opts.newEnvCompatibilityChecker = func() (versionCompatibilityChecker, error) {
@@ -191,12 +192,12 @@ func (o *jobRunOpts) getTargetEnv() (*config.Environment, error) {
 	return o.targetEnv, nil
 }
 
-func (o *jobRunOpts) envSession() (*session.Session, error) {
+func (o *jobRunOpts) envConfig() (aws.Config, error) {
 	env, err := o.getTargetEnv()
 	if err != nil {
-		return nil, err
+		return aws.Config{}, err
 	}
-	return o.sessProvider.FromRole(env.ManagerRoleARN, env.Region)
+	return o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 }
 
 func (o *jobRunOpts) validateEnvCompatible() error {

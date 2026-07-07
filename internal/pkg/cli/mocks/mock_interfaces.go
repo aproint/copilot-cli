@@ -36,8 +36,8 @@ import (
 	selector "github.com/aproint/copilot-cli/internal/pkg/term/selector"
 	workspace "github.com/aproint/copilot-cli/internal/pkg/workspace"
 	aws "github.com/aws/aws-sdk-go-v2/aws"
+	types "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	session "github.com/aws/aws-sdk-go/aws/session"
-	cloudformation1 "github.com/aws/aws-sdk-go/service/cloudformation"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -2067,6 +2067,21 @@ func (m *MocksessionFromStaticProvider) EXPECT() *MocksessionFromStaticProviderM
 	return m.recorder
 }
 
+// ConfigFromStaticCreds mocks base method.
+func (m *MocksessionFromStaticProvider) ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigFromStaticCreds", accessKeyID, secretAccessKey, sessionToken)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfigFromStaticCreds indicates an expected call of ConfigFromStaticCreds.
+func (mr *MocksessionFromStaticProviderMockRecorder) ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromStaticCreds", reflect.TypeOf((*MocksessionFromStaticProvider)(nil).ConfigFromStaticCreds), accessKeyID, secretAccessKey, sessionToken)
+}
+
 // FromStaticCreds mocks base method.
 func (m *MocksessionFromStaticProvider) FromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (*session.Session, error) {
 	m.ctrl.T.Helper()
@@ -2103,6 +2118,21 @@ func NewMocksessionFromProfileProvider(ctrl *gomock.Controller) *MocksessionFrom
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MocksessionFromProfileProvider) EXPECT() *MocksessionFromProfileProviderMockRecorder {
 	return m.recorder
+}
+
+// ConfigFromProfile mocks base method.
+func (m *MocksessionFromProfileProvider) ConfigFromProfile(ctx context.Context, name string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigFromProfile", ctx, name)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfigFromProfile indicates an expected call of ConfigFromProfile.
+func (mr *MocksessionFromProfileProviderMockRecorder) ConfigFromProfile(ctx, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromProfile", reflect.TypeOf((*MocksessionFromProfileProvider)(nil).ConfigFromProfile), ctx, name)
 }
 
 // FromProfile mocks base method.
@@ -2158,6 +2188,36 @@ func (mr *MocksessionProviderMockRecorder) ConfigFromRole(ctx, roleARN, region i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromRole", reflect.TypeOf((*MocksessionProvider)(nil).ConfigFromRole), ctx, roleARN, region)
 }
 
+// ConfigFromProfile mocks base method.
+func (m *MocksessionProvider) ConfigFromProfile(ctx context.Context, name string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigFromProfile", ctx, name)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfigFromProfile indicates an expected call of ConfigFromProfile.
+func (mr *MocksessionProviderMockRecorder) ConfigFromProfile(ctx, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromProfile", reflect.TypeOf((*MocksessionProvider)(nil).ConfigFromProfile), ctx, name)
+}
+
+// ConfigFromStaticCreds mocks base method.
+func (m *MocksessionProvider) ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigFromStaticCreds", accessKeyID, secretAccessKey, sessionToken)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfigFromStaticCreds indicates an expected call of ConfigFromStaticCreds.
+func (mr *MocksessionProviderMockRecorder) ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromStaticCreds", reflect.TypeOf((*MocksessionProvider)(nil).ConfigFromStaticCreds), accessKeyID, secretAccessKey, sessionToken)
+}
+
 // Default mocks base method.
 func (m *MocksessionProvider) Default() (*session.Session, error) {
 	m.ctrl.T.Helper()
@@ -2171,6 +2231,21 @@ func (m *MocksessionProvider) Default() (*session.Session, error) {
 func (mr *MocksessionProviderMockRecorder) Default() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Default", reflect.TypeOf((*MocksessionProvider)(nil).Default))
+}
+
+// DefaultConfig mocks base method.
+func (m *MocksessionProvider) DefaultConfig(ctx context.Context) (aws.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DefaultConfig", ctx)
+	ret0, _ := ret[0].(aws.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DefaultConfig indicates an expected call of DefaultConfig.
+func (mr *MocksessionProviderMockRecorder) DefaultConfig(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultConfig", reflect.TypeOf((*MocksessionProvider)(nil).DefaultConfig), ctx)
 }
 
 // DefaultConfigWithRegion mocks base method.
@@ -6544,10 +6619,10 @@ func (m *MockcredsSelector) EXPECT() *MockcredsSelectorMockRecorder {
 }
 
 // Creds mocks base method.
-func (m *MockcredsSelector) Creds(prompt, help string) (*session.Session, error) {
+func (m *MockcredsSelector) Creds(prompt, help string) (aws.Config, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Creds", prompt, help)
-	ret0, _ := ret[0].(*session.Session)
+	ret0, _ := ret[0].(aws.Config)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -8197,10 +8272,10 @@ func (m *MockstackConfiguration) EXPECT() *MockstackConfigurationMockRecorder {
 }
 
 // Parameters mocks base method.
-func (m *MockstackConfiguration) Parameters() ([]*cloudformation1.Parameter, error) {
+func (m *MockstackConfiguration) Parameters() ([]*types.Parameter, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Parameters")
-	ret0, _ := ret[0].([]*cloudformation1.Parameter)
+	ret0, _ := ret[0].([]*types.Parameter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -8241,10 +8316,10 @@ func (mr *MockstackConfigurationMockRecorder) StackName() *gomock.Call {
 }
 
 // Tags mocks base method.
-func (m *MockstackConfiguration) Tags() []*cloudformation1.Tag {
+func (m *MockstackConfiguration) Tags() []*types.Tag {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Tags")
-	ret0, _ := ret[0].([]*cloudformation1.Tag)
+	ret0, _ := ret[0].([]*types.Tag)
 	return ret0
 }
 

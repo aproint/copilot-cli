@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -37,8 +38,7 @@ import (
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -177,7 +177,7 @@ type initEnvOpts struct {
 	manifestWriter      environmentManifestWriter
 	envLister           wsEnvironmentsLister
 
-	sess *session.Session // Session pointing to environment's AWS account and region.
+	cfg aws.Config // Config pointing to environment's AWS account and region.
 
 	// Cached variables.
 	wsAppName        string
@@ -206,7 +206,7 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 		initEnvVars:  vars,
 		sessProvider: sessProvider,
 		store:        store,
-		appDeployer:  deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
+		appDeployer:  deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
 		identity:     identity.New(v2ConfigFromSessionRegion(defaultSession)),
 		prog:         termprogress.NewSpinner(log.DiagnosticWriter),
 		prompt:       prompter,
@@ -225,7 +225,7 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 			return describe.NewAppDescriber(appName)
 		},
 		selApp:         selector.NewAppEnvSelector(prompt.New(), store),
-		appCFN:         deploycfn.New(defaultSession, deploycfn.WithProgressTracker(os.Stderr)),
+		appCFN:         deploycfn.New(v2ConfigFromSessionRegion(defaultSession), deploycfn.WithProgressTracker(os.Stderr)),
 		manifestWriter: ws,
 		envLister:      ws,
 
@@ -317,7 +317,7 @@ func (o *initEnvOpts) Execute() error {
 	if err := o.addToStackset(&deploycfn.AddEnvToAppOpts{
 		App:          app,
 		EnvName:      o.name,
-		EnvRegion:    aws.StringValue(o.sess.Config.Region),
+		EnvRegion:    o.cfg.Region,
 		EnvAccountID: envCaller.Account,
 	}); err != nil {
 		return err
@@ -354,16 +354,16 @@ func (o *initEnvOpts) RecommendActions() error {
 func (o *initEnvOpts) initRuntimeClients() error {
 	// Initialize environment clients if not set.
 	if o.envIdentity == nil {
-		o.envIdentity = identity.New(v2ConfigFromSessionRegion(o.sess))
+		o.envIdentity = identity.New(o.cfg)
 	}
 	if o.envDeployer == nil {
-		o.envDeployer = deploycfn.New(o.sess, deploycfn.WithProgressTracker(os.Stderr))
+		o.envDeployer = deploycfn.New(o.cfg, deploycfn.WithProgressTracker(os.Stderr))
 	}
 	if o.cfn == nil {
-		o.cfn = cloudformation.New(o.sess)
+		o.cfn = cloudformation.New(o.cfg)
 	}
 	if o.iam == nil {
-		o.iam = iam.New(v2ConfigFromSessionRegion(o.sess))
+		o.iam = iam.New(o.cfg)
 	}
 	return nil
 }
@@ -415,43 +415,43 @@ func (o *initEnvOpts) askEnvName() error {
 
 func (o *initEnvOpts) askEnvSession() error {
 	if o.profile != "" {
-		sess, err := o.sessProvider.FromProfile(o.profile)
+		cfg, err := o.sessProvider.ConfigFromProfile(context.Background(), o.profile)
 		if err != nil {
-			return fmt.Errorf("create session from profile %s: %w", o.profile, err)
+			return fmt.Errorf("create config from profile %s: %w", o.profile, err)
 		}
-		o.sess = sess
+		o.cfg = cfg
 		return nil
 	}
 	if o.tempCreds.isSet() {
-		sess, err := o.sessProvider.FromStaticCreds(o.tempCreds.AccessKeyID, o.tempCreds.SecretAccessKey, o.tempCreds.SessionToken)
+		cfg, err := o.sessProvider.ConfigFromStaticCreds(o.tempCreds.AccessKeyID, o.tempCreds.SecretAccessKey, o.tempCreds.SessionToken)
 		if err != nil {
 			return err
 		}
-		o.sess = sess
+		o.cfg = cfg
 		return nil
 	}
 
 	selCreds, err := o.selCreds()
 	if err != nil {
 		errRetrieveCreds := err
-		sess, err := o.sessProvider.Default()
+		cfg, err := o.sessProvider.DefaultConfig(context.Background())
 		if err != nil {
 			return errors.Join(errRetrieveCreds, fmt.Errorf("falling back on default credentials: %w", err))
 		}
-		o.sess = sess
+		o.cfg = cfg
 		return nil
 	}
 
-	sess, err := selCreds.Creds(fmt.Sprintf(fmtEnvInitCredsPrompt, color.HighlightUserInput(o.name)), envInitCredsHelpPrompt)
+	cfg, err := selCreds.Creds(fmt.Sprintf(fmtEnvInitCredsPrompt, color.HighlightUserInput(o.name)), envInitCredsHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select creds: %w", err)
 	}
-	o.sess = sess
+	o.cfg = cfg
 	return nil
 }
 
 func (o *initEnvOpts) askEnvRegion() error {
-	region := aws.StringValue(o.sess.Config.Region)
+	region := o.cfg.Region
 	if o.region != "" {
 		region = o.region
 	}
@@ -462,7 +462,7 @@ func (o *initEnvOpts) askEnvRegion() error {
 		}
 		region = v
 	}
-	o.sess.Config.Region = aws.String(region)
+	o.cfg.Region = region
 	return nil
 }
 
@@ -500,7 +500,7 @@ func (o *initEnvOpts) askCustomizedResources() error {
 
 func (o *initEnvOpts) askImportResources() error {
 	if o.selVPC == nil {
-		o.selVPC = selector.NewEC2Select(o.prompt, ec2.New(v2ConfigFromSessionRegion(o.sess)))
+		o.selVPC = selector.NewEC2Select(o.prompt, ec2.New(o.cfg))
 	}
 	if o.importVPC.ID == "" {
 		vpcID, err := o.selVPC.VPC(envInitVPCSelectPrompt, "")
@@ -516,7 +516,7 @@ func (o *initEnvOpts) askImportResources() error {
 		o.importVPC.ID = vpcID
 	}
 	if o.ec2Client == nil {
-		o.ec2Client = ec2.New(v2ConfigFromSessionRegion(o.sess))
+		o.ec2Client = ec2.New(o.cfg)
 	}
 	dnsSupport, err := o.ec2Client.HasDNSSupport(o.importVPC.ID)
 	if err != nil {
@@ -633,11 +633,11 @@ func (o *initEnvOpts) askAZs() ([]string, error) {
 		return o.adjustVPC.AZs, nil
 	}
 	if o.ec2Client == nil {
-		o.ec2Client = ec2.New(v2ConfigFromSessionRegion(o.sess))
+		o.ec2Client = ec2.New(o.cfg)
 	}
 	azs, err := o.ec2Client.ListAZs()
 	if err != nil {
-		return nil, fmt.Errorf("list availability zones for region %s: %v", aws.StringValue(o.sess.Config.Region), err)
+		return nil, fmt.Errorf("list availability zones for region %s: %v", o.cfg.Region, err)
 	}
 
 	var options []string
@@ -646,7 +646,7 @@ func (o *initEnvOpts) askAZs() ([]string, error) {
 	}
 	const minAZs = 2
 	if len(options) < minAZs {
-		return nil, fmt.Errorf("requires at least %d availability zones (%s) in region %s", minAZs, strings.Join(options, ", "), aws.StringValue(o.sess.Config.Region))
+		return nil, fmt.Errorf("requires at least %d availability zones (%s) in region %s", minAZs, strings.Join(options, ", "), o.cfg.Region)
 	}
 	defaultOptions := make([]string, minAZs)
 	for i := 0; i < minAZs; i += 1 {
@@ -722,7 +722,7 @@ func (o *initEnvOpts) adjustVPCConfig() *config.AdjustVPC {
 }
 
 func (o *initEnvOpts) deployEnv(app *config.Application) error {
-	envRegion := aws.StringValue(o.sess.Config.Region)
+	envRegion := o.cfg.Region
 	resources, err := o.appCFN.GetAppResourcesByRegion(app, envRegion)
 	if err != nil {
 		return fmt.Errorf("get app resources: %w", err)

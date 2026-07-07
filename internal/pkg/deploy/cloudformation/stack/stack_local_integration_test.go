@@ -16,7 +16,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +59,7 @@ func Test_Stack_Local_Integration(t *testing.T) {
 	ws, err := workspace.Use(fs)
 	require.NoError(t, err)
 
-	_, err = addon.ParseFromWorkload(aws.StringValue(v.Name), ws)
+	_, err = addon.ParseFromWorkload(aws.ToString(v.Name), ws)
 	var notFound *addon.ErrAddonsNotFound
 	require.ErrorAs(t, err, &notFound)
 
@@ -76,7 +76,7 @@ func Test_Stack_Local_Integration(t *testing.T) {
 		ArtifactBucketName: "bucket",
 		RuntimeConfig: stack.RuntimeConfig{
 			PushedImages: map[string]stack.ECRImage{
-				aws.StringValue(v.Name): {
+				aws.ToString(v.Name): {
 					RepoURL:  imageURL,
 					ImageTag: imageTag,
 				},

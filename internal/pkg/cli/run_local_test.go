@@ -23,12 +23,10 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	sdkecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
+	rdstypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -205,7 +203,7 @@ type runLocalExecuteMocks struct {
 	ecsClient      *mocks.MockecsClient
 	ecsExecutor    *mocks.MockecsCommandExecutor
 	store          *mocks.Mockstore
-	sessCreds      credentials.Provider
+	sessCreds      aws.CredentialsProvider
 	sessProvider   *mocks.MocksessionProvider
 	interpolator   *mocks.Mockinterpolator
 	ws             *mocks.MockwsWlDirReader
@@ -223,15 +221,24 @@ type runLocalExecuteMocks struct {
 }
 
 type mockProvider struct {
-	FnRetrieve func() (credentials.Value, error)
+	FnRetrieve func(context.Context) (aws.Credentials, error)
 }
 
-func (m *mockProvider) Retrieve() (credentials.Value, error) {
-	return m.FnRetrieve()
+func (m *mockProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return m.FnRetrieve(ctx)
 }
 
-func (m *mockProvider) IsExpired() bool {
-	return false
+func staticConfig(accessKeyID, secretAccessKey, sessionToken, region string) aws.Config {
+	return aws.Config{
+		Credentials: aws.CredentialsProviderFunc(func(context.Context) (aws.Credentials, error) {
+			return aws.Credentials{
+				AccessKeyID:     accessKeyID,
+				SecretAccessKey: secretAccessKey,
+				SessionToken:    sessionToken,
+			}, nil
+		}),
+		Region: region,
+	}
 }
 
 type hostFinderDouble struct {
@@ -532,7 +539,7 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
-				m.sessProvider.EXPECT().FromRole("mock-arn", testRegion).Return(nil, errors.New("some error"))
+				m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), "mock-arn", testRegion).Return(aws.Config{}, errors.New("some error"))
 				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
@@ -842,13 +849,8 @@ ecs exec: all containers failed to retrieve credentials`),
 				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
-				taskRoleSess := &session.Session{
-					Config: &aws.Config{
-						Credentials: credentials.NewStaticCredentials("myID", "mySecret", "myToken"),
-						Region:      aws.String(testRegion),
-					},
-				}
-				m.sessProvider.EXPECT().FromRole("mock-arn", testRegion).Return(taskRoleSess, nil)
+				taskRoleConfig := staticConfig("myID", "mySecret", "myToken", testRegion)
+				m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), "mock-arn", testRegion).Return(taskRoleConfig, nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
 
@@ -876,7 +878,7 @@ ecs exec: all containers failed to retrieve credentials`),
 				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
-				m.sessProvider.EXPECT().FromRole("mock-arn", testRegion).Return(nil, errors.New("some error"))
+				m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), "mock-arn", testRegion).Return(aws.Config{}, errors.New("some error"))
 				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
@@ -1181,34 +1183,26 @@ ecs exec: all containers failed to retrieve credentials`),
 				buildContainerImages: func(mft manifest.DynamicWorkload) (map[string]string, error) {
 					return mockContainerURIs, tc.buildImagesError
 				},
-				ws:             m.ws,
-				ecsClient:      m.ecsClient,
-				ecsExecutor:    m.ecsExecutor,
-				ssm:            m.ssm,
-				secretsManager: m.secretsManager,
-				store:          m.store,
-				sessProvider:   m.sessProvider,
-				sess: &session.Session{
-					Config: &aws.Config{
-						Credentials: credentials.NewStaticCredentials("myID", "mySecret", "myToken"),
-					},
-				},
-				envManagerSess: &session.Session{
-					Config: &aws.Config{
-						Credentials: credentials.NewStaticCredentials("myEnvID", "myEnvSecret", "myEnvToken"),
-					},
-				},
-				cmd:            m.mockRunner,
-				dockerEngine:   m.dockerEngine,
-				repository:     m.repository,
-				targetEnv:      &mockEnv,
-				targetApp:      &mockApp,
-				prog:           m.prog,
-				orchestrator:   m.orchestrator,
-				hostFinder:     m.hostFinder,
-				envChecker:     m.envChecker,
-				debounceTime:   0, // disable debounce during testing
-				dockerExcludes: tc.inputDockerExcludes,
+				ws:               m.ws,
+				ecsClient:        m.ecsClient,
+				ecsExecutor:      m.ecsExecutor,
+				ssm:              m.ssm,
+				secretsManager:   m.secretsManager,
+				store:            m.store,
+				sessProvider:     m.sessProvider,
+				defaultConfig:    staticConfig("myID", "mySecret", "myToken", ""),
+				envManagerConfig: staticConfig("myEnvID", "myEnvSecret", "myEnvToken", ""),
+				cmd:              m.mockRunner,
+				dockerEngine:     m.dockerEngine,
+				repository:       m.repository,
+				targetEnv:        &mockEnv,
+				targetApp:        &mockApp,
+				prog:             m.prog,
+				orchestrator:     m.orchestrator,
+				hostFinder:       m.hostFinder,
+				envChecker:       m.envChecker,
+				debounceTime:     0, // disable debounce during testing
+				dockerExcludes:   tc.inputDockerExcludes,
 				newRecursiveWatcher: func() (recursiveWatcher, error) {
 					return m.watcher, nil
 				},
@@ -1591,8 +1585,8 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 				ssm:            mocks.NewMocksecretGetter(ctrl),
 				secretsManager: mocks.NewMocksecretGetter(ctrl),
 				sessCreds: &mockProvider{
-					FnRetrieve: func() (credentials.Value, error) {
-						return credentials.Value{
+					FnRetrieve: func(context.Context) (aws.Credentials, error) {
+						return aws.Credentials{
 							AccessKeyID:     "myID",
 							SecretAccessKey: "mySecret",
 							SessionToken:    "myToken",
@@ -1608,11 +1602,9 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 				runLocalVars: runLocalVars{
 					envOverrides: tc.envOverrides,
 				},
-				sess: &session.Session{
-					Config: &aws.Config{
-						Credentials: credentials.NewCredentials(m.sessCreds),
-						Region:      tc.region,
-					},
+				defaultConfig: aws.Config{
+					Credentials: m.sessCreds,
+					Region:      aws.ToString(tc.region),
 				},
 				ssm:            m.ssm,
 				secretsManager: m.secretsManager,
@@ -1641,22 +1633,22 @@ func (d *taggedResourceGetterDouble) GetResourcesByTags(resourceType string, tag
 }
 
 type rdsDescriberDouble struct {
-	DescribeDBInstancesPagesWithContextFn func(context.Context, *rds.DescribeDBInstancesInput, func(*rds.DescribeDBInstancesOutput, bool) bool, ...request.Option) error
-	DescribeDBClustersPagesWithContextFn  func(context.Context, *rds.DescribeDBClustersInput, func(*rds.DescribeDBClustersOutput, bool) bool, ...request.Option) error
+	DescribeDBInstancesFn func(context.Context, *rds.DescribeDBInstancesInput, ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error)
+	DescribeDBClustersFn  func(context.Context, *rds.DescribeDBClustersInput, ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error)
 }
 
-func (d *rdsDescriberDouble) DescribeDBInstancesPagesWithContext(ctx context.Context, in *rds.DescribeDBInstancesInput, fn func(*rds.DescribeDBInstancesOutput, bool) bool, opts ...request.Option) error {
-	if d.DescribeDBInstancesPagesWithContextFn == nil {
-		return nil
+func (d *rdsDescriberDouble) DescribeDBInstances(ctx context.Context, in *rds.DescribeDBInstancesInput, opts ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
+	if d.DescribeDBInstancesFn == nil {
+		return &rds.DescribeDBInstancesOutput{}, nil
 	}
-	return d.DescribeDBInstancesPagesWithContextFn(ctx, in, fn, opts...)
+	return d.DescribeDBInstancesFn(ctx, in, opts...)
 }
 
-func (d *rdsDescriberDouble) DescribeDBClustersPagesWithContext(ctx context.Context, in *rds.DescribeDBClustersInput, fn func(*rds.DescribeDBClustersOutput, bool) bool, opts ...request.Option) error {
-	if d.DescribeDBClustersPagesWithContextFn == nil {
-		return nil
+func (d *rdsDescriberDouble) DescribeDBClusters(ctx context.Context, in *rds.DescribeDBClustersInput, opts ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error) {
+	if d.DescribeDBClustersFn == nil {
+		return &rds.DescribeDBClustersOutput{}, nil
 	}
-	return d.DescribeDBClustersPagesWithContextFn(ctx, in, fn, opts...)
+	return d.DescribeDBClustersFn(ctx, in, opts...)
 }
 
 func TestRunLocal_HostDiscovery(t *testing.T) {
@@ -1793,8 +1785,8 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 						},
 					}, nil
 				}
-				m.rds.DescribeDBInstancesPagesWithContextFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, f func(*rds.DescribeDBInstancesOutput, bool) bool, o ...request.Option) error {
-					return errors.New("some error")
+				m.rds.DescribeDBInstancesFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, o ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
+					return nil, errors.New("some error")
 				}
 			},
 			wantError: "get rds hosts: describe instances: some error",
@@ -1812,18 +1804,17 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 						},
 					}, nil
 				}
-				m.rds.DescribeDBInstancesPagesWithContextFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, f func(*rds.DescribeDBInstancesOutput, bool) bool, o ...request.Option) error {
-					f(&rds.DescribeDBInstancesOutput{
-						DBInstances: []*rds.DBInstance{
+				m.rds.DescribeDBInstancesFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, o ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
+					return &rds.DescribeDBInstancesOutput{
+						DBInstances: []rdstypes.DBInstance{
 							{
-								Endpoint: &rds.Endpoint{
+								Endpoint: &rdstypes.Endpoint{
 									Address: aws.String("db"),
-									Port:    aws.Int64(3306),
+									Port:    aws.Int32(3306),
 								},
 							},
 						},
-					}, true)
-					return nil
+					}, nil
 				}
 			},
 			wantHosts: []orchestrator.Host{
@@ -1853,21 +1844,20 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 						},
 					}, nil
 				}
-				m.rds.DescribeDBInstancesPagesWithContextFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, f func(*rds.DescribeDBInstancesOutput, bool) bool, o ...request.Option) error {
-					f(&rds.DescribeDBInstancesOutput{
-						DBInstances: []*rds.DBInstance{
+				m.rds.DescribeDBInstancesFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, o ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
+					return &rds.DescribeDBInstancesOutput{
+						DBInstances: []rdstypes.DBInstance{
 							{
-								Endpoint: &rds.Endpoint{
+								Endpoint: &rdstypes.Endpoint{
 									Address: aws.String("db"),
-									Port:    aws.Int64(3306),
+									Port:    aws.Int32(3306),
 								},
 							},
 						},
-					}, true)
-					return nil
+					}, nil
 				}
-				m.rds.DescribeDBClustersPagesWithContextFn = func(ctx context.Context, ddi *rds.DescribeDBClustersInput, f func(*rds.DescribeDBClustersOutput, bool) bool, o ...request.Option) error {
-					return errors.New("some error")
+				m.rds.DescribeDBClustersFn = func(ctx context.Context, ddi *rds.DescribeDBClustersInput, o ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error) {
+					return nil, errors.New("some error")
 				}
 			},
 			wantError: "get rds hosts: describe clusters: some error",
@@ -1897,33 +1887,31 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 						},
 					}, nil
 				}
-				m.rds.DescribeDBInstancesPagesWithContextFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, f func(*rds.DescribeDBInstancesOutput, bool) bool, o ...request.Option) error {
-					f(&rds.DescribeDBInstancesOutput{
-						DBInstances: []*rds.DBInstance{
+				m.rds.DescribeDBInstancesFn = func(ctx context.Context, ddi *rds.DescribeDBInstancesInput, o ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
+					return &rds.DescribeDBInstancesOutput{
+						DBInstances: []rdstypes.DBInstance{
 							{
-								Endpoint: &rds.Endpoint{
+								Endpoint: &rdstypes.Endpoint{
 									Address: aws.String("db"),
-									Port:    aws.Int64(3306),
+									Port:    aws.Int32(3306),
 								},
 							},
 						},
-					}, true)
-					return nil
+					}, nil
 				}
-				m.rds.DescribeDBClustersPagesWithContextFn = func(ctx context.Context, ddi *rds.DescribeDBClustersInput, f func(*rds.DescribeDBClustersOutput, bool) bool, o ...request.Option) error {
-					require.NotContains(t, ddi.Filters[0].Values, aws.String("arn:aws:rds:us-west-2:123456789:cluster:otherServiceCluster"))
+				m.rds.DescribeDBClustersFn = func(ctx context.Context, ddi *rds.DescribeDBClustersInput, o ...func(*rds.Options)) (*rds.DescribeDBClustersOutput, error) {
+					require.NotContains(t, ddi.Filters[0].Values, "arn:aws:rds:us-west-2:123456789:cluster:otherServiceCluster")
 
-					f(&rds.DescribeDBClustersOutput{
-						DBClusters: []*rds.DBCluster{
+					return &rds.DescribeDBClustersOutput{
+						DBClusters: []rdstypes.DBCluster{
 							{
 								Endpoint:        aws.String("cluster"),
-								Port:            aws.Int64(5432),
+								Port:            aws.Int32(5432),
 								ReaderEndpoint:  aws.String("cluster-ro"),
-								CustomEndpoints: []*string{aws.String("cluster-custom")},
+								CustomEndpoints: []string{"cluster-custom"},
 							},
 						},
-					}, true)
-					return nil
+					}, nil
 				}
 			},
 			wantHosts: []orchestrator.Host{

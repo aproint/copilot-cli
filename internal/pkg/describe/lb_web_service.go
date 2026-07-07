@@ -5,12 +5,15 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/aws/smithy-go"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
 	"github.com/aproint/copilot-cli/internal/pkg/docker/dockerengine"
@@ -22,7 +25,6 @@ import (
 	cfnstack "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 const (
@@ -83,11 +85,11 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		sess, err := sessions.ImmutableProvider().FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
-		return elbv2.New(v2ConfigFromSessionRegion(sess)), nil
+		return elbv2.New(cfg), nil
 	}
 	describer.initECSServiceDescribers = func(env string) (ecsDescriber, error) {
 		if describer, ok := describer.ecsServiceDescribers[env]; ok {
@@ -128,11 +130,10 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		sess, err := sessions.ImmutableProvider().FromRole(env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
-		cfg := v2ConfigFromSessionRegion(sess)
 		return cloudwatch.New(cfg, cfg), nil
 	}
 	return describer, nil
@@ -350,14 +351,15 @@ func IsStackNotExistsErr(err error) bool {
 	if err == nil {
 		return false
 	}
-	aerr, ok := err.(awserr.Error)
+	var aerr smithy.APIError
+	ok := errors.As(err, &aerr)
 	if !ok {
 		return IsStackNotExistsErr(errors.Unwrap(err))
 	}
-	if aerr.Code() != "ValidationError" {
+	if aerr.ErrorCode() != "ValidationError" {
 		return IsStackNotExistsErr(errors.Unwrap(err))
 	}
-	if !strings.Contains(aerr.Message(), "does not exist") {
+	if !strings.Contains(aerr.ErrorMessage(), "does not exist") {
 		return IsStackNotExistsErr(errors.Unwrap(err))
 	}
 	return true

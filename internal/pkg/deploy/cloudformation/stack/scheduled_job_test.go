@@ -14,8 +14,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -156,7 +156,7 @@ DiscoveryServiceArn: !GetAtt DiscoveryService.Arn`,
 				addons := mockAddons{tplErr: errors.New("some error")}
 				j.wkld.addons = addons
 			},
-			wantedError: fmt.Errorf("generate addons template for %s: %w", aws.StringValue(testScheduledJobManifest.Name), errors.New("some error")),
+			wantedError: fmt.Errorf("generate addons template for %s: %w", aws.ToString(testScheduledJobManifest.Name), errors.New("some error")),
 		},
 		"template parsing error": {
 			mockDependencies: func(t *testing.T, ctrl *gomock.Controller, j *ScheduledJob) {
@@ -177,7 +177,7 @@ DiscoveryServiceArn: !GetAtt DiscoveryService.Arn`,
 			conf := &ScheduledJob{
 				ecsWkld: &ecsWkld{
 					wkld: &wkld{
-						name: aws.StringValue(testScheduledJobManifest.Name),
+						name: aws.ToString(testScheduledJobManifest.Name),
 						env:  testJobEnvName,
 						app:  testJobAppName,
 						rc: RuntimeConfig{
@@ -436,8 +436,8 @@ func TestScheduledJob_stateMachine(t *testing.T) {
 				require.True(t, errors.As(err, tc.wantedErrorType))
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, aws.IntValue(tc.wantedConfig.Retries), aws.IntValue(parsedStateMachine.Retries))
-				require.Equal(t, aws.IntValue(tc.wantedConfig.Timeout), aws.IntValue(parsedStateMachine.Timeout))
+				require.Equal(t, aws.ToInt(tc.wantedConfig.Retries), aws.ToInt(parsedStateMachine.Retries))
+				require.Equal(t, aws.ToInt(tc.wantedConfig.Timeout), aws.ToInt(parsedStateMachine.Timeout))
 			}
 		})
 	}
@@ -525,7 +525,7 @@ func TestScheduledJob_Parameters(t *testing.T) {
 			conf := &ScheduledJob{
 				ecsWkld: &ecsWkld{
 					wkld: &wkld{
-						name: aws.StringValue(tc.manifest.Name),
+						name: aws.ToString(tc.manifest.Name),
 						env:  testEnvName,
 						app:  testAppName,
 						rc: RuntimeConfig{
@@ -569,12 +569,12 @@ func TestScheduledJob_SerializedParameters(t *testing.T) {
 	c := &ScheduledJob{
 		ecsWkld: &ecsWkld{
 			wkld: &wkld{
-				name: aws.StringValue(testScheduledJobManifest.Name),
+				name: aws.ToString(testScheduledJobManifest.Name),
 				env:  testEnvName,
 				app:  testAppName,
 				rc: RuntimeConfig{
 					PushedImages: map[string]ECRImage{
-						aws.StringValue(testScheduledJobManifest.Name): {
+						aws.ToString(testScheduledJobManifest.Name): {
 							RepoURL:  testImageRepoURL,
 							ImageTag: testImageTag,
 						},

@@ -15,8 +15,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/upload/customresource"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/golang/mock/gomock"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
@@ -472,8 +472,8 @@ func (o *mockOverrider) Override(body []byte) (out []byte, err error) {
 
 type mockStaticSite struct{}
 
-func (s *mockStaticSite) Template() (string, error)                        { return "", nil }
-func (s *mockStaticSite) StackName() string                                { return "" }
-func (s *mockStaticSite) Parameters() ([]*cloudformation.Parameter, error) { return nil, nil }
-func (s *mockStaticSite) Tags() []*cloudformation.Tag                      { return nil }
-func (s *mockStaticSite) SerializedParameters() (string, error)            { return "", nil }
+func (s *mockStaticSite) Template() (string, error)               { return "", nil }
+func (s *mockStaticSite) StackName() string                       { return "" }
+func (s *mockStaticSite) Parameters() ([]*types.Parameter, error) { return nil, nil }
+func (s *mockStaticSite) Tags() []*types.Tag                      { return nil }
+func (s *mockStaticSite) SerializedParameters() (string, error)   { return "", nil }

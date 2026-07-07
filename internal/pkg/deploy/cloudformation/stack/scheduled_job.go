@@ -17,8 +17,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/template/override"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/robfig/cron/v3"
 )
 
@@ -109,7 +109,7 @@ func NewScheduledJob(cfg ScheduledJobConfig) (*ScheduledJob, error) {
 	return &ScheduledJob{
 		ecsWkld: &ecsWkld{
 			wkld: &wkld{
-				name:               aws.StringValue(cfg.Manifest.Name),
+				name:               aws.ToString(cfg.Manifest.Name),
 				env:                cfg.Env,
 				app:                cfg.App.Name,
 				permBound:          cfg.App.PermissionsBoundary,
@@ -193,7 +193,7 @@ func (j *ScheduledJob) Template() (string, error) {
 		EntryPoint:               entrypoint,
 		Command:                  command,
 		DependsOn:                convertDependsOn(j.manifest.ImageConfig.Image.DependsOn),
-		CredentialsParameter:     aws.StringValue(j.manifest.ImageConfig.Image.Credentials),
+		CredentialsParameter:     aws.ToString(j.manifest.ImageConfig.Image.Credentials),
 		ServiceDiscoveryEndpoint: j.rc.ServiceDiscoveryEndpoint,
 		Publish:                  publishers,
 		Platform:                 convertPlatform(j.manifest.Platform),
@@ -246,13 +246,13 @@ func (j *ScheduledJob) SerializedParameters() (string, error) {
 // Exception is made for strings of the form "rate( )" or "cron( )". These are accepted as-is and
 // validated server-side by CloudFormation.
 func (j *ScheduledJob) awsSchedule() (string, error) {
-	schedule := aws.StringValue(j.manifest.On.Schedule)
+	schedule := aws.ToString(j.manifest.On.Schedule)
 	if schedule == "" {
 		return "", fmt.Errorf(`missing required field "schedule" in manifest for job %s`, j.name)
 	}
 	// If the schedule uses default CloudWatch Events syntax, pass it through for server-side validation.
 	if match := awsScheduleRegexp.FindStringSubmatch(schedule); match != nil {
-		return aws.StringValue(j.manifest.On.Schedule), nil
+		return aws.ToString(j.manifest.On.Schedule), nil
 	}
 	// Try parsing the string as a cron expression to validate it.
 	if _, err := cron.ParseStandard(schedule); err != nil {
@@ -406,7 +406,7 @@ func toAWSCron(schedule string) (string, error) {
 // It also performs basic validations to provide a fast feedback loop to the customer.
 func (j *ScheduledJob) stateMachineOpts() (*template.StateMachineOpts, error) {
 	var timeoutSeconds *int
-	if inTimeout := aws.StringValue(j.manifest.Timeout); inTimeout != "" {
+	if inTimeout := aws.ToString(j.manifest.Timeout); inTimeout != "" {
 		parsedTimeout, err := time.ParseDuration(inTimeout)
 		if err != nil {
 			return nil, errDurationInvalid{reason: err}
@@ -421,7 +421,7 @@ func (j *ScheduledJob) stateMachineOpts() (*template.StateMachineOpts, error) {
 	}
 
 	var retries *int
-	if inRetries := aws.IntValue(j.manifest.Retries); inRetries != 0 {
+	if inRetries := aws.ToInt(j.manifest.Retries); inRetries != 0 {
 		if inRetries < 0 {
 			return nil, errors.New("number of retries cannot be negative")
 		}

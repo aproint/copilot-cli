@@ -13,7 +13,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/task"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -43,13 +43,13 @@ type TaskClient struct {
 }
 
 // NewTaskClient returns a TaskClient that can retrieve logs from the given tasks under the groupName.
-func NewTaskClient(sess *session.Session, groupName string, tasks []*task.Task) *TaskClient {
+func NewTaskClient(cfg aws.Config, groupName string, tasks []*task.Task) *TaskClient {
 	return &TaskClient{
 		groupName: groupName,
 		tasks:     tasks,
 
-		taskDescriber: ecs.New(v2ConfigFromSessionRegion(sess)),
-		eventsLogger:  cloudwatchlogs.New(v2ConfigFromSessionRegion(sess)),
+		taskDescriber: ecs.New(cfg),
+		eventsLogger:  cloudwatchlogs.New(cfg),
 		eventsWriter:  log.OutputWriter,
 
 		sleep: func() {

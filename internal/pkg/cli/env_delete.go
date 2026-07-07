@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,7 +14,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
 	awscfn "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/iam"
@@ -28,8 +29,9 @@ import (
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -61,6 +63,14 @@ var (
 
 type resourceGetter interface {
 	GetResources(*resourcegroupstaggingapi.GetResourcesInput) (*resourcegroupstaggingapi.GetResourcesOutput, error)
+}
+
+type resourceGroupsClient struct {
+	client *resourcegroupstaggingapi.Client
+}
+
+func (c *resourceGroupsClient) GetResources(in *resourcegroupstaggingapi.GetResourcesInput) (*resourcegroupstaggingapi.GetResourcesOutput, error) {
+	return c.client.GetResources(context.Background(), in)
 }
 
 type deleteEnvVars struct {
@@ -123,12 +133,12 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 			if err != nil {
 				return fmt.Errorf("create session from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
 			}
-			o.rg = resourcegroupstaggingapi.New(sess)
+			o.rg = &resourceGroupsClient{client: resourcegroupstaggingapi.NewFromConfig(v2ConfigFromSessionRegion(sess))}
 			o.iam = iam.New(v2ConfigFromSessionRegion(sess))
 			o.s3 = s3.New(v2ConfigFromSessionRegion(sess))
-			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), sess)
-			o.deployer = cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr))
-			o.envDeleterFromApp = cloudformation.New(defaultSess, cloudformation.WithProgressTracker(os.Stderr))
+			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), v2ConfigFromSessionRegion(sess))
+			o.deployer = cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr))
+			o.envDeleterFromApp = cloudformation.New(v2ConfigFromSessionRegion(defaultSess), cloudformation.WithProgressTracker(os.Stderr))
 			defaultV2Config := v2ConfigFromSessionRegion(defaultSess)
 			o.pipelineGetter = codepipeline.New(defaultV2Config, defaultV2Config)
 			o.deployedPipelineLister = deploy.NewPipelineStore(rg.New(v2ConfigFromSessionRegion(defaultSess)))
@@ -270,19 +280,19 @@ func (o *deleteEnvOpts) askEnvName() error {
 
 func (o *deleteEnvOpts) validateNoRunningServices() error {
 	stacks, err := o.rg.GetResources(&resourcegroupstaggingapi.GetResourcesInput{
-		ResourceTypeFilters: []*string{aws.String("cloudformation")},
-		TagFilters: []*resourcegroupstaggingapi.TagFilter{
+		ResourceTypeFilters: []string{"cloudformation"},
+		TagFilters: []types.TagFilter{
 			{
 				Key:    aws.String(deploy.ServiceTagKey),
-				Values: []*string{}, // Matches any service stack.
+				Values: []string{}, // Matches any service stack.
 			},
 			{
 				Key:    aws.String(deploy.EnvTagKey),
-				Values: []*string{aws.String(o.name)},
+				Values: []string{o.name},
 			},
 			{
 				Key:    aws.String(deploy.AppTagKey),
-				Values: []*string{aws.String(o.appName)},
+				Values: []string{o.appName},
 			},
 		},
 	})
@@ -293,10 +303,10 @@ func (o *deleteEnvOpts) validateNoRunningServices() error {
 		var svcNames []string
 		for _, cfnStack := range stacks.ResourceTagMappingList {
 			for _, t := range cfnStack.Tags {
-				if *t.Key != deploy.ServiceTagKey {
+				if aws.ToString(t.Key) != deploy.ServiceTagKey {
 					continue
 				}
-				svcNames = append(svcNames, *t.Value)
+				svcNames = append(svcNames, aws.ToString(t.Value))
 			}
 		}
 		return fmt.Errorf("service %q still exist within the environment %s", strings.Join(svcNames, ", "), o.name)
@@ -402,23 +412,23 @@ func (o *deleteEnvOpts) ensureRolesAreRetained() error {
 // emptyBuckets returns nil if buckets were deleted successfully. Otherwise, returns the error.
 func (o *deleteEnvOpts) emptyBuckets() error {
 	s3buckets, err := o.rg.GetResources(&resourcegroupstaggingapi.GetResourcesInput{
-		ResourceTypeFilters: aws.StringSlice([]string{"s3:bucket"}),
-		TagFilters: []*resourcegroupstaggingapi.TagFilter{
+		ResourceTypeFilters: []string{"s3:bucket"},
+		TagFilters: []types.TagFilter{
 			{
 				Key:    aws.String(stack.StackNameTagKey),
-				Values: []*string{aws.String(stack.NameForEnv(o.appName, o.name))},
+				Values: []string{stack.NameForEnv(o.appName, o.name)},
 			},
 			{
 				Key:    aws.String(stack.LogicalIDTagKey),
-				Values: aws.StringSlice(stack.EnvManagedS3BucketLogicalIds),
+				Values: stack.EnvManagedS3BucketLogicalIds,
 			},
 			{
 				Key:    aws.String(deploy.EnvTagKey),
-				Values: []*string{aws.String(o.name)},
+				Values: []string{o.name},
 			},
 			{
 				Key:    aws.String(deploy.AppTagKey),
-				Values: []*string{aws.String(o.appName)},
+				Values: []string{o.appName},
 			},
 		},
 	})
@@ -442,9 +452,9 @@ func (o *deleteEnvOpts) emptyBuckets() error {
 	var failedBuckets []string
 	var bucketErrors []error
 	for _, resourceTagMapping := range s3buckets.ResourceTagMappingList {
-		bucketARN, err := arn.Parse(aws.StringValue(resourceTagMapping.ResourceARN))
+		bucketARN, err := arn.Parse(aws.ToString(resourceTagMapping.ResourceARN))
 		if err != nil {
-			return fmt.Errorf("parse the arn %s: %w", aws.StringValue(resourceTagMapping.ResourceARN), err)
+			return fmt.Errorf("parse the arn %s: %w", aws.ToString(resourceTagMapping.ResourceARN), err)
 		}
 
 		// Attempt to empty all buckets found via GetResources API call

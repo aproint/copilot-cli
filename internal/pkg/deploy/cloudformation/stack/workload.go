@@ -16,8 +16,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aproint/copilot-cli/internal/pkg/template/override"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	cloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // Parameter logical IDs common across workloads.
@@ -235,10 +235,10 @@ func serializeTemplateConfig(parser template.Parser, stack templateConfigurer) (
 	}
 
 	for _, param := range params {
-		config.Parameters[aws.StringValue(param.ParameterKey)] = param.ParameterValue
+		config.Parameters[aws.ToString(param.ParameterKey)] = param.ParameterValue
 	}
 	for _, tag := range tags {
-		config.Tags[aws.StringValue(tag.Key)] = tag.Value
+		config.Tags[aws.ToString(tag.Key)] = tag.Value
 	}
 
 	str, err := json.MarshalIndent(config, "", "  ")
@@ -350,16 +350,16 @@ func (w *ecsWkld) Parameters() ([]*cloudformation.Parameter, error) {
 	}
 	logRetention := ecsWkldLogRetentionDefault
 	if w.logging.Retention != nil {
-		logRetention = aws.IntValue(w.logging.Retention)
+		logRetention = aws.ToInt(w.logging.Retention)
 	}
 	return append(envFileParameters, []*cloudformation.Parameter{
 		{
 			ParameterKey:   aws.String(WorkloadTaskCPUParamKey),
-			ParameterValue: aws.String(strconv.Itoa(aws.IntValue(w.tc.CPU))),
+			ParameterValue: aws.String(strconv.Itoa(aws.ToInt(w.tc.CPU))),
 		},
 		{
 			ParameterKey:   aws.String(WorkloadTaskMemoryParamKey),
-			ParameterValue: aws.String(strconv.Itoa(aws.IntValue(w.tc.Memory))),
+			ParameterValue: aws.String(strconv.Itoa(aws.ToInt(w.tc.Memory))),
 		},
 		{
 			ParameterKey:   aws.String(WorkloadTaskCountParamKey),
@@ -450,15 +450,15 @@ func (w *appRunnerWkld) Parameters() ([]*cloudformation.Parameter, error) {
 		},
 		{
 			ParameterKey:   aws.String(WorkloadContainerPortParamKey),
-			ParameterValue: aws.String(strconv.Itoa(int(aws.Uint16Value(w.imageConfig.Port)))),
+			ParameterValue: aws.String(strconv.Itoa(int(aws.ToUint16(w.imageConfig.Port)))),
 		},
 		{
 			ParameterKey:   aws.String(RDWkldInstanceCPUParamKey),
-			ParameterValue: aws.String(strconv.Itoa(aws.IntValue(w.instanceConfig.CPU))),
+			ParameterValue: aws.String(strconv.Itoa(aws.ToInt(w.instanceConfig.CPU))),
 		},
 		{
 			ParameterKey:   aws.String(RDWkldInstanceMemoryParamKey),
-			ParameterValue: aws.String(strconv.Itoa(aws.IntValue(w.instanceConfig.Memory))),
+			ParameterValue: aws.String(strconv.Itoa(aws.ToInt(w.instanceConfig.Memory))),
 		},
 	}
 

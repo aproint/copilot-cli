@@ -6,12 +6,13 @@
 package template_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/sessions"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
@@ -111,9 +112,9 @@ func TestTemplate_ParseScheduledJob(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			// GIVEN
-			sess, err := sessions.ImmutableProvider().Default()
+			cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 			require.NoError(t, err)
-			cfn := cloudformation.New(sess)
+			cfn := cloudformation.NewFromConfig(cfg)
 			tpl := template.New()
 
 			// WHEN
@@ -121,7 +122,7 @@ func TestTemplate_ParseScheduledJob(t *testing.T) {
 			require.NoError(t, err)
 
 			// THEN
-			_, err = cfn.ValidateTemplate(&cloudformation.ValidateTemplateInput{
+			_, err = cfn.ValidateTemplate(context.Background(), &cloudformation.ValidateTemplateInput{
 				TemplateBody: aws.String(content.String()),
 			})
 			require.NoError(t, err, content.String())
@@ -501,9 +502,9 @@ DiscoveryServiceArn:
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			// GIVEN
-			sess, err := sessions.ImmutableProvider().Default()
+			cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
 			require.NoError(t, err)
-			cfn := cloudformation.New(sess)
+			cfn := cloudformation.NewFromConfig(cfg)
 			tpl := template.New()
 
 			// WHEN
@@ -511,7 +512,7 @@ DiscoveryServiceArn:
 			require.NoError(t, err)
 
 			// THEN
-			_, err = cfn.ValidateTemplate(&cloudformation.ValidateTemplateInput{
+			_, err = cfn.ValidateTemplate(context.Background(), &cloudformation.ValidateTemplateInput{
 				TemplateBody: aws.String(content.String()),
 			})
 			require.NoError(t, err, content.String())

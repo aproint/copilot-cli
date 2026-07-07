@@ -13,9 +13,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/spf13/afero"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
 	"github.com/spf13/cobra"
 
@@ -78,9 +77,9 @@ func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
 	return &initAppOpts{
 		initAppVars:    vars,
 		identity:       identity,
-		store:          config.NewSSMStore(identity, ssm.New(sess), aws.StringValue(sess.Config.Region)),
+		store:          config.NewSSMStore(identity, config.NewSSMClient(cfg), aws.ToString(sess.Config.Region)),
 		route53:        route53.New(v2ConfigFromSessionRegion(sess)),
-		cfn:            cloudformation.New(sess, cloudformation.WithProgressTracker(os.Stderr)),
+		cfn:            cloudformation.New(v2ConfigFromSessionRegion(sess), cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:         prompt.New(),
 		prog:           termprogress.NewSpinner(log.DiagnosticWriter),
 		iam:            iamClient,

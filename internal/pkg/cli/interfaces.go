@@ -8,7 +8,7 @@ import (
 	"encoding"
 	"io"
 
-	sdkcloudformation "github.com/aws/aws-sdk-go/service/cloudformation"
+	sdkcloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 
 	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
@@ -204,6 +204,7 @@ type eventsWriter interface {
 
 type defaultSessionProvider interface {
 	Default() (*session.Session, error)
+	DefaultConfig(ctx context.Context) (awsv2.Config, error)
 }
 
 type regionalSessionProvider interface {
@@ -218,10 +219,12 @@ type sessionFromRoleProvider interface {
 
 type sessionFromStaticProvider interface {
 	FromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (*session.Session, error)
+	ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (awsv2.Config, error)
 }
 
 type sessionFromProfileProvider interface {
 	FromProfile(name string) (*session.Session, error)
+	ConfigFromProfile(ctx context.Context, name string) (awsv2.Config, error)
 }
 
 type sessionProvider interface {
@@ -587,7 +590,7 @@ type ec2Selector interface {
 }
 
 type credsSelector interface {
-	Creds(prompt, help string) (*session.Session, error)
+	Creds(prompt, help string) (awsv2.Config, error)
 }
 
 type ec2Client interface {

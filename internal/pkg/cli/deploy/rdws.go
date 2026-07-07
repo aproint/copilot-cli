@@ -24,8 +24,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 var rdwsAliasUsedWithoutDomainFriendlyText = fmt.Sprintf("To use %s, your application must be associated with a domain: %s.\n",
@@ -59,7 +58,7 @@ func NewRDWSDeployer(in *WorkloadDeployerInput) (*rdwsDeployer, error) {
 	}
 	return &rdwsDeployer{
 		svcDeployer:            svcDeployer,
-		customResourceS3Client: s3.New(v2ConfigFromSessionRegion(svcDeployer.defaultSessWithEnvRegion)),
+		customResourceS3Client: s3.New(svcDeployer.defaultEnvRegionAWSConfig),
 		appVersionGetter:       versionGetter,
 		rdwsMft:                rdwsMft,
 	}, nil
@@ -165,25 +164,25 @@ func (d *rdwsDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*rdwsS
 		return &rdwsStackConfigurationOutput{
 			svcStackConfigurationOutput: svcStackConfigurationOutput{
 				conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
-				svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-					return apprunner.New(s, v2ConfigFromSessionRegion(s))
+				svcUpdater: d.newSvcUpdater(func(cfg aws.Config) serviceForceUpdater {
+					return apprunner.New(cfg)
 				}),
 			},
 		}, nil
 	}
 
 	if err = validateRDSvcAliasAndAppVersion(d.name,
-		aws.StringValue(d.rdwsMft.Alias), d.env.Name, d.app, d.appVersionGetter); err != nil {
+		aws.ToString(d.rdwsMft.Alias), d.env.Name, d.app, d.appVersionGetter); err != nil {
 		return nil, err
 	}
 	return &rdwsStackConfigurationOutput{
 		svcStackConfigurationOutput: svcStackConfigurationOutput{
 			conf: cloudformation.WrapWithTemplateOverrider(conf, d.overrider),
-			svcUpdater: d.newSvcUpdater(func(s *session.Session) serviceForceUpdater {
-				return apprunner.New(s, v2ConfigFromSessionRegion(s))
+			svcUpdater: d.newSvcUpdater(func(cfg aws.Config) serviceForceUpdater {
+				return apprunner.New(cfg)
 			}),
 		},
-		rdSvcAlias: aws.StringValue(d.rdwsMft.Alias),
+		rdSvcAlias: aws.ToString(d.rdwsMft.Alias),
 	}, nil
 }
 

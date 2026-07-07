@@ -11,8 +11,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsecs "github.com/aws/aws-sdk-go-v2/service/ecs/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/require"
 )
 

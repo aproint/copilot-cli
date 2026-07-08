@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 env:
-  COSIGN_VERSION: v2.4.1
-  SYFT_VERSION: v1.20.0
+  COSIGN_VERSION: v3.1.1
+  SYFT_VERSION: v1.46.0
 
 jobs:
   build:
@@ -60,12 +60,11 @@ jobs:
       - name: Verify build tree is clean
         run: git diff --exit-code
 
-      - name: Install release tools
-        shell: bash
-        run: |
-          mkdir -p "${RUNNER_TEMP}/release-tools"
-          GOBIN="${RUNNER_TEMP}/release-tools" go install github.com/anchore/syft/cmd/syft@${SYFT_VERSION}
-          echo "${RUNNER_TEMP}/release-tools" >> "$GITHUB_PATH"
+      - name: Install Syft
+        id: syft
+        uses: anchore/sbom-action/download-syft@v0.20.10
+        with:
+          syft-version: ${{ env.SYFT_VERSION }}
 
       - name: Package release assets
         shell: bash
@@ -76,7 +75,7 @@ jobs:
           SYFT_CHECK_FOR_APP_UPDATE: "false"
           XDG_CACHE_HOME: ${{ runner.temp }}/syft-cache
         shell: bash
-        run: syft dir:. --source-name copilot-cli --source-version "${{ steps.version.outputs.version }}" -o spdx-json > dist/release/sbom.spdx.json
+        run: ${{ steps.syft.outputs.cmd }} dir:. --source-name copilot-cli --source-version "${{ steps.version.outputs.version }}" -o spdx-json > dist/release/sbom.spdx.json
 
       - name: Generate checksums
         shell: bash
@@ -218,23 +217,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v7
 
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: .go-version
-
       - name: Download release assets
         uses: actions/download-artifact@v8
         with:
           name: release-assets
           path: dist/release
 
-      - name: Install signing tools
-        shell: bash
-        run: |
-          mkdir -p "${RUNNER_TEMP}/release-tools"
-          GOBIN="${RUNNER_TEMP}/release-tools" go install github.com/sigstore/cosign/v2/cmd/cosign@${COSIGN_VERSION}
-          echo "${RUNNER_TEMP}/release-tools" >> "$GITHUB_PATH"
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
+        with:
+          cosign-release: ${{ env.COSIGN_VERSION }}
 
       - name: Sign release assets
         shell: bash

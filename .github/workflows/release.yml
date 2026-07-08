@@ -1,0 +1,267 @@
+# Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+env:
+  COSIGN_VERSION: v2.4.1
+  SYFT_VERSION: v1.20.0
+
+jobs:
+  build:
+    if: github.repository == 'aproint/copilot-cli'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set release version
+        id: version
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME}"
+          if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "release tags must be stable or prerelease semver tags like v1.34.0 or v1.34.0-rc.1" >&2
+            exit 1
+          fi
+          prerelease=false
+          if [[ "$version" == *-* ]]; then
+            prerelease=true
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Build release binaries
+        run: make release VERSION="${{ steps.version.outputs.version }}"
+
+      - name: Verify build tree is clean
+        run: git diff --exit-code
+
+      - name: Install release tools
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/release-tools"
+          GOBIN="${RUNNER_TEMP}/release-tools" go install github.com/anchore/syft/cmd/syft@${SYFT_VERSION}
+          echo "${RUNNER_TEMP}/release-tools" >> "$GITHUB_PATH"
+
+      - name: Package release assets
+        shell: bash
+        run: bash scripts/release/package.sh "${{ steps.version.outputs.version }}" bin/local dist/release
+
+      - name: Generate release SBOM
+        env:
+          SYFT_CHECK_FOR_APP_UPDATE: "false"
+          XDG_CACHE_HOME: ${{ runner.temp }}/syft-cache
+        shell: bash
+        run: syft dir:. --source-name copilot-cli --source-version "${{ steps.version.outputs.version }}" -o spdx-json > dist/release/sbom.spdx.json
+
+      - name: Generate checksums
+        shell: bash
+        run: bash scripts/release/checksums.sh dist/release
+
+      - name: Upload release assets for smoke tests
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-assets
+          path: dist/release
+          if-no-files-found: error
+
+  smoke-linux-amd64:
+    if: github.repository == 'aproint/copilot-cli'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out scripts
+        uses: actions/checkout@v7
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist/release
+
+      - name: Smoke test Linux amd64 assets
+        shell: bash
+        run: |
+          bash scripts/release/smoke.sh "${{ needs.build.outputs.version }}" dist/release \
+            copilot-linux-amd64 \
+            copilot-linux \
+            "copilot-linux-amd64-${{ needs.build.outputs.version }}" \
+            "copilot-linux-${{ needs.build.outputs.version }}"
+
+  smoke-linux-arm64:
+    if: github.repository == 'aproint/copilot-cli'
+    needs: build
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Check out scripts
+        uses: actions/checkout@v7
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist/release
+
+      - name: Smoke test Linux arm64 assets
+        shell: bash
+        run: |
+          bash scripts/release/smoke.sh "${{ needs.build.outputs.version }}" dist/release \
+            copilot-linux-arm64 \
+            "copilot-linux-arm64-${{ needs.build.outputs.version }}"
+
+  smoke-darwin-amd64:
+    if: github.repository == 'aproint/copilot-cli'
+    needs: build
+    runs-on: macos-13
+    steps:
+      - name: Check out scripts
+        uses: actions/checkout@v7
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist/release
+
+      - name: Smoke test macOS amd64 assets
+        shell: bash
+        run: |
+          bash scripts/release/smoke.sh "${{ needs.build.outputs.version }}" dist/release \
+            copilot-darwin-amd64 \
+            copilot-darwin \
+            "copilot-darwin-amd64-${{ needs.build.outputs.version }}" \
+            "copilot-darwin-${{ needs.build.outputs.version }}"
+
+  smoke-darwin-arm64:
+    if: github.repository == 'aproint/copilot-cli'
+    needs: build
+    runs-on: macos-15
+    steps:
+      - name: Check out scripts
+        uses: actions/checkout@v7
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist/release
+
+      - name: Smoke test macOS arm64 assets
+        shell: bash
+        run: |
+          bash scripts/release/smoke.sh "${{ needs.build.outputs.version }}" dist/release \
+            copilot-darwin-arm64 \
+            "copilot-darwin-arm64-${{ needs.build.outputs.version }}"
+
+  smoke-windows-amd64:
+    if: github.repository == 'aproint/copilot-cli'
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - name: Check out scripts
+        uses: actions/checkout@v7
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist/release
+
+      - name: Smoke test Windows amd64 assets
+        shell: bash
+        run: |
+          bash scripts/release/smoke.sh "${{ needs.build.outputs.version }}" dist/release \
+            copilot-windows-amd64.exe \
+            copilot-windows.exe \
+            "copilot-windows-amd64-${{ needs.build.outputs.version }}.exe" \
+            "copilot-windows-${{ needs.build.outputs.version }}.exe"
+
+  publish:
+    if: github.repository == 'aproint/copilot-cli'
+    needs:
+      - build
+      - smoke-linux-amd64
+      - smoke-linux-arm64
+      - smoke-darwin-amd64
+      - smoke-darwin-arm64
+      - smoke-windows-amd64
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist/release
+
+      - name: Install signing tools
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/release-tools"
+          GOBIN="${RUNNER_TEMP}/release-tools" go install github.com/sigstore/cosign/v2/cmd/cosign@${COSIGN_VERSION}
+          echo "${RUNNER_TEMP}/release-tools" >> "$GITHUB_PATH"
+
+      - name: Sign release assets
+        shell: bash
+        run: |
+          find dist/release -maxdepth 1 -type f ! -name '*.sigstore.json' -print | sort | while IFS= read -r asset; do
+            cosign sign-blob --yes --bundle "${asset}.sigstore.json" "$asset"
+          done
+
+      - name: Attest release assets
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/release/*
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+          VERSION: ${{ needs.build.outputs.version }}
+        shell: bash
+        run: |
+          flags=(--title "$VERSION" --generate-notes)
+          if [ "$PRERELEASE" = "true" ]; then
+            flags+=(--prerelease)
+          fi
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" dist/release/* --clobber
+          else
+            gh release create "$VERSION" dist/release/* "${flags[@]}"
+          fi

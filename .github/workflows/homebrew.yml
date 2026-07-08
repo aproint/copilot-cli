@@ -1,7 +1,7 @@
 name: homebrew
 on:
-  release:
-    types: [released]
+  # Re-enable the release trigger after APR-46 creates aproint/homebrew-tap.
+  workflow_dispatch:
 
 jobs:
   download-and-archive:

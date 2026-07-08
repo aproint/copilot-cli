@@ -45,3 +45,22 @@ brew install aproint/tap/copilot-cli
     ```
     curl -Lo copilot https://github.com/aproint/copilot-cli/releases/download/v0.6.0/copilot-darwin && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help
     ```
+
+## リリース成果物の検証
+
+リリース成果物は `aproint/copilot-cli` の GitHub Releases から公開されます。
+各リリースには、バイナリ、`SHA256SUMS`、`sbom.spdx.json`、
+Sigstore keyless signature bundle、GitHub artifact attestation が含まれます。
+
+```sh
+version=v1.34.0
+asset=copilot-linux
+base="https://github.com/aproint/copilot-cli/releases/download/${version}"
+curl -LO "${base}/${asset}" -LO "${base}/SHA256SUMS" -LO "${base}/${asset}.sigstore.json"
+grep " ${asset}$" SHA256SUMS | shasum -a 256 -c -
+cosign verify-blob \
+  --bundle "${asset}.sigstore.json" \
+  --certificate-identity-regexp 'https://github.com/aproint/copilot-cli/.github/workflows/release.yml@refs/tags/v.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "${asset}"
+```

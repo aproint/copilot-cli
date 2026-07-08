@@ -47,3 +47,22 @@ Copy and paste the command into your terminal.
     ```
     curl -Lo copilot https://github.com/aproint/copilot-cli/releases/download/v0.6.0/copilot-darwin && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help
     ```
+
+## Verify a release artifact
+
+Release artifacts are published from `aproint/copilot-cli` to GitHub Releases.
+Each release includes raw binaries, `SHA256SUMS`, `sbom.spdx.json`, Sigstore
+keyless signature bundles, and GitHub artifact attestations.
+
+```sh
+version=v1.34.0
+asset=copilot-linux
+base="https://github.com/aproint/copilot-cli/releases/download/${version}"
+curl -LO "${base}/${asset}" -LO "${base}/SHA256SUMS" -LO "${base}/${asset}.sigstore.json"
+grep " ${asset}$" SHA256SUMS | shasum -a 256 -c -
+cosign verify-blob \
+  --bundle "${asset}.sigstore.json" \
+  --certificate-identity-regexp 'https://github.com/aproint/copilot-cli/.github/workflows/release.yml@refs/tags/v.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "${asset}"
+```

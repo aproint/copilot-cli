@@ -22,6 +22,7 @@ LINKER_FLAGS=-X github.com/aproint/copilot-cli/internal/pkg/version.Version=${VE
 -X github.com/aproint/copilot-cli/internal/pkg/cli.binaryReleaseHost=${BINARY_RELEASE_HOST}
 # RELEASE_BUILD_LINKER_FLAGS disables DWARF and symbol table generation to reduce binary size
 RELEASE_BUILD_LINKER_FLAGS=-s -w
+GO_BUILD_FLAGS=-trimpath
 
 all: build
 
@@ -47,21 +48,21 @@ release-docker:
 
 .PHONY: compile-local
 compile-local:
-	CGO_ENABLED=0 go build -ldflags "${LINKER_FLAGS}" -o ${DESTINATION} ./cmd/copilot
+	CGO_ENABLED=0 go build ${GO_BUILD_FLAGS} -ldflags "${LINKER_FLAGS}" -o ${DESTINATION} ./cmd/copilot
 
 .PHONY: compile-windows
 compile-windows:
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}.exe ./cmd/copilot
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build ${GO_BUILD_FLAGS} -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}.exe ./cmd/copilot
 
 .PHONY: compile-linux
 compile-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-linux-amd64 ./cmd/copilot
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-linux-arm64 ./cmd/copilot
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ${GO_BUILD_FLAGS} -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-linux-amd64 ./cmd/copilot
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build ${GO_BUILD_FLAGS} -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-linux-arm64 ./cmd/copilot
 
 .PHONY: compile-darwin
 compile-darwin:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-darwin-amd64 ./cmd/copilot
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-darwin-arm64 ./cmd/copilot
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build ${GO_BUILD_FLAGS} -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-darwin-amd64 ./cmd/copilot
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build ${GO_BUILD_FLAGS} -ldflags "${LINKER_FLAGS} ${RELEASE_BUILD_LINKER_FLAGS}" -o ${DESTINATION}-darwin-arm64 ./cmd/copilot
 
 .PHONY: test
 test: run-unit-test custom-resource-tests custom-resource-lint

@@ -1,7 +1,3 @@
-## Fork Status
-
-This repository is the Aproint-maintained fork of AWS Copilot CLI. It is not affiliated with, endorsed by, or supported by Amazon Web Services. See [FORK.md](./FORK.md) for the fork identity and distribution channels.
-
 ##  <img align="left" alt="Aproint Copilot CLI" src="./site/content/assets/images/copilot-logo-48-light.svg" width="85" /> Aproint Copilot CLI
 ###### _Build, Release and Operate Containerized Applications on AWS._
 
@@ -9,8 +5,10 @@ This repository is the Aproint-maintained fork of AWS Copilot CLI. It is not aff
 
 * **Documentation**: [https://aproint.github.io/copilot-cli/](https://aproint.github.io/copilot-cli/)
 
-The Aproint Copilot CLI is a fork of AWS Copilot CLI for developers to build, release and operate production-ready containerized applications
-on AWS App Runner or Amazon ECS on AWS Fargate.
+The Aproint Copilot CLI is an Aproint-maintained fork of AWS Copilot CLI.
+It is not affiliated with, endorsed by, or supported by Amazon Web Services.
+It helps developers build, release and operate production-ready containerized
+applications on AWS App Runner or Amazon ECS on AWS Fargate.
 
 Use Copilot to:
 * Deploy production-ready, scalable services on AWS from a Dockerfile in one command.
@@ -44,6 +42,26 @@ To install manually, we're distributing binaries from our GitHub releases:
 | Windows | `Invoke-WebRequest -OutFile 'C:\Program Files\copilot.exe' https://github.com/aproint/copilot-cli/releases/latest/download/copilot-windows.exe` |
 
 </details>
+
+Release artifacts are published from this repository to
+[GitHub Releases](https://github.com/aproint/copilot-cli/releases). Each
+release includes raw binaries, `SHA256SUMS`, `sbom.spdx.json`, Sigstore
+keyless signature bundles, and GitHub artifact attestations.
+
+To verify a downloaded binary:
+
+```sh
+version=v1.34.0
+asset=copilot-linux
+base="https://github.com/aproint/copilot-cli/releases/download/${version}"
+curl -LO "${base}/${asset}" -LO "${base}/SHA256SUMS" -LO "${base}/${asset}.sigstore.json"
+grep " ${asset}$" SHA256SUMS | shasum -a 256 -c -
+cosign verify-blob \
+  --bundle "${asset}.sigstore.json" \
+  --certificate-identity-regexp 'https://github.com/aproint/copilot-cli/.github/workflows/release.yml@refs/tags/v.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "${asset}"
+```
 
 
 ## Getting started

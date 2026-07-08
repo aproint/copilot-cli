@@ -1,6 +1,6 @@
 # はじめに
 
-Aproint Copilot CLI へようこそ 🎉
+APROINT Copilot CLI へようこそ 🎉
 
 Copilot CLI は、AWS App Runner、Amazon ECS on AWS Fargate を利用したプロダクションレディなコンテナ化されたアプリケーションのビルド、リリース、そして運用のためのツールです。
 開発のスタートからステージング環境へのプッシュ、そして本番環境へのリリースまで、Copilot はアプリケーション開発ライフサイクル全体の管理を容易にします。

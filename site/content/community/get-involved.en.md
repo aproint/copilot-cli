@@ -1,6 +1,6 @@
-# Welcome to the Aproint Copilot Community ❤️
+# Welcome to the APROINT Copilot Community ❤️
 
-This is a place to share your [[applications, articles, videos](../community/guides.en.md)] and any other resources related to the Aproint Copilot CLI.
+This is a place to share your [[applications, articles, videos](../community/guides.en.md)] and any other resources related to the APROINT Copilot CLI.
 
 You can get involved with the CLI by:
 

@@ -1,4 +1,4 @@
-You can install Aproint Copilot CLI through [Homebrew](https://brew.sh/) or by downloading the binaries directly.
+You can install APROINT Copilot CLI through [Homebrew](https://brew.sh/) or by downloading the binaries directly.
 
 ## Homebrew 🍻
 
@@ -7,7 +7,7 @@ brew install aproint/tap/copilot-cli
 ```
 
 ??? info "Are you using Rosetta on a Mac machine with Apple silicon?"
-    If your homebrew was installed with [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment), then the `brew install` will install the amd64 build. 
+    If your homebrew was installed with [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment), then the `brew install` will install the amd64 build.
     If this is not what you want, please either reinstall homebrew without Rosetta, or use the manual installation option below.
 
 ## Manually
@@ -18,15 +18,15 @@ Copy and paste the command into your terminal.
     | Command to install    |
     | :---------- |
     | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-darwin && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
-    
+
 === "Linux x86 (64-bit)"
 
     | Command to install    |
     | :---------- |
     | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-linux && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
-    
+
 === "Linux (ARM)"
-    
+
     | Command to install    |
     | :---------- |
     | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-linux-arm64 && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |

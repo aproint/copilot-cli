@@ -1,11 +1,11 @@
-##  <img align="left" alt="Aproint Copilot CLI" src="./site/content/assets/images/copilot-logo-48-light.svg" width="85" /> Aproint Copilot CLI
+##  <img align="left" alt="APROINT Copilot CLI" src="./site/content/assets/images/copilot-logo-48-light.svg" width="85" /> APROINT Copilot CLI
 ###### _Build, Release and Operate Containerized Applications on AWS._
 
 ![latest version](https://img.shields.io/github/v/release/aproint/copilot-cli)
 
 * **Documentation**: [https://aproint.github.io/copilot-cli/](https://aproint.github.io/copilot-cli/)
 
-The Aproint Copilot CLI is an Aproint-maintained fork of AWS Copilot CLI.
+The APROINT Copilot CLI is an APROINT-maintained fork of AWS Copilot CLI.
 It is not affiliated with, endorsed by, or supported by Amazon Web Services.
 It helps developers build, release and operate production-ready containerized
 applications on AWS App Runner or Amazon ECS on AWS Fargate.

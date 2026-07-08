@@ -1,10 +1,10 @@
-site_name: Aproint Copilot CLI
+site_name: APROINT Copilot CLI
 site_description: 'Develop, Release and Operate Container Apps on AWS.'
 site_url: 'https://aproint.github.io/copilot-cli/'
 repo_name: 'aproint/copilot-cli'
 repo_url: 'https://github.com/aproint/copilot-cli'
 edit_uri: 'edit/mainline/site/content'
-copyright: 'Copyright &copy; 2026 Aproint contributors'
+copyright: 'Copyright &copy; 2026 APROINT contributors'
 docs_dir: 'site/content'
 site_dir: 'docs'
 extra_css:

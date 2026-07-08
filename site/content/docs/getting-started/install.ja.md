@@ -1,6 +1,6 @@
 # Copilot のインストール
 
-Aproint Copilot CLIは、[Homebrew](https://brew.sh/) を使ってインストールするか、バイナリを直接ダウンロードしてインストールすることができます。
+APROINT Copilot CLIは、[Homebrew](https://brew.sh/) を使ってインストールするか、バイナリを直接ダウンロードしてインストールすることができます。
 
 ## Homebrew でインストール 🍻
 
@@ -16,15 +16,15 @@ brew install aproint/tap/copilot-cli
     | インストール用コマンド    |
     | :---------- |
     | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-darwin && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
-    
+
 === "Linux x86 (64-bit)"
 
     | インストール用コマンド    |
     | :---------- |
     | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-linux && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |
-    
+
 === "Linux (ARM)"
-    
+
     | インストール用コマンド    |
     | :---------- |
     | `curl -Lo copilot https://github.com/aproint/copilot-cli/releases/latest/download/copilot-linux-arm64 && chmod +x copilot && sudo mv copilot /usr/local/bin/copilot && copilot --help` |

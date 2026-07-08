@@ -18,7 +18,7 @@ env:
 jobs:
   build:
     if: github.repository == 'aproint/copilot-cli'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
@@ -92,7 +92,7 @@ jobs:
   smoke-linux-amd64:
     if: github.repository == 'aproint/copilot-cli'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out scripts
         uses: actions/checkout@v7
@@ -136,7 +136,7 @@ jobs:
   smoke-darwin-amd64:
     if: github.repository == 'aproint/copilot-cli'
     needs: build
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - name: Check out scripts
         uses: actions/checkout@v7
@@ -180,7 +180,7 @@ jobs:
   smoke-windows-amd64:
     if: github.repository == 'aproint/copilot-cli'
     needs: build
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - name: Check out scripts
         uses: actions/checkout@v7
@@ -209,7 +209,7 @@ jobs:
       - smoke-darwin-amd64
       - smoke-darwin-arm64
       - smoke-windows-amd64
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       attestations: write
       contents: write

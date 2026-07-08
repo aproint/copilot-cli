@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         command: [compile-linux, compile-windows, compile-darwin]
@@ -37,7 +37,7 @@ jobs:
         run: make package-custom-resources-clean
 
   mocks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -64,7 +64,7 @@ jobs:
         run: '[ -z "$(cat gitstatus.txt)" ] && echo "Generated mocks all match"'
 
   go-unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -83,7 +83,7 @@ jobs:
       #     files: ./coverage.out
 
   js-unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -102,7 +102,7 @@ jobs:
       #     directory: cf-custom-resources/
 
   js-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -116,7 +116,7 @@ jobs:
         run: make custom-resource-lint
 
   local-integration-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -135,7 +135,7 @@ jobs:
         run: make local-integration-test
 
   license:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -149,7 +149,7 @@ jobs:
         run: ./scripts/license.sh .
 
   conventional-commits:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: validate
         uses: actions/github-script@v9

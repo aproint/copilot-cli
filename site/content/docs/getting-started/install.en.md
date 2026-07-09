@@ -50,9 +50,10 @@ Copy and paste the command into your terminal.
 
 ## Verify a release artifact
 
-Release artifacts are published from `aproint/copilot-cli` to GitHub Releases.
-Each release includes raw binaries, `SHA256SUMS`, `sbom.spdx.json`, Sigstore
-keyless signature bundles, and GitHub artifact attestations.
+Release artifacts are built and published by
+`.github/workflows/release.yml` to GitHub Releases. Each release includes raw
+binaries, `SHA256SUMS`, `sbom.spdx.json`, Sigstore keyless signature bundles,
+and GitHub artifact attestations.
 
 ```sh
 version=v1.34.0

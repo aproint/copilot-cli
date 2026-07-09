@@ -1,8 +1,9 @@
 APROINT Copilot CLI のリリースホストは `https://github.com/aproint/copilot-cli/releases` の GitHub Releases です。
 
-リリース成果物は `aproint/copilot-cli` の GitHub Releases から公開されます。
-各リリースには、バイナリ、`SHA256SUMS`、`sbom.spdx.json`、
-Sigstore keyless signature bundle、GitHub artifact attestation が含まれます。
+リリース成果物は `.github/workflows/release.yml` によってビルドされ、
+GitHub Releases から公開されます。各リリースには、バイナリ、
+`SHA256SUMS`、`sbom.spdx.json`、Sigstore keyless signature bundle、
+GitHub artifact attestation が含まれます。
 APROINT フォークのリリース検証に、上流の Amazon ECS 公開キーを使用しないでください。
 このフォークは Amazon Web Services と提携しておらず、承認またはサポートもされていません。
 

@@ -48,9 +48,10 @@ brew install aproint/tap/copilot-cli
 
 ## リリース成果物の検証
 
-リリース成果物は `aproint/copilot-cli` の GitHub Releases から公開されます。
-各リリースには、バイナリ、`SHA256SUMS`、`sbom.spdx.json`、
-Sigstore keyless signature bundle、GitHub artifact attestation が含まれます。
+リリース成果物は `.github/workflows/release.yml` によってビルドされ、
+GitHub Releases から公開されます。各リリースには、バイナリ、
+`SHA256SUMS`、`sbom.spdx.json`、Sigstore keyless signature bundle、
+GitHub artifact attestation が含まれます。
 
 ```sh
 version=v1.34.0

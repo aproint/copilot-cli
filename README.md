@@ -43,7 +43,8 @@ To install manually, we're distributing binaries from our GitHub releases:
 
 </details>
 
-Release artifacts are published from this repository to
+Release artifacts are built and published by
+[`.github/workflows/release.yml`](.github/workflows/release.yml) to
 [GitHub Releases](https://github.com/aproint/copilot-cli/releases). Each
 release includes raw binaries, `SHA256SUMS`, `sbom.spdx.json`, Sigstore
 keyless signature bundles, and GitHub artifact attestations.

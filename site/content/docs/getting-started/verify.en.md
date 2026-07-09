@@ -1,10 +1,11 @@
 The APROINT Copilot CLI release host is GitHub Releases at `https://github.com/aproint/copilot-cli/releases`.
 
-Release artifacts are published from `aproint/copilot-cli` to GitHub Releases.
-Each release includes raw binaries, `SHA256SUMS`, `sbom.spdx.json`, Sigstore
-keyless signature bundles, and GitHub artifact attestations. Do not use the
-upstream Amazon ECS public key to verify APROINT fork releases; this fork is not
-affiliated with, endorsed by, or supported by Amazon Web Services.
+Release artifacts are built and published by
+`.github/workflows/release.yml` to GitHub Releases. Each release includes raw
+binaries, `SHA256SUMS`, `sbom.spdx.json`, Sigstore keyless signature bundles,
+and GitHub artifact attestations. Do not use the upstream Amazon ECS public key
+to verify APROINT fork releases; this fork is not affiliated with, endorsed by,
+or supported by Amazon Web Services.
 
 ```sh
 version=v1.34.0

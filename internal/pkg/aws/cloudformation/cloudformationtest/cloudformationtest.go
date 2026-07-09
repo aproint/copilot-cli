@@ -23,6 +23,7 @@ type Double struct {
 	DeleteAndWaitFn             func(stackName string) error
 	DeleteAndWaitWithRoleARNFn  func(stackName, roleARN string) error
 	DescribeFn                  func(name string) (*cfn.StackDescription, error)
+	DescribeWithContextFn       func(ctx context.Context, name string) (*cfn.StackDescription, error)
 	ExistsFn                    func(name string) (bool, error)
 	MetadataFn                  func(opt cfn.MetadataOpts) (string, error)
 	TemplateBodyFn              func(name string) (string, error)
@@ -88,6 +89,14 @@ func (d *Double) DeleteAndWaitWithRoleARN(stackName, roleARN string) error {
 
 // Describe calls the stubbed function.
 func (d *Double) Describe(name string) (*cfn.StackDescription, error) {
+	return d.DescribeFn(name)
+}
+
+// DescribeWithContext calls the stubbed function.
+func (d *Double) DescribeWithContext(ctx context.Context, name string) (*cfn.StackDescription, error) {
+	if d.DescribeWithContextFn != nil {
+		return d.DescribeWithContextFn(ctx, name)
+	}
 	return d.DescribeFn(name)
 }
 

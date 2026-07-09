@@ -33,6 +33,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	deploycfn "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/metadata"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
@@ -311,6 +312,9 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 	_ = o.iam.CreateECSServiceLinkedRole()
 
 	// 4. Add the stack set instance to the app stackset.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := o.addToStackset(&deploycfn.AddEnvToAppOpts{
 		App:          app,
 		EnvName:      o.name,
@@ -326,12 +330,17 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 	}
 
 	// 6. Store the environment in SSM with information about the deployed bootstrap roles.
-	env, err := o.envDeployer.GetEnvironment(o.appName, o.name)
-	if err != nil {
-		return fmt.Errorf("get environment struct for %s: %w", o.name, err)
+	if ctx.Err() != nil {
+		log.Warningln(metadata.CommitAfterCancellationWarning)
 	}
-	if err := o.store.CreateEnvironment(ctx, env); err != nil {
-		return fmt.Errorf("store environment: %w", err)
+	commitCtx, cancel := metadata.CommitContext(ctx)
+	defer cancel()
+	env, err := o.envDeployer.GetEnvironment(commitCtx, o.appName, o.name)
+	if err != nil {
+		return metadata.NewCommitError("environment infrastructure deployment", fmt.Errorf("get environment struct for %s: %w", o.name, err))
+	}
+	if err := o.store.CreateEnvironment(commitCtx, env); err != nil {
+		return metadata.NewCommitError("environment infrastructure deployment", fmt.Errorf("store environment: %w", err))
 	}
 	log.Successf("Provisioned bootstrap resources for environment %s in region %s under application %s.\n",
 		color.HighlightUserInput(env.Name), color.Emphasize(env.Region), color.HighlightUserInput(env.App))

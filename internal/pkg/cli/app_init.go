@@ -25,6 +25,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/metadata"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
@@ -229,6 +230,9 @@ func (o *initAppOpts) Execute(ctx context.Context) error {
 			return err
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	err = o.cfn.DeployApp(&deploy.CreateAppInput{
 		Name:                o.name,
 		AccountID:           caller.Account,
@@ -242,7 +246,12 @@ func (o *initAppOpts) Execute(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.store.CreateApplication(ctx, &config.Application{
+	if ctx.Err() != nil {
+		log.Warningln(metadata.CommitAfterCancellationWarning)
+	}
+	commitCtx, cancel := metadata.CommitContext(ctx)
+	defer cancel()
+	if err := o.store.CreateApplication(commitCtx, &config.Application{
 		AccountID:           caller.Account,
 		Name:                o.name,
 		Domain:              o.domainName,
@@ -250,7 +259,7 @@ func (o *initAppOpts) Execute(ctx context.Context) error {
 		PermissionsBoundary: o.permissionsBoundary,
 		Tags:                o.resourceTags,
 	}); err != nil {
-		return err
+		return metadata.NewCommitError("application infrastructure deployment", err)
 	}
 	log.Successf("The directory %s will hold service manifests for application %s.\n", color.HighlightResource(workspace.CopilotDirName), color.HighlightUserInput(o.name))
 	log.Infoln()

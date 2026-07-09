@@ -15,6 +15,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/metadata"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
@@ -272,16 +273,24 @@ func (w *WorkloadInitializer) addJobToAppAndSSM(ctx context.Context, app *config
 
 // addWlToAppAndSSM is a type-agnostic method to add a workload to the app and config store.
 func (w *WorkloadInitializer) addWlToAppAndSSM(ctx context.Context, app *config.Application, props WorkloadProps, wlType string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := w.addWlToApp(app, props, wlType); err != nil {
 		return fmt.Errorf("add %s %s to application %s: %w", wlType, props.Name, props.App, err)
 	}
 
-	if err := w.addWlToStore(ctx, &config.Workload{
+	if ctx.Err() != nil {
+		log.Warningln(metadata.CommitAfterCancellationWarning)
+	}
+	commitCtx, cancel := metadata.CommitContext(ctx)
+	defer cancel()
+	if err := w.addWlToStore(commitCtx, &config.Workload{
 		App:  props.App,
 		Name: props.Name,
 		Type: props.Type,
 	}, wlType); err != nil {
-		return fmt.Errorf("saving %s %s: %w", wlType, props.Name, err)
+		return metadata.NewCommitError("workload registration in application stack", fmt.Errorf("saving %s %s: %w", wlType, props.Name, err))
 	}
 
 	return nil

@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/config"
+	cloudformation "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/initialize/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
+	"github.com/aproint/copilot-cli/internal/pkg/metadata"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -55,7 +57,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				m.EXPECT().WriteJobManifest(gomock.Any(), "resizer").Return("/resizer/copilot/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateJob(ctx, gomock.Any()).
+				m.EXPECT().CreateJob(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "resizer",
@@ -92,7 +94,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				}).Return("/resizer/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateJob(ctx, gomock.Any()).
+				m.EXPECT().CreateJob(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "resizer",
@@ -181,14 +183,14 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				m.EXPECT().WriteJobManifest(gomock.Any(), "resizer").Return("/resizer/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateJob(ctx, gomock.Any()).
+				m.EXPECT().CreateJob(gomock.Any(), gomock.Any()).
 					Return(fmt.Errorf("oops"))
 				m.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
 				m.EXPECT().AddJobToApp(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
-			wantedErr: fmt.Errorf("saving job resizer: oops"),
+			wantedErr: fmt.Errorf("workload registration in application stack succeeded, but Copilot metadata commit failed: saving job resizer: oops"),
 		},
 	}
 	for name, tc := range testCases {
@@ -473,7 +475,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 			},
 			mockstore: func(m *mocks.MockStore) {
 				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{}, nil)
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "frontend",
@@ -506,7 +508,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				m.EXPECT().WriteServiceManifest(gomock.Any(), "static").Return("/static/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "static",
@@ -601,14 +603,14 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 			},
 			mockstore: func(m *mocks.MockStore) {
 				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{}, nil)
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Return(fmt.Errorf("oops"))
 				m.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
 				m.EXPECT().AddServiceToApp(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
-			wantedErr: fmt.Errorf("saving service frontend: oops"),
+			wantedErr: fmt.Errorf("workload registration in application stack succeeded, but Copilot metadata commit failed: saving service frontend: oops"),
 		},
 		"using existing image": {
 			inSvcType: manifestinfo.BackendServiceType,
@@ -628,7 +630,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/backend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "backend",
@@ -669,7 +671,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/backend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "backend",
@@ -722,7 +724,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/backend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "backend",
@@ -768,7 +770,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/worker/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "worker",
@@ -816,7 +818,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/worker/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(ctx, gomock.Any()).
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).
 					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "worker",
@@ -912,7 +914,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, nil)
-				m.EXPECT().CreateJob(ctx, &config.Workload{
+				m.EXPECT().CreateJob(gomock.Any(), &config.Workload{
 					App:  "app",
 					Name: "job",
 					Type: manifestinfo.ScheduledJobType,
@@ -933,7 +935,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, nil)
-				m.EXPECT().CreateService(ctx, &config.Workload{
+				m.EXPECT().CreateService(gomock.Any(), &config.Workload{
 					App:  "app",
 					Name: "svc",
 					Type: manifestinfo.LoadBalancedWebServiceType,
@@ -954,7 +956,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, nil)
-				m.EXPECT().CreateService(ctx, &config.Workload{
+				m.EXPECT().CreateService(gomock.Any(), &config.Workload{
 					App:  "app",
 					Name: "svc",
 					Type: manifestinfo.StaticSiteType,
@@ -976,7 +978,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, errors.New("some error"))
-				m.EXPECT().CreateService(ctx, gomock.Any()).Times(0)
+				m.EXPECT().CreateService(gomock.Any(), gomock.Any()).Times(0)
 			},
 		},
 	}
@@ -1012,4 +1014,91 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestWorkloadInitializer_AddWorkloadToApp_PreMutationCanceledContextPreventsRegistration(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent, cancel := context.WithCancel(context.Background())
+	cancel()
+	mockstore := mocks.NewMockStore(ctrl)
+	mockappDeployer := mocks.NewMockWorkloadAdder(ctrl)
+
+	mockstore.EXPECT().GetApplication(parent, "app").Return(&config.Application{Name: "app"}, nil)
+	mockappDeployer.EXPECT().AddServiceToApp(gomock.Any(), gomock.Any()).Times(0)
+	mockstore.EXPECT().CreateService(gomock.Any(), gomock.Any()).Times(0)
+
+	initializer := &WorkloadInitializer{
+		Store:    mockstore,
+		Deployer: mockappDeployer,
+	}
+
+	err := initializer.AddWorkloadToApp(parent, "app", "svc", manifestinfo.LoadBalancedWebServiceType)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestWorkloadInitializer_AddWorkloadToApp_CanceledParentStillCommitsMetadata(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent, cancel := context.WithCancel(context.Background())
+	mockstore := mocks.NewMockStore(ctrl)
+	mockappDeployer := mocks.NewMockWorkloadAdder(ctrl)
+
+	mockstore.EXPECT().GetApplication(parent, "app").Return(&config.Application{Name: "app"}, nil)
+	mockappDeployer.EXPECT().AddServiceToApp(&config.Application{Name: "app"}, "svc").DoAndReturn(func(*config.Application, string, ...cloudformation.AddWorkloadToAppOpt) error {
+		cancel()
+		return nil
+	})
+	mockstore.EXPECT().CreateService(gomock.Any(), &config.Workload{
+		App:  "app",
+		Name: "svc",
+		Type: manifestinfo.LoadBalancedWebServiceType,
+	}).DoAndReturn(func(gotCtx context.Context, _ *config.Workload) error {
+		require.NoError(t, gotCtx.Err())
+		deadline, ok := gotCtx.Deadline()
+		require.True(t, ok)
+		require.WithinDuration(t, time.Now().Add(metadata.CommitTimeout), deadline, time.Second)
+		return nil
+	})
+
+	initializer := &WorkloadInitializer{
+		Store:    mockstore,
+		Deployer: mockappDeployer,
+	}
+
+	err := initializer.AddWorkloadToApp(parent, "app", "svc", manifestinfo.LoadBalancedWebServiceType)
+
+	require.NoError(t, err)
+}
+
+func TestWorkloadInitializer_AddWorkloadToApp_MetadataCommitErrorIsPartialSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockErr := errors.New("some create error")
+	mockstore := mocks.NewMockStore(ctrl)
+	mockappDeployer := mocks.NewMockWorkloadAdder(ctrl)
+
+	mockstore.EXPECT().GetApplication(ctx, "app").Return(&config.Application{Name: "app"}, nil)
+	mockappDeployer.EXPECT().AddJobToApp(&config.Application{Name: "app"}, "job").Return(nil)
+	mockstore.EXPECT().CreateJob(gomock.Any(), &config.Workload{
+		App:  "app",
+		Name: "job",
+		Type: manifestinfo.ScheduledJobType,
+	}).Return(mockErr)
+
+	initializer := &WorkloadInitializer{
+		Store:    mockstore,
+		Deployer: mockappDeployer,
+	}
+
+	err := initializer.AddWorkloadToApp(ctx, "app", "job", manifestinfo.ScheduledJobType)
+
+	var commitErr *metadata.CommitError
+	require.ErrorAs(t, err, &commitErr)
+	require.ErrorIs(t, err, mockErr)
+	require.EqualError(t, err, "workload registration in application stack succeeded, but Copilot metadata commit failed: saving job job: some create error")
 }

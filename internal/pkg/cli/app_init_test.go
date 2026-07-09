@@ -8,12 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/route53"
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/metadata"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"github.com/golang/mock/gomock"
@@ -649,7 +651,7 @@ func TestInitAppOpts_Execute(t *testing.T) {
 				m.identityService.EXPECT().Get(ctx).Return(identity.Caller{
 					Account: "12345",
 				}, nil)
-				m.store.EXPECT().CreateApplication(ctx, &config.Application{
+				m.store.EXPECT().CreateApplication(gomock.Any(), &config.Application{
 					AccountID:           "12345",
 					Name:                "myapp",
 					Domain:              "amazon.com",
@@ -704,7 +706,7 @@ func TestInitAppOpts_Execute(t *testing.T) {
 				m.identityService.EXPECT().Get(ctx).Return(identity.Caller{
 					Account: "12345",
 				}, nil)
-				m.store.EXPECT().CreateApplication(ctx, gomock.Any()).Return(mockError)
+				m.store.EXPECT().CreateApplication(gomock.Any(), gomock.Any()).Return(mockError)
 				m.newWorkspace = func(appName string) (wsAppManager, error) {
 					return m.ws, nil
 				}
@@ -756,4 +758,108 @@ func TestInitAppOpts_Execute(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestInitAppOpts_Execute_PreMutationCanceledContextPreventsDeploy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent, cancel := context.WithCancel(context.Background())
+	cancel()
+	mockStore := mocks.NewMockstore(ctrl)
+	mockIdentity := mocks.NewMockidentityService(ctrl)
+	mockDeployer := mocks.NewMockappDeployer(ctrl)
+
+	mockIdentity.EXPECT().Get(parent).Return(identity.Caller{Account: "12345"}, nil)
+	mockDeployer.EXPECT().DeployApp(gomock.Any()).Times(0)
+	mockStore.EXPECT().CreateApplication(gomock.Any(), gomock.Any()).Times(0)
+
+	opts := &initAppOpts{
+		initAppVars: initAppVars{
+			name: "myapp",
+		},
+		store:    mockStore,
+		identity: mockIdentity,
+		cfn:      mockDeployer,
+		newWorkspace: func(appName string) (wsAppManager, error) {
+			return mocks.NewMockwsAppManager(ctrl), nil
+		},
+	}
+
+	err := opts.Execute(parent)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestInitAppOpts_Execute_CanceledParentStillCommitsMetadata(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent, cancel := context.WithCancel(context.Background())
+	mockStore := mocks.NewMockstore(ctrl)
+	mockIdentity := mocks.NewMockidentityService(ctrl)
+	mockDeployer := mocks.NewMockappDeployer(ctrl)
+
+	mockIdentity.EXPECT().Get(parent).Return(identity.Caller{Account: "12345"}, nil)
+	mockDeployer.EXPECT().DeployApp(gomock.Any()).DoAndReturn(func(*deploy.CreateAppInput) error {
+		cancel()
+		return nil
+	})
+	mockStore.EXPECT().CreateApplication(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(gotCtx context.Context, _ *config.Application) error {
+			require.NoError(t, gotCtx.Err())
+			deadline, ok := gotCtx.Deadline()
+			require.True(t, ok)
+			require.WithinDuration(t, time.Now().Add(metadata.CommitTimeout), deadline, time.Second)
+			return nil
+		})
+
+	opts := &initAppOpts{
+		initAppVars: initAppVars{
+			name: "myapp",
+		},
+		store:    mockStore,
+		identity: mockIdentity,
+		cfn:      mockDeployer,
+		newWorkspace: func(appName string) (wsAppManager, error) {
+			return mocks.NewMockwsAppManager(ctrl), nil
+		},
+	}
+
+	err := opts.Execute(parent)
+
+	require.NoError(t, err)
+}
+
+func TestInitAppOpts_Execute_MetadataCommitErrorIsPartialSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockErr := errors.New("some create error")
+	mockStore := mocks.NewMockstore(ctrl)
+	mockIdentity := mocks.NewMockidentityService(ctrl)
+	mockDeployer := mocks.NewMockappDeployer(ctrl)
+
+	mockIdentity.EXPECT().Get(ctx).Return(identity.Caller{Account: "12345"}, nil)
+	mockDeployer.EXPECT().DeployApp(gomock.Any()).Return(nil)
+	mockStore.EXPECT().CreateApplication(gomock.Any(), gomock.Any()).Return(mockErr)
+
+	opts := &initAppOpts{
+		initAppVars: initAppVars{
+			name: "myapp",
+		},
+		store:    mockStore,
+		identity: mockIdentity,
+		cfn:      mockDeployer,
+		newWorkspace: func(appName string) (wsAppManager, error) {
+			return mocks.NewMockwsAppManager(ctrl), nil
+		},
+	}
+
+	err := opts.Execute(ctx)
+
+	var commitErr *metadata.CommitError
+	require.ErrorAs(t, err, &commitErr)
+	require.ErrorIs(t, err, mockErr)
+	require.EqualError(t, err, "application infrastructure deployment succeeded, but Copilot metadata commit failed: some create error")
 }

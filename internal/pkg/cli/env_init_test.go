@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
@@ -21,6 +22,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	deploycfn "github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
+	"github.com/aproint/copilot-cli/internal/pkg/metadata"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
@@ -992,6 +994,30 @@ type initEnvExecuteMocks struct {
 	appVersionGetter *mocks.MockversionGetter
 }
 
+func newTestInitEnvOpts(m *initEnvExecuteMocks) *initEnvOpts {
+	return &initEnvOpts{
+		initEnvVars: initEnvVars{
+			name:    "test",
+			appName: "phonetool",
+		},
+		store:       m.store,
+		envDeployer: m.deployer,
+		appDeployer: m.deployer,
+		identity:    m.identity,
+		envIdentity: m.identity,
+		iam:         m.iam,
+		cfn:         m.cfn,
+		prog:        m.progress,
+		cfg:         aws.Config{Region: "us-west-2"},
+		appCFN:      m.appCFN,
+		newAppVersionGetter: func(appName string) (versionGetter, error) {
+			return m.appVersionGetter, nil
+		},
+		manifestWriter:  m.manifestWriter,
+		templateVersion: "v1.29.0",
+	}
+}
+
 func TestInitEnvOpts_Execute(t *testing.T) {
 	const (
 		mockAppVersion       = "v0.0.0"
@@ -1035,7 +1061,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 		"fail to write manifest": {
 			setupMocks: func(m *initEnvExecuteMocks) {
 				m.appVersionGetter.EXPECT().Version().Return(mockAppVersion, nil)
-				m.store.EXPECT().CreateEnvironment(ctx, gomock.Any()).Times(0)
+				m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).Times(0)
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("", mockError)
@@ -1045,7 +1071,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 		"failed to create stack set instance": {
 			setupMocks: func(m *initEnvExecuteMocks) {
 				m.appVersionGetter.EXPECT().Version().Return(mockAppVersion, nil)
-				m.store.EXPECT().CreateEnvironment(ctx, gomock.Any()).Times(0)
+				m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).Times(0)
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
@@ -1108,7 +1134,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{
 					Name: "phonetool",
 				}, nil)
-				m.store.EXPECT().CreateEnvironment(ctx, gomock.Any()).Return(errors.New("some create error"))
+				m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).Return(errors.New("some create error"))
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
 				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
@@ -1116,7 +1142,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 					Return(nil, errors.New("does not exist")).AnyTimes()
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
-				m.deployer.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{
+				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					App:       "phonetool",
 					Name:      "test",
 					AccountID: "1234",
@@ -1128,14 +1154,14 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 						S3Bucket: "mockBucket",
 					}, nil)
 			},
-			wantedErrorS: "store environment: some create error",
+			wantedErrorS: "environment infrastructure deployment succeeded, but Copilot metadata commit failed: store environment: some create error",
 		},
 		"success": {
 			enableContainerInsights: true,
 			allowDowngrade:          true,
 			setupMocks: func(m *initEnvExecuteMocks) {
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
-				m.store.EXPECT().CreateEnvironment(ctx, &config.Environment{
+				m.store.EXPECT().CreateEnvironment(gomock.Any(), &config.Environment{
 					App:       "phonetool",
 					Name:      "test",
 					AccountID: "1234",
@@ -1148,7 +1174,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
-				m.deployer.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{
+				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					AccountID: "1234",
 					Region:    "mars-1",
 					Name:      "test",
@@ -1165,7 +1191,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 			setupMocks: func(m *initEnvExecuteMocks) {
 				m.appVersionGetter.EXPECT().Version().Return(mockAppVersion, nil)
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
-				m.store.EXPECT().CreateEnvironment(ctx, &config.Environment{
+				m.store.EXPECT().CreateEnvironment(gomock.Any(), &config.Environment{
 					App:       "phonetool",
 					Name:      "test",
 					AccountID: "1234",
@@ -1180,7 +1206,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
-				m.deployer.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{
+				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					AccountID: "1234",
 					Region:    "mars-1",
 					Name:      "test",
@@ -1197,7 +1223,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 			setupMocks: func(m *initEnvExecuteMocks) {
 				m.appVersionGetter.EXPECT().Version().Return(mockAppVersion, nil)
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
-				m.store.EXPECT().CreateEnvironment(ctx, &config.Environment{
+				m.store.EXPECT().CreateEnvironment(gomock.Any(), &config.Environment{
 					App:       "phonetool",
 					Name:      "test",
 					AccountID: "1234",
@@ -1222,7 +1248,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 					require.Equal(t, bucketARN, "arn:aws:s3:::mockBucket")
 					return &cloudformation.ErrStackAlreadyExists{}
 				})
-				m.deployer.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{
+				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					AccountID: "1234",
 					Region:    "mars-1",
 					Name:      "test",
@@ -1253,7 +1279,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 			setupMocks: func(m *initEnvExecuteMocks) {
 				m.appVersionGetter.EXPECT().Version().Return(mockAppVersion, nil)
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool", AccountID: "1234", Domain: "amazon.com"}, nil)
-				m.store.EXPECT().CreateEnvironment(ctx, &config.Environment{
+				m.store.EXPECT().CreateEnvironment(gomock.Any(), &config.Environment{
 					App:       "phonetool",
 					Name:      "test",
 					AccountID: "4567",
@@ -1269,7 +1295,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.progress.EXPECT().Stop(log.Ssuccessf(fmtDNSDelegationComplete, "4567"))
 				m.deployer.EXPECT().DelegateDNSPermissions(gomock.Any(), "4567").Return(nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
-				m.deployer.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{
+				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					AccountID: "4567",
 					Region:    "us-west-2",
 					Name:      "test",
@@ -1343,6 +1369,147 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestInitEnvOpts_Execute_PreMutationCanceledContextPreventsDeploy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	m := &initEnvExecuteMocks{
+		store:            mocks.NewMockstore(ctrl),
+		deployer:         mocks.NewMockdeployer(ctrl),
+		identity:         mocks.NewMockidentityService(ctrl),
+		progress:         mocks.NewMockprogress(ctrl),
+		iam:              mocks.NewMockroleManager(ctrl),
+		cfn:              mocks.NewMockstackExistChecker(ctrl),
+		appCFN:           mocks.NewMockappResourcesGetter(ctrl),
+		manifestWriter:   mocks.NewMockenvironmentManifestWriter(ctrl),
+		appVersionGetter: mocks.NewMockversionGetter(ctrl),
+	}
+
+	m.appVersionGetter.EXPECT().Version().Return("v0.0.0", nil)
+	m.store.EXPECT().GetApplication(parent, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+	m.identity.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil)
+	m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
+	m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
+	m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Times(0)
+	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Times(0)
+	m.deployer.EXPECT().GetEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).Times(0)
+
+	err := newTestInitEnvOpts(m).Execute(parent)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestInitEnvOpts_Execute_CanceledParentStillCommitsMetadata(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent, cancel := context.WithCancel(context.Background())
+
+	m := &initEnvExecuteMocks{
+		store:            mocks.NewMockstore(ctrl),
+		deployer:         mocks.NewMockdeployer(ctrl),
+		identity:         mocks.NewMockidentityService(ctrl),
+		progress:         mocks.NewMockprogress(ctrl),
+		iam:              mocks.NewMockroleManager(ctrl),
+		cfn:              mocks.NewMockstackExistChecker(ctrl),
+		appCFN:           mocks.NewMockappResourcesGetter(ctrl),
+		manifestWriter:   mocks.NewMockenvironmentManifestWriter(ctrl),
+		appVersionGetter: mocks.NewMockversionGetter(ctrl),
+	}
+
+	m.appVersionGetter.EXPECT().Version().Return("v0.0.0", nil)
+	m.store.EXPECT().GetApplication(parent, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+	m.identity.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
+	m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
+	m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
+	m.iam.EXPECT().ListRoleTags(gomock.Any()).Return(nil, errors.New("does not exist")).AnyTimes()
+	m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Return(nil)
+	m.appCFN.EXPECT().GetAppResourcesByRegion(&config.Application{Name: "phonetool"}, "us-west-2").
+		Return(&stack.AppRegionalResources{
+			S3Bucket: "mockBucket",
+		}, nil)
+	m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
+	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).DoAndReturn(func(deploycfn.StackConfiguration, string) error {
+		cancel()
+		return nil
+	})
+	m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").
+		DoAndReturn(func(gotCtx context.Context, _, _ string) (*config.Environment, error) {
+			require.NoError(t, gotCtx.Err())
+			deadline, ok := gotCtx.Deadline()
+			require.True(t, ok)
+			require.WithinDuration(t, time.Now().Add(metadata.CommitTimeout), deadline, time.Second)
+			return &config.Environment{
+				App:       "phonetool",
+				Name:      "test",
+				AccountID: "1234",
+				Region:    "mars-1",
+			}, nil
+		})
+	m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(gotCtx context.Context, _ *config.Environment) error {
+			require.NoError(t, gotCtx.Err())
+			deadline, ok := gotCtx.Deadline()
+			require.True(t, ok)
+			require.WithinDuration(t, time.Now().Add(metadata.CommitTimeout), deadline, time.Second)
+			return nil
+		})
+
+	err := newTestInitEnvOpts(m).Execute(parent)
+
+	require.NoError(t, err)
+}
+
+func TestInitEnvOpts_Execute_MetadataCommitErrorIsPartialSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockErr := errors.New("some create error")
+	m := &initEnvExecuteMocks{
+		store:            mocks.NewMockstore(ctrl),
+		deployer:         mocks.NewMockdeployer(ctrl),
+		identity:         mocks.NewMockidentityService(ctrl),
+		progress:         mocks.NewMockprogress(ctrl),
+		iam:              mocks.NewMockroleManager(ctrl),
+		cfn:              mocks.NewMockstackExistChecker(ctrl),
+		appCFN:           mocks.NewMockappResourcesGetter(ctrl),
+		manifestWriter:   mocks.NewMockenvironmentManifestWriter(ctrl),
+		appVersionGetter: mocks.NewMockversionGetter(ctrl),
+	}
+
+	m.appVersionGetter.EXPECT().Version().Return("v0.0.0", nil)
+	m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+	m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
+	m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
+	m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
+	m.iam.EXPECT().ListRoleTags(gomock.Any()).Return(nil, errors.New("does not exist")).AnyTimes()
+	m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Return(nil)
+	m.appCFN.EXPECT().GetAppResourcesByRegion(&config.Application{Name: "phonetool"}, "us-west-2").
+		Return(&stack.AppRegionalResources{
+			S3Bucket: "mockBucket",
+		}, nil)
+	m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
+	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
+	m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
+		App:       "phonetool",
+		Name:      "test",
+		AccountID: "1234",
+		Region:    "mars-1",
+	}, nil)
+	m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).Return(mockErr)
+
+	err := newTestInitEnvOpts(m).Execute(ctx)
+
+	var commitErr *metadata.CommitError
+	require.ErrorAs(t, err, &commitErr)
+	require.ErrorIs(t, err, mockErr)
+	require.EqualError(t, err, "environment infrastructure deployment succeeded, but Copilot metadata commit failed: store environment: some create error")
 }
 
 func TestInitEnvOpts_delegateDNSFromApp(t *testing.T) {

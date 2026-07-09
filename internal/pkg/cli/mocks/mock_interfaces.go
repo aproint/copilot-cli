@@ -3988,18 +3988,18 @@ func (mr *MockenvironmentDeployerMockRecorder) DeleteEnvironment(appName, envNam
 }
 
 // GetEnvironment mocks base method.
-func (m *MockenvironmentDeployer) GetEnvironment(appName, envName string) (*config.Environment, error) {
+func (m *MockenvironmentDeployer) GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEnvironment", appName, envName)
+	ret := m.ctrl.Call(m, "GetEnvironment", ctx, appName, envName)
 	ret0, _ := ret[0].(*config.Environment)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEnvironment indicates an expected call of GetEnvironment.
-func (mr *MockenvironmentDeployerMockRecorder) GetEnvironment(appName, envName interface{}) *gomock.Call {
+func (mr *MockenvironmentDeployerMockRecorder) GetEnvironment(ctx, appName, envName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvironment", reflect.TypeOf((*MockenvironmentDeployer)(nil).GetEnvironment), appName, envName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvironment", reflect.TypeOf((*MockenvironmentDeployer)(nil).GetEnvironment), ctx, appName, envName)
 }
 
 // Template mocks base method.
@@ -4957,18 +4957,18 @@ func (mr *MockdeployerMockRecorder) GetAppResourcesByRegion(app, region interfac
 }
 
 // GetEnvironment mocks base method.
-func (m *Mockdeployer) GetEnvironment(appName, envName string) (*config.Environment, error) {
+func (m *Mockdeployer) GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEnvironment", appName, envName)
+	ret := m.ctrl.Call(m, "GetEnvironment", ctx, appName, envName)
 	ret0, _ := ret[0].(*config.Environment)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEnvironment indicates an expected call of GetEnvironment.
-func (mr *MockdeployerMockRecorder) GetEnvironment(appName, envName interface{}) *gomock.Call {
+func (mr *MockdeployerMockRecorder) GetEnvironment(ctx, appName, envName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvironment", reflect.TypeOf((*Mockdeployer)(nil).GetEnvironment), appName, envName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvironment", reflect.TypeOf((*Mockdeployer)(nil).GetEnvironment), ctx, appName, envName)
 }
 
 // GetRegionalAppResources mocks base method.

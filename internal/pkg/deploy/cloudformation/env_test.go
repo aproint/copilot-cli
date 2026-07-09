@@ -4,10 +4,12 @@
 package cloudformation
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,6 +17,44 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCloudFormation_GetEnvironment(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent := context.WithValue(context.Background(), "key", "value")
+	mockClient := mocks.NewMockcfnClient(ctrl)
+	mockClient.EXPECT().DescribeWithContext(parent, "phonetool-test").
+		Return(&cloudformation.StackDescription{
+			StackId: aws.String("arn:aws:cloudformation:us-west-2:123456789012:stack/phonetool-test/abc123"),
+			Outputs: []awscfn.Output{
+				{
+					OutputKey:   aws.String("EnvironmentManagerRoleARN"),
+					OutputValue: aws.String("arn:aws:iam::123456789012:role/manager"),
+				},
+				{
+					OutputKey:   aws.String("CFNExecutionRoleARN"),
+					OutputValue: aws.String("arn:aws:iam::123456789012:role/execution"),
+				},
+			},
+		}, nil)
+
+	cf := &CloudFormation{
+		cfnClient: mockClient,
+	}
+
+	got, err := cf.GetEnvironment(parent, "phonetool", "test")
+
+	require.NoError(t, err)
+	require.Equal(t, &config.Environment{
+		App:              "phonetool",
+		Name:             "test",
+		AccountID:        "123456789012",
+		Region:           "us-west-2",
+		ManagerRoleARN:   "arn:aws:iam::123456789012:role/manager",
+		ExecutionRoleARN: "arn:aws:iam::123456789012:role/execution",
+	}, got)
+}
 
 func TestCloudFormation_DeployedEnvironmentParameters(t *testing.T) {
 	testCases := map[string]struct {

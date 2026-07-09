@@ -22,6 +22,9 @@ jobs:
     if: github.repository == 'aproint/copilot-cli'
     runs-on: ubuntu-24.04
     steps:
+      - name: Check out release templates
+        uses: actions/checkout@v7
+
       - name: Resolve release metadata
         id: release
         env:
@@ -78,41 +81,19 @@ jobs:
         shell: bash
         run: |
           mkdir -p homebrew-tap/Formula
-          cat > homebrew-tap/Formula/copilot-cli.rb <<EOF
-          # typed: false
-          # frozen_string_literal: true
+          sed \
+            -e "s|@VERSION@|$VERSION|g" \
+            -e "s|@FORMULA_VERSION@|$FORMULA_VERSION|g" \
+            -e "s|@DARWIN_ARM64_SHA@|$DARWIN_ARM64_SHA|g" \
+            -e "s|@DARWIN_AMD64_SHA@|$DARWIN_AMD64_SHA|g" \
+            scripts/release/homebrew/copilot-cli.rb.in > homebrew-tap/Formula/copilot-cli.rb
 
-          class CopilotCli < Formula
-            desc "APROINT Copilot CLI"
-            homepage "https://github.com/aproint/copilot-cli"
-            version "$FORMULA_VERSION"
-            license "Apache-2.0"
-
-            on_macos do
-              on_arm do
-                url "https://github.com/aproint/copilot-cli/releases/download/$VERSION/copilot-darwin-arm64",
-                    using: NoUnzipCurlDownloadStrategy
-                sha256 "$DARWIN_ARM64_SHA"
-              end
-
-              on_intel do
-                url "https://github.com/aproint/copilot-cli/releases/download/$VERSION/copilot-darwin-amd64",
-                    using: NoUnzipCurlDownloadStrategy
-                sha256 "$DARWIN_AMD64_SHA"
-              end
-            end
-
-            def install
-              bin.install cached_download => "copilot"
-            end
-
-            test do
-              system "\#{bin}/copilot", "--help"
-            end
-          end
-          EOF
-
-          ruby -pi -e 'sub(/^          /, "")' homebrew-tap/Formula/copilot-cli.rb
+      - name: Validate formula
+        working-directory: homebrew-tap
+        run: |
+          ruby -c Formula/copilot-cli.rb
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew style Formula/copilot-cli.rb
 
       - name: Open tap pull request
         uses: peter-evans/create-pull-request@v8

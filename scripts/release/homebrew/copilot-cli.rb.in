@@ -1,0 +1,31 @@
+# typed: false
+# frozen_string_literal: true
+
+class CopilotCli < Formula
+  desc "APROINT Copilot CLI"
+  homepage "https://github.com/aproint/copilot-cli"
+  version "@FORMULA_VERSION@"
+  license "Apache-2.0"
+
+  on_macos do
+    on_arm do
+      url "https://github.com/aproint/copilot-cli/releases/download/@VERSION@/copilot-darwin-arm64",
+          using: NoUnzipCurlDownloadStrategy
+      sha256 "@DARWIN_ARM64_SHA@"
+    end
+
+    on_intel do
+      url "https://github.com/aproint/copilot-cli/releases/download/@VERSION@/copilot-darwin-amd64",
+          using: NoUnzipCurlDownloadStrategy
+      sha256 "@DARWIN_AMD64_SHA@"
+    end
+  end
+
+  def install
+    bin.install cached_download => "copilot"
+  end
+
+  test do
+    system "#{bin}/copilot", "--help"
+  end
+end

@@ -40,9 +40,11 @@ jobs:
 
           darwin_arm64_sha="$(awk '$2 == "copilot-darwin-arm64" { print $1 }' SHA256SUMS)"
           darwin_amd64_sha="$(awk '$2 == "copilot-darwin-amd64" { print $1 }' SHA256SUMS)"
+          linux_arm64_sha="$(awk '$2 == "copilot-linux-arm64" { print $1 }' SHA256SUMS)"
+          linux_amd64_sha="$(awk '$2 == "copilot-linux-amd64" { print $1 }' SHA256SUMS)"
 
-          if [ -z "$darwin_arm64_sha" ] || [ -z "$darwin_amd64_sha" ]; then
-            echo "SHA256SUMS is missing required macOS release assets" >&2
+          if [ -z "$darwin_arm64_sha" ] || [ -z "$darwin_amd64_sha" ] || [ -z "$linux_arm64_sha" ] || [ -z "$linux_amd64_sha" ]; then
+            echo "SHA256SUMS is missing required Homebrew release assets" >&2
             cat SHA256SUMS >&2
             exit 1
           fi
@@ -52,6 +54,8 @@ jobs:
             echo "formula_version=${VERSION#v}"
             echo "darwin_arm64_sha=$darwin_arm64_sha"
             echo "darwin_amd64_sha=$darwin_amd64_sha"
+            echo "linux_arm64_sha=$linux_arm64_sha"
+            echo "linux_amd64_sha=$linux_amd64_sha"
           } >> "$GITHUB_OUTPUT"
 
       - name: Create Homebrew tap token
@@ -78,6 +82,8 @@ jobs:
           FORMULA_VERSION: ${{ steps.release.outputs.formula_version }}
           DARWIN_ARM64_SHA: ${{ steps.release.outputs.darwin_arm64_sha }}
           DARWIN_AMD64_SHA: ${{ steps.release.outputs.darwin_amd64_sha }}
+          LINUX_ARM64_SHA: ${{ steps.release.outputs.linux_arm64_sha }}
+          LINUX_AMD64_SHA: ${{ steps.release.outputs.linux_amd64_sha }}
         shell: bash
         run: |
           mkdir -p homebrew-tap/Formula
@@ -86,6 +92,8 @@ jobs:
             -e "s|@FORMULA_VERSION@|$FORMULA_VERSION|g" \
             -e "s|@DARWIN_ARM64_SHA@|$DARWIN_ARM64_SHA|g" \
             -e "s|@DARWIN_AMD64_SHA@|$DARWIN_AMD64_SHA|g" \
+            -e "s|@LINUX_ARM64_SHA@|$LINUX_ARM64_SHA|g" \
+            -e "s|@LINUX_AMD64_SHA@|$LINUX_AMD64_SHA|g" \
             scripts/release/homebrew/copilot-cli.rb.in > homebrew-tap/Formula/copilot-cli.rb
 
       - name: Validate formula

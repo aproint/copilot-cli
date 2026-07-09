@@ -21,6 +21,20 @@ class CopilotCli < Formula
     end
   end
 
+  on_linux do
+    on_arm do
+      url "https://github.com/aproint/copilot-cli/releases/download/@VERSION@/copilot-linux-arm64",
+          using: NoUnzipCurlDownloadStrategy
+      sha256 "@LINUX_ARM64_SHA@"
+    end
+
+    on_intel do
+      url "https://github.com/aproint/copilot-cli/releases/download/@VERSION@/copilot-linux-amd64",
+          using: NoUnzipCurlDownloadStrategy
+      sha256 "@LINUX_AMD64_SHA@"
+    end
+  end
+
   def install
     bin.install cached_download => "copilot"
   end

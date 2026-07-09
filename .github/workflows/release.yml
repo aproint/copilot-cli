@@ -257,3 +257,14 @@ jobs:
           else
             gh release create "$VERSION" dist/release/* "${flags[@]}"
           fi
+
+  homebrew:
+    if: github.repository == 'aproint/copilot-cli'
+    needs:
+      - build
+      - publish
+    uses: ./.github/workflows/homebrew.yml
+    with:
+      version: ${{ needs.build.outputs.version }}
+    secrets:
+      HOMEBREW_TAP_APP_PRIVATE_KEY: ${{ secrets.HOMEBREW_TAP_APP_PRIVATE_KEY }}

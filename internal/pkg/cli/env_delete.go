@@ -122,7 +122,7 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 		prompt: prompter,
 
 		initRuntimeClients: func(o *deleteEnvOpts) error {
-			env, err := o.getEnvConfig()
+			env, err := o.getEnvConfig(context.Background())
 			if err != nil {
 				return err
 			}
@@ -146,7 +146,7 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 // Validate returns an error if the individual user inputs are invalid.
 func (o *deleteEnvOpts) Validate() error {
 	if o.name != "" {
-		if err := o.validateEnvName(); err != nil {
+		if err := o.validateEnvName(context.Background()); err != nil {
 			return err
 		}
 	}
@@ -154,11 +154,11 @@ func (o *deleteEnvOpts) Validate() error {
 }
 
 // Ask prompts for fields that are required but not passed in.
-func (o *deleteEnvOpts) Ask() error {
-	if err := o.askAppName(); err != nil {
+func (o *deleteEnvOpts) Ask(ctx context.Context) error {
+	if err := o.askAppName(ctx); err != nil {
 		return err
 	}
-	if err := o.askEnvName(); err != nil {
+	if err := o.askEnvName(ctx); err != nil {
 		return err
 	}
 	if o.skipConfirmation {
@@ -181,7 +181,7 @@ func (o *deleteEnvOpts) Ask() error {
 // 4. Deleting the parameter from the SSM store.
 // The environment is removed from the store only if other delete operations succeed.
 // Execute assumes that Validate is invoked first.
-func (o *deleteEnvOpts) Execute() error {
+func (o *deleteEnvOpts) Execute(ctx context.Context) error {
 	if err := o.initRuntimeClients(o); err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (o *deleteEnvOpts) Execute() error {
 	}
 
 	o.prog.Start(fmt.Sprintf(fmtRetainEnvRolesStart, o.name))
-	if err := o.ensureRolesAreRetained(); err != nil {
+	if err := o.ensureRolesAreRetained(ctx); err != nil {
 		o.prog.Stop(log.Serrorf(fmtRetainEnvRolesFailed, o.name))
 		return err
 	}
@@ -211,25 +211,25 @@ func (o *deleteEnvOpts) Execute() error {
 	}
 
 	// DeleteStack streams the deletion events; we don't need a spinner over top of it.
-	if err := o.deleteStack(); err != nil {
+	if err := o.deleteStack(ctx); err != nil {
 		return err
 	}
 
 	// Un-delegate DNS and optionally delete stackset instance.
 	o.prog.Start("Cleaning up app-level resources and permissions\n")
-	if err := o.cleanUpAppResources(); err != nil {
+	if err := o.cleanUpAppResources(ctx); err != nil {
 		o.prog.Stop(log.Serrorf("Failed to remove environment resources from app %q\n", o.appName))
 		return err
 	}
 	o.prog.Stop(log.Ssuccessf("Cleaned up app-level resources for the %q environment\n", o.name))
 
 	o.prog.Start(fmt.Sprintf(fmtDeleteEnvStart, o.name, o.appName))
-	if err := o.tryDeleteRoles(); err != nil {
+	if err := o.tryDeleteRoles(ctx); err != nil {
 		o.prog.Stop(log.Serrorf(fmtDeleteEnvIAMFailed, o.name, o.appName))
 		return err
 	}
 	// Only remove from SSM if the stack and roles were deleted. Otherwise, the command will error when re-run.
-	if err := o.deleteFromStore(); err != nil {
+	if err := o.deleteFromStore(ctx); err != nil {
 		o.prog.Stop(log.Serrorf(fmtDeleteEnvSSMFailed, o.name, o.appName))
 		return err
 	}
@@ -242,19 +242,19 @@ func (o *deleteEnvOpts) RecommendActions() error {
 	return nil
 }
 
-func (o *deleteEnvOpts) validateEnvName() error {
-	if _, err := o.getEnvConfig(); err != nil {
+func (o *deleteEnvOpts) validateEnvName(ctx context.Context) error {
+	if _, err := o.getEnvConfig(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o *deleteEnvOpts) askAppName() error {
+func (o *deleteEnvOpts) askAppName(ctx context.Context) error {
 	if o.appName != "" {
 		return nil
 	}
 
-	app, err := o.sel.Application(envDeleteAppNamePrompt, envDeleteAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, envDeleteAppNamePrompt, envDeleteAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("ask for application: %w", err)
 	}
@@ -262,11 +262,11 @@ func (o *deleteEnvOpts) askAppName() error {
 	return nil
 }
 
-func (o *deleteEnvOpts) askEnvName() error {
+func (o *deleteEnvOpts) askEnvName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
-	env, err := o.sel.Environment(envDeleteNamePrompt, "", o.appName)
+	env, err := o.sel.Environment(ctx, envDeleteNamePrompt, "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select environment to delete: %w", err)
 	}
@@ -341,7 +341,7 @@ func (o *deleteEnvOpts) validateNoDependencyPipelines() error {
 // In earlier versions of the CLI, pre-commit 7e5428a, environment stacks were created without these roles retained.
 // In case we encounter a legacy stack, we need to first update the stack to make sure these roles are retained and then
 // proceed with the regular flow.
-func (o *deleteEnvOpts) ensureRolesAreRetained() error {
+func (o *deleteEnvOpts) ensureRolesAreRetained(ctx context.Context) error {
 	body, err := o.deployer.Template(stack.NameForEnv(o.appName, o.name))
 	if err != nil {
 		var stackDoesNotExist *awscfn.ErrStackNotFound
@@ -395,7 +395,7 @@ func (o *deleteEnvOpts) ensureRolesAreRetained() error {
 		newBody = parts[0] + "  EnvironmentManagerRole:\n    DeletionPolicy: Retain\n" + parts[1]
 	}
 
-	env, err := o.getEnvConfig()
+	env, err := o.getEnvConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -478,8 +478,8 @@ func (o *deleteEnvOpts) emptyBuckets() error {
 }
 
 // deleteStack returns nil if the stack was deleted successfully. Otherwise, returns the error.
-func (o *deleteEnvOpts) deleteStack() error {
-	env, err := o.getEnvConfig()
+func (o *deleteEnvOpts) deleteStack(ctx context.Context) error {
+	env, err := o.getEnvConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -489,17 +489,17 @@ func (o *deleteEnvOpts) deleteStack() error {
 	return nil
 }
 
-func (o *deleteEnvOpts) cleanUpAppResources() error {
+func (o *deleteEnvOpts) cleanUpAppResources(ctx context.Context) error {
 	// Get list of environments and check if there are any other environments in this account OR region.
-	envs, err := o.store.ListEnvironments(o.appName)
+	envs, err := o.store.ListEnvironments(ctx, o.appName)
 	if err != nil {
 		return err
 	}
-	currentEnv, err := o.getEnvConfig()
+	currentEnv, err := o.getEnvConfig(ctx)
 	if err != nil {
 		return err
 	}
-	app, err := o.getAppConfig()
+	app, err := o.getAppConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -522,8 +522,8 @@ func (o *deleteEnvOpts) cleanUpAppResources() error {
 // This error occurs because to delete a role you have to first remove all of its policies, so the role loses
 // permission to delete itself and then attempts to delete itself. We think that due to eventual consistency this
 // operation succeeds most of the time but on occasions we have observed it to fail.
-func (o *deleteEnvOpts) tryDeleteRoles() error {
-	env, err := o.getEnvConfig()
+func (o *deleteEnvOpts) tryDeleteRoles(ctx context.Context) error {
+	env, err := o.getEnvConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -532,19 +532,19 @@ func (o *deleteEnvOpts) tryDeleteRoles() error {
 	return nil
 }
 
-func (o *deleteEnvOpts) deleteFromStore() error {
-	if err := o.store.DeleteEnvironment(o.appName, o.name); err != nil {
+func (o *deleteEnvOpts) deleteFromStore(ctx context.Context) error {
+	if err := o.store.DeleteEnvironment(ctx, o.appName, o.name); err != nil {
 		return fmt.Errorf("delete environment %s configuration from application %s", o.name, o.appName)
 	}
 	return nil
 }
 
-func (o *deleteEnvOpts) getEnvConfig() (*config.Environment, error) {
+func (o *deleteEnvOpts) getEnvConfig(ctx context.Context) (*config.Environment, error) {
 	if o.envConfig != nil {
 		// Already fetched once, return.
 		return o.envConfig, nil
 	}
-	env, err := o.store.GetEnvironment(o.appName, o.name)
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s configuration from app %s: %v", o.name, o.appName, err)
 	}
@@ -552,12 +552,12 @@ func (o *deleteEnvOpts) getEnvConfig() (*config.Environment, error) {
 	return env, nil
 }
 
-func (o *deleteEnvOpts) getAppConfig() (*config.Application, error) {
+func (o *deleteEnvOpts) getAppConfig(ctx context.Context) (*config.Application, error) {
 	if o.appConfig != nil {
 		// Already fetched; return.
 		return o.appConfig, nil
 	}
-	app, err := o.store.GetApplication(o.appName)
+	app, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return nil, fmt.Errorf("get application %q configuration: %w", o.appName, err)
 	}
@@ -582,7 +582,7 @@ func buildEnvDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

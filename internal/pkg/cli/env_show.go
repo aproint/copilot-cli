@@ -41,7 +41,7 @@ type showEnvOpts struct {
 	store            store
 	describer        envDescriber
 	sel              configSelector
-	initEnvDescriber func() error
+	initEnvDescriber func(ctx context.Context) error
 }
 
 func newShowEnvOpts(vars showEnvVars) (*showEnvOpts, error) {
@@ -63,8 +63,8 @@ func newShowEnvOpts(vars showEnvVars) (*showEnvOpts, error) {
 		w:           log.OutputWriter,
 		sel:         selector.NewConfigSelector(prompt.New(), store),
 	}
-	opts.initEnvDescriber = func() error {
-		d, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	opts.initEnvDescriber = func(ctx context.Context) error {
+		d, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 			App:             opts.appName,
 			Env:             opts.name,
 			ConfigStore:     store,
@@ -86,16 +86,16 @@ func (o *showEnvOpts) Validate() error {
 }
 
 // Ask validates required fields that users passed in, otherwise it prompts for them.
-func (o *showEnvOpts) Ask() error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *showEnvOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	return o.validateOrAskEnv()
+	return o.validateOrAskEnv(ctx)
 }
 
 // Execute shows the environments through the prompt.
-func (o *showEnvOpts) Execute() error {
-	if err := o.initEnvDescriber(); err != nil {
+func (o *showEnvOpts) Execute(ctx context.Context) error {
+	if err := o.initEnvDescriber(ctx); err != nil {
 		return err
 	}
 	if o.shouldOutputManifest {
@@ -118,11 +118,11 @@ func (o *showEnvOpts) Execute() error {
 	return nil
 }
 
-func (o *showEnvOpts) validateOrAskApp() error {
+func (o *showEnvOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		return o.validateApp()
+		return o.validateApp(ctx)
 	}
-	app, err := o.sel.Application(envShowAppNamePrompt, envShowAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, envShowAppNamePrompt, envShowAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -130,18 +130,18 @@ func (o *showEnvOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *showEnvOpts) validateApp() error {
-	if _, err := o.store.GetApplication(o.appName); err != nil {
+func (o *showEnvOpts) validateApp(ctx context.Context) error {
+	if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 		return fmt.Errorf("validate application name %q: %v", o.appName, err)
 	}
 	return nil
 }
 
-func (o *showEnvOpts) validateOrAskEnv() error {
+func (o *showEnvOpts) validateOrAskEnv(ctx context.Context) error {
 	if o.name != "" {
-		return o.validateEnv()
+		return o.validateEnv(ctx)
 	}
-	env, err := o.sel.Environment(fmt.Sprintf(envShowNamePrompt, color.HighlightUserInput(o.appName)), envShowHelpPrompt, o.appName)
+	env, err := o.sel.Environment(ctx, fmt.Sprintf(envShowNamePrompt, color.HighlightUserInput(o.appName)), envShowHelpPrompt, o.appName)
 	if err != nil {
 		return fmt.Errorf("select environment for application %s: %w", o.appName, err)
 	}
@@ -149,8 +149,8 @@ func (o *showEnvOpts) validateOrAskEnv() error {
 	return nil
 }
 
-func (o *showEnvOpts) validateEnv() error {
-	if _, err := o.store.GetEnvironment(o.appName, o.name); err != nil {
+func (o *showEnvOpts) validateEnv(ctx context.Context) error {
+	if _, err := o.store.GetEnvironment(ctx, o.appName, o.name); err != nil {
 		return fmt.Errorf("validate environment name %q in application %q: %v", o.name, o.appName, err)
 	}
 	return nil
@@ -183,7 +183,7 @@ func buildEnvShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -43,11 +44,11 @@ func TestPackageSvcOpts_Ask(t *testing.T) {
 			inEnvName: "prod-iad",
 			inSvcName: "frontend",
 			setupMocks: func(m svcPackageAskMock) {
-				m.store.EXPECT().GetApplication("phonetool")
-				m.store.EXPECT().GetEnvironment("phonetool", "prod-iad").Return(&config.Environment{Name: "prod-iad"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool")
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "prod-iad").Return(&config.Environment{Name: "prod-iad"}, nil)
 				m.ws.EXPECT().ListServices().Return([]string{"frontend"}, nil)
-				m.sel.EXPECT().Service(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().Service(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedAppName: "phonetool",
 			wantedSvcName: "frontend",
@@ -55,7 +56,7 @@ func TestPackageSvcOpts_Ask(t *testing.T) {
 		},
 		"error instead of prompting for application name if not provided": {
 			setupMocks: func(m svcPackageAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).Times(0)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
 			},
 			wantedError: errNoAppInWorkspace,
 		},
@@ -63,11 +64,11 @@ func TestPackageSvcOpts_Ask(t *testing.T) {
 			inAppName: "phonetool",
 			inEnvName: "test",
 			setupMocks: func(m svcPackageAskMock) {
-				m.sel.EXPECT().Service("Which service would you like to generate a CloudFormation template for?", "").
+				m.sel.EXPECT().Service(ctx, "Which service would you like to generate a CloudFormation template for?", "").
 					Return("frontend", nil)
 				m.ws.EXPECT().ListServices().Times(0)
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedAppName: "phonetool",
 			wantedSvcName: "frontend",
@@ -78,9 +79,9 @@ func TestPackageSvcOpts_Ask(t *testing.T) {
 			inSvcName: "frontend",
 
 			setupMocks: func(m svcPackageAskMock) {
-				m.sel.EXPECT().Environment(gomock.Any(), gomock.Any(), "phonetool").Return("prod-iad", nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetApplication("phonetool").AnyTimes()
+				m.sel.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), "phonetool").Return("prod-iad", nil)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetApplication(ctx, "phonetool").AnyTimes()
 				m.ws.EXPECT().ListServices().Return([]string{"frontend"}, nil).AnyTimes()
 			},
 			wantedAppName: "phonetool",
@@ -114,7 +115,7 @@ func TestPackageSvcOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -364,7 +365,7 @@ count: 1`
 				newInterpolator: func(_, _ string) interpolator {
 					return m.interpolator
 				},
-				newStackGenerator: func(_ *packageSvcOpts) (workloadStackGenerator, error) {
+				newStackGenerator: func(_ context.Context, _ *packageSvcOpts) (workloadStackGenerator, error) {
 					return m.generator, nil
 				},
 				envFeaturesDescriber: m.envFeaturesDescriber,
@@ -373,7 +374,7 @@ count: 1`
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {

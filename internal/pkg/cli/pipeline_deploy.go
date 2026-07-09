@@ -202,7 +202,7 @@ func (o *deployPipelineOpts) Validate() error {
 }
 
 // Ask prompts the user for any unprovided required fields and validates them.
-func (o *deployPipelineOpts) Ask() error {
+func (o *deployPipelineOpts) Ask(ctx context.Context) error {
 	if o.wsAppName == "" {
 		return errNoAppInWorkspace
 	}
@@ -210,7 +210,7 @@ func (o *deployPipelineOpts) Ask() error {
 	if o.appName != "" && o.appName != o.wsAppName {
 		return fmt.Errorf("cannot specify app %s because the workspace is already registered with app %s", o.appName, o.wsAppName)
 	}
-	appConfig, err := o.store.GetApplication(o.wsAppName)
+	appConfig, err := o.store.GetApplication(ctx, o.wsAppName)
 	if err != nil {
 		return fmt.Errorf("get application %s configuration: %w", o.wsAppName, err)
 	}
@@ -243,7 +243,7 @@ func validatePipelineVersion(vg versionGetter, name, templateVersion string) err
 }
 
 // Execute creates a new pipeline or updates the current pipeline if it already exists.
-func (o *deployPipelineOpts) Execute() error {
+func (o *deployPipelineOpts) Execute(ctx context.Context) error {
 	if !o.allowDowngrade {
 		isLegacy, err := o.isLegacy(o.name)
 		if err != nil {
@@ -287,7 +287,7 @@ func (o *deployPipelineOpts) Execute() error {
 	}
 
 	// Convert environments to deployment stages.
-	stages, err := o.convertStages(pipeline.Stages)
+	stages, err := o.convertStages(ctx, pipeline.Stages)
 	if err != nil {
 		return fmt.Errorf("convert environments to deployment stage: %w", err)
 	}
@@ -461,14 +461,14 @@ func (o *deployPipelineOpts) getPipelineMft() (*manifest.Pipeline, error) {
 	return pipelineMft, nil
 }
 
-func (o *deployPipelineOpts) convertStages(manifestStages []manifest.PipelineStage) ([]deploy.PipelineStage, error) {
+func (o *deployPipelineOpts) convertStages(ctx context.Context, manifestStages []manifest.PipelineStage) ([]deploy.PipelineStage, error) {
 	var stages []deploy.PipelineStage
-	workloads, err := o.getLocalWorkloads()
+	workloads, err := o.getLocalWorkloads(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, stage := range manifestStages {
-		env, err := o.store.GetEnvironment(o.appName, stage.Name)
+		env, err := o.store.GetEnvironment(ctx, o.appName, stage.Name)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s in application %s: %w", stage.Name, o.appName, err)
 		}
@@ -480,12 +480,12 @@ func (o *deployPipelineOpts) convertStages(manifestStages []manifest.PipelineSta
 	return stages, nil
 }
 
-func (o deployPipelineOpts) getLocalWorkloads() ([]string, error) {
+func (o deployPipelineOpts) getLocalWorkloads(ctx context.Context) ([]string, error) {
 	var localWklds []string
-	if err := o.newSvcListCmd(o.svcBuffer, o.appName).Execute(); err != nil {
+	if err := o.newSvcListCmd(o.svcBuffer, o.appName).Execute(ctx); err != nil {
 		return nil, fmt.Errorf("get local services: %w", err)
 	}
-	if err := o.newJobListCmd(o.jobBuffer, o.appName).Execute(); err != nil {
+	if err := o.newJobListCmd(o.jobBuffer, o.appName).Execute(ctx); err != nil {
 		return nil, fmt.Errorf("get local jobs: %w", err)
 	}
 	svcOutput, jobOutput := &list.ServiceJSONOutput{}, &list.JobJSONOutput{}
@@ -628,7 +628,7 @@ func buildPipelineDeployCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, "", appFlagDescription)

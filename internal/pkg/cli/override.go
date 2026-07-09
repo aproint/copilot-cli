@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -87,16 +88,16 @@ func (o *overrideOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *overrideOpts) Ask() error {
+func (o *overrideOpts) Ask(ctx context.Context) error {
 	if err := o.validateOrAskIaCTool(); err != nil {
 		return err
 	}
-	return o.askResourcesToOverride()
+	return o.askResourcesToOverride(ctx)
 }
 
 // Execute writes IaC override files to the local workspace.
 // This method assumes that the IaC tool chosen by the user is valid.
-func (o *overrideOpts) Execute() error {
+func (o *overrideOpts) Execute(_ context.Context) error {
 	dir := o.dir()
 	switch o.iacTool {
 	case cdkIaCTool:
@@ -126,7 +127,7 @@ func (o *overrideOpts) validateAppName() error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
-	_, err := o.cfgStore.GetApplication(o.appName)
+	_, err := o.cfgStore.GetApplication(context.Background(), o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %q configuration: %v", o.appName, err)
 	}
@@ -180,7 +181,7 @@ func (o *overrideOpts) validateIaCTool() error {
 		strings.Join(applyAll(validIaCTools, strconv.Quote), ", "))
 }
 
-func (o *overrideOpts) askResourcesToOverride() error {
+func (o *overrideOpts) askResourcesToOverride(ctx context.Context) error {
 	if o.skipResources || o.iacTool == yamlPatch {
 		return nil
 	}
@@ -194,7 +195,7 @@ func (o *overrideOpts) askResourcesToOverride() error {
 		o.spinner.Stop("")
 		return err
 	}
-	if err := pkgCmd.Execute(); err != nil {
+	if err := pkgCmd.Execute(ctx); err != nil {
 		o.spinner.Stop("")
 		return fmt.Errorf("generate CloudFormation template for %q: %v", o.name, err)
 	}

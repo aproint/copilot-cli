@@ -63,12 +63,12 @@ func (o *listJobOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *listJobOpts) Ask() error {
+func (o *listJobOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
 		return nil
 	}
 
-	name, err := o.sel.Application(jobListAppNamePrompt, wkldAppNameHelpPrompt)
+	name, err := o.sel.Application(ctx, jobListAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -77,8 +77,8 @@ func (o *listJobOpts) Ask() error {
 }
 
 // Execute lists the jobs in the workspace or application.
-func (o *listJobOpts) Execute() error {
-	if err := o.list.Write(o.appName); err != nil {
+func (o *listJobOpts) Execute(ctx context.Context) error {
+	if err := o.list.Write(ctx, o.appName); err != nil {
 		return err
 	}
 	return nil
@@ -97,10 +97,10 @@ func buildJobListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
-			return opts.Execute()
+			return opts.Execute(cmd.Context())
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

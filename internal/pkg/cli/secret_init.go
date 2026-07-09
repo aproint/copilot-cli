@@ -67,7 +67,7 @@ type secretInitOpts struct {
 	envCompatibilityChecker map[string]versionCompatibilityChecker
 	secretPutters           map[string]secretPutter
 
-	configureClientsForEnv func(envName string) error
+	configureClientsForEnv func(ctx context.Context, envName string) error
 	readFile               func() ([]byte, error)
 }
 
@@ -98,8 +98,8 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 		selector: selector.NewAppEnvSelector(prompter, store),
 	}
 
-	opts.configureClientsForEnv = func(envName string) error {
-		checker, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	opts.configureClientsForEnv = func(ctx context.Context, envName string) error {
+		checker, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 			App:         opts.appName,
 			Env:         envName,
 			ConfigStore: opts.store,
@@ -109,7 +109,7 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 		}
 		opts.envCompatibilityChecker[envName] = checker
 
-		env, err := opts.targetEnv(envName)
+		env, err := opts.targetEnv(ctx, envName)
 		if err != nil {
 			return err
 		}
@@ -140,6 +140,7 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 
 // Validate returns an error if the flag values passed by the user are invalid.
 func (o *secretInitOpts) Validate() error {
+	ctx := context.Background()
 	if o.inputFilePath != "" && o.name != "" {
 		return errors.New("cannot specify `--cli-input-yaml` with `--name`")
 	}
@@ -149,13 +150,13 @@ func (o *secretInitOpts) Validate() error {
 	}
 
 	if o.appName != "" {
-		_, err := o.store.GetApplication(o.appName)
+		_, err := o.store.GetApplication(ctx, o.appName)
 		if err != nil {
 			return fmt.Errorf("get application %s: %w", o.appName, err)
 		}
 		if o.values != nil {
 			for env := range o.values {
-				if _, err := o.targetEnv(env); err != nil {
+				if _, err := o.targetEnv(ctx, env); err != nil {
 					return err
 				}
 			}
@@ -177,7 +178,7 @@ func (o *secretInitOpts) Validate() error {
 }
 
 // Ask prompts the user for any required or important fields that are not provided.
-func (o *secretInitOpts) Ask() error {
+func (o *secretInitOpts) Ask(ctx context.Context) error {
 	if o.overwrite {
 		log.Warningf("You have specified %s flag. Please note that overwriting an existing secret may break your deployed service.\n", color.HighlightCode(fmt.Sprintf("--%s", overwriteFlag)))
 	}
@@ -186,20 +187,20 @@ func (o *secretInitOpts) Ask() error {
 		return nil
 	}
 
-	if err := o.askForAppName(); err != nil {
+	if err := o.askForAppName(ctx); err != nil {
 		return err
 	}
 	if err := o.askForSecretName(); err != nil {
 		return err
 	}
-	if err := o.askForSecretValues(); err != nil {
+	if err := o.askForSecretValues(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Execute creates or updates the secrets.
-func (o *secretInitOpts) Execute() error {
+func (o *secretInitOpts) Execute(ctx context.Context) error {
 	if o.inputFilePath != "" {
 		secrets, err := o.parseSecretsInputFile()
 		if err != nil {
@@ -208,7 +209,7 @@ func (o *secretInitOpts) Execute() error {
 
 		o.secretValues = secrets
 
-		if err := o.configureClientsAndUpgradeForEnvironments(secrets); err != nil {
+		if err := o.configureClientsAndUpgradeForEnvironments(ctx, secrets); err != nil {
 			return err
 		}
 
@@ -231,13 +232,13 @@ func (o *secretInitOpts) Execute() error {
 	o.secretValues = map[string]map[string]string{
 		o.name: o.values,
 	}
-	if err := o.configureClientsAndUpgradeForEnvironments(o.secretValues); err != nil {
+	if err := o.configureClientsAndUpgradeForEnvironments(ctx, o.secretValues); err != nil {
 		return err
 	}
 	return o.putSecret(o.name, o.values)
 }
 
-func (o *secretInitOpts) configureClientsAndUpgradeForEnvironments(secrets map[string]map[string]string) error {
+func (o *secretInitOpts) configureClientsAndUpgradeForEnvironments(ctx context.Context, secrets map[string]map[string]string) error {
 	envNames := make(map[string]struct{})
 	for _, values := range secrets {
 		for envName := range values {
@@ -246,7 +247,7 @@ func (o *secretInitOpts) configureClientsAndUpgradeForEnvironments(secrets map[s
 	}
 
 	for envName := range envNames {
-		if err := o.configureClientsForEnv(envName); err != nil {
+		if err := o.configureClientsForEnv(ctx, envName); err != nil {
 			return err
 		}
 		if err := validateMinEnvVersion(o.ws, o.envCompatibilityChecker[envName], o.appName, envName, template.SecretInitMinEnvVersion, "secret init"); err != nil {
@@ -340,12 +341,12 @@ func (o *secretInitOpts) parseSecretsInputFile() (map[string]map[string]string, 
 	return f.Secrets, nil
 }
 
-func (o *secretInitOpts) askForAppName() error {
+func (o *secretInitOpts) askForAppName(ctx context.Context) error {
 	if o.appName != "" {
 		return nil
 	}
 
-	app, err := o.selector.Application(secretInitAppPrompt, secretInitAppPromptHelp)
+	app, err := o.selector.Application(ctx, secretInitAppPrompt, secretInitAppPromptHelp)
 	if err != nil {
 		return fmt.Errorf("ask for an application to add the secret to: %w", err)
 	}
@@ -370,12 +371,12 @@ func (o *secretInitOpts) askForSecretName() error {
 	return nil
 }
 
-func (o *secretInitOpts) askForSecretValues() error {
+func (o *secretInitOpts) askForSecretValues(ctx context.Context) error {
 	if o.values != nil {
 		return nil
 	}
 
-	envs, err := o.store.ListEnvironments(o.appName)
+	envs, err := o.store.ListEnvironments(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("list environments in app %s: %w", o.appName, err)
 	}
@@ -460,8 +461,8 @@ func (e *errBatchPutSecretsFailed) Error() string {
 	return strings.Join(out, "\n")
 }
 
-func (o *secretInitOpts) targetEnv(envName string) (*config.Environment, error) {
-	env, err := o.store.GetEnvironment(o.appName, envName)
+func (o *secretInitOpts) targetEnv(ctx context.Context, envName string) (*config.Environment, error) {
+	env, err := o.store.GetEnvironment(ctx, o.appName, envName)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s in application %s: %w", envName, o.appName, err)
 	}
@@ -489,11 +490,11 @@ Create secrets from input.yml. For the format of the YAML file, please see https
 			if err := opts.Validate(); err != nil {
 				return err
 			}
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
 
-			err = opts.Execute()
+			err = opts.Execute(cmd.Context())
 			if opts.shouldShowOverwriteHint {
 				log.Warningf("If you want to overwrite an existing secret, use the %s flag.\n", color.HighlightCode(fmt.Sprintf("--%s", overwriteFlag)))
 			}

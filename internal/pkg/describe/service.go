@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,18 +38,18 @@ const maxAlarmShowColumnWidth = 40
 
 // ConfigStoreSvc wraps methods of config store.
 type ConfigStoreSvc interface {
-	GetEnvironment(appName string, environmentName string) (*config.Environment, error)
-	ListEnvironments(appName string) ([]*config.Environment, error)
-	ListServices(appName string) ([]*config.Workload, error)
-	GetWorkload(appName string, name string) (*config.Workload, error)
-	ListJobs(appName string) ([]*config.Workload, error)
+	GetEnvironment(ctx context.Context, appName string, environmentName string) (*config.Environment, error)
+	ListEnvironments(ctx context.Context, appName string) ([]*config.Environment, error)
+	ListServices(ctx context.Context, appName string) ([]*config.Workload, error)
+	GetWorkload(ctx context.Context, appName string, name string) (*config.Workload, error)
+	ListJobs(ctx context.Context, appName string) ([]*config.Workload, error)
 }
 
 // DeployedEnvServicesLister wraps methods of deploy store.
 type DeployedEnvServicesLister interface {
-	ListEnvironmentsDeployedTo(appName string, svcName string) ([]string, error)
-	ListDeployedServices(appName string, envName string) ([]string, error)
-	ListDeployedJobs(appName string, envName string) ([]string, error)
+	ListEnvironmentsDeployedTo(ctx context.Context, appName string, svcName string) ([]string, error)
+	ListDeployedServices(ctx context.Context, appName string, envName string) ([]string, error)
+	ListDeployedJobs(ctx context.Context, appName string, envName string) ([]string, error)
 }
 
 type ecsClient interface {
@@ -139,8 +140,8 @@ type NewServiceConfig struct {
 	DeployStore     DeployedEnvServicesLister
 }
 
-func newECSServiceDescriber(opt NewServiceConfig) (*ecsServiceDescriber, error) {
-	stackDescriber, err := NewWorkloadStackDescriber(NewWorkloadConfig{
+func newECSServiceDescriber(ctx context.Context, opt NewServiceConfig) (*ecsServiceDescriber, error) {
+	stackDescriber, err := NewWorkloadStackDescriber(ctx, NewWorkloadConfig{
 		App:         opt.App,
 		Env:         opt.Env,
 		Name:        opt.Svc,
@@ -155,8 +156,8 @@ func newECSServiceDescriber(opt NewServiceConfig) (*ecsServiceDescriber, error) 
 	}, nil
 }
 
-func newAppRunnerServiceDescriber(opt NewServiceConfig) (*appRunnerServiceDescriber, error) {
-	stackDescriber, err := NewWorkloadStackDescriber(NewWorkloadConfig{
+func newAppRunnerServiceDescriber(ctx context.Context, opt NewServiceConfig) (*appRunnerServiceDescriber, error) {
+	stackDescriber, err := NewWorkloadStackDescriber(ctx, NewWorkloadConfig{
 		App:         opt.App,
 		Env:         opt.Env,
 		Name:        opt.Svc,

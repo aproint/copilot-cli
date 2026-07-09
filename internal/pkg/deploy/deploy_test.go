@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+var ctx = context.Background()
 
 type storeMock struct {
 	rgGetter    *mocks.MockResourceGetter
@@ -38,7 +41,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListWorkloads("mockApp").Return([]*config.Workload{}, nil),
+					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{}, nil),
 					m.rgGetter.EXPECT().GetResourcesByTags(stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
@@ -54,7 +57,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListWorkloads("mockApp").Return([]*config.Workload{}, nil),
+					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{}, nil),
 					m.rgGetter.EXPECT().GetResourcesByTags(stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
@@ -70,7 +73,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListWorkloads("mockApp").Return(nil, errors.New("some error")),
+					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return(nil, errors.New("some error")),
 					m.rgGetter.EXPECT().GetResourcesByTags(stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
@@ -86,7 +89,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListWorkloads("mockApp").Return([]*config.Workload{
+					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{
 						{
 							App:  "mockApp",
 							Name: "mockSvc1",
@@ -132,11 +135,11 @@ func TestStore_ListDeployedServices(t *testing.T) {
 
 			store := &Store{
 				configStore:        mockConfigStore,
-				newRgClientFromIDs: func(string, string) (ResourceGetter, error) { return mockRgGetter, nil },
+				newRgClientFromIDs: func(context.Context, string, string) (ResourceGetter, error) { return mockRgGetter, nil },
 			}
 
 			// WHEN
-			svcs, err := store.ListDeployedServices(tc.inputApp, tc.inputEnv)
+			svcs, err := store.ListDeployedServices(ctx, tc.inputApp, tc.inputEnv)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -164,7 +167,7 @@ func TestStore_ListDeployedJobs(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListWorkloads("mockApp").Return([]*config.Workload{
+					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{
 						{
 							App:  "mockApp",
 							Name: "mockSvc1",
@@ -202,7 +205,7 @@ func TestStore_ListDeployedJobs(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListWorkloads("mockApp").Return([]*config.Workload{}, nil),
+					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{}, nil),
 					m.rgGetter.EXPECT().GetResourcesByTags(stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
@@ -228,10 +231,10 @@ func TestStore_ListDeployedJobs(t *testing.T) {
 
 			store := &Store{
 				configStore:        mockConfigStore,
-				newRgClientFromIDs: func(string, string) (ResourceGetter, error) { return mockRgGetter, nil },
+				newRgClientFromIDs: func(context.Context, string, string) (ResourceGetter, error) { return mockRgGetter, nil },
 			}
 			// WHEN
-			jobs, err := store.ListDeployedJobs(tc.inputApp, tc.inputEnv)
+			jobs, err := store.ListDeployedJobs(ctx, tc.inputApp, tc.inputEnv)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -259,7 +262,7 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListEnvironments("mockApp").Return(nil, errors.New("some error")),
+					m.configStore.EXPECT().ListEnvironments(context.Background(), "mockApp").Return(nil, errors.New("some error")),
 				)
 			},
 
@@ -271,7 +274,7 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+					m.configStore.EXPECT().ListEnvironments(context.Background(), "mockApp").Return([]*config.Environment{
 						{
 							App:  "mockApp",
 							Name: "mockEnv",
@@ -292,7 +295,7 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 			inputSvc: "mockSvc",
 
 			setupMocks: func(m storeMock) {
-				m.configStore.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+				m.configStore.EXPECT().ListEnvironments(context.Background(), "mockApp").Return([]*config.Environment{
 					{
 						App:  "mockApp",
 						Name: "mockEnv1",
@@ -335,11 +338,11 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 
 			store := &Store{
 				configStore:         mockConfigStore,
-				newRgClientFromRole: func(string, string) (ResourceGetter, error) { return mockRgGetter, nil },
+				newRgClientFromRole: func(context.Context, string, string) (ResourceGetter, error) { return mockRgGetter, nil },
 			}
 
 			// WHEN
-			envs, err := store.ListEnvironmentsDeployedTo(tc.inputApp, tc.inputSvc)
+			envs, err := store.ListEnvironmentsDeployedTo(ctx, tc.inputApp, tc.inputSvc)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -432,11 +435,11 @@ func TestStore_IsServiceDeployed(t *testing.T) {
 
 			store := &Store{
 				configStore:        mockConfigStore,
-				newRgClientFromIDs: func(string, string) (ResourceGetter, error) { return mockRgGetter, nil },
+				newRgClientFromIDs: func(context.Context, string, string) (ResourceGetter, error) { return mockRgGetter, nil },
 			}
 
 			// WHEN
-			deployed, err := store.IsServiceDeployed(tc.inputApp, tc.inputEnv, tc.inputSvc)
+			deployed, err := store.IsServiceDeployed(ctx, tc.inputApp, tc.inputEnv, tc.inputSvc)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -527,11 +530,11 @@ func Test_IsJobDeployed(t *testing.T) {
 
 			store := &Store{
 				configStore:        mockConfigStore,
-				newRgClientFromIDs: func(string, string) (ResourceGetter, error) { return mockRgGetter, nil },
+				newRgClientFromIDs: func(context.Context, string, string) (ResourceGetter, error) { return mockRgGetter, nil },
 			}
 
 			// WHEN
-			deployed, err := store.IsJobDeployed(tc.inputApp, tc.inputEnv, tc.inputJob)
+			deployed, err := store.IsJobDeployed(ctx, tc.inputApp, tc.inputEnv, tc.inputJob)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -672,11 +675,11 @@ func TestStore_ListSNSTopics(t *testing.T) {
 
 			store := &Store{
 				configStore:        mockConfigStore,
-				newRgClientFromIDs: func(string, string) (ResourceGetter, error) { return mockRgGetter, nil },
+				newRgClientFromIDs: func(context.Context, string, string) (ResourceGetter, error) { return mockRgGetter, nil },
 			}
 
 			// WHEN
-			topics, err := store.ListSNSTopics(tc.inputApp, tc.inputEnv)
+			topics, err := store.ListSNSTopics(ctx, tc.inputApp, tc.inputEnv)
 
 			// THEN
 			if tc.wantedError != nil {

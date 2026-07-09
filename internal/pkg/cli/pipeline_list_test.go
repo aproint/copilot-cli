@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -40,7 +41,7 @@ func TestPipelineList_Ask(t *testing.T) {
 	}{
 		"success with no flags set": {
 			setupMocks: func(m pipelineListMocks) {
-				m.sel.EXPECT().Application(pipelineListAppNamePrompt, pipelineListAppNameHelper).Return("my-app", nil)
+				m.sel.EXPECT().Application(ctx, pipelineListAppNamePrompt, pipelineListAppNameHelper).Return("my-app", nil)
 			},
 			wantedApp: "my-app",
 			wantedErr: nil,
@@ -48,14 +49,14 @@ func TestPipelineList_Ask(t *testing.T) {
 		"success with app flag set": {
 			inputApp: "my-app",
 			setupMocks: func(m pipelineListMocks) {
-				m.store.EXPECT().GetApplication("my-app").Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(nil, nil)
 			},
 			wantedApp: "my-app",
 			wantedErr: nil,
 		},
 		"error if fail to select app": {
 			setupMocks: func(m pipelineListMocks) {
-				m.sel.EXPECT().Application(pipelineListAppNamePrompt, pipelineListAppNameHelper).Return("", errors.New("some error"))
+				m.sel.EXPECT().Application(ctx, pipelineListAppNamePrompt, pipelineListAppNameHelper).Return("", errors.New("some error"))
 			},
 			wantedApp: "my-app",
 			wantedErr: fmt.Errorf("select application: some error"),
@@ -63,7 +64,7 @@ func TestPipelineList_Ask(t *testing.T) {
 		"error if passed-in app doesn't exist": {
 			inputApp: "my-app",
 			setupMocks: func(m pipelineListMocks) {
-				m.store.EXPECT().GetApplication("my-app").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(nil, errors.New("some error"))
 			},
 			wantedApp: "",
 			wantedErr: errors.New("validate application: some error"),
@@ -71,7 +72,7 @@ func TestPipelineList_Ask(t *testing.T) {
 		"using workspace successful": {
 			inWsAppName: "my-app",
 			setupMocks: func(m pipelineListMocks) {
-				m.store.EXPECT().GetApplication("my-app").Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(nil, nil)
 			},
 			shouldShowLocalPipelines: true,
 		},
@@ -117,7 +118,7 @@ func TestPipelineList_Ask(t *testing.T) {
 				wsAppName:      tc.inWsAppName,
 			}
 
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -264,7 +265,7 @@ my-pipeline-repo
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.expectedErr != nil {

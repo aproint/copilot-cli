@@ -92,26 +92,26 @@ func (o *svcExecOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcExecOpts) Ask() error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *svcExecOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	if err := o.validateAndAskSvcEnvName(); err != nil {
+	if err := o.validateAndAskSvcEnvName(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Execute executes a command in a running container.
-func (o *svcExecOpts) Execute() error {
-	wkld, err := o.store.GetWorkload(o.appName, o.name)
+func (o *svcExecOpts) Execute(ctx context.Context) error {
+	wkld, err := o.store.GetWorkload(ctx, o.appName, o.name)
 	if err != nil {
 		return fmt.Errorf("get workload: %w", err)
 	}
 	if wkld.Type == manifestinfo.RequestDrivenWebServiceType {
 		return fmt.Errorf("executing a command in a running container part of a service is not supported for services with type: '%s'", manifestinfo.RequestDrivenWebServiceType)
 	}
-	cfg, err := o.envConfig()
+	cfg, err := o.envConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -141,12 +141,12 @@ func (o *svcExecOpts) Execute() error {
 	return nil
 }
 
-func (o *svcExecOpts) validateOrAskApp() error {
+func (o *svcExecOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.store.GetApplication(o.appName)
+		_, err := o.store.GetApplication(ctx, o.appName)
 		return err
 	}
-	app, err := o.sel.Application(svcAppNamePrompt, wkldAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -154,22 +154,22 @@ func (o *svcExecOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *svcExecOpts) validateAndAskSvcEnvName() error {
+func (o *svcExecOpts) validateAndAskSvcEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		if _, err := o.store.GetEnvironment(o.appName, o.envName); err != nil {
+		if _, err := o.store.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 			return err
 		}
 	}
 
 	if o.name != "" {
-		if _, err := o.store.GetService(o.appName, o.name); err != nil {
+		if _, err := o.store.GetService(ctx, o.appName, o.name); err != nil {
 			return err
 		}
 	}
 
 	// Note: we let prompter handle the case when there is only option for user to choose from.
 	// This is naturally the case when `o.envName != "" && o.name != ""`.
-	deployedService, err := o.sel.DeployedService(svcExecNamePrompt, svcExecNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.name))
+	deployedService, err := o.sel.DeployedService(ctx, svcExecNamePrompt, svcExecNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.name))
 	if err != nil {
 		return fmt.Errorf("select deployed service for application %s: %w", o.appName, err)
 	}
@@ -178,8 +178,8 @@ func (o *svcExecOpts) validateAndAskSvcEnvName() error {
 	return nil
 }
 
-func (o *svcExecOpts) envConfig() (aws.Config, error) {
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+func (o *svcExecOpts) envConfig(ctx context.Context) (aws.Config, error) {
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
@@ -291,7 +291,7 @@ func buildSvcExecCmd() *cobra.Command {
 					opts.skipConfirmation = aws.Bool(true)
 				}
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

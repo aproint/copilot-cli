@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -78,7 +79,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: "ghost-app",
 			inAppName:   "ghost-app",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication("ghost-app").Return(nil, mockError)
+				m.store.EXPECT().GetApplication(ctx, "ghost-app").Return(nil, mockError)
 			},
 			expectedError: fmt.Errorf("get application ghost-app configuration: some error"),
 		},
@@ -86,7 +87,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: mockAppName,
 			inRepoURL:   "https://gitlab.company.com/group/project.git",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 			},
 			expectedError: errors.New("repository https://gitlab.company.com/group/project.git must be from a supported provider: GitHub, CodeCommit or Bitbucket"),
 		},
@@ -94,7 +95,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: mockAppName,
 			inRepoURL:   "thisisnotevenagithub.comrepository",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 			},
 			expectedError: errors.New("unable to parse the GitHub repository owner and name from thisisnotevenagithub.comrepository: please pass the repository URL with the format `--url https://github.com/{owner}/{repositoryName}`"),
 		},
@@ -102,7 +103,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: mockAppName,
 			inRepoURL:   "git-codecommitus-west-2amazonaws.com",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 			},
 			expectedError: errors.New("unknown CodeCommit URL format: git-codecommitus-west-2amazonaws.com"),
 		},
@@ -110,7 +111,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: mockAppName,
 			inRepoURL:   "codecommit::us-mess-2://repo-man",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 			},
 			expectedError: errors.New("unable to parse the AWS region from codecommit::us-mess-2://repo-man"),
 		},
@@ -118,7 +119,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: mockAppName,
 			inRepoURL:   "codecommit::us-west-2://repo-man",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.sessProvider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: "us-east-1"}, nil)
 			},
 			expectedError: errors.New("repository repo-man is in us-west-2, but app my-app is in us-east-1; they must be in the same region"),
@@ -127,7 +128,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: mockAppName,
 			inRepoURL:   "bitbucket.org",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 			},
 			expectedError: errors.New("unable to parse the Bitbucket repository name from bitbucket.org"),
 		},
@@ -138,10 +139,10 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inName:         wantedName,
 			buffer:         *bytes.NewBufferString("devBranch"),
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.runner.EXPECT().Run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(
 					&config.Environment{
 						Name: "test",
 					}, nil)
@@ -157,10 +158,10 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inEnvironments: []string{"test"},
 			inName:         wantedName,
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.runner.EXPECT().Run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(
 					&config.Environment{
 						Name: "test",
 					}, nil)
@@ -176,7 +177,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:   githubAnotherURL,
 			inGitBranch: "main",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication("my-app").Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(mockApp, nil)
 			},
 
 			expectedError: fmt.Errorf("pipeline name 1234 is invalid: %w", errBasicNameRegexNotMatched),
@@ -186,7 +187,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:   githubAnotherURL,
 			inGitBranch: "main",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", errors.New("mock error"))
 			},
@@ -200,7 +201,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inName:      "mock-pipeline",
 			inType:      "RandomType",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 			},
 			expectedError: errors.New(`invalid pipeline type "RandomType"; must be one of "Workloads" or "Environments"`),
 		},
@@ -209,7 +210,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:   githubAnotherURL,
 			inGitBranch: "main",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().Get(gomock.Eq("What would you like to name this pipeline?"), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(wantedName, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Eq("What type of continuous delivery pipeline is this?"), gomock.Any(), gomock.Any()).
@@ -224,8 +225,8 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inGitBranch:    "main",
 			inEnvironments: []string{"prod"},
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
-				m.store.EXPECT().GetEnvironment(mockAppName, "prod").
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetEnvironment(ctx, mockAppName, "prod").
 					Return(&config.Environment{Name: "prod"}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.workspace.EXPECT().ListPipelines().Return([]workspace.PipelineManifest{}, nil)
@@ -240,7 +241,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:      "unsupported.org/repositories/repoName",
 			inEnvironments: []string{"test"},
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 
@@ -253,9 +254,9 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inEnvironments: []string{"test", "prod"},
 			inGitBranch:    "main",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(nil, mockError)
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(nil, mockError)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.workspace.EXPECT().ListPipelines().Return([]workspace.PipelineManifest{}, nil)
 			},
@@ -269,13 +270,13 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:      "https://github.com/badGoose/chaOS",
 			inGitBranch:    "main",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(
 					&config.Environment{
 						Name: "test",
 					}, nil)
-				m.store.EXPECT().GetEnvironment("my-app", "prod").Return(
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "prod").Return(
 					&config.Environment{
 						Name: "prod",
 					}, nil)
@@ -290,14 +291,14 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:      "https://git-codecommit.us-west-2.amazonaws.com/v1/repos/repo-man",
 			inGitBranch:    "main",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.sessProvider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: "us-west-2"}, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(
 					&config.Environment{
 						Name: "test",
 					}, nil)
-				m.store.EXPECT().GetEnvironment("my-app", "prod").Return(
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "prod").Return(
 					&config.Environment{
 						Name: "prod",
 					}, nil)
@@ -310,14 +311,14 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inGitHubAccessToken: githubToken,
 			buffer:              *bytes.NewBufferString("archer\tgit@github.com:goodGoose/bhaOS (fetch)\narcher\thttps://github.com/badGoose/chaOS (push)\narcher\tcodecommit::us-west-2://repo-man (fetch)\n"),
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.runner.EXPECT().Run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.runner.EXPECT().Run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(&config.Environment{
 					Name:   "test",
 					Region: "us-west-2",
 				}, nil)
-				m.store.EXPECT().GetEnvironment("my-app", "prod").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "prod").Return(&config.Environment{
 					Name:   "prod",
 					Region: "us-west-2",
 				}, nil)
@@ -326,7 +327,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 				m.prompt.EXPECT().SelectOne(pipelineSelectURLPrompt, gomock.Any(), gomock.Any(), gomock.Any()).Return(githubAnotherURL, nil).Times(1)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.workspace.EXPECT().ListPipelines().Return([]workspace.PipelineManifest{}, nil)
-				m.sel.EXPECT().Environments(pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return([]string{"test", "prod"}, nil)
+				m.sel.EXPECT().Environments(ctx, pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return([]string{"test", "prod"}, nil)
 			},
 		},
 		"returns error if fail to list environments": {
@@ -335,11 +336,11 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inRepoURL:   githubAnotherURL,
 			inGitBranch: "main",
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.workspace.EXPECT().ListPipelines().Return(nil, nil)
-				m.sel.EXPECT().Environments(pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return(nil, errors.New("some error"))
+				m.sel.EXPECT().Environments(ctx, pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return(nil, errors.New("some error"))
 			},
 
 			expectedError: fmt.Errorf("select environments: some error"),
@@ -351,7 +352,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inEnvironments: []string{},
 			buffer:         *bytes.NewBufferString("archer\tgit@github.com:goodGoose/bhaOS (fetch)\narcher\thttps://github.com/badGoose/chaOS (push)\n"),
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.runner.EXPECT().Run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.prompt.EXPECT().SelectOne(pipelineSelectURLPrompt, gomock.Any(), gomock.Any(), gomock.Any()).Return("", mockError).Times(1)
 			},
@@ -365,16 +366,16 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inGitBranch:    "main",
 			inEnvironments: []string{},
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.workspace.EXPECT().ListPipelines().Return(nil, nil)
-				m.sel.EXPECT().Environments(pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return([]string{"test", "prod"}, nil)
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(&config.Environment{
+				m.sel.EXPECT().Environments(ctx, pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return([]string{"test", "prod"}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(&config.Environment{
 					Name:   "test",
 					Region: "us-west-2",
 				}, nil)
-				m.store.EXPECT().GetEnvironment("my-app", "prod").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "prod").Return(nil, errors.New("some error"))
 			},
 
 			expectedError: fmt.Errorf("validate environment prod: some error"),
@@ -385,17 +386,17 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			inGitBranch: "main",
 			buffer:      *bytes.NewBufferString("archer\tgit@github.com:goodGoose/bhaOS (fetch)\n"),
 			setupMocks: func(m pipelineInitMocks) {
-				m.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil)
+				m.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.runner.EXPECT().Run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.workspace.EXPECT().ListPipelines().Return(nil, nil)
-				m.sel.EXPECT().Environments(pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return([]string{"test", "prod"}, nil)
-				m.store.EXPECT().GetEnvironment("my-app", "test").Return(&config.Environment{
+				m.sel.EXPECT().Environments(ctx, pipelineSelectEnvPrompt, gomock.Any(), "my-app", gomock.Any()).Return([]string{"test", "prod"}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(&config.Environment{
 					Name:   "test",
 					Region: "us-west-2",
 				}, nil)
-				m.store.EXPECT().GetEnvironment("my-app", "prod").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "my-app", "prod").Return(&config.Environment{
 					Name:   "prod",
 					Region: "us-west-2",
 				}, nil)
@@ -444,7 +445,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.expectedError != nil {
@@ -504,7 +505,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -535,7 +536,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -566,7 +567,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -598,7 +599,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -629,7 +630,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(environmentsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -663,7 +664,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -709,7 +710,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.secretsmanager.EXPECT().CreateSecret("github-token-badgoose-goose", "hunter2").Return("some-arn", nil)
 				m.workspace.EXPECT().WritePipelineManifest(gomock.Any(), wantedName).Return(wantedManifestFile, nil)
 				m.workspace.EXPECT().Rel(wantedManifestFile).Return(wantedManifestRelPath, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(nil, errors.New("some error"))
 			},
 			expectedError: errors.New("get application badgoose: some error"),
 		},
@@ -728,7 +729,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.secretsmanager.EXPECT().CreateSecret("github-token-badgoose-goose", "hunter2").Return("some-arn", nil)
 				m.workspace.EXPECT().WritePipelineManifest(gomock.Any(), wantedName).Return(wantedManifestFile, nil)
 				m.workspace.EXPECT().Rel(wantedManifestFile).Return(wantedManifestRelPath, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -754,7 +755,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.workspace.EXPECT().WritePipelineBuildspec(gomock.Any(), wantedName).Times(0)
 				m.workspace.EXPECT().Rel(wantedManifestFile).Return(wantedManifestRelPath, nil)
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -787,7 +788,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -820,7 +821,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 				m.parser.EXPECT().Parse(workloadsPipelineBuildspecTemplatePath, gomock.Any(), gomock.Any()).Return(&template.Content{
 					Buffer: bytes.NewBufferString("hello"),
 				}, nil)
-				m.store.EXPECT().GetApplication("badgoose").Return(&config.Application{
+				m.store.EXPECT().GetApplication(ctx, "badgoose").Return(&config.Application{
 					Name: "badgoose",
 				}, nil)
 				m.cfnClient.EXPECT().GetRegionalAppResources(&config.Application{
@@ -874,7 +875,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 
 			// WHEN
 			require.NoError(t, opts.parseRepoDetails())
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.expectedError != nil {

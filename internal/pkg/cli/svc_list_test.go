@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -33,7 +34,7 @@ func TestListSvcOpts_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockLister.EXPECT().
-					Write("coolapp").
+					Write(ctx, "coolapp").
 					Return(nil)
 			},
 		},
@@ -46,7 +47,7 @@ func TestListSvcOpts_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockLister.EXPECT().
-					Write(gomock.Eq("coolapp")).
+					Write(ctx, gomock.Eq("coolapp")).
 					Return(mockError)
 			},
 			expectedErr: fmt.Errorf("error"),
@@ -55,7 +56,7 @@ func TestListSvcOpts_Execute(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			tc.mocking()
-			err := tc.opts.Execute()
+			err := tc.opts.Execute(context.Background())
 
 			if tc.expectedErr != nil {
 				require.EqualError(t, tc.expectedErr, err.Error())
@@ -76,13 +77,13 @@ func TestListSvcOpts_Ask(t *testing.T) {
 	}{
 		"with no flags set": {
 			mockSel: func(m *mocks.MockappSelector) {
-				m.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("myapp", nil)
+				m.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("myapp", nil)
 			},
 			wantedApp: "myapp",
 		},
 		"with app flag set": {
 			mockSel: func(m *mocks.MockappSelector) {
-				m.EXPECT().Application(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 			inApp:     "myapp",
 			wantedApp: "myapp",
@@ -104,7 +105,7 @@ func TestListSvcOpts_Ask(t *testing.T) {
 				sel: mockSel,
 			}
 
-			err := listApps.Ask()
+			err := listApps.Ask(context.Background())
 
 			require.NoError(t, err)
 			require.Equal(t, tc.wantedApp, listApps.appName, "expected application names to match")

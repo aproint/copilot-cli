@@ -160,8 +160,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		identity:        id,
 		fs:              fs,
 		newInterpolator: newManifestInterpolator,
-		newEnvVersionGetter: func(appName, envName string) (versionGetter, error) {
-			return describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		newEnvVersionGetter: func(ctx context.Context, appName, envName string) (versionGetter, error) {
+			return describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 				App:         appName,
 				Env:         envName,
 				ConfigStore: configStore,
@@ -183,8 +183,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		sessProvider:    sessProvider,
 		templateVersion: version.LatestTemplateVersion(),
 	}
-	deploySvcCmd.newSvcDeployer = func() (workloadDeployer, error) {
-		return newSvcDeployer(deploySvcCmd)
+	deploySvcCmd.newSvcDeployer = func(ctx context.Context) (workloadDeployer, error) {
+		return newSvcDeployer(ctx, deploySvcCmd)
 	}
 	deployJobCmd := &deployJobOpts{
 		deployWkldVars: deployWkldVars{
@@ -197,8 +197,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		sessProvider:    sessProvider,
 		templateVersion: version.LatestTemplateVersion(),
 	}
-	deployJobCmd.newJobDeployer = func() (workloadDeployer, error) {
-		return newJobDeployer(deployJobCmd)
+	deployJobCmd.newJobDeployer = func(ctx context.Context) (workloadDeployer, error) {
+		return newJobDeployer(ctx, deployJobCmd)
 	}
 
 	cmd := exec.NewCmd()
@@ -212,8 +212,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		initEnvCmd.manifestWriter = ws
 		initEnvCmd.envLister = ws
 		deployEnvCmd.ws = ws
-		deployEnvCmd.newEnvDeployer = func() (envDeployer, error) {
-			return newEnvDeployer(deployEnvCmd, ws)
+		deployEnvCmd.newEnvDeployer = func(ctx context.Context) (envDeployer, error) {
+			return newEnvDeployer(ctx, deployEnvCmd, ws)
 		}
 		deploySvcCmd.ws = ws
 		deploySvcCmd.sel = sel
@@ -289,8 +289,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 						return dockerfile.New(fs, s)
 					},
 					templateVersion: version.LatestTemplateVersion(),
-					initEnvDescriber: func(appName string, envName string) (envDescriber, error) {
-						envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+					initEnvDescriber: func(ctx context.Context, appName string, envName string) (envDescriber, error) {
+						envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 							App:         appName,
 							Env:         envName,
 							ConfigStore: configStore,
@@ -337,8 +337,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 					opts.df = dockerfile.New(opts.fs, opts.dockerfilePath)
 					return opts.df
 				}
-				opts.initEnvDescriber = func(appName string, envName string) (envDescriber, error) {
-					envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+				opts.initEnvDescriber = func(ctx context.Context, appName string, envName string) (envDescriber, error) {
+					envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 						App:         appName,
 						Env:         envName,
 						ConfigStore: opts.store,
@@ -373,7 +373,7 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 }
 
 // Run executes "app init", "env init", "svc init" and "svc deploy".
-func (o *initOpts) Run() error {
+func (o *initOpts) Run(ctx context.Context) error {
 	if !workspace.IsInGitRepository(afero.NewOsFs()) {
 		log.Warningln("It's best to run this command in the root of your Git repository.")
 	}
@@ -382,31 +382,31 @@ to help you get set up with a containerized application on AWS. An application i
 containerized services that operate together.`))
 	log.Infoln()
 
-	if err := o.loadApp(); err != nil {
+	if err := o.loadApp(ctx); err != nil {
 		return err
 	}
 
-	if err := o.loadWkld(); err != nil {
+	if err := o.loadWkld(ctx); err != nil {
 		return err
 	}
 
 	o.logWorkloadTypeAck()
 
 	log.Infoln()
-	if err := o.initAppCmd.Execute(); err != nil {
+	if err := o.initAppCmd.Execute(ctx); err != nil {
 		return fmt.Errorf("execute app init: %w", err)
 	}
 	if err := o.useExistingWorkspaceForCMDs(o); err != nil {
 		return fmt.Errorf("set up workspace client for commands: %w", err)
 	}
-	if err := o.initWlCmd.Execute(); err != nil {
+	if err := o.initWlCmd.Execute(ctx); err != nil {
 		return fmt.Errorf("execute %s init: %w", o.wkldType, err)
 	}
 
-	if err := o.deployEnv(); err != nil {
+	if err := o.deployEnv(ctx); err != nil {
 		return err
 	}
-	return o.deploy()
+	return o.deploy(ctx)
 }
 
 func (o *initOpts) logWorkloadTypeAck() {
@@ -418,15 +418,15 @@ func (o *initOpts) logWorkloadTypeAck() {
 	log.Infof("Ok great, we'll set up a %s named %s in application %s.\n", color.HighlightUserInput(o.initWkldVars.wkldType), color.HighlightUserInput(o.initWkldVars.name), color.HighlightUserInput(o.initWkldVars.appName))
 }
 
-func (o *initOpts) deploy() error {
+func (o *initOpts) deploy(ctx context.Context) error {
 	if manifestinfo.IsTypeAJob(o.initWkldVars.wkldType) {
-		return o.deployJob()
+		return o.deployJob(ctx)
 	}
-	return o.deploySvc()
+	return o.deploySvc(ctx)
 }
 
-func (o *initOpts) loadApp() error {
-	if err := o.initAppCmd.Ask(); err != nil {
+func (o *initOpts) loadApp(ctx context.Context) error {
+	if err := o.initAppCmd.Ask(ctx); err != nil {
 		return fmt.Errorf("ask app init: %w", err)
 	}
 	if err := o.initAppCmd.Validate(); err != nil {
@@ -435,7 +435,7 @@ func (o *initOpts) loadApp() error {
 	return nil
 }
 
-func (o *initOpts) loadWkld() error {
+func (o *initOpts) loadWkld(ctx context.Context) error {
 	err := o.loadWkldCmd()
 	if err != nil {
 		return err
@@ -443,7 +443,7 @@ func (o *initOpts) loadWkld() error {
 	if err := o.initWlCmd.Validate(); err != nil {
 		return fmt.Errorf("validate %s: %w", o.wkldType, err)
 	}
-	if err := o.initWlCmd.Ask(); err != nil {
+	if err := o.initWlCmd.Ask(ctx); err != nil {
 		return fmt.Errorf("ask %s: %w", o.wkldType, err)
 	}
 	return nil
@@ -476,7 +476,7 @@ func (o *initOpts) askWorkload() (string, error) {
 }
 
 // deployEnv prompts the user to deploy a test environment if the application doesn't already have one.
-func (o *initOpts) deployEnv() error {
+func (o *initOpts) deployEnv(ctx context.Context) error {
 	log.Infoln("All right, you're all set for local development.")
 	if err := o.askShouldDeploy(); err != nil {
 		return err
@@ -492,7 +492,7 @@ func (o *initOpts) deployEnv() error {
 		initEnvCmd.name = o.initVars.envName
 	}
 
-	if err := o.askEnvNameAndMaybeInit(); err != nil {
+	if err := o.askEnvNameAndMaybeInit(ctx); err != nil {
 		return err
 	}
 
@@ -502,7 +502,7 @@ func (o *initOpts) deployEnv() error {
 		deployEnvCmd.name = *o.envName
 	}
 
-	if err := o.deployEnvCmd.Execute(); err != nil {
+	if err := o.deployEnvCmd.Execute(ctx); err != nil {
 		var errEmptyChangeSet *awscfn.ErrChangeSetEmpty
 		if !errors.As(err, &errEmptyChangeSet) {
 			return err
@@ -511,7 +511,7 @@ func (o *initOpts) deployEnv() error {
 	return nil
 }
 
-func (o *initOpts) deploySvc() error {
+func (o *initOpts) deploySvc(ctx context.Context) error {
 	if !aws.ToBool(o.shouldDeploy) {
 		return nil
 	}
@@ -522,10 +522,10 @@ func (o *initOpts) deploySvc() error {
 		deployOpts.envName = *o.envName
 	}
 
-	if err := o.deploySvcCmd.Ask(); err != nil {
+	if err := o.deploySvcCmd.Ask(ctx); err != nil {
 		return err
 	}
-	if err := o.deploySvcCmd.Execute(); err != nil {
+	if err := o.deploySvcCmd.Execute(ctx); err != nil {
 		return err
 	}
 	if err := o.deploySvcCmd.RecommendActions(); err != nil {
@@ -534,7 +534,7 @@ func (o *initOpts) deploySvc() error {
 	return nil
 }
 
-func (o *initOpts) deployJob() error {
+func (o *initOpts) deployJob(ctx context.Context) error {
 	if !aws.ToBool(o.shouldDeploy) {
 		return nil
 	}
@@ -545,10 +545,10 @@ func (o *initOpts) deployJob() error {
 		deployOpts.envName = *o.envName
 	}
 
-	if err := o.deployJobCmd.Ask(); err != nil {
+	if err := o.deployJobCmd.Ask(ctx); err != nil {
 		return err
 	}
-	if err := o.deployJobCmd.Execute(); err != nil {
+	if err := o.deployJobCmd.Execute(ctx); err != nil {
 		return err
 	}
 	if err := o.deployJobCmd.RecommendActions(); err != nil {
@@ -569,10 +569,10 @@ func (o *initOpts) askShouldDeploy() error {
 	return nil
 }
 
-func (o *initOpts) askEnvNameAndMaybeInit() error {
+func (o *initOpts) askEnvNameAndMaybeInit(ctx context.Context) error {
 	if o.initVars.envName == "" {
 		// Select one of existing envs or create a new one.
-		selectedEnv, err := o.sel.Environment(initExistingEnvSelectPrompt, initExistingEnvSelectHelp, *o.appName, prompt.Option{Value: envPromptCreateNew})
+		selectedEnv, err := o.sel.Environment(ctx, initExistingEnvSelectPrompt, initExistingEnvSelectHelp, *o.appName, prompt.Option{Value: envPromptCreateNew})
 		if err != nil {
 			return fmt.Errorf("select environment: %w", err)
 		}
@@ -594,7 +594,7 @@ func (o *initOpts) askEnvNameAndMaybeInit() error {
 	}
 
 	// If the environment doesn't exist, initialize it. If it does exist, return early.
-	_, err := o.store.GetEnvironment(*o.appName, o.initVars.envName)
+	_, err := o.store.GetEnvironment(ctx, *o.appName, o.initVars.envName)
 	// nil error means environment exists and we don't need to init.
 	if err == nil {
 		return nil
@@ -607,7 +607,7 @@ func (o *initOpts) askEnvNameAndMaybeInit() error {
 	}
 
 	log.Infof("Environment %s does not yet exist in application %s; initializing it.\n", o.initVars.envName, *o.appName)
-	if err := o.initEnvCmd.Execute(); err != nil {
+	if err := o.initEnvCmd.Execute(ctx); err != nil {
 		return err
 	}
 	log.Successf("Provisioned bootstrap resources for environment %s.\n", o.initVars.envName)
@@ -636,7 +636,7 @@ func BuildInitCmd() *cobra.Command {
 				}
 			}
 
-			if err := opts.Run(); err != nil {
+			if err := opts.Run(cmd.Context()); err != nil {
 				return err
 			}
 

@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -46,7 +47,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 			inAppName: mockAppName,
 			setupMocks: func(mocks showPipelineMocks) {
 				gomock.InOrder(
-					mocks.store.EXPECT().GetApplication(mockAppName).Return(&config.Application{
+					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 						Name: "dinder",
 					}, nil),
 					mocks.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
@@ -62,7 +63,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 		"error if problem selecting app": {
 			setupMocks: func(mocks showPipelineMocks) {
 				gomock.InOrder(
-					mocks.sel.EXPECT().Application(gomock.Any(), gomock.Any()).Return("", mockError))
+					mocks.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Return("", mockError))
 			},
 			expectedErr: fmt.Errorf("select application: %w", mockError),
 		},
@@ -71,7 +72,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 			inAppName:      mockAppName,
 
 			setupMocks: func(mocks showPipelineMocks) {
-				mocks.store.EXPECT().GetApplication(mockAppName).Return(&config.Application{
+				mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 					Name: "dinder",
 				}, nil)
 				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{
@@ -87,7 +88,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 		"prompt if no app name AND no pipeline name": {
 			setupMocks: func(mocks showPipelineMocks) {
 				gomock.InOrder(
-					mocks.sel.EXPECT().Application(gomock.Any(), gomock.Any()).Return(mockAppName, nil))
+					mocks.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Return(mockAppName, nil))
 				mocks.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
 					Name: mockPipelineName,
 				}, nil)
@@ -101,7 +102,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 			inAppName:      mockAppName,
 
 			setupMocks: func(mocks showPipelineMocks) {
-				mocks.store.EXPECT().GetApplication(mockAppName).Return(&config.Application{
+				mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 					Name: "dinder",
 				}, nil)
 				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
@@ -114,7 +115,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 			inAppName:      mockAppName,
 
 			setupMocks: func(mocks showPipelineMocks) {
-				mocks.store.EXPECT().GetApplication(mockAppName).Return(&config.Application{
+				mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 					Name: "dinder",
 				}, nil)
 				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, errors.New("some error"))
@@ -127,7 +128,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 			inPipelineName: "",
 			setupMocks: func(mocks showPipelineMocks) {
 				gomock.InOrder(
-					mocks.store.EXPECT().GetApplication(mockAppName).Return(&config.Application{
+					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 						Name: "dinder",
 					}, nil),
 					mocks.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{}, mockError),
@@ -175,7 +176,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.expectedErr != nil {
@@ -255,7 +256,7 @@ func TestPipelineShow_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.expectedErr != nil {

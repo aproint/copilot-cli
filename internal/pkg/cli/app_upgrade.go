@@ -81,7 +81,7 @@ func newAppUpgradeOpts(vars appUpgradeVars) (*appUpgradeOpts, error) {
 // Validate returns an error if the values provided by the user are invalid.
 func (o *appUpgradeOpts) Validate() error {
 	if o.name != "" {
-		_, err := o.store.GetApplication(o.name)
+		_, err := o.store.GetApplication(context.Background(), o.name)
 		if err != nil {
 			return fmt.Errorf("get application %s: %w", o.name, err)
 		}
@@ -90,8 +90,8 @@ func (o *appUpgradeOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *appUpgradeOpts) Ask() error {
-	if err := o.askName(); err != nil {
+func (o *appUpgradeOpts) Ask(ctx context.Context) error {
+	if err := o.askName(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -99,7 +99,7 @@ func (o *appUpgradeOpts) Ask() error {
 
 // Execute updates the cloudformation stack as well as the stackset of an application to the latest version.
 // If any stack is busy updating, it spins and waits until the stack can be updated.
-func (o *appUpgradeOpts) Execute() error {
+func (o *appUpgradeOpts) Execute(ctx context.Context) error {
 	vg, err := o.newVersionGetter(o.name)
 	if err != nil {
 		return err
@@ -112,7 +112,7 @@ func (o *appUpgradeOpts) Execute() error {
 	if !o.shouldUpgradeApp(appVersion) {
 		return nil
 	}
-	app, err := o.store.GetApplication(o.name)
+	app, err := o.store.GetApplication(ctx, o.name)
 	if err != nil {
 		return fmt.Errorf("get application %s: %w", o.name, err)
 	}
@@ -124,18 +124,18 @@ func (o *appUpgradeOpts) Execute() error {
 		}
 		log.Successf(fmtAppUpgradeComplete, color.HighlightUserInput(o.name), color.Emphasize(o.templateVersion))
 	}()
-	err = o.upgradeApplication(app, appVersion, o.templateVersion)
+	err = o.upgradeApplication(ctx, app, appVersion, o.templateVersion)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o *appUpgradeOpts) askName() error {
+func (o *appUpgradeOpts) askName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
-	name, err := o.sel.Application(appUpgradeNamePrompt, appUpgradeNameHelpPrompt)
+	name, err := o.sel.Application(ctx, appUpgradeNamePrompt, appUpgradeNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -162,13 +162,13 @@ Are you using the latest version of AWS Copilot?`, o.name, o.templateVersion, ap
 	return false
 }
 
-func (o *appUpgradeOpts) upgradeApplication(app *config.Application, fromVersion, toVersion string) error {
-	caller, err := o.identity.Get()
+func (o *appUpgradeOpts) upgradeApplication(ctx context.Context, app *config.Application, fromVersion, toVersion string) error {
+	caller, err := o.identity.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
 	// Upgrade SSM Parameter Store record.
-	if err := o.upgradeAppSSMStore(app); err != nil {
+	if err := o.upgradeAppSSMStore(ctx, app); err != nil {
 		return err
 	}
 	// Upgrade app CloudFormation resources.
@@ -184,7 +184,7 @@ func (o *appUpgradeOpts) upgradeApplication(app *config.Application, fromVersion
 	return nil
 }
 
-func (o *appUpgradeOpts) upgradeAppSSMStore(app *config.Application) error {
+func (o *appUpgradeOpts) upgradeAppSSMStore(ctx context.Context, app *config.Application) error {
 	if app.Domain != "" && app.DomainHostedZoneID == "" {
 		hostedZoneID, err := o.route53.PublicDomainHostedZoneID(app.Domain)
 		if err != nil {
@@ -192,7 +192,7 @@ func (o *appUpgradeOpts) upgradeAppSSMStore(app *config.Application) error {
 		}
 		app.DomainHostedZoneID = hostedZoneID
 	}
-	if err := o.store.UpdateApplication(app); err != nil {
+	if err := o.store.UpdateApplication(ctx, app); err != nil {
 		return fmt.Errorf("update application %s: %w", app.Name, err)
 	}
 	return nil
@@ -212,7 +212,7 @@ func buildAppUpgradeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, tryReadingAppName(), appFlagDescription)

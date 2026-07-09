@@ -82,7 +82,7 @@ type initJobOpts struct {
 	wsAppName         string
 
 	initParser          func(path string) dockerfileParser
-	initEnvDescriber    func(appName, envName string) (envDescriber, error)
+	initEnvDescriber    func(ctx context.Context, appName, envName string) (envDescriber, error)
 	newAppVersionGetter func(appName string) (versionGetter, error)
 
 	// Overridden in tests.
@@ -128,8 +128,8 @@ func newInitJobOpts(vars initJobVars) (*initJobOpts, error) {
 		initParser: func(path string) dockerfileParser {
 			return dockerfile.New(fs, path)
 		},
-		initEnvDescriber: func(appName string, envName string) (envDescriber, error) {
-			envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		initEnvDescriber: func(ctx context.Context, appName string, envName string) (envDescriber, error) {
+			envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 				App:         appName,
 				Env:         envName,
 				ConfigStore: store,
@@ -176,7 +176,7 @@ func (o *initJobOpts) Validate() error {
 }
 
 // Ask prompts for fields that are required but not passed in.
-func (o *initJobOpts) Ask() error {
+func (o *initJobOpts) Ask(ctx context.Context) error {
 	if o.wkldType != "" {
 		if err := validateJobType(o.wkldType); err != nil {
 			return err
@@ -194,7 +194,7 @@ func (o *initJobOpts) Ask() error {
 	if err := validateJobName(o.name); err != nil {
 		return err
 	}
-	if err := o.validateDuplicateJob(); err != nil {
+	if err := o.validateDuplicateJob(ctx); err != nil {
 		return err
 	}
 	if !o.wsPendingCreation {
@@ -237,14 +237,14 @@ func (o *initJobOpts) Ask() error {
 }
 
 // envsWithPrivateSubnetsOnly returns the list of environments names deployed that contains only private subnets.
-func envsWithPrivateSubnetsOnly(store store, initEnvDescriber func(string, string) (envDescriber, error), appName string) ([]string, error) {
-	envs, err := store.ListEnvironments(appName)
+func envsWithPrivateSubnetsOnly(ctx context.Context, store store, initEnvDescriber func(context.Context, string, string) (envDescriber, error), appName string) ([]string, error) {
+	envs, err := store.ListEnvironments(ctx, appName)
 	if err != nil {
 		return nil, fmt.Errorf("list environments for application %s: %w", appName, err)
 	}
 	var privateOnlyEnvs []string
 	for _, env := range envs {
-		envDescriber, err := initEnvDescriber(appName, env.Name)
+		envDescriber, err := initEnvDescriber(ctx, appName, env.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -266,7 +266,7 @@ func envsWithPrivateSubnetsOnly(store store, initEnvDescriber func(string, strin
 }
 
 // Execute writes the job's manifest file, creates an ECR repo, and stores the name in SSM.
-func (o *initJobOpts) Execute() error {
+func (o *initJobOpts) Execute(ctx context.Context) error {
 	if !o.allowAppDowngrade {
 		appVersionGetter, err := o.newAppVersionGetter(o.appName)
 		if err != nil {
@@ -295,11 +295,11 @@ func (o *initJobOpts) Execute() error {
 			o.platform = &platform
 		}
 	}
-	envs, err := envsWithPrivateSubnetsOnly(o.store, o.initEnvDescriber, o.appName)
+	envs, err := envsWithPrivateSubnetsOnly(ctx, o.store, o.initEnvDescriber, o.appName)
 	if err != nil {
 		return err
 	}
-	manifestPath, err := o.init.Job(&initialize.JobProps{
+	manifestPath, err := o.init.Job(ctx, &initialize.JobProps{
 		WorkloadProps: initialize.WorkloadProps{
 			App:            o.appName,
 			Name:           o.name,
@@ -335,8 +335,8 @@ func (o *initJobOpts) RecommendActions() error {
 	return nil
 }
 
-func (o *initJobOpts) validateDuplicateJob() error {
-	_, err := o.store.GetJob(o.appName, o.name)
+func (o *initJobOpts) validateDuplicateJob(ctx context.Context) error {
+	_, err := o.store.GetJob(ctx, o.appName, o.name)
 	if err == nil {
 		log.Errorf(`It seems like you are trying to init a job that already exists.
 To recreate the job, please run:
@@ -477,7 +477,7 @@ func buildJobInitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

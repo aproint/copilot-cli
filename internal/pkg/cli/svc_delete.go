@@ -112,29 +112,29 @@ func (o *deleteSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *deleteSvcOpts) Ask() error {
+func (o *deleteSvcOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
-		if _, err := o.store.GetApplication(o.appName); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 			return err
 		}
 	} else {
-		if err := o.askAppName(); err != nil {
+		if err := o.askAppName(ctx); err != nil {
 			return err
 		}
 	}
 
 	if o.name != "" {
-		if _, err := o.store.GetService(o.appName, o.name); err != nil {
+		if _, err := o.store.GetService(ctx, o.appName, o.name); err != nil {
 			return err
 		}
 	} else {
-		if err := o.askSvcName(); err != nil {
+		if err := o.askSvcName(ctx); err != nil {
 			return err
 		}
 	}
 
 	if o.envName != "" {
-		if err := o.validateEnvName(); err != nil {
+		if err := o.validateEnvName(ctx); err != nil {
 			return err
 		}
 	}
@@ -171,13 +171,13 @@ func (o *deleteSvcOpts) Ask() error {
 // Execute deletes the service's CloudFormation stack.
 // If the service is being removed from the application, Execute will
 // also delete the ECR repository and the SSM parameter.
-func (o *deleteSvcOpts) Execute() error {
-	wkld, err := o.store.GetWorkload(o.appName, o.name)
+func (o *deleteSvcOpts) Execute(ctx context.Context) error {
+	wkld, err := o.store.GetWorkload(ctx, o.appName, o.name)
 	if err != nil {
 		return fmt.Errorf("get workload: %w", err)
 	}
 
-	envs, err := o.appEnvironments()
+	envs, err := o.appEnvironments(ctx)
 	if err != nil {
 		return err
 	}
@@ -195,10 +195,10 @@ func (o *deleteSvcOpts) Execute() error {
 	if err := o.emptyECRRepos(envs); err != nil {
 		return err
 	}
-	if err := o.removeSvcFromApp(); err != nil {
+	if err := o.removeSvcFromApp(ctx); err != nil {
 		return err
 	}
-	if err := o.deleteSSMParam(); err != nil {
+	if err := o.deleteSSMParam(ctx); err != nil {
 		return err
 	}
 
@@ -208,8 +208,8 @@ func (o *deleteSvcOpts) Execute() error {
 	return nil
 }
 
-func (o *deleteSvcOpts) validateEnvName() error {
-	if _, err := o.targetEnv(); err != nil {
+func (o *deleteSvcOpts) validateEnvName(ctx context.Context) error {
+	if _, err := o.targetEnv(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -223,16 +223,16 @@ func (o *deleteSvcOpts) needsAppCleanup() bool {
 	return o.envName == ""
 }
 
-func (o *deleteSvcOpts) targetEnv() (*config.Environment, error) {
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+func (o *deleteSvcOpts) targetEnv(ctx context.Context) (*config.Environment, error) {
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s from config store: %w", o.envName, err)
 	}
 	return env, nil
 }
 
-func (o *deleteSvcOpts) askAppName() error {
-	name, err := o.sel.Application(svcAppNamePrompt, wkldAppNameHelpPrompt)
+func (o *deleteSvcOpts) askAppName(ctx context.Context) error {
+	name, err := o.sel.Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -240,8 +240,8 @@ func (o *deleteSvcOpts) askAppName() error {
 	return nil
 }
 
-func (o *deleteSvcOpts) askSvcName() error {
-	name, err := o.sel.Service(svcDeleteNamePrompt, "", o.appName)
+func (o *deleteSvcOpts) askSvcName(ctx context.Context) error {
+	name, err := o.sel.Service(ctx, svcDeleteNamePrompt, "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select service: %w", err)
 	}
@@ -249,17 +249,17 @@ func (o *deleteSvcOpts) askSvcName() error {
 	return nil
 }
 
-func (o *deleteSvcOpts) appEnvironments() ([]*config.Environment, error) {
+func (o *deleteSvcOpts) appEnvironments(ctx context.Context) ([]*config.Environment, error) {
 	var envs []*config.Environment
 	var err error
 	if o.envName != "" {
-		env, err := o.targetEnv()
+		env, err := o.targetEnv(ctx)
 		if err != nil {
 			return nil, err
 		}
 		envs = append(envs, env)
 	} else {
-		envs, err = o.store.ListEnvironments(o.appName)
+		envs, err = o.store.ListEnvironments(ctx, o.appName)
 		if err != nil {
 			return nil, fmt.Errorf("list environments: %w", err)
 		}
@@ -315,8 +315,8 @@ func (o *deleteSvcOpts) emptyECRRepos(envs []*config.Environment) error {
 	return nil
 }
 
-func (o *deleteSvcOpts) removeSvcFromApp() error {
-	proj, err := o.store.GetApplication(o.appName)
+func (o *deleteSvcOpts) removeSvcFromApp(ctx context.Context) error {
+	proj, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return err
 	}
@@ -329,8 +329,8 @@ func (o *deleteSvcOpts) removeSvcFromApp() error {
 	return nil
 }
 
-func (o *deleteSvcOpts) deleteSSMParam() error {
-	if err := o.store.DeleteService(o.appName, o.name); err != nil {
+func (o *deleteSvcOpts) deleteSSMParam(ctx context.Context) error {
+	if err := o.store.DeleteService(ctx, o.appName, o.name); err != nil {
 		return fmt.Errorf("delete service %s in application %s from config store: %w", o.name, o.appName, err)
 	}
 
@@ -369,7 +369,7 @@ func buildSvcDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 

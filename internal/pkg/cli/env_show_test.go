@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 
@@ -43,8 +44,8 @@ func TestEnvShow_Ask(t *testing.T) {
 			inputEnv: "my-env",
 
 			setupMocks: func(m showEnvMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(nil, nil)
-				m.storeSvc.EXPECT().GetEnvironment("my-app", "my-env").Return(nil, nil)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(nil, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, "my-app", "my-env").Return(nil, nil)
 			},
 
 			wantedApp: "my-app",
@@ -54,7 +55,7 @@ func TestEnvShow_Ask(t *testing.T) {
 			inputApp: "my-app",
 
 			setupMocks: func(m showEnvMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(nil, mockErr)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(nil, mockErr)
 			},
 			wantedError: errors.New(`validate application name "my-app": some error`),
 		},
@@ -63,8 +64,8 @@ func TestEnvShow_Ask(t *testing.T) {
 			inputEnv: "my-env",
 
 			setupMocks: func(m showEnvMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(nil, nil)
-				m.storeSvc.EXPECT().GetEnvironment("my-app", "my-env").Return(nil, mockErr)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(nil, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, "my-app", "my-env").Return(nil, mockErr)
 			},
 			wantedError: errors.New(`validate environment name "my-env" in application "my-app": some error`),
 		},
@@ -73,7 +74,7 @@ func TestEnvShow_Ask(t *testing.T) {
 			inputEnv: "",
 
 			setupMocks: func(m showEnvMocks) {
-				m.sel.EXPECT().Application(envShowAppNamePrompt, envShowAppNameHelpPrompt).Return("", mockErr)
+				m.sel.EXPECT().Application(ctx, envShowAppNamePrompt, envShowAppNameHelpPrompt).Return("", mockErr)
 			},
 
 			wantedError: fmt.Errorf("select application: some error"),
@@ -83,8 +84,8 @@ func TestEnvShow_Ask(t *testing.T) {
 			inputEnv: "",
 
 			setupMocks: func(m showEnvMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(nil, nil)
-				m.sel.EXPECT().Environment(fmt.Sprintf(envShowNamePrompt, color.HighlightUserInput("my-app")), envShowHelpPrompt, "my-app").Return("", mockErr)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(nil, nil)
+				m.sel.EXPECT().Environment(ctx, fmt.Sprintf(envShowNamePrompt, color.HighlightUserInput("my-app")), envShowHelpPrompt, "my-app").Return("", mockErr)
 			},
 
 			wantedError: fmt.Errorf("select environment for application my-app: some error"),
@@ -95,8 +96,8 @@ func TestEnvShow_Ask(t *testing.T) {
 
 			setupMocks: func(m showEnvMocks) {
 				gomock.InOrder(
-					m.sel.EXPECT().Application(envShowAppNamePrompt, envShowAppNameHelpPrompt).Return("my-app", nil),
-					m.sel.EXPECT().Environment(fmt.Sprintf(envShowNamePrompt, color.HighlightUserInput("my-app")), envShowHelpPrompt, "my-app").Return("my-env", nil),
+					m.sel.EXPECT().Application(ctx, envShowAppNamePrompt, envShowAppNameHelpPrompt).Return("my-app", nil),
+					m.sel.EXPECT().Environment(ctx, fmt.Sprintf(envShowNamePrompt, color.HighlightUserInput("my-app")), envShowHelpPrompt, "my-app").Return("my-env", nil),
 				)
 			},
 
@@ -129,7 +130,7 @@ func TestEnvShow_Ask(t *testing.T) {
 				store: mockStore,
 			}
 			// WHEN
-			err := showEnvs.Ask()
+			err := showEnvs.Ask(context.Background())
 			// THEN
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
@@ -297,12 +298,12 @@ Resources
 				},
 				store:            mockStoreReader,
 				describer:        mockEnvDescriber,
-				initEnvDescriber: func() error { return nil },
+				initEnvDescriber: func(_ context.Context) error { return nil },
 				w:                b,
 			}
 
 			// WHEN
-			err := showEnvs.Execute()
+			err := showEnvs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

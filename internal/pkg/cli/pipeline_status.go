@@ -98,13 +98,13 @@ func (o *pipelineStatusOpts) Validate() error {
 }
 
 // Ask prompts for fields that are required but not passed in, and validates those that are.
-func (o *pipelineStatusOpts) Ask() error {
+func (o *pipelineStatusOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
-		if _, err := o.store.GetApplication(o.appName); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 			return fmt.Errorf("validate application name: %w", err)
 		}
 	} else {
-		if err := o.askAppName(); err != nil {
+		if err := o.askAppName(ctx); err != nil {
 			return err
 		}
 	}
@@ -124,7 +124,7 @@ func (o *pipelineStatusOpts) Ask() error {
 }
 
 // Execute displays the status of the pipeline.
-func (o *pipelineStatusOpts) Execute() error {
+func (o *pipelineStatusOpts) Execute(_ context.Context) error {
 	err := o.initDescriber(o)
 	if err != nil {
 		return fmt.Errorf("describe status of pipeline: %w", err)
@@ -159,8 +159,8 @@ func (o *pipelineStatusOpts) getTargetPipeline() (deploy.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (o *pipelineStatusOpts) askAppName() error {
-	name, err := o.sel.Application(pipelineStatusAppNamePrompt, pipelineStatusAppNameHelpPrompt)
+func (o *pipelineStatusOpts) askAppName(ctx context.Context) error {
+	name, err := o.sel.Application(ctx, pipelineStatusAppNamePrompt, pipelineStatusAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -184,7 +184,7 @@ Shows status of the pipeline "my-repo-my-branch".
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", pipelineFlagDescription)

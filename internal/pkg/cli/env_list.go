@@ -56,11 +56,11 @@ func newListEnvOpts(vars listEnvVars) (*listEnvOpts, error) {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *listEnvOpts) Ask() error {
+func (o *listEnvOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
 		return nil
 	}
-	app, err := o.sel.Application(envListAppNamePrompt, envListAppNameHelper)
+	app, err := o.sel.Application(ctx, envListAppNamePrompt, envListAppNameHelper)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -69,13 +69,13 @@ func (o *listEnvOpts) Ask() error {
 }
 
 // Execute lists the environments through the prompt.
-func (o *listEnvOpts) Execute() error {
+func (o *listEnvOpts) Execute(ctx context.Context) error {
 	// Ensure the application actually exists before we try to list its environments.
-	if _, err := o.store.GetApplication(o.appName); err != nil {
+	if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 		return err
 	}
 
-	envs, err := o.store.ListEnvironments(o.appName)
+	envs, err := o.store.ListEnvironments(ctx, o.appName)
 	if err != nil {
 		return err
 	}
@@ -128,10 +128,10 @@ func buildEnvListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
-			return opts.Execute()
+			return opts.Execute(cmd.Context())
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

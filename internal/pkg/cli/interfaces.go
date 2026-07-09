@@ -43,10 +43,10 @@ type cmd interface {
 	Validate() error
 
 	// Ask prompts for flag values that are required but not passed in.
-	Ask() error
+	Ask(context.Context) error
 
 	// Execute runs the command after collecting all required options.
-	Execute() error
+	Execute(context.Context) error
 }
 
 // actionCommand is the interface that every command that creates a resource implements.
@@ -59,26 +59,26 @@ type actionCommand interface {
 // SSM store interfaces.
 
 type serviceStore interface {
-	CreateService(svc *config.Workload) error
-	GetService(appName, svcName string) (*config.Workload, error)
-	ListServices(appName string) ([]*config.Workload, error)
-	DeleteService(appName, svcName string) error
+	CreateService(ctx context.Context, svc *config.Workload) error
+	GetService(ctx context.Context, appName, svcName string) (*config.Workload, error)
+	ListServices(ctx context.Context, appName string) ([]*config.Workload, error)
+	DeleteService(ctx context.Context, appName, svcName string) error
 }
 
 type jobStore interface {
-	CreateJob(job *config.Workload) error
-	GetJob(appName, jobName string) (*config.Workload, error)
-	ListJobs(appName string) ([]*config.Workload, error)
-	DeleteJob(appName, jobName string) error
+	CreateJob(ctx context.Context, job *config.Workload) error
+	GetJob(ctx context.Context, appName, jobName string) (*config.Workload, error)
+	ListJobs(ctx context.Context, appName string) ([]*config.Workload, error)
+	DeleteJob(ctx context.Context, appName, jobName string) error
 }
 
 type wlStore interface {
-	ListWorkloads(appName string) ([]*config.Workload, error)
-	GetWorkload(appName, name string) (*config.Workload, error)
+	ListWorkloads(ctx context.Context, appName string) ([]*config.Workload, error)
+	GetWorkload(ctx context.Context, appName, name string) (*config.Workload, error)
 }
 
 type workloadListWriter interface {
-	Write(appName string) error
+	Write(ctx context.Context, appName string) error
 }
 
 type applicationStore interface {
@@ -90,23 +90,23 @@ type applicationStore interface {
 }
 
 type applicationCreator interface {
-	CreateApplication(app *config.Application) error
+	CreateApplication(ctx context.Context, app *config.Application) error
 }
 
 type applicationUpdater interface {
-	UpdateApplication(app *config.Application) error
+	UpdateApplication(ctx context.Context, app *config.Application) error
 }
 
 type applicationGetter interface {
-	GetApplication(appName string) (*config.Application, error)
+	GetApplication(ctx context.Context, appName string) (*config.Application, error)
 }
 
 type applicationLister interface {
-	ListApplications() ([]*config.Application, error)
+	ListApplications(ctx context.Context) ([]*config.Application, error)
 }
 
 type applicationDeleter interface {
-	DeleteApplication(name string) error
+	DeleteApplication(ctx context.Context, name string) error
 }
 
 type environmentStore interface {
@@ -118,15 +118,15 @@ type environmentStore interface {
 }
 
 type environmentCreator interface {
-	CreateEnvironment(env *config.Environment) error
+	CreateEnvironment(ctx context.Context, env *config.Environment) error
 }
 
 type environmentGetter interface {
-	GetEnvironment(appName string, environmentName string) (*config.Environment, error)
+	GetEnvironment(ctx context.Context, appName string, environmentName string) (*config.Environment, error)
 }
 
 type environmentLister interface {
-	ListEnvironments(appName string) ([]*config.Environment, error)
+	ListEnvironments(ctx context.Context, appName string) ([]*config.Environment, error)
 }
 
 type wsEnvironmentsLister interface {
@@ -134,7 +134,7 @@ type wsEnvironmentsLister interface {
 }
 
 type environmentDeleter interface {
-	DeleteEnvironment(appName, environmentName string) error
+	DeleteEnvironment(ctx context.Context, appName, environmentName string) error
 }
 
 type store interface {
@@ -146,11 +146,11 @@ type store interface {
 }
 
 type deployedEnvironmentLister interface {
-	ListEnvironmentsDeployedTo(appName, svcName string) ([]string, error)
-	ListDeployedServices(appName, envName string) ([]string, error)
-	ListDeployedJobs(appName string, envName string) ([]string, error)
-	IsServiceDeployed(appName, envName string, svcName string) (bool, error)
-	ListSNSTopics(appName string, envName string) ([]deploy.Topic, error)
+	ListEnvironmentsDeployedTo(ctx context.Context, appName, svcName string) ([]string, error)
+	ListDeployedServices(ctx context.Context, appName, envName string) ([]string, error)
+	ListDeployedJobs(ctx context.Context, appName string, envName string) ([]string, error)
+	IsServiceDeployed(ctx context.Context, appName, envName string, svcName string) (bool, error)
+	ListSNSTopics(ctx context.Context, appName string, envName string) ([]deploy.Topic, error)
 }
 
 // Secretsmanager interface.
@@ -379,7 +379,7 @@ type stackDescriber interface {
 type environmentDeployer interface {
 	CreateAndRenderEnvironment(conf cloudformation.StackConfiguration, bucketARN string) error
 	DeleteEnvironment(appName, envName, cfnExecRoleARN string) error
-	GetEnvironment(appName, envName string) (*config.Environment, error)
+	GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error)
 	Template(stackName string) (string, error)
 	UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN string) error
 }
@@ -498,21 +498,21 @@ type deployedPipelineLister interface {
 }
 
 type executor interface {
-	Execute() error
+	Execute(context.Context) error
 }
 
 type executeAsker interface {
-	Ask() error
+	Ask(context.Context) error
 	executor
 }
 
 type appSelector interface {
-	Application(prompt, help string, additionalOpts ...string) (string, error)
+	Application(ctx context.Context, prompt, help string, additionalOpts ...string) (string, error)
 }
 
 type appEnvSelector interface {
 	appSelector
-	Environment(prompt, help, app string, additionalOpts ...prompt.Option) (string, error)
+	Environment(ctx context.Context, prompt, help, app string, additionalOpts ...prompt.Option) (string, error)
 }
 
 type cfnSelector interface {
@@ -521,20 +521,20 @@ type cfnSelector interface {
 
 type configSelector interface {
 	appEnvSelector
-	Service(prompt, help, app string) (string, error)
-	Job(prompt, help, app string) (string, error)
-	Workload(prompt, help, app string) (string, error)
+	Service(ctx context.Context, prompt, help, app string) (string, error)
+	Job(ctx context.Context, prompt, help, app string) (string, error)
+	Workload(ctx context.Context, prompt, help, app string) (string, error)
 }
 
 type deploySelector interface {
 	appSelector
-	DeployedService(prompt, help string, app string, opts ...selector.GetDeployedWorkloadOpts) (*selector.DeployedService, error)
-	DeployedJob(prompt, help string, app string, opts ...selector.GetDeployedWorkloadOpts) (*selector.DeployedJob, error)
-	DeployedWorkload(prompt, help string, app string, opts ...selector.GetDeployedWorkloadOpts) (*selector.DeployedWorkload, error)
+	DeployedService(ctx context.Context, prompt, help string, app string, opts ...selector.GetDeployedWorkloadOpts) (*selector.DeployedService, error)
+	DeployedJob(ctx context.Context, prompt, help string, app string, opts ...selector.GetDeployedWorkloadOpts) (*selector.DeployedJob, error)
+	DeployedWorkload(ctx context.Context, prompt, help string, app string, opts ...selector.GetDeployedWorkloadOpts) (*selector.DeployedWorkload, error)
 }
 
 type pipelineEnvSelector interface {
-	Environments(prompt, help, app string, finalMsgFunc func(int) prompt.PromptConfig) ([]string, error)
+	Environments(ctx context.Context, prompt, help, app string, finalMsgFunc func(int) prompt.PromptConfig) ([]string, error)
 }
 
 type wsPipelineSelector interface {
@@ -542,7 +542,7 @@ type wsPipelineSelector interface {
 }
 
 type wsEnvironmentSelector interface {
-	LocalEnvironment(msg, help string) (wl string, err error)
+	LocalEnvironment(ctx context.Context, msg, help string) (wl string, err error)
 }
 
 type codePipelineSelector interface {
@@ -552,10 +552,10 @@ type codePipelineSelector interface {
 
 type wsSelector interface {
 	appEnvSelector
-	Service(prompt, help string) (string, error)
-	Job(prompt, help string) (string, error)
-	Workload(msg, help string) (string, error)
-	Workloads(msg, help string) ([]string, error)
+	Service(ctx context.Context, prompt, help string) (string, error)
+	Job(ctx context.Context, prompt, help string) (string, error)
+	Workload(ctx context.Context, msg, help string) (string, error)
+	Workloads(ctx context.Context, msg, help string) ([]string, error)
 }
 
 type staticSourceSelector interface {
@@ -575,7 +575,7 @@ type dockerfileSelector interface {
 }
 
 type topicSelector interface {
-	Topics(prompt, help, app string) ([]deploy.Topic, error)
+	Topics(ctx context.Context, prompt, help, app string) ([]deploy.Topic, error)
 }
 
 type ec2Selector interface {
@@ -597,15 +597,15 @@ type serviceResumer interface {
 }
 
 type jobInitializer interface {
-	Job(props *initialize.JobProps) (string, error)
+	Job(ctx context.Context, props *initialize.JobProps) (string, error)
 }
 
 type svcInitializer interface {
-	Service(props *initialize.ServiceProps) (string, error)
+	Service(ctx context.Context, props *initialize.ServiceProps) (string, error)
 }
 
 type wkldInitializerWithoutManifest interface {
-	AddWorkloadToApp(appName, name, workloadType string) error
+	AddWorkloadToApp(ctx context.Context, appName, name, workloadType string) error
 }
 
 type roleDeleter interface {

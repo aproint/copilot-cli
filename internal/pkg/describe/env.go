@@ -50,6 +50,7 @@ type EnvDescriber struct {
 	app             string
 	env             *config.Environment
 	enableResources bool
+	ctx             context.Context
 
 	configStore ConfigStoreSvc
 	deployStore DeployedEnvServicesLister
@@ -69,8 +70,8 @@ type NewEnvDescriberConfig struct {
 }
 
 // NewEnvDescriber instantiates an environment describer.
-func NewEnvDescriber(opt NewEnvDescriberConfig) (*EnvDescriber, error) {
-	env, err := opt.ConfigStore.GetEnvironment(opt.App, opt.Env)
+func NewEnvDescriber(ctx context.Context, opt NewEnvDescriberConfig) (*EnvDescriber, error) {
+	env, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, opt.Env)
 	if err != nil {
 		return nil, fmt.Errorf("get environment: %w", err)
 	}
@@ -82,6 +83,7 @@ func NewEnvDescriber(opt NewEnvDescriberConfig) (*EnvDescriber, error) {
 		app:             opt.App,
 		env:             env,
 		enableResources: opt.EnableResources,
+		ctx:             ctx,
 
 		configStore: opt.ConfigStore,
 		deployStore: opt.DeployStore,
@@ -239,7 +241,7 @@ func (d *EnvDescriber) loadStackInfo() (map[string]string, EnvironmentVPC, error
 }
 
 func (d *EnvDescriber) filterDeployedSvcs() ([]*config.Workload, error) {
-	allSvcs, err := d.configStore.ListServices(d.app)
+	allSvcs, err := d.configStore.ListServices(d.ctx, d.app)
 	if err != nil {
 		return nil, fmt.Errorf("list services for app %s: %w", d.app, err)
 	}
@@ -247,7 +249,7 @@ func (d *EnvDescriber) filterDeployedSvcs() ([]*config.Workload, error) {
 	for _, svc := range allSvcs {
 		svcs[svc.Name] = svc
 	}
-	deployedSvcNames, err := d.deployStore.ListDeployedServices(d.app, d.env.Name)
+	deployedSvcNames, err := d.deployStore.ListDeployedServices(d.ctx, d.app, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed services in env %s: %w", d.env.Name, err)
 	}
@@ -260,7 +262,7 @@ func (d *EnvDescriber) filterDeployedSvcs() ([]*config.Workload, error) {
 
 // filterDeployedJobs lists the jobs that are deployed on the given app and environment
 func (d *EnvDescriber) filterDeployedJobs() ([]*config.Workload, error) {
-	allJobs, err := d.configStore.ListJobs(d.app)
+	allJobs, err := d.configStore.ListJobs(d.ctx, d.app)
 	if err != nil {
 		return nil, fmt.Errorf("list jobs for app %s: %w", d.app, err)
 	}
@@ -268,7 +270,7 @@ func (d *EnvDescriber) filterDeployedJobs() ([]*config.Workload, error) {
 	for _, job := range allJobs {
 		jobs[job.Name] = job
 	}
-	deployedJobNames, err := d.deployStore.ListDeployedJobs(d.app, d.env.Name)
+	deployedJobNames, err := d.deployStore.ListDeployedJobs(d.ctx, d.app, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed jobs in env %s: %w", d.env.Name, err)
 	}

@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -52,7 +53,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			skipConfirmation: true,
 
 			callMocks: func(m deletePipelineMocks) {
-				m.sel.EXPECT().Application(pipelineDeleteAppNamePrompt, pipelineDeleteAppNameHelpPrompt).Return(testAppName, nil)
+				m.sel.EXPECT().Application(ctx, pipelineDeleteAppNamePrompt, pipelineDeleteAppNameHelpPrompt).Return(testAppName, nil)
 				m.deployedPipelineLister.EXPECT().ListDeployedPipelines(testAppName).Return([]deploy.Pipeline{
 					{
 						Name: testPipelineName,
@@ -69,7 +70,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			inAppName:        "badAppName",
 
 			callMocks: func(m deletePipelineMocks) {
-				m.store.EXPECT().GetApplication("badAppName").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, "badAppName").Return(nil, errors.New("some error"))
 			},
 
 			wantedError: errors.New("some error"),
@@ -80,7 +81,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			inPipelineName:   "badPipelineName",
 
 			callMocks: func(m deletePipelineMocks) {
-				m.store.EXPECT().GetApplication(testAppName).Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, testAppName).Return(nil, nil)
 				m.deployedPipelineLister.EXPECT().ListDeployedPipelines(testAppName).Return([]deploy.Pipeline{}, nil)
 			},
 
@@ -92,7 +93,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			inAppName:        testAppName,
 
 			callMocks: func(m deletePipelineMocks) {
-				m.store.EXPECT().GetApplication(testAppName).Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, testAppName).Return(nil, nil)
 				m.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), testAppName).Return(deploy.Pipeline{
 					Name:     testPipelineName,
 					IsLegacy: true,
@@ -107,7 +108,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			inAppName:        testAppName,
 
 			callMocks: func(m deletePipelineMocks) {
-				m.store.EXPECT().GetApplication(testAppName).Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, testAppName).Return(nil, nil)
 				m.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), testAppName).Return(deploy.Pipeline{}, errors.New("some error"))
 			},
 
@@ -120,7 +121,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			inPipelineName:   testPipelineName,
 
 			callMocks: func(m deletePipelineMocks) {
-				m.store.EXPECT().GetApplication(testAppName).Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, testAppName).Return(nil, nil)
 				m.deployedPipelineLister.EXPECT().ListDeployedPipelines(testAppName).Return([]deploy.Pipeline{
 					{
 						Name: testPipelineName,
@@ -137,7 +138,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			inAppName:        testAppName,
 			inPipelineName:   testPipelineName,
 			callMocks: func(m deletePipelineMocks) {
-				m.store.EXPECT().GetApplication(testAppName).Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, testAppName).Return(nil, nil)
 				m.deployedPipelineLister.EXPECT().ListDeployedPipelines(testAppName).Return([]deploy.Pipeline{
 					{
 						Name: testPipelineName,
@@ -194,7 +195,7 @@ func TestDeletePipelineOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -404,7 +405,7 @@ func TestDeletePipelineOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

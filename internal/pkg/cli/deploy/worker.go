@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -31,7 +32,7 @@ var (
 )
 
 type snsTopicsLister interface {
-	ListSNSTopics(appName string, envName string) ([]deploy.Topic, error)
+	ListSNSTopics(ctx context.Context, appName string, envName string) ([]deploy.Topic, error)
 }
 
 type workerSvcDeployer struct {
@@ -161,7 +162,11 @@ func (d *workerSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*
 		return nil, err
 	}
 	var topics []deploy.Topic
-	topics, err = d.topicLister.ListSNSTopics(d.app.Name, d.env.Name)
+	ctx := d.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	topics, err = d.topicLister.ListSNSTopics(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("get SNS topics for app %s and environment %s: %w", d.app.Name, d.env.Name, err)
 	}

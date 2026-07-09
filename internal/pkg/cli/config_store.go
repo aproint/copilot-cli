@@ -7,8 +7,9 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 func newSSMConfigStoreFromConfig(cfg aws.Config) *config.Store {
-	return config.NewSSMStore(identity.New(cfg), config.NewSSMClient(cfg), cfg.Region)
+	return config.NewSSMStore(identity.New(cfg), ssm.NewFromConfig(cfg), cfg.Region)
 }

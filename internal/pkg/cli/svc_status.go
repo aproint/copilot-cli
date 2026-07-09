@@ -38,7 +38,7 @@ type svcStatusOpts struct {
 	store               store
 	statusDescriber     statusDescriber
 	sel                 deploySelector
-	initStatusDescriber func(*svcStatusOpts) error
+	initStatusDescriber func(context.Context, *svcStatusOpts) error
 }
 
 func newSvcStatusOpts(vars svcStatusVars) (*svcStatusOpts, error) {
@@ -58,14 +58,14 @@ func newSvcStatusOpts(vars svcStatusVars) (*svcStatusOpts, error) {
 		store:         configStore,
 		w:             log.OutputWriter,
 		sel:           selector.NewDeploySelect(prompt.New(), configStore, deployStore),
-		initStatusDescriber: func(o *svcStatusOpts) error {
-			wkld, err := configStore.GetWorkload(o.appName, o.svcName)
+		initStatusDescriber: func(ctx context.Context, o *svcStatusOpts) error {
+			wkld, err := configStore.GetWorkload(ctx, o.appName, o.svcName)
 			if err != nil {
 				return fmt.Errorf("retrieve %s from application %s: %w", o.appName, o.svcName, err)
 			}
 			switch wkld.Type {
 			case manifestinfo.RequestDrivenWebServiceType:
-				d, err := describe.NewAppRunnerStatusDescriber(&describe.NewServiceStatusConfig{
+				d, err := describe.NewAppRunnerStatusDescriber(ctx, &describe.NewServiceStatusConfig{
 					App:         o.appName,
 					Env:         o.envName,
 					Svc:         o.svcName,
@@ -76,7 +76,7 @@ func newSvcStatusOpts(vars svcStatusVars) (*svcStatusOpts, error) {
 				}
 				o.statusDescriber = d
 			case manifestinfo.StaticSiteType:
-				d, err := describe.NewStaticSiteStatusDescriber(&describe.NewServiceStatusConfig{
+				d, err := describe.NewStaticSiteStatusDescriber(ctx, &describe.NewServiceStatusConfig{
 					App:         o.appName,
 					Env:         o.envName,
 					Svc:         o.svcName,
@@ -87,7 +87,7 @@ func newSvcStatusOpts(vars svcStatusVars) (*svcStatusOpts, error) {
 				}
 				o.statusDescriber = d
 			default:
-				d, err := describe.NewECSStatusDescriber(&describe.NewServiceStatusConfig{
+				d, err := describe.NewECSStatusDescriber(ctx, &describe.NewServiceStatusConfig{
 					App:         o.appName,
 					Env:         o.envName,
 					Svc:         o.svcName,
@@ -109,16 +109,16 @@ func (o *svcStatusOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcStatusOpts) Ask() error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *svcStatusOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	return o.validateAndAskSvcEnvName()
+	return o.validateAndAskSvcEnvName(ctx)
 }
 
 // Execute displays the status of the service.
-func (o *svcStatusOpts) Execute() error {
-	err := o.initStatusDescriber(o)
+func (o *svcStatusOpts) Execute(ctx context.Context) error {
+	err := o.initStatusDescriber(ctx, o)
 	if err != nil {
 		return err
 	}
@@ -139,12 +139,12 @@ func (o *svcStatusOpts) Execute() error {
 	return nil
 }
 
-func (o *svcStatusOpts) validateOrAskApp() error {
+func (o *svcStatusOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.store.GetApplication(o.appName)
+		_, err := o.store.GetApplication(ctx, o.appName)
 		return err
 	}
-	app, err := o.sel.Application(svcAppNamePrompt, wkldAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -152,21 +152,21 @@ func (o *svcStatusOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *svcStatusOpts) validateAndAskSvcEnvName() error {
+func (o *svcStatusOpts) validateAndAskSvcEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		if _, err := o.store.GetEnvironment(o.appName, o.envName); err != nil {
+		if _, err := o.store.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 			return err
 		}
 	}
 
 	if o.svcName != "" {
-		if _, err := o.store.GetService(o.appName, o.svcName); err != nil {
+		if _, err := o.store.GetService(ctx, o.appName, o.svcName); err != nil {
 			return err
 		}
 	}
 	// Note: we let prompter handle the case when there is only option for user to choose from.
 	// This is naturally the case when `o.envName != "" && o.svcName != ""`.
-	deployedService, err := o.sel.DeployedService(svcStatusNamePrompt, svcStatusNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.svcName))
+	deployedService, err := o.sel.DeployedService(ctx, svcStatusNamePrompt, svcStatusNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.svcName))
 	if err != nil {
 		return fmt.Errorf("select deployed services for application %s: %w", o.appName, err)
 	}
@@ -191,7 +191,7 @@ func buildSvcStatusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.svcName, nameFlag, nameFlagShort, "", svcFlagDescription)

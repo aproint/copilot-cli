@@ -30,7 +30,7 @@ type overrideWorkloadOpts struct {
 	// Interfaces to interact with dependencies.
 	ws                wsWlDirReader
 	wsPrompt          wsSelector
-	validateOrAskName func() error
+	validateOrAskName func(ctx context.Context) error
 }
 
 func newOverrideWorkloadOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
@@ -83,36 +83,36 @@ func (o *overrideWorkloadOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *overrideWorkloadOpts) Ask() error {
-	if err := o.validateOrAskName(); err != nil {
+func (o *overrideWorkloadOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskName(ctx); err != nil {
 		return err
 	}
-	return o.overrideOpts.Ask()
+	return o.overrideOpts.Ask(ctx)
 }
 
 // Execute writes IaC override files to the local workspace.
 // This method assumes that the IaC tool chosen by the user is valid.
-func (o *overrideWorkloadOpts) Execute() error {
+func (o *overrideWorkloadOpts) Execute(ctx context.Context) error {
 	o.overrideOpts.dir = func() string {
 		return o.ws.WorkloadOverridesPath(o.name)
 	}
-	return o.overrideOpts.Execute()
+	return o.overrideOpts.Execute(ctx)
 }
 
 func (o *overrideWorkloadOpts) validateEnvName() error {
 	if o.envName == "" {
 		return nil
 	}
-	_, err := o.cfgStore.GetEnvironment(o.appName, o.envName)
+	_, err := o.cfgStore.GetEnvironment(context.Background(), o.appName, o.envName)
 	if err != nil {
 		return fmt.Errorf("get environment %q configuration: %v", o.envName, err)
 	}
 	return nil
 }
 
-func (o *overrideWorkloadOpts) validateOrAskServiceName() error {
+func (o *overrideWorkloadOpts) validateOrAskServiceName(ctx context.Context) error {
 	if o.name == "" {
-		return o.askServiceName()
+		return o.askServiceName(ctx)
 	}
 	return o.validateServiceName()
 }
@@ -128,8 +128,8 @@ func (o *overrideWorkloadOpts) validateServiceName() error {
 	return nil
 }
 
-func (o *overrideWorkloadOpts) askServiceName() error {
-	name, err := o.wsPrompt.Service("Which service's resources would you like to override?", "")
+func (o *overrideWorkloadOpts) askServiceName(ctx context.Context) error {
+	name, err := o.wsPrompt.Service(ctx, "Which service's resources would you like to override?", "")
 	if err != nil {
 		return fmt.Errorf("select service name from workspace: %v", err)
 	}
@@ -160,7 +160,7 @@ func (o *overrideWorkloadOpts) targetEnvName() (string, error) {
 	if o.envName != "" {
 		return o.envName, nil
 	}
-	envs, err := o.cfgStore.ListEnvironments(o.appName)
+	envs, err := o.cfgStore.ListEnvironments(context.Background(), o.appName)
 	if err != nil {
 		return "", fmt.Errorf("list environments in application %q: %v", o.appName, err)
 	}
@@ -187,7 +187,7 @@ or add new resources to the service's template.`,
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", svcFlagDescription)

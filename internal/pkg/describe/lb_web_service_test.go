@@ -67,7 +67,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to list environment": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return(nil, mockErr),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return(nil, mockErr),
 				)
 			},
 			wantedError: fmt.Errorf("list deployed environments for application phonetool: some error"),
@@ -75,7 +75,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve URI for ALB service": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -89,7 +89,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve service params": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -118,7 +118,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve service discovery endpoint": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -149,7 +149,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve platform": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -167,7 +167,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve environment variables": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -189,7 +189,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve rollback alarm names": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -219,7 +219,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve alarm descriptions": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -250,7 +250,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve service connect DNS names": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -282,7 +282,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve secrets": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -316,7 +316,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -361,7 +361,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 		"should not try to fetch descriptions if no ROLLBACK alarms present": {
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
@@ -421,7 +421,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m lbWebSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv, prodEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv, prodEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return([]*stack.Resource{
 						{
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,

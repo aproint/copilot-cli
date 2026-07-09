@@ -51,7 +51,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to list environment": {
 			setupMocks: func(m backendSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return(nil, mockErr),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return(nil, mockErr),
 				)
 			},
 			wantedError: fmt.Errorf("list deployed environments for application phonetool: some error"),
@@ -59,7 +59,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve service deployment configuration": {
 			setupMocks: func(m backendSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(nil, mockErr),
 				)
@@ -69,7 +69,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve svc discovery endpoint": {
 			setupMocks: func(m backendSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTargetPortParamKey: "80",
@@ -92,7 +92,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "512",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -113,7 +113,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "512",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -135,7 +135,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "512",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -161,7 +161,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "512",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -188,7 +188,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "512",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -215,7 +215,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "512",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -249,7 +249,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "512",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(testParams, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -313,7 +313,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					cfnstack.WorkloadTaskMemoryParamKey: "1024",
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv, prodEnv, mockEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv, prodEnv, mockEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(nil, nil),
 					m.ecsDescriber.EXPECT().Params().Return(testParams, nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return(nil, nil),
@@ -556,7 +556,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					},
 				}
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(resources, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(resources, nil),

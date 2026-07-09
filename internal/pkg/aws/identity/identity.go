@@ -37,8 +37,8 @@ type Caller struct {
 }
 
 // Get returns the Caller associated with the Client's session.
-func (s STS) Get() (Caller, error) {
-	out, err := s.client.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
+func (s STS) Get(ctx context.Context) (Caller, error) {
+	out, err := s.client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return Caller{}, fmt.Errorf("get caller identity: %w", err)
 	}

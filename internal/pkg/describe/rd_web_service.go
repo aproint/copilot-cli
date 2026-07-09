@@ -5,6 +5,7 @@ package describe
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 
 // RDWebServiceDescriber retrieves information about a request-driven web service.
 type RDWebServiceDescriber struct {
+	ctx             context.Context
 	app             string
 	svc             string
 	enableResources bool
@@ -29,8 +31,9 @@ type RDWebServiceDescriber struct {
 }
 
 // NewRDWebServiceDescriber instantiates a request-driven service describer.
-func NewRDWebServiceDescriber(opt NewServiceConfig) (*RDWebServiceDescriber, error) {
+func NewRDWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*RDWebServiceDescriber, error) {
 	describer := &RDWebServiceDescriber{
+		ctx:             ctx,
 		app:             opt.App,
 		svc:             opt.Svc,
 		enableResources: opt.EnableResources,
@@ -42,7 +45,7 @@ func NewRDWebServiceDescriber(opt NewServiceConfig) (*RDWebServiceDescriber, err
 		if describer, ok := describer.envSvcDescribers[env]; ok {
 			return describer, nil
 		}
-		d, err := newAppRunnerServiceDescriber(NewServiceConfig{
+		d, err := newAppRunnerServiceDescriber(ctx, NewServiceConfig{
 			App:         opt.App,
 			Env:         env,
 			Svc:         opt.Svc,
@@ -68,7 +71,11 @@ func (d *RDWebServiceDescriber) ServiceARN(env string) (string, error) {
 
 // Describe returns info for a request-driven web service.
 func (d *RDWebServiceDescriber) Describe() (HumanJSONStringer, error) {
-	environments, err := d.store.ListEnvironmentsDeployedTo(d.app, d.svc)
+	ctx := d.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for application %s: %w", d.app, err)
 	}

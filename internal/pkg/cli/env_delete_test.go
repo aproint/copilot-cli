@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -45,7 +46,7 @@ func TestDeleteEnvOpts_Validate(t *testing.T) {
 			inEnv:     testEnvName,
 			mockStore: func(ctrl *gomock.Controller) *mocks.MockenvironmentStore {
 				envStore := mocks.NewMockenvironmentStore(ctrl)
-				envStore.EXPECT().GetEnvironment(testAppName, testEnvName).Return(nil, errors.New("some error"))
+				envStore.EXPECT().GetEnvironment(ctx, testAppName, testEnvName).Return(nil, errors.New("some error"))
 				return envStore
 			},
 			wantedError: errors.New("get environment test configuration from app phonetool: some error"),
@@ -55,7 +56,7 @@ func TestDeleteEnvOpts_Validate(t *testing.T) {
 			inEnv:     testEnvName,
 			mockStore: func(ctrl *gomock.Controller) *mocks.MockenvironmentStore {
 				envStore := mocks.NewMockenvironmentStore(ctrl)
-				envStore.EXPECT().GetEnvironment(testAppName, testEnvName).Return(&config.Environment{}, nil)
+				envStore.EXPECT().GetEnvironment(ctx, testAppName, testEnvName).Return(&config.Environment{}, nil)
 				return envStore
 			},
 		},
@@ -104,9 +105,9 @@ func TestDeleteEnvOpts_Ask(t *testing.T) {
 			inSkipConfirmation: false,
 			mockDependencies: func(ctrl *gomock.Controller, o *deleteEnvOpts) {
 				mockSelector := mocks.NewMockconfigSelector(ctrl)
-				mockSelector.EXPECT().Application(envDeleteAppNamePrompt, envDeleteAppNameHelpPrompt, gomock.Any()).
+				mockSelector.EXPECT().Application(ctx, envDeleteAppNamePrompt, envDeleteAppNameHelpPrompt, gomock.Any()).
 					Return(testApp, nil)
-				mockSelector.EXPECT().Environment(envDeleteNamePrompt, "", testApp).Return(testEnv, nil)
+				mockSelector.EXPECT().Environment(ctx, envDeleteNamePrompt, "", testApp).Return(testEnv, nil)
 
 				mockPrompter := mocks.NewMockprompter(ctrl)
 				mockPrompter.EXPECT().Confirm(fmt.Sprintf(fmtDeleteEnvPrompt, testEnv, testApp), gomock.Any(), gomock.Any()).Return(true, nil)
@@ -119,7 +120,7 @@ func TestDeleteEnvOpts_Ask(t *testing.T) {
 		"error if fail to select applications": {
 			mockDependencies: func(ctrl *gomock.Controller, o *deleteEnvOpts) {
 				mockSelector := mocks.NewMockconfigSelector(ctrl)
-				mockSelector.EXPECT().Application(envDeleteAppNamePrompt, envDeleteAppNameHelpPrompt, gomock.Any()).
+				mockSelector.EXPECT().Application(ctx, envDeleteAppNamePrompt, envDeleteAppNameHelpPrompt, gomock.Any()).
 					Return("", errors.New("some error"))
 
 				o.sel = mockSelector
@@ -157,7 +158,7 @@ func TestDeleteEnvOpts_Ask(t *testing.T) {
 			tc.mockDependencies(ctrl, opts)
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError == nil {
@@ -422,7 +423,7 @@ Resources:
 				deployer.EXPECT().DeleteEnvironment("phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
-				store.EXPECT().ListEnvironments("phonetool").Return([]*config.Environment{
+				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
 					&mockEnv,
 					{
 						Name:      "prod",
@@ -430,8 +431,8 @@ Resources:
 						AccountID: "5678",
 					},
 				}, nil)
-				store.EXPECT().GetEnvironment("phonetool", "test").Return(&mockEnv, nil)
-				store.EXPECT().GetApplication("phonetool").Return(app, nil)
+				store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&mockEnv, nil)
+				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
 				envDeleter.EXPECT().RemoveEnvFromApp(&cloudformation.RemoveEnvFromAppOpts{
@@ -508,7 +509,7 @@ Resources:
 				deployer.EXPECT().DeleteEnvironment("phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
-				store.EXPECT().ListEnvironments("phonetool").Return([]*config.Environment{
+				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
 					&mockEnv,
 					{
 						Name:      "prod",
@@ -516,8 +517,8 @@ Resources:
 						AccountID: "5678",
 					},
 				}, nil)
-				store.EXPECT().GetEnvironment("phonetool", "test").Return(&mockEnv, nil)
-				store.EXPECT().GetApplication("phonetool").Return(app, nil)
+				store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&mockEnv, nil)
+				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
 				envDeleter.EXPECT().RemoveEnvFromApp(&cloudformation.RemoveEnvFromAppOpts{
@@ -537,7 +538,7 @@ Resources:
 				iam.EXPECT().DeleteRole(mockEnv.ExecutionRoleARN).Return(nil)
 				iam.EXPECT().DeleteRole(mockEnv.ManagerRoleARN).Return(nil)
 
-				store.EXPECT().DeleteEnvironment(mockEnv.App, mockEnv.Name).Return(nil)
+				store.EXPECT().DeleteEnvironment(ctx, mockEnv.App, mockEnv.Name).Return(nil)
 
 				return &deleteEnvOpts{
 					deleteEnvVars: deleteEnvVars{
@@ -596,7 +597,7 @@ Resources:
 				deployer.EXPECT().DeleteEnvironment("phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
-				store.EXPECT().ListEnvironments("phonetool").Return([]*config.Environment{
+				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
 					&mockEnv,
 					{
 						Name:      "prod",
@@ -604,8 +605,8 @@ Resources:
 						AccountID: "5678",
 					},
 				}, nil)
-				store.EXPECT().GetEnvironment("phonetool", "test").Return(&mockEnv, nil)
-				store.EXPECT().GetApplication("phonetool").Return(app, nil)
+				store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&mockEnv, nil)
+				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
 				envDeleter.EXPECT().RemoveEnvFromApp(&cloudformation.RemoveEnvFromAppOpts{
@@ -625,7 +626,7 @@ Resources:
 				iam.EXPECT().DeleteRole(mockEnv.ExecutionRoleARN).Return(nil)
 				iam.EXPECT().DeleteRole(mockEnv.ManagerRoleARN).Return(nil)
 
-				store.EXPECT().DeleteEnvironment(mockEnv.App, mockEnv.Name).Return(nil)
+				store.EXPECT().DeleteEnvironment(ctx, mockEnv.App, mockEnv.Name).Return(nil)
 
 				return &deleteEnvOpts{
 					deleteEnvVars: deleteEnvVars{
@@ -719,7 +720,7 @@ Resources:
 				deployer.EXPECT().DeleteEnvironment("phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
-				store.EXPECT().ListEnvironments("phonetool").Return([]*config.Environment{
+				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
 					&mockEnv,
 					{
 						Name:      "prod",
@@ -727,8 +728,8 @@ Resources:
 						AccountID: "5678",
 					},
 				}, nil)
-				store.EXPECT().GetEnvironment("phonetool", "test").Return(&mockEnv, nil)
-				store.EXPECT().GetApplication("phonetool").Return(app, nil)
+				store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&mockEnv, nil)
+				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
 				envDeleter.EXPECT().RemoveEnvFromApp(&cloudformation.RemoveEnvFromAppOpts{
@@ -748,7 +749,7 @@ Resources:
 				iam.EXPECT().DeleteRole(mockEnv.ExecutionRoleARN).Return(nil)
 				iam.EXPECT().DeleteRole(mockEnv.ManagerRoleARN).Return(nil)
 
-				store.EXPECT().DeleteEnvironment(mockEnv.App, mockEnv.Name).Return(nil)
+				store.EXPECT().DeleteEnvironment(ctx, mockEnv.App, mockEnv.Name).Return(nil)
 
 				return &deleteEnvOpts{
 					deleteEnvVars: deleteEnvVars{
@@ -778,7 +779,7 @@ Resources:
 			opts := tc.given(t, ctrl)
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

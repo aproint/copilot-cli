@@ -3,8 +3,12 @@
 
 package cli
 
-import "github.com/aproint/copilot-cli/internal/pkg/aws/identity"
+import (
+	"context"
+
+	"github.com/aproint/copilot-cli/internal/pkg/aws/identity"
+)
 
 type identityService interface {
-	Get() (identity.Caller, error)
+	Get(ctx context.Context) (identity.Caller, error)
 }

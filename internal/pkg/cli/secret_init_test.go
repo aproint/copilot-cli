@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -60,15 +61,15 @@ func TestSecretInitOpts_Validate(t *testing.T) {
 			inOverwrite: true,
 
 			setupMocks: func(m secretInitMocks) {
-				m.mockStore.EXPECT().GetApplication("dragon_slaying").Return(&config.Application{}, nil)
-				m.mockStore.EXPECT().GetEnvironment("dragon_slaying", "good_village").Return(&config.Environment{}, nil)
-				m.mockStore.EXPECT().GetEnvironment("dragon_slaying", "bad_village").Return(&config.Environment{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "dragon_slaying").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetEnvironment(ctx, "dragon_slaying", "good_village").Return(&config.Environment{}, nil)
+				m.mockStore.EXPECT().GetEnvironment(ctx, "dragon_slaying", "bad_village").Return(&config.Environment{}, nil)
 			},
 		},
 		"error getting app": {
 			inApp: "dragon_befriending",
 			setupMocks: func(m secretInitMocks) {
-				m.mockStore.EXPECT().GetApplication("dragon_befriending").Return(&config.Application{}, errors.New("some error"))
+				m.mockStore.EXPECT().GetApplication(ctx, "dragon_befriending").Return(&config.Application{}, errors.New("some error"))
 			},
 			wantedError: errors.New("get application dragon_befriending: some error"),
 		},
@@ -81,10 +82,10 @@ func TestSecretInitOpts_Validate(t *testing.T) {
 			},
 			inApp: "dragon_slaying",
 			setupMocks: func(m secretInitMocks) {
-				m.mockStore.EXPECT().GetApplication("dragon_slaying").Return(&config.Application{}, nil)
-				m.mockStore.EXPECT().GetEnvironment("dragon_slaying", "good_village").Return(&config.Environment{}, nil).MinTimes(0).MaxTimes(1)
-				m.mockStore.EXPECT().GetEnvironment("dragon_slaying", "bad_village").Return(&config.Environment{}, nil).MinTimes(0).MaxTimes(1)
-				m.mockStore.EXPECT().GetEnvironment("dragon_slaying", "neutral_village").Return(nil, errors.New("some error"))
+				m.mockStore.EXPECT().GetApplication(ctx, "dragon_slaying").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetEnvironment(ctx, "dragon_slaying", "good_village").Return(&config.Environment{}, nil).MinTimes(0).MaxTimes(1)
+				m.mockStore.EXPECT().GetEnvironment(ctx, "dragon_slaying", "bad_village").Return(&config.Environment{}, nil).MinTimes(0).MaxTimes(1)
+				m.mockStore.EXPECT().GetEnvironment(ctx, "dragon_slaying", "neutral_village").Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("get environment neutral_village in application dragon_slaying: some error"),
 		},
@@ -183,13 +184,13 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 			inName:   wantedName,
 			inValues: wantedValues,
 			setupMocks: func(m secretInitAskMocks) {
-				m.mockSelector.EXPECT().Application(secretInitAppPrompt, gomock.Any()).Return(wantedApp, nil)
+				m.mockSelector.EXPECT().Application(ctx, secretInitAppPrompt, gomock.Any()).Return(wantedApp, nil)
 			},
 			wantedVars: wantedVars,
 		},
 		"error prompting to select an app": {
 			setupMocks: func(m secretInitAskMocks) {
-				m.mockSelector.EXPECT().Application(secretInitAppPrompt, gomock.Any()).Return("", errors.New("some error"))
+				m.mockSelector.EXPECT().Application(ctx, secretInitAppPrompt, gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("ask for an application to add the secret to: some error"),
 		},
@@ -198,7 +199,7 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 			inName:    wantedName,
 			inValues:  wantedValues,
 			setupMocks: func(m secretInitAskMocks) {
-				m.mockSelector.EXPECT().Application(gomock.Any(), gomock.Any()).Times(0)
+				m.mockSelector.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedVars: secretInitVars{
 				appName: wantedApp,
@@ -237,7 +238,7 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 			inAppName: wantedApp,
 			inName:    wantedName,
 			setupMocks: func(m secretInitAskMocks) {
-				m.mockStore.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.mockStore.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name: "test",
 					},
@@ -261,7 +262,7 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 			inAppName: wantedApp,
 			inName:    wantedName,
 			setupMocks: func(m secretInitAskMocks) {
-				m.mockStore.EXPECT().ListEnvironments("my-app").Return(nil, errors.New("some error"))
+				m.mockStore.EXPECT().ListEnvironments(ctx, "my-app").Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("list environments in app my-app: some error"),
 		},
@@ -269,7 +270,7 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 			inAppName: wantedApp,
 			inName:    wantedName,
 			setupMocks: func(m secretInitAskMocks) {
-				m.mockStore.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.mockStore.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name: "test",
 					},
@@ -291,7 +292,7 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 			inAppName: wantedApp,
 			inName:    wantedName,
 			setupMocks: func(m secretInitAskMocks) {
-				m.mockStore.EXPECT().ListEnvironments(wantedApp).Return([]*config.Environment{}, nil)
+				m.mockStore.EXPECT().ListEnvironments(ctx, wantedApp).Return([]*config.Environment{}, nil)
 			},
 			wantedError: errors.New("no environment is found in app my-app"),
 		},
@@ -328,7 +329,7 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 
 			tc.setupMocks(m)
 
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 			if tc.wantedError == nil {
 				require.NoError(t, err)
 				require.Equal(t, tc.wantedVars, opts.secretInitVars)
@@ -587,13 +588,13 @@ db-host:
 				},
 			}
 
-			opts.configureClientsForEnv = func(envName string) error {
+			opts.configureClientsForEnv = func(_ context.Context, envName string) error {
 				opts.secretPutters[envName] = m.mockSecretPutter
 				opts.envCompatibilityChecker[envName] = m.mockEnvCompatibilityChecker
 				return nil
 			}
 
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 			if tc.wantedError == nil {
 				require.NoError(t, err)
 			} else {

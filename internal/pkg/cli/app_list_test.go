@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -34,7 +35,7 @@ func TestListAppOpts_Execute(t *testing.T) {
 			mocking: func() {
 				mockstore.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return([]*config.Application{
 						{Name: "app1"},
 						{Name: "app2"},
@@ -50,7 +51,7 @@ func TestListAppOpts_Execute(t *testing.T) {
 			mocking: func() {
 				mockstore.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return(nil, testError).
 					Times(1)
 			},
@@ -62,7 +63,7 @@ func TestListAppOpts_Execute(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tc.mocking()
 
-			got := tc.listOpts.Execute()
+			got := tc.listOpts.Execute(context.Background())
 
 			require.Equal(t, tc.want, got)
 		})

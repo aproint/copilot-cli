@@ -5,8 +5,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
 	"github.com/aproint/copilot-cli/internal/pkg/cli"
@@ -24,14 +27,19 @@ type exitCodeError interface {
 	ExitCode() int
 }
 
+const sigtermExitCode = 128 + int(syscall.SIGTERM)
+
 func init() {
 	color.DisableColorBasedOnEnvVar()
 	cobra.EnableCommandSorting = false // Maintain the order in which we add commands.
 }
 
 func main() {
+	ctx, stop := rootContext()
+	defer stop()
+
 	cmd := buildRootCmd()
-	if err := cmd.Execute(); err != nil {
+	if err := cmd.ExecuteContext(ctx); err != nil {
 		var ac actionRecommender
 		var exitCodeErr exitCodeError
 
@@ -45,6 +53,23 @@ func main() {
 		log.Errorln(err.Error())
 		os.Exit(1)
 	}
+}
+
+func rootContext() (context.Context, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM)
+	stop := func() {
+		signal.Stop(sigCh)
+		cancel()
+	}
+	go func() {
+		<-sigCh
+		cancel()
+		signal.Stop(sigCh)
+		os.Exit(sigtermExitCode)
+	}()
+	return ctx, stop
 }
 
 func buildRootCmd() *cobra.Command {

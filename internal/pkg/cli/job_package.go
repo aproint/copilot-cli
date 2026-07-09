@@ -120,7 +120,7 @@ func (o *packageJobOpts) Validate() error {
 		}
 	}
 	if o.envName != "" {
-		if _, err := o.store.GetEnvironment(o.appName, o.envName); err != nil {
+		if _, err := o.store.GetEnvironment(context.Background(), o.appName, o.envName); err != nil {
 			return err
 		}
 	}
@@ -128,20 +128,20 @@ func (o *packageJobOpts) Validate() error {
 }
 
 // Ask prompts the user for any missing required fields.
-func (o *packageJobOpts) Ask() error {
-	if err := o.askJobName(); err != nil {
+func (o *packageJobOpts) Ask(ctx context.Context) error {
+	if err := o.askJobName(ctx); err != nil {
 		return err
 	}
-	if err := o.askEnvName(); err != nil {
+	if err := o.askEnvName(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Execute prints the CloudFormation template of the application for the environment.
-func (o *packageJobOpts) Execute() error {
+func (o *packageJobOpts) Execute(ctx context.Context) error {
 	o.newPackageCmd(o)
-	return o.packageCmd.Execute()
+	return o.packageCmd.Execute(ctx)
 }
 
 // RecommendActions suggests recommended actions before the packaged template is used for deployment.
@@ -149,12 +149,12 @@ func (o *packageJobOpts) RecommendActions() error {
 	return o.packageCmd.RecommendActions()
 }
 
-func (o *packageJobOpts) askJobName() error {
+func (o *packageJobOpts) askJobName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
 
-	name, err := o.sel.Job(jobPackageJobNamePrompt, "")
+	name, err := o.sel.Job(ctx, jobPackageJobNamePrompt, "")
 	if err != nil {
 		return fmt.Errorf("select job: %w", err)
 	}
@@ -162,12 +162,12 @@ func (o *packageJobOpts) askJobName() error {
 	return nil
 }
 
-func (o *packageJobOpts) askEnvName() error {
+func (o *packageJobOpts) askEnvName(ctx context.Context) error {
 	if o.envName != "" {
 		return nil
 	}
 
-	name, err := o.sel.Environment(jobPackageEnvNamePrompt, "", o.appName)
+	name, err := o.sel.Environment(ctx, jobPackageEnvNamePrompt, "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select environment: %w", err)
 	}
@@ -197,7 +197,7 @@ func buildJobPackageCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", jobFlagDescription)

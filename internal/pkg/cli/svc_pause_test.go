@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -56,11 +57,11 @@ func TestSvcPause_Ask(t *testing.T) {
 			skipConfirmation: true,
 			setupMocks: func(m svcPauseAskMock) {
 				gomock.InOrder(
-					m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil),
-					m.store.EXPECT().GetEnvironment("my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
-					m.store.EXPECT().GetService("my-app", "my-svc").Return(&config.Workload{}, nil),
+					m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil),
+					m.store.EXPECT().GetEnvironment(ctx, "my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
+					m.store.EXPECT().GetService(ctx, "my-app", "my-svc").Return(&config.Workload{}, nil),
 				)
-				m.sel.EXPECT().DeployedService(fmt.Sprintf(svcPauseNamePrompt, inputApp), svcPauseSvcNameHelpPrompt, "my-app", gomock.Any(), gomock.Any(), gomock.Any()).
+				m.sel.EXPECT().DeployedService(ctx, fmt.Sprintf(svcPauseNamePrompt, inputApp), svcPauseSvcNameHelpPrompt, "my-app", gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -76,11 +77,11 @@ func TestSvcPause_Ask(t *testing.T) {
 			inputEnvironment: inputEnv,
 			skipConfirmation: true,
 			setupMocks: func(m svcPauseAskMock) {
-				m.sel.EXPECT().Application(svcPauseAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
-				m.store.EXPECT().GetApplication(gomock.Any()).Times(0)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.sel.EXPECT().Application(ctx, svcPauseAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -94,7 +95,7 @@ func TestSvcPause_Ask(t *testing.T) {
 		"errors if failed to select application": {
 			skipConfirmation: true,
 			setupMocks: func(m svcPauseAskMock) {
-				m.sel.EXPECT().Application(svcPauseAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
+				m.sel.EXPECT().Application(ctx, svcPauseAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select application: some error"),
 		},
@@ -102,10 +103,10 @@ func TestSvcPause_Ask(t *testing.T) {
 			inputApp:         "my-app",
 			skipConfirmation: true,
 			setupMocks: func(m svcPauseAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(fmt.Sprintf(svcPauseNamePrompt, inputApp), svcPauseSvcNameHelpPrompt, "my-app", gomock.Any(), gomock.Any(), gomock.Any()).
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, fmt.Sprintf(svcPauseNamePrompt, inputApp), svcPauseSvcNameHelpPrompt, "my-app", gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -119,10 +120,10 @@ func TestSvcPause_Ask(t *testing.T) {
 			inputApp:         inputApp,
 			skipConfirmation: true,
 			setupMocks: func(m svcPauseAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(fmt.Sprintf(svcPauseNamePrompt, inputApp), svcPauseSvcNameHelpPrompt, inputApp, gomock.Any(), gomock.Any(), gomock.Any()).
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, fmt.Sprintf(svcPauseNamePrompt, inputApp), svcPauseSvcNameHelpPrompt, inputApp, gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select deployed services for application my-app: some error"),
@@ -133,10 +134,10 @@ func TestSvcPause_Ask(t *testing.T) {
 			inputEnvironment: "mockEnv",
 			skipConfirmation: false,
 			setupMocks: func(m svcPauseAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -152,10 +153,10 @@ func TestSvcPause_Ask(t *testing.T) {
 			inputEnvironment: "mockEnv",
 			skipConfirmation: false,
 			setupMocks: func(m svcPauseAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -171,10 +172,10 @@ func TestSvcPause_Ask(t *testing.T) {
 			inputEnvironment: inputEnv,
 			skipConfirmation: false,
 			setupMocks: func(m svcPauseAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -213,7 +214,7 @@ func TestSvcPause_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := svcPause.Ask()
+			err := svcPause.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -271,11 +272,11 @@ func TestSvcPause_Execute(t *testing.T) {
 				store:        mockStore,
 				client:       mockServicePauser,
 				prog:         mockProgress,
-				initSvcPause: func() error { return nil },
+				initSvcPause: func(_ context.Context) error { return nil },
 			}
 
 			// WHEN
-			err := svcPause.Execute()
+			err := svcPause.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

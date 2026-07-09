@@ -59,8 +59,8 @@ type deployEnvOpts struct {
 	ws                  wsEnvironmentReader
 	identity            identityService
 	newInterpolator     func(app, env string) interpolator
-	newEnvVersionGetter func(appName, envName string) (versionGetter, error)
-	newEnvDeployer      func() (envDeployer, error)
+	newEnvVersionGetter func(ctx context.Context, appName, envName string) (versionGetter, error)
+	newEnvDeployer      func(ctx context.Context) (envDeployer, error)
 
 	// Cached variables.
 	targetApp *config.Application
@@ -89,8 +89,8 @@ func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
 		store:           store,
 		sessionProvider: sessProvider,
 		sel:             selector.NewLocalEnvironmentSelector(prompter, store, ws),
-		newEnvVersionGetter: func(appName, envName string) (versionGetter, error) {
-			return describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		newEnvVersionGetter: func(ctx context.Context, appName, envName string) (versionGetter, error) {
+			return describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 				App:         appName,
 				Env:         envName,
 				ConfigStore: store,
@@ -104,18 +104,18 @@ func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
 		templateVersion: version.LatestTemplateVersion(),
 		newInterpolator: newManifestInterpolator,
 	}
-	opts.newEnvDeployer = func() (envDeployer, error) {
-		return newEnvDeployer(opts, ws)
+	opts.newEnvDeployer = func(ctx context.Context) (envDeployer, error) {
+		return newEnvDeployer(ctx, opts, ws)
 	}
 	return opts, nil
 }
 
-func newEnvDeployer(opts *deployEnvOpts, ws deploy.WorkspaceAddonsReaderPathGetter) (envDeployer, error) {
-	app, err := opts.cachedTargetApp()
+func newEnvDeployer(ctx context.Context, opts *deployEnvOpts, ws deploy.WorkspaceAddonsReaderPathGetter) (envDeployer, error) {
+	app, err := opts.cachedTargetApp(ctx)
 	if err != nil {
 		return nil, err
 	}
-	env, err := opts.cachedTargetEnv()
+	env, err := opts.cachedTargetEnv(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +124,7 @@ func newEnvDeployer(opts *deployEnvOpts, ws deploy.WorkspaceAddonsReaderPathGett
 		return nil, err
 	}
 	return deploy.NewEnvDeployer(&deploy.NewEnvDeployerInput{
+		Ctx:             ctx,
 		App:             app,
 		Env:             env,
 		SessionProvider: opts.sessionProvider,
@@ -139,15 +140,15 @@ func (o *deployEnvOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *deployEnvOpts) Ask() error {
+func (o *deployEnvOpts) Ask(ctx context.Context) error {
 	if o.appName == "" {
 		// NOTE: This command is required to be executed under a workspace. We don't prompt for it.
 		return errNoAppInWorkspace
 	}
-	if _, err := o.cachedTargetApp(); err != nil {
+	if _, err := o.cachedTargetApp(ctx); err != nil {
 		return err
 	}
-	return o.validateOrAskEnvName()
+	return o.validateOrAskEnvName(ctx)
 }
 
 func validateEnvVersion(vg versionGetter, name, templateVersion string) error {
@@ -170,9 +171,9 @@ func validateEnvVersion(vg versionGetter, name, templateVersion string) error {
 }
 
 // Execute deploys an environment given a manifest.
-func (o *deployEnvOpts) Execute() error {
+func (o *deployEnvOpts) Execute(ctx context.Context) error {
 	if !o.allowEnvDowngrade {
-		envVersionGetter, err := o.newEnvVersionGetter(o.appName, o.name)
+		envVersionGetter, err := o.newEnvVersionGetter(ctx, o.appName, o.name)
 		if err != nil {
 			return err
 		}
@@ -184,11 +185,11 @@ func (o *deployEnvOpts) Execute() error {
 	if err != nil {
 		return err
 	}
-	caller, err := o.identity.Get()
+	caller, err := o.identity.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
-	deployer, err := o.newEnvDeployer()
+	deployer, err := o.newEnvDeployer(ctx)
 	if err != nil {
 		return err
 	}
@@ -302,11 +303,11 @@ func (o *deployEnvOpts) showDiffAndConfirmDeployment(deployer envDeployer, input
 	return contd, nil
 }
 
-func (o *deployEnvOpts) validateOrAskEnvName() error {
+func (o *deployEnvOpts) validateOrAskEnvName(ctx context.Context) error {
 	if o.name != "" {
-		return o.validateEnvName()
+		return o.validateEnvName(ctx)
 	}
-	name, err := o.sel.LocalEnvironment("Select an environment manifest from your workspace", "")
+	name, err := o.sel.LocalEnvironment(ctx, "Select an environment manifest from your workspace", "")
 	if err != nil {
 		var pathErr *os.PathError
 		if errors.As(err, &pathErr) || errors.Is(err, selector.ErrLocalEnvsNotFound) {
@@ -318,7 +319,7 @@ func (o *deployEnvOpts) validateOrAskEnvName() error {
 	return nil
 }
 
-func (o *deployEnvOpts) validateEnvName() error {
+func (o *deployEnvOpts) validateEnvName(ctx context.Context) error {
 	localEnvs, err := o.ws.ListEnvironments()
 	if err != nil {
 		o.logManifestSuggestion(o.name)
@@ -328,7 +329,7 @@ func (o *deployEnvOpts) validateEnvName() error {
 		if o.name != localEnv {
 			continue
 		}
-		if _, err := o.cachedTargetEnv(); err != nil {
+		if _, err := o.cachedTargetEnv(ctx); err != nil {
 			log.Errorf("It seems like environment %s is not added in application %s yet. Have you run %s?\n",
 				o.name, o.appName, color.HighlightCode("copilot env init"))
 			return err
@@ -339,9 +340,9 @@ func (o *deployEnvOpts) validateEnvName() error {
 	return fmt.Errorf("environment manifest for %q is not found", o.name)
 }
 
-func (o *deployEnvOpts) cachedTargetEnv() (*config.Environment, error) {
+func (o *deployEnvOpts) cachedTargetEnv(ctx context.Context) (*config.Environment, error) {
 	if o.targetEnv == nil {
-		env, err := o.store.GetEnvironment(o.appName, o.name)
+		env, err := o.store.GetEnvironment(ctx, o.appName, o.name)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s in application %s: %w", o.name, o.appName, err)
 		}
@@ -350,9 +351,9 @@ func (o *deployEnvOpts) cachedTargetEnv() (*config.Environment, error) {
 	return o.targetEnv, nil
 }
 
-func (o *deployEnvOpts) cachedTargetApp() (*config.Application, error) {
+func (o *deployEnvOpts) cachedTargetApp(ctx context.Context) (*config.Application, error) {
 	if o.targetApp == nil {
-		app, err := o.store.GetApplication(o.appName)
+		app, err := o.store.GetApplication(ctx, o.appName)
 		if err != nil {
 			return nil, fmt.Errorf("get application %s: %w", o.appName, err)
 		}
@@ -390,7 +391,7 @@ Deploy an environment named "test".
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

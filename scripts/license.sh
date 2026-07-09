@@ -36,6 +36,9 @@ while IFS= read -r -d '' file; do
         $rootdir/*/node_modules/*)
             # Skip node modules for js files.
         ;;
+        $rootdir/*/coverage/*)
+            # Skip generated coverage reports.
+        ;;
         $rootdir/site/*)
             # Skip website content
         ;;

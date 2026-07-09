@@ -5,6 +5,7 @@
 package selector
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -111,14 +112,14 @@ type Prompter interface {
 }
 
 type appEnvLister interface {
-	ListEnvironments(appName string) ([]*config.Environment, error)
-	ListApplications() ([]*config.Application, error)
+	ListEnvironments(ctx context.Context, appName string) ([]*config.Environment, error)
+	ListApplications(ctx context.Context) ([]*config.Application, error)
 }
 
 type configWorkloadLister interface {
-	ListServices(appName string) ([]*config.Workload, error)
-	ListJobs(appName string) ([]*config.Workload, error)
-	ListWorkloads(appName string) ([]*config.Workload, error)
+	ListServices(ctx context.Context, appName string) ([]*config.Workload, error)
+	ListJobs(ctx context.Context, appName string) ([]*config.Workload, error)
+	ListWorkloads(ctx context.Context, appName string) ([]*config.Workload, error)
 }
 
 type configLister interface {
@@ -154,13 +155,13 @@ type workspaceRetriever interface {
 
 // deployedWorkloadsRetriever retrieves information about deployed services or jobs.
 type deployedWorkloadsRetriever interface {
-	ListDeployedServices(appName string, envName string) ([]string, error)
-	ListDeployedJobs(appName, envName string) ([]string, error)
-	ListDeployedWorkloads(appName, envName string) ([]string, error)
-	IsServiceDeployed(appName string, envName string, svcName string) (bool, error)
-	IsJobDeployed(appName, envName, jobName string) (bool, error)
-	IsWorkloadDeployed(appName, envName, wkldName string) (bool, error)
-	ListSNSTopics(appName string, envName string) ([]deploy.Topic, error)
+	ListDeployedServices(ctx context.Context, appName string, envName string) ([]string, error)
+	ListDeployedJobs(ctx context.Context, appName, envName string) ([]string, error)
+	ListDeployedWorkloads(ctx context.Context, appName, envName string) ([]string, error)
+	IsServiceDeployed(ctx context.Context, appName string, envName string, svcName string) (bool, error)
+	IsJobDeployed(ctx context.Context, appName, envName, jobName string) (bool, error)
+	IsWorkloadDeployed(ctx context.Context, appName, envName, wkldName string) (bool, error)
+	ListSNSTopics(ctx context.Context, appName string, envName string) ([]deploy.Topic, error)
 }
 
 // taskStackDescriber wraps cloudformation client methods to describe task stacks
@@ -579,8 +580,8 @@ func (s *CFTaskSelector) Task(msg, help string, opts ...GetDeployedTaskOpts) (st
 
 // DeployedJob has the user select a deployed job. Callers can provide either a particular environment,
 // a particular job to filter on, or both.
-func (s *DeploySelector) DeployedJob(msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedJob, error) {
-	j, err := s.deployedWorkload(jobWorkloadType, msg, help, app, opts...)
+func (s *DeploySelector) DeployedJob(ctx context.Context, msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedJob, error) {
+	j, err := s.deployedWorkload(ctx, jobWorkloadType, msg, help, app, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -592,8 +593,8 @@ func (s *DeploySelector) DeployedJob(msg, help string, app string, opts ...GetDe
 
 // DeployedService has the user select a deployed service. Callers can provide either a particular environment,
 // a particular service to filter on, or both.
-func (s *DeploySelector) DeployedService(msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedService, error) {
-	svc, err := s.deployedWorkload(svcWorkloadType, msg, help, app, opts...)
+func (s *DeploySelector) DeployedService(ctx context.Context, msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedService, error) {
+	svc, err := s.deployedWorkload(ctx, svcWorkloadType, msg, help, app, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -606,8 +607,8 @@ func (s *DeploySelector) DeployedService(msg, help string, app string, opts ...G
 
 // DeployedWorkload has the user select a deployed workload. Callers can provide either a particular environment,
 // a particular workload to filter on, or both.
-func (s *DeploySelector) DeployedWorkload(msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedWorkload, error) {
-	wkld, err := s.deployedWorkload(anyWorkloadType, msg, help, app, opts...)
+func (s *DeploySelector) DeployedWorkload(ctx context.Context, msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedWorkload, error) {
+	wkld, err := s.deployedWorkload(ctx, anyWorkloadType, msg, help, app, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -618,13 +619,13 @@ func (s *DeploySelector) DeployedWorkload(msg, help string, app string, opts ...
 	}, nil
 }
 
-func (s *DeploySelector) deployedWorkload(workloadType string, msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedWorkload, error) {
+func (s *DeploySelector) deployedWorkload(ctx context.Context, workloadType string, msg, help string, app string, opts ...GetDeployedWorkloadOpts) (*DeployedWorkload, error) {
 	for _, opt := range opts {
 		opt(s)
 	}
 
-	var isWorkloadDeployed func(string, string, string) (bool, error)
-	var listDeployedWorkloads func(string, string) ([]string, error)
+	var isWorkloadDeployed func(context.Context, string, string, string) (bool, error)
+	var listDeployedWorkloads func(context.Context, string, string) ([]string, error)
 	var finalMessage string
 	switch workloadType {
 	case svcWorkloadType:
@@ -647,7 +648,7 @@ func (s *DeploySelector) deployedWorkload(workloadType string, msg, help string,
 	var err error
 	var envNames []string
 	wkldTypes := map[string]string{}
-	workloads, err := s.workloadLister.ListWorkloads(app)
+	workloads, err := s.workloadLister.ListWorkloads(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("list %ss: %w", workloadType, err)
 	}
@@ -658,7 +659,7 @@ func (s *DeploySelector) deployedWorkload(workloadType string, msg, help string,
 	if s.env != "" {
 		envNames = append(envNames, s.env)
 	} else {
-		envNames, err = s.retrieveEnvironments(app)
+		envNames, err = s.retrieveEnvironments(ctx, app)
 		if err != nil {
 			return nil, fmt.Errorf("list environments: %w", err)
 		}
@@ -667,7 +668,7 @@ func (s *DeploySelector) deployedWorkload(workloadType string, msg, help string,
 	for _, envName := range envNames {
 		var wkldNames []string
 		if s.name != "" {
-			deployed, err := isWorkloadDeployed(app, envName, s.name)
+			deployed, err := isWorkloadDeployed(ctx, app, envName, s.name)
 			if err != nil {
 				return nil, fmt.Errorf("check if %s %s is deployed in environment %s: %w", workloadType, s.name, envName, err)
 			}
@@ -676,7 +677,7 @@ func (s *DeploySelector) deployedWorkload(workloadType string, msg, help string,
 			}
 			wkldNames = append(wkldNames, s.name)
 		} else {
-			wkldNames, err = listDeployedWorkloads(app, envName)
+			wkldNames, err = listDeployedWorkloads(ctx, app, envName)
 			if err != nil {
 				return nil, fmt.Errorf("list deployed %ss for environment %s: %w", workloadType, envName, err)
 			}
@@ -694,7 +695,7 @@ func (s *DeploySelector) deployedWorkload(workloadType string, msg, help string,
 		return nil, fmt.Errorf("no deployed %ss found in application %s", workloadType, color.HighlightUserInput(app))
 	}
 
-	if wkldEnvs, err = s.filterWorkloads(wkldEnvs); err != nil {
+	if wkldEnvs, err = s.filterWorkloads(ctx, wkldEnvs); err != nil {
 		return nil, err
 	}
 
@@ -737,7 +738,7 @@ func (s *DeploySelector) deployedWorkload(workloadType string, msg, help string,
 	return deployedWkld, nil
 }
 
-func (s *DeploySelector) filterWorkloads(inWorkloads []*DeployedWorkload) ([]*DeployedWorkload, error) {
+func (s *DeploySelector) filterWorkloads(ctx context.Context, inWorkloads []*DeployedWorkload) ([]*DeployedWorkload, error) {
 	outWorkloads := inWorkloads
 	for _, filter := range s.filters {
 		if result, err := filterDeployedServices(filter, outWorkloads); err != nil {
@@ -750,8 +751,8 @@ func (s *DeploySelector) filterWorkloads(inWorkloads []*DeployedWorkload) ([]*De
 }
 
 // Service fetches all services in the workspace and then prompts the user to select one.
-func (s *LocalWorkloadSelector) Service(msg, help string) (string, error) {
-	options, err := s.getWorkloadSelectOptions(svcWorkloadType)
+func (s *LocalWorkloadSelector) Service(ctx context.Context, msg, help string) (string, error) {
+	options, err := s.getWorkloadSelectOptions(ctx, svcWorkloadType)
 	if err != nil {
 		return "", err
 	}
@@ -768,8 +769,8 @@ func (s *LocalWorkloadSelector) Service(msg, help string) (string, error) {
 }
 
 // Job fetches all jobs in the workspace and then prompts the user to select one.
-func (s *LocalWorkloadSelector) Job(msg, help string) (string, error) {
-	options, err := s.getWorkloadSelectOptions(jobWorkloadType)
+func (s *LocalWorkloadSelector) Job(ctx context.Context, msg, help string) (string, error) {
+	options, err := s.getWorkloadSelectOptions(ctx, jobWorkloadType)
 	if err != nil {
 		return "", err
 	}
@@ -786,7 +787,7 @@ func (s *LocalWorkloadSelector) Job(msg, help string) (string, error) {
 
 }
 
-func (s *LocalWorkloadSelector) getWorkloadSelectOptions(workloadType string) ([]prompt.Option, error) {
+func (s *LocalWorkloadSelector) getWorkloadSelectOptions(ctx context.Context, workloadType string) ([]prompt.Option, error) {
 	pluralNounString := english.PluralWord(2, workloadType, "")
 
 	summary, err := s.ws.Summary()
@@ -798,7 +799,7 @@ func (s *LocalWorkloadSelector) getWorkloadSelectOptions(workloadType string) ([
 		return nil, fmt.Errorf("retrieve %s from workspace: %w", pluralNounString, err)
 	}
 
-	storeWls, err := s.retrieveStoreWorkloads(summary.Application, workloadType)
+	storeWls, err := s.retrieveStoreWorkloads(ctx, summary.Application, workloadType)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve %s from store: %w", pluralNounString, err)
 	}
@@ -847,8 +848,8 @@ var OnlyInitializedWorkloads WorkloadSelectOption = func(s *LocalWorkloadSelecto
 // It can optionally select only initialized workloads which exist in the app (by passing the
 // OnlyInitializedWorkloads option to NewLocalWorkloadSelector) or list all workloads for which
 // there are manifests in the workspace (default).
-func (s *LocalWorkloadSelector) Workloads(msg, help string) ([]string, error) {
-	options, err := s.getWorkloadSelectOptions(anyWorkloadType)
+func (s *LocalWorkloadSelector) Workloads(ctx context.Context, msg, help string) ([]string, error) {
+	options, err := s.getWorkloadSelectOptions(ctx, anyWorkloadType)
 	if err != nil {
 		return nil, err
 	}
@@ -868,8 +869,8 @@ func (s *LocalWorkloadSelector) Workloads(msg, help string) ([]string, error) {
 // It can optionally select only initialized workloads which exist in the app (by passing the
 // OnlyInitializedWorkloads option to NewLocalWorkloadSelector) or list all workloads for which
 // there are manifests in the workspace (default).
-func (s *LocalWorkloadSelector) Workload(msg, help string) (wl string, err error) {
-	options, err := s.getWorkloadSelectOptions(anyWorkloadType)
+func (s *LocalWorkloadSelector) Workload(ctx context.Context, msg, help string) (wl string, err error) {
+	options, err := s.getWorkloadSelectOptions(ctx, anyWorkloadType)
 	if err != nil {
 		return "", err
 	}
@@ -908,7 +909,7 @@ func filterOutItems[T any](allItems []string, unwantedItems []T, stringFunc func
 }
 
 // LocalEnvironment fetches all environments belong to the app in the workspace and prompts the user to select one.
-func (s *LocalEnvironmentSelector) LocalEnvironment(msg, help string) (string, error) {
+func (s *LocalEnvironmentSelector) LocalEnvironment(ctx context.Context, msg, help string) (string, error) {
 	summary, err := s.ws.Summary()
 	if err != nil {
 		return "", fmt.Errorf("read workspace summary: %w", err)
@@ -917,7 +918,7 @@ func (s *LocalEnvironmentSelector) LocalEnvironment(msg, help string) (string, e
 	if err != nil {
 		return "", fmt.Errorf("retrieve environments from workspace: %w", err)
 	}
-	envs, err := s.appEnvLister.ListEnvironments(summary.Application)
+	envs, err := s.appEnvLister.ListEnvironments(ctx, summary.Application)
 	if err != nil {
 		return "", fmt.Errorf("retrieve environments from store: %w", err)
 	}
@@ -1027,8 +1028,8 @@ func (s *CodePipelineSelector) DeployedPipeline(msg, help, app string) (deploy.P
 }
 
 // Service fetches all services in an app and prompts the user to select one.
-func (s *ConfigSelector) Service(msg, help, app string) (string, error) {
-	services, err := s.retrieveServices(app)
+func (s *ConfigSelector) Service(ctx context.Context, msg, help, app string) (string, error) {
+	services, err := s.retrieveServices(ctx, app)
 	if err != nil {
 		return "", err
 	}
@@ -1047,8 +1048,8 @@ func (s *ConfigSelector) Service(msg, help, app string) (string, error) {
 }
 
 // Job fetches all jobs in an app and prompts the user to select one.
-func (s *ConfigSelector) Job(msg, help, app string) (string, error) {
-	jobs, err := s.retrieveJobs(app)
+func (s *ConfigSelector) Job(ctx context.Context, msg, help, app string) (string, error) {
+	jobs, err := s.retrieveJobs(ctx, app)
 	if err != nil {
 		return "", err
 	}
@@ -1067,12 +1068,12 @@ func (s *ConfigSelector) Job(msg, help, app string) (string, error) {
 }
 
 // Workload fetches all workloads in an app and prompts the user to select one.
-func (s *ConfigSelector) Workload(msg, help, app string) (string, error) {
-	services, err := s.retrieveServices(app)
+func (s *ConfigSelector) Workload(ctx context.Context, msg, help, app string) (string, error) {
+	services, err := s.retrieveServices(ctx, app)
 	if err != nil {
 		return "", err
 	}
-	jobs, err := s.retrieveJobs(app)
+	jobs, err := s.retrieveJobs(ctx, app)
 	if err != nil {
 		return "", err
 	}
@@ -1093,8 +1094,8 @@ func (s *ConfigSelector) Workload(msg, help, app string) (string, error) {
 }
 
 // Environment fetches all the environments in an app and prompts the user to select one.
-func (s *AppEnvSelector) Environment(msg, help, app string, additionalOpts ...prompt.Option) (string, error) {
-	envs, err := s.retrieveEnvironments(app)
+func (s *AppEnvSelector) Environment(ctx context.Context, msg, help, app string, additionalOpts ...prompt.Option) (string, error) {
+	envs, err := s.retrieveEnvironments(ctx, app)
 	if err != nil {
 		return "", fmt.Errorf("get environments for app %s from metadata store: %w", app, err)
 	}
@@ -1124,8 +1125,8 @@ func (s *AppEnvSelector) Environment(msg, help, app string, additionalOpts ...pr
 
 // Environments fetches all the environments in an app and prompts the user to select one OR MORE.
 // The List of options decreases as envs are chosen. Chosen envs displayed above with the finalMsg.
-func (s *AppEnvSelector) Environments(prompt, help, app string, finalMsgFunc func(int) prompt.PromptConfig) ([]string, error) {
-	envs, err := s.retrieveEnvironments(app)
+func (s *AppEnvSelector) Environments(ctx context.Context, prompt, help, app string, finalMsgFunc func(int) prompt.PromptConfig) ([]string, error) {
+	envs, err := s.retrieveEnvironments(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("get environments for app %s from metadata store: %w", app, err)
 	}
@@ -1164,8 +1165,8 @@ func (s *AppEnvSelector) Environments(prompt, help, app string, finalMsgFunc fun
 }
 
 // Application fetches all the apps in an account/region and prompts the user to select one.
-func (s *AppEnvSelector) Application(msg, help string, additionalOpts ...string) (string, error) {
-	appNames, err := s.retrieveApps()
+func (s *AppEnvSelector) Application(ctx context.Context, msg, help string, additionalOpts ...string) (string, error) {
+	appNames, err := s.retrieveApps(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -1191,8 +1192,8 @@ func (s *AppEnvSelector) Application(msg, help string, additionalOpts ...string)
 
 // Topics asks the user to select from all Copilot-managed SNS topics *which are deployed
 // across all environments* and returns the topic structs.
-func (s *DeploySelector) Topics(promptMsg, help, app string) ([]deploy.Topic, error) {
-	envs, err := s.appEnvLister.ListEnvironments(app)
+func (s *DeploySelector) Topics(ctx context.Context, promptMsg, help, app string) ([]deploy.Topic, error) {
+	envs, err := s.appEnvLister.ListEnvironments(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("list environments: %w", err)
 	}
@@ -1203,7 +1204,7 @@ func (s *DeploySelector) Topics(promptMsg, help, app string) ([]deploy.Topic, er
 
 	envTopics := make(map[string][]deploy.Topic, len(envs))
 	for _, env := range envs {
-		topics, err := s.deployStoreSvc.ListSNSTopics(app, env.Name)
+		topics, err := s.deployStoreSvc.ListSNSTopics(ctx, app, env.Name)
 		if err != nil {
 			return nil, fmt.Errorf("list SNS topics: %w", err)
 		}
@@ -1258,8 +1259,8 @@ func (s *DeploySelector) Topics(promptMsg, help, app string) ([]deploy.Topic, er
 	return topics, nil
 }
 
-func (s *AppEnvSelector) retrieveApps() ([]string, error) {
-	apps, err := s.appEnvLister.ListApplications()
+func (s *AppEnvSelector) retrieveApps(ctx context.Context) ([]string, error) {
+	apps, err := s.appEnvLister.ListApplications(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list applications: %w", err)
 	}
@@ -1270,8 +1271,8 @@ func (s *AppEnvSelector) retrieveApps() ([]string, error) {
 	return appNames, nil
 }
 
-func (s *AppEnvSelector) retrieveEnvironments(app string) ([]string, error) {
-	envs, err := s.appEnvLister.ListEnvironments(app)
+func (s *AppEnvSelector) retrieveEnvironments(ctx context.Context, app string) ([]string, error) {
+	envs, err := s.appEnvLister.ListEnvironments(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("list environments: %w", err)
 	}
@@ -1282,8 +1283,8 @@ func (s *AppEnvSelector) retrieveEnvironments(app string) ([]string, error) {
 	return envsNames, nil
 }
 
-func (s *ConfigSelector) retrieveServices(app string) ([]string, error) {
-	services, err := s.workloadLister.ListServices(app)
+func (s *ConfigSelector) retrieveServices(ctx context.Context, app string) ([]string, error) {
+	services, err := s.workloadLister.ListServices(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("list services: %w", err)
 	}
@@ -1294,8 +1295,8 @@ func (s *ConfigSelector) retrieveServices(app string) ([]string, error) {
 	return serviceNames, nil
 }
 
-func (s *ConfigSelector) retrieveJobs(app string) ([]string, error) {
-	jobs, err := s.workloadLister.ListJobs(app)
+func (s *ConfigSelector) retrieveJobs(ctx context.Context, app string) ([]string, error) {
+	jobs, err := s.workloadLister.ListJobs(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("list jobs: %w", err)
 	}
@@ -1322,14 +1323,14 @@ func (s *LocalWorkloadSelector) retrieveWorkspaceJobs() ([]string, error) {
 	return localJobNames, nil
 }
 
-func (s *LocalWorkloadSelector) retrieveStoreWorkloads(appName, wlType string) ([]*config.Workload, error) {
+func (s *LocalWorkloadSelector) retrieveStoreWorkloads(ctx context.Context, appName, wlType string) ([]*config.Workload, error) {
 	switch wlType {
 	case svcWorkloadType:
-		return s.ConfigSelector.workloadLister.ListServices(appName)
+		return s.ConfigSelector.workloadLister.ListServices(ctx, appName)
 	case jobWorkloadType:
-		return s.ConfigSelector.workloadLister.ListJobs(appName)
+		return s.ConfigSelector.workloadLister.ListJobs(ctx, appName)
 	case anyWorkloadType:
-		return s.ConfigSelector.workloadLister.ListWorkloads(appName)
+		return s.ConfigSelector.workloadLister.ListWorkloads(ctx, appName)
 	}
 	return nil, fmt.Errorf("unrecognized workload type %s", wlType)
 }

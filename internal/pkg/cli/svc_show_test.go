@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -55,8 +56,8 @@ func TestSvcShow_Ask(t *testing.T) {
 			inputApp: "my-app",
 			inputSvc: "my-svc",
 			setupMocks: func(m showSvcMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{}, nil)
-				m.storeSvc.EXPECT().GetService("my-app", "my-svc").Return(&config.Workload{}, nil)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{}, nil)
+				m.storeSvc.EXPECT().GetService(ctx, "my-app", "my-svc").Return(&config.Workload{}, nil)
 			},
 			wantedApp: "my-app",
 			wantedSvc: "my-svc",
@@ -64,9 +65,9 @@ func TestSvcShow_Ask(t *testing.T) {
 		"prompt for app name": {
 			inputSvc: "my-svc",
 			setupMocks: func(m showSvcMocks) {
-				m.sel.EXPECT().Application(gomock.Any(), gomock.Any(), gomock.Any()).Return("my-app", nil)
-				m.storeSvc.EXPECT().GetApplication("my-app").Times(0)
-				m.storeSvc.EXPECT().GetService("my-app", "my-svc").AnyTimes()
+				m.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return("my-app", nil)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Times(0)
+				m.storeSvc.EXPECT().GetService(ctx, "my-app", "my-svc").AnyTimes()
 			},
 			wantedApp: "my-app",
 			wantedSvc: "my-svc",
@@ -74,17 +75,17 @@ func TestSvcShow_Ask(t *testing.T) {
 		"error when fail to select apps": {
 			inputSvc: "my-svc",
 			setupMocks: func(m showSvcMocks) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select application name: some error"),
 		},
 		"prompt for service name": {
 			inputApp: "my-app",
 			setupMocks: func(m showSvcMocks) {
-				m.sel.EXPECT().Service(fmt.Sprintf(svcShowSvcNamePrompt, "my-app"), svcShowSvcNameHelpPrompt, "my-app").Return("my-svc", nil)
-				m.storeSvc.EXPECT().GetService("my-app", "my-svc").Times(0)
-				m.storeSvc.EXPECT().GetApplication("my-app").AnyTimes()
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).AnyTimes()
+				m.sel.EXPECT().Service(ctx, fmt.Sprintf(svcShowSvcNamePrompt, "my-app"), svcShowSvcNameHelpPrompt, "my-app").Return("my-svc", nil)
+				m.storeSvc.EXPECT().GetService(ctx, "my-app", "my-svc").Times(0)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").AnyTimes()
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).AnyTimes()
 			},
 			wantedApp: "my-app",
 			wantedSvc: "my-svc",
@@ -92,8 +93,8 @@ func TestSvcShow_Ask(t *testing.T) {
 		"error when fail to select services": {
 			setupMocks: func(m showSvcMocks) {
 				gomock.InOrder(
-					m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil),
-					m.sel.EXPECT().Service(fmt.Sprintf(svcShowSvcNamePrompt, "my-app"), svcShowSvcNameHelpPrompt, "my-app").Return("", errors.New("some error")),
+					m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil),
+					m.sel.EXPECT().Service(ctx, fmt.Sprintf(svcShowSvcNamePrompt, "my-app"), svcShowSvcNameHelpPrompt, "my-app").Return("", errors.New("some error")),
 				)
 			},
 			wantedError: fmt.Errorf("select service for application my-app: some error"),
@@ -127,7 +128,7 @@ func TestSvcShow_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := showSvcs.Ask()
+			err := showSvcs.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -238,12 +239,12 @@ func TestSvcShow_Execute(t *testing.T) {
 					outputManifestForEnv: tc.outputManifestForEnv,
 				},
 				describer:     mockSvcDescriber,
-				initDescriber: func() error { return nil },
+				initDescriber: func(_ context.Context) error { return nil },
 				w:             b,
 			}
 
 			// WHEN
-			err := showSvcs.Execute()
+			err := showSvcs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

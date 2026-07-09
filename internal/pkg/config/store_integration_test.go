@@ -29,24 +29,24 @@ func Test_SSM_Application_Integration(t *testing.T) {
 
 	store := config.NewSSMStore(identity.New(defaultConfig), ssm.NewFromConfig(defaultConfig), defaultConfig.Region)
 	applicationToCreate := config.Application{Name: randStringBytes(10), Version: "1.0"}
-	defer store.DeleteApplication(applicationToCreate.Name)
+	defer store.DeleteApplication(context.Background(), applicationToCreate.Name)
 
 	t.Run("Create, Get and List Applications", func(t *testing.T) {
 		// Create our first application
-		err := store.CreateApplication(&applicationToCreate)
+		err := store.CreateApplication(context.Background(), &applicationToCreate)
 		require.NoError(t, err)
 
 		// Can't overwrite an existing application
-		err = store.CreateApplication(&applicationToCreate)
+		err = store.CreateApplication(context.Background(), &applicationToCreate)
 		require.NoError(t, err)
 
 		// Fetch the application back from SSM
-		application, err := store.GetApplication(applicationToCreate.Name)
+		application, err := store.GetApplication(context.Background(), applicationToCreate.Name)
 		require.NoError(t, err)
 		require.Equal(t, applicationToCreate, *application)
 
 		// List returns a non-empty list of applications
-		applications, err := store.ListApplications()
+		applications, err := store.ListApplications(context.Background())
 		require.NoError(t, err)
 		require.NotEmpty(t, applications)
 	})
@@ -62,36 +62,36 @@ func Test_SSM_Environment_Integration(t *testing.T) {
 	prodEnvironment := config.Environment{Name: "prod", App: applicationToCreate.Name, Region: "us-west-2", AccountID: " 1234"}
 
 	defer func() {
-		store.DeleteEnvironment(applicationToCreate.Name, testEnvironment.Name)
-		store.DeleteEnvironment(applicationToCreate.Name, prodEnvironment.Name)
-		store.DeleteApplication(applicationToCreate.Name)
+		store.DeleteEnvironment(context.Background(), applicationToCreate.Name, testEnvironment.Name)
+		store.DeleteEnvironment(context.Background(), applicationToCreate.Name, prodEnvironment.Name)
+		store.DeleteApplication(context.Background(), applicationToCreate.Name)
 	}()
 	t.Run("Create, Get and List Environments", func(t *testing.T) {
 		// Create our first application
-		err := store.CreateApplication(&applicationToCreate)
+		err := store.CreateApplication(context.Background(), &applicationToCreate)
 		require.NoError(t, err)
 
 		// Make sure there are no envs with our new application
-		envs, err := store.ListEnvironments(applicationToCreate.Name)
+		envs, err := store.ListEnvironments(context.Background(), applicationToCreate.Name)
 		require.NoError(t, err)
 		require.Empty(t, envs)
 
 		// Add our environments
-		err = store.CreateEnvironment(&testEnvironment)
+		err = store.CreateEnvironment(context.Background(), &testEnvironment)
 		require.NoError(t, err)
 
-		err = store.CreateEnvironment(&prodEnvironment)
+		err = store.CreateEnvironment(context.Background(), &prodEnvironment)
 		require.NoError(t, err)
 
 		// Skip and do not return error if environment already exists
-		err = store.CreateEnvironment(&prodEnvironment)
+		err = store.CreateEnvironment(context.Background(), &prodEnvironment)
 		require.NoError(t, err)
 
 		// Wait for consistency to kick in (ssm path commands are eventually consistent)
 		time.Sleep(5 * time.Second)
 
 		// Make sure all the environments are under our application
-		envs, err = store.ListEnvironments(applicationToCreate.Name)
+		envs, err = store.ListEnvironments(context.Background(), applicationToCreate.Name)
 		require.NoError(t, err)
 		var environments []config.Environment
 		for _, e := range envs {
@@ -100,11 +100,11 @@ func Test_SSM_Environment_Integration(t *testing.T) {
 		require.ElementsMatch(t, environments, []config.Environment{testEnvironment, prodEnvironment})
 
 		// Fetch our saved environments, one by one
-		env, err := store.GetEnvironment(applicationToCreate.Name, testEnvironment.Name)
+		env, err := store.GetEnvironment(context.Background(), applicationToCreate.Name, testEnvironment.Name)
 		require.NoError(t, err)
 		require.Equal(t, testEnvironment, *env)
 
-		env, err = store.GetEnvironment(applicationToCreate.Name, prodEnvironment.Name)
+		env, err = store.GetEnvironment(context.Background(), applicationToCreate.Name, prodEnvironment.Name)
 		require.NoError(t, err)
 		require.Equal(t, prodEnvironment, *env)
 	})
@@ -120,37 +120,37 @@ func Test_SSM_Service_Integration(t *testing.T) {
 	feService := config.Workload{Name: "front-end", App: applicationToCreate.Name, Type: "Load Balanced Web Service"}
 
 	defer func() {
-		store.DeleteService(applicationToCreate.Name, apiService.Name)
-		store.DeleteService(applicationToCreate.Name, feService.Name)
-		store.DeleteApplication(applicationToCreate.Name)
+		store.DeleteService(context.Background(), applicationToCreate.Name, apiService.Name)
+		store.DeleteService(context.Background(), applicationToCreate.Name, feService.Name)
+		store.DeleteApplication(context.Background(), applicationToCreate.Name)
 	}()
 
 	t.Run("Create, Get and List Applications", func(t *testing.T) {
 		// Create our first application
-		err := store.CreateApplication(&applicationToCreate)
+		err := store.CreateApplication(context.Background(), &applicationToCreate)
 		require.NoError(t, err)
 
 		// Make sure there are no svcs with our new application
-		svcs, err := store.ListServices(applicationToCreate.Name)
+		svcs, err := store.ListServices(context.Background(), applicationToCreate.Name)
 		require.NoError(t, err)
 		require.Empty(t, svcs)
 
 		// Add our services
-		err = store.CreateService(&apiService)
+		err = store.CreateService(context.Background(), &apiService)
 		require.NoError(t, err)
 
-		err = store.CreateService(&feService)
+		err = store.CreateService(context.Background(), &feService)
 		require.NoError(t, err)
 
 		// Skip and do not return error if services already exists
-		err = store.CreateService(&feService)
+		err = store.CreateService(context.Background(), &feService)
 		require.NoError(t, err)
 
 		// Wait for consistency to kick in (ssm path commands are eventually consistent)
 		time.Sleep(5 * time.Second)
 
 		// Make sure all the svcs are under our application
-		svcs, err = store.ListServices(applicationToCreate.Name)
+		svcs, err = store.ListServices(context.Background(), applicationToCreate.Name)
 		require.NoError(t, err)
 		var services []config.Workload
 		for _, s := range svcs {
@@ -159,11 +159,11 @@ func Test_SSM_Service_Integration(t *testing.T) {
 		require.ElementsMatch(t, services, []config.Workload{apiService, feService})
 
 		// Fetch our saved svcs, one by one
-		svc, err := store.GetService(applicationToCreate.Name, apiService.Name)
+		svc, err := store.GetService(context.Background(), applicationToCreate.Name, apiService.Name)
 		require.NoError(t, err)
 		require.Equal(t, apiService, *svc)
 
-		svc, err = store.GetService(applicationToCreate.Name, feService.Name)
+		svc, err = store.GetService(context.Background(), applicationToCreate.Name, feService.Name)
 		require.NoError(t, err)
 		require.Equal(t, feService, *svc)
 	})

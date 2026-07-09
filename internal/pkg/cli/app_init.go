@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
 	"github.com/spf13/cobra"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/metadata"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	termprogress "github.com/aproint/copilot-cli/internal/pkg/term/progress"
@@ -76,7 +78,7 @@ func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
 	return &initAppOpts{
 		initAppVars:    vars,
 		identity:       identity,
-		store:          config.NewSSMStore(identity, config.NewSSMClient(cfg), cfg.Region),
+		store:          config.NewSSMStore(identity, ssm.NewFromConfig(cfg), cfg.Region),
 		route53:        route53.New(cfg),
 		cfn:            cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:         prompt.New(),
@@ -133,7 +135,7 @@ func (o *initAppOpts) Validate() error {
 }
 
 // Ask prompts the user for any required arguments that they didn't provide.
-func (o *initAppOpts) Ask() error {
+func (o *initAppOpts) Ask(ctx context.Context) error {
 	ok, err := o.isSessionFromEnvVars()
 	if err != nil {
 		return err
@@ -194,7 +196,7 @@ If you'd like to delete the application and all of its resources, run %s.
 		return nil
 	}
 
-	existingApps, _ := o.store.ListApplications()
+	existingApps, _ := o.store.ListApplications(ctx)
 	if len(existingApps) == 0 {
 		return o.askAppName(fmtAppInitNamePrompt)
 	}
@@ -211,8 +213,8 @@ If you'd like to delete the application and all of its resources, run %s.
 }
 
 // Execute creates a new managed empty application.
-func (o *initAppOpts) Execute() error {
-	caller, err := o.identity.Get()
+func (o *initAppOpts) Execute(ctx context.Context) error {
+	caller, err := o.identity.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
@@ -228,6 +230,9 @@ func (o *initAppOpts) Execute() error {
 			return err
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	err = o.cfn.DeployApp(&deploy.CreateAppInput{
 		Name:                o.name,
 		AccountID:           caller.Account,
@@ -241,7 +246,12 @@ func (o *initAppOpts) Execute() error {
 		return err
 	}
 
-	if err := o.store.CreateApplication(&config.Application{
+	if ctx.Err() != nil {
+		log.Warningln(metadata.CommitAfterCancellationWarning)
+	}
+	commitCtx, cancel := metadata.CommitContext(ctx)
+	defer cancel()
+	if err := o.store.CreateApplication(commitCtx, &config.Application{
 		AccountID:           caller.Account,
 		Name:                o.name,
 		Domain:              o.domainName,
@@ -249,7 +259,7 @@ func (o *initAppOpts) Execute() error {
 		PermissionsBoundary: o.permissionsBoundary,
 		Tags:                o.resourceTags,
 	}); err != nil {
-		return err
+		return metadata.NewCommitError("application infrastructure deployment", err)
 	}
 	log.Successf("The directory %s will hold service manifests for application %s.\n", color.HighlightResource(workspace.CopilotDirName), color.HighlightUserInput(o.name))
 	log.Infoln()
@@ -260,7 +270,7 @@ func (o *initAppOpts) validateAppName(name string) error {
 	if err := validateAppNameString(name); err != nil {
 		return err
 	}
-	app, err := o.store.GetApplication(name)
+	app, err := o.store.GetApplication(context.Background(), name)
 	if err == nil {
 		if o.domainName != "" && app.Domain != o.domainName {
 			return fmt.Errorf("application named %s already exists with a different domain name %s", name, app.Domain)
@@ -420,7 +430,7 @@ An application is a collection of containerized services that operate together.`
 			if len(args) == 1 {
 				opts.name = args[0]
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVar(&vars.domainName, domainNameFlag, "", domainNameFlagDescription)

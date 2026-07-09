@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -38,9 +39,9 @@ func TestDeleteJobOpts_Validate(t *testing.T) {
 			inEnvName: "test",
 			inName:    "resizer",
 			setupMocks: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("phonetool", "test").
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").
 					Return(&config.Environment{Name: "test"}, nil)
-				m.EXPECT().GetJob("phonetool", "resizer").Times(1).Return(&config.Workload{
+				m.EXPECT().GetJob(ctx, "phonetool", "resizer").Times(1).Return(&config.Workload{
 					Name: "resizer",
 				}, nil)
 			},
@@ -50,7 +51,7 @@ func TestDeleteJobOpts_Validate(t *testing.T) {
 			inAppName: "phonetool",
 			inEnvName: "test",
 			setupMocks: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("phonetool", "test").
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").
 					Return(&config.Environment{Name: "test"}, nil)
 			},
 			want: nil,
@@ -59,7 +60,7 @@ func TestDeleteJobOpts_Validate(t *testing.T) {
 			inAppName: "phonetool",
 			inName:    "resizer",
 			setupMocks: func(m *mocks.Mockstore) {
-				m.EXPECT().GetJob("phonetool", "resizer").Times(1).Return(&config.Workload{
+				m.EXPECT().GetJob(ctx, "phonetool", "resizer").Times(1).Return(&config.Workload{
 					Name: "resizer",
 				}, nil)
 			},
@@ -69,7 +70,7 @@ func TestDeleteJobOpts_Validate(t *testing.T) {
 			inAppName: "phonetool",
 			inEnvName: "test",
 			setupMocks: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("phonetool", "test").Return(nil, errors.New("unknown env"))
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(nil, errors.New("unknown env"))
 			},
 			want: errors.New("get environment test from config store: unknown env"),
 		},
@@ -77,7 +78,7 @@ func TestDeleteJobOpts_Validate(t *testing.T) {
 			inAppName: "phonetool",
 			inName:    "resizer",
 			setupMocks: func(m *mocks.Mockstore) {
-				m.EXPECT().GetJob("phonetool", "resizer").Times(1).Return(nil, mockError)
+				m.EXPECT().GetJob(ctx, "phonetool", "resizer").Times(1).Return(nil, mockError)
 			},
 			want: errors.New("some error"),
 		},
@@ -135,7 +136,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           testJobName,
 			skipConfirmation: true,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Application("Which application's job would you like to delete?", "").Return(testAppName, nil)
+				m.EXPECT().Application(ctx, "Which application's job would you like to delete?", "").Return(testAppName, nil)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 
@@ -146,7 +147,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           "",
 			skipConfirmation: true,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job("Which job would you like to delete?", "", testAppName).Return(testJobName, nil)
+				m.EXPECT().Job(ctx, "Which job would you like to delete?", "", testAppName).Return(testJobName, nil)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 
@@ -157,7 +158,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           "",
 			skipConfirmation: true,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job("Which job would you like to delete?", "", testAppName).Return("", mockError)
+				m.EXPECT().Job(ctx, "Which job would you like to delete?", "", testAppName).Return("", mockError)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 
@@ -168,7 +169,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           "",
 			skipConfirmation: true,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job("Which job would you like to delete?", "", testAppName).Return("", mockError)
+				m.EXPECT().Job(ctx, "Which job would you like to delete?", "", testAppName).Return("", mockError)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 
@@ -179,7 +180,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           testJobName,
 			skipConfirmation: true,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 
@@ -190,7 +191,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           testJobName,
 			skipConfirmation: false,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Confirm(
@@ -207,7 +208,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           testJobName,
 			skipConfirmation: false,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Confirm(
@@ -224,7 +225,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			inName:           testJobName,
 			skipConfirmation: false,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Confirm(
@@ -242,7 +243,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			envName:          "test",
 			skipConfirmation: false,
 			mockSel: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Confirm(
@@ -277,7 +278,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 				sel:    mockSel,
 			}
 
-			got := opts.Ask()
+			got := opts.Ask(context.Background())
 
 			if got != nil {
 				require.Equal(t, test.wantedError, got)
@@ -332,7 +333,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 			setupMocks: func(mocks deleteJobMocks) {
 				gomock.InOrder(
 					// appEnvironments
-					mocks.store.EXPECT().ListEnvironments(gomock.Eq(mockAppName)).Times(1).Return(mockEnvs, nil),
+					mocks.store.EXPECT().ListEnvironments(ctx, gomock.Eq(mockAppName)).Times(1).Return(mockEnvs, nil),
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
@@ -346,11 +347,11 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 					// emptyECRRepos
 					mocks.ecr.EXPECT().ClearRepository(mockRepo).Return(nil),
 					// removeJobFromApp
-					mocks.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil),
+					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
 					mocks.appCFN.EXPECT().RemoveJobFromApp(mockApp, mockJobName).Return(nil),
 
 					// deleteSSMParam
-					mocks.store.EXPECT().DeleteJob(mockAppName, mockJobName).Return(nil),
+					mocks.store.EXPECT().DeleteJob(ctx, mockAppName, mockJobName).Return(nil),
 				)
 			},
 			wantedError: nil,
@@ -365,7 +366,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 			setupMocks: func(mocks deleteJobMocks) {
 				gomock.InOrder(
 					// appEnvironments
-					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
+					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
 					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
@@ -381,7 +382,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 					mocks.appCFN.EXPECT().RemoveJobFromApp(gomock.Any(), gomock.Any()).Return(nil).Times(0),
 
 					// It should **not** deleteSSMParam
-					mocks.store.EXPECT().DeleteJob(gomock.Any(), gomock.Any()).Return(nil).Times(0),
+					mocks.store.EXPECT().DeleteJob(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(0),
 				)
 			},
 			wantedError: nil,
@@ -393,7 +394,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 			setupMocks: func(mocks deleteJobMocks) {
 				gomock.InOrder(
 					// appEnvironments
-					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
+					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					// deleteStacks
 					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(testError),
@@ -408,7 +409,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 			setupMocks: func(mocks deleteJobMocks) {
 				gomock.InOrder(
 					// appEnvironments
-					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
+					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					// deleteStacks
 					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
@@ -475,7 +476,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if test.wantedError != nil {

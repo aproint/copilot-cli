@@ -254,7 +254,7 @@ func (o *initEnvOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *initEnvOpts) Ask() error {
+func (o *initEnvOpts) Ask(_ context.Context) error {
 	if err := o.askEnvName(); err != nil {
 		return err
 	}
@@ -268,7 +268,7 @@ func (o *initEnvOpts) Ask() error {
 }
 
 // Execute deploys a new environment with CloudFormation and adds it to SSM.
-func (o *initEnvOpts) Execute() error {
+func (o *initEnvOpts) Execute(_ context.Context) error {
 	if err := o.initRuntimeClients(); err != nil {
 		return err
 	}
@@ -944,7 +944,7 @@ func buildEnvInitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

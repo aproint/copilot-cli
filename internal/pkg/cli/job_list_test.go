@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -55,7 +56,7 @@ func TestListJobOpts_Execute(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			tc.mocking()
-			err := tc.opts.Execute()
+			err := tc.opts.Execute(context.Background())
 
 			if tc.expectedErr != nil {
 				require.EqualError(t, tc.expectedErr, err.Error())
@@ -104,7 +105,7 @@ func TestListJobOpts_Ask(t *testing.T) {
 				sel: mockSel,
 			}
 
-			err := listApps.Ask()
+			err := listApps.Ask(context.Background())
 
 			require.NoError(t, err)
 			require.Equal(t, tc.wantedApp, listApps.appName, "expected application names to match")

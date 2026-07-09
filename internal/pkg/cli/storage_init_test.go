@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -509,7 +510,7 @@ func TestStorageInitOpts_Ask(t *testing.T) {
 			}
 			tc.mock(&m)
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -928,7 +929,7 @@ func TestStorageInitOpts_AskDDB(t *testing.T) {
 				ws:      m.ws,
 			}
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -1144,7 +1145,7 @@ func TestStorageInitOpts_AskRDS(t *testing.T) {
 			}
 			tc.mock(&m)
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -1513,7 +1514,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {

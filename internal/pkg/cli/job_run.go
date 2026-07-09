@@ -103,7 +103,7 @@ func (o *jobRunOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *jobRunOpts) Ask() error {
+func (o *jobRunOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (o *jobRunOpts) Ask() error {
 }
 
 // Execute runs the "job run" command.
-func (o *jobRunOpts) Execute() error {
+func (o *jobRunOpts) Execute(_ context.Context) error {
 	if err := o.validateEnvCompatible(); err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func buildJobRunCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

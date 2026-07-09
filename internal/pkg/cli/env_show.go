@@ -86,7 +86,7 @@ func (o *showEnvOpts) Validate() error {
 }
 
 // Ask validates required fields that users passed in, otherwise it prompts for them.
-func (o *showEnvOpts) Ask() error {
+func (o *showEnvOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (o *showEnvOpts) Ask() error {
 }
 
 // Execute shows the environments through the prompt.
-func (o *showEnvOpts) Execute() error {
+func (o *showEnvOpts) Execute(_ context.Context) error {
 	if err := o.initEnvDescriber(); err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func buildEnvShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

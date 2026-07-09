@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -157,7 +158,7 @@ func TestDeleteEnvOpts_Ask(t *testing.T) {
 			tc.mockDependencies(ctrl, opts)
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError == nil {
@@ -778,7 +779,7 @@ Resources:
 			opts := tc.given(t, ctrl)
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

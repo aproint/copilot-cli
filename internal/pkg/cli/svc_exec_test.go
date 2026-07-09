@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -380,7 +381,7 @@ func TestSvcExec_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := execSvcs.Ask()
+			err := execSvcs.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -594,7 +595,7 @@ func TestSvcExec_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := execSvcs.Execute()
+			err := execSvcs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

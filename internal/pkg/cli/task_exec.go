@@ -97,7 +97,7 @@ func (o *taskExecOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *taskExecOpts) Ask() error {
+func (o *taskExecOpts) Ask(_ context.Context) error {
 	if o.useDefault {
 		return o.selectTaskInDefaultCluster()
 	}
@@ -127,7 +127,7 @@ func (o *taskExecOpts) Ask() error {
 }
 
 // Execute executes a command in a running container.
-func (o *taskExecOpts) Execute() error {
+func (o *taskExecOpts) Execute(_ context.Context) error {
 	cfg, err := o.config()
 	if err != nil {
 		return err
@@ -218,7 +218,7 @@ func buildTaskExecCmd() *cobra.Command {
 					opts.skipConfirmation = aws.Bool(true)
 				}
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

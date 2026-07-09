@@ -115,7 +115,7 @@ func (o *svcPauseOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcPauseOpts) Ask() error {
+func (o *svcPauseOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (o *svcPauseOpts) validateAndAskSvcEnvName() error {
 }
 
 // Execute pause the running App Runner service.
-func (o *svcPauseOpts) Execute() error {
+func (o *svcPauseOpts) Execute(_ context.Context) error {
 	if err := o.initSvcPause(); err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func buildSvcPauseCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.svcName, nameFlag, nameFlagShort, "", svcFlagDescription)

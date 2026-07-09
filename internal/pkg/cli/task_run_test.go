@@ -740,7 +740,7 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				ssmParamSecrets:       tc.inSsmParamSecrets,
 			}
 
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			if tc.wantedError == nil {
 				require.NoError(t, err)
@@ -1199,7 +1199,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				return mocks.uploader
 			}
 
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
 			} else {

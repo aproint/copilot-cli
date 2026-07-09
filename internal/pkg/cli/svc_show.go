@@ -112,7 +112,7 @@ func (o *showSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *showSvcOpts) Ask() error {
+func (o *showSvcOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (o *showSvcOpts) Ask() error {
 }
 
 // Execute shows the services through the prompt.
-func (o *showSvcOpts) Execute() error {
+func (o *showSvcOpts) Execute(_ context.Context) error {
 	if o.svcName == "" {
 		return nil
 	}
@@ -221,7 +221,7 @@ func buildSvcShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

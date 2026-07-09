@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -68,20 +69,20 @@ type: Worker Service`)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				// Deploy svc
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate()
-				m.EXPECT().Execute()
+				m.EXPECT().Execute(gomock.Any())
 				m.EXPECT().RecommendActions()
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
 				// Init env
 				m.EXPECT().Validate()
-				m.EXPECT().Ask()
-				m.EXPECT().Execute()
+				m.EXPECT().Ask(gomock.Any())
+				m.EXPECT().Execute(gomock.Any())
 				// Deploy env
 				m.EXPECT().Validate()
-				m.EXPECT().Ask()
-				m.EXPECT().Execute()
+				m.EXPECT().Ask(gomock.Any())
+				m.EXPECT().Execute(gomock.Any())
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().GetEnvironment("app", "test").Return(nil, &config.ErrNoSuchEnvironment{})
@@ -106,9 +107,9 @@ type: Worker Service`)
 				m.EXPECT().Workloads("Select one or more services or jobs in your workspace.", "").Return([]string{"fe"}, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate()
-				m.EXPECT().Execute()
+				m.EXPECT().Execute(gomock.Any())
 				m.EXPECT().RecommendActions()
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -146,9 +147,9 @@ type: Worker Service`)
 				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate()
-				m.EXPECT().Execute()
+				m.EXPECT().Execute(gomock.Any())
 				m.EXPECT().RecommendActions()
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -176,9 +177,9 @@ type: Worker Service`)
 				m.EXPECT().ListWorkloads("app").Return(nil, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Times(0)
+				m.EXPECT().Ask(gomock.Any()).Times(0)
 				m.EXPECT().Validate().Times(0)
-				m.EXPECT().Execute().Times(0)
+				m.EXPECT().Execute(gomock.Any()).Times(0)
 				m.EXPECT().RecommendActions().Times(0)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
@@ -205,9 +206,9 @@ type: Worker Service`)
 				m.EXPECT().ListWorkloads("app").Return(nil, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Times(0)
+				m.EXPECT().Ask(gomock.Any()).Times(0)
 				m.EXPECT().Validate().Times(0)
-				m.EXPECT().Execute().Times(0)
+				m.EXPECT().Execute(gomock.Any()).Times(0)
 				m.EXPECT().RecommendActions().Times(0)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -262,9 +263,9 @@ type: Worker Service`)
 				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate()
-				m.EXPECT().Execute()
+				m.EXPECT().Execute(gomock.Any())
 				m.EXPECT().RecommendActions()
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -287,7 +288,7 @@ type: Worker Service`)
 				m.EXPECT().Workloads("Select one or more services or jobs in your workspace.", "").Return([]string{"mailer"}, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Return(errors.New("some error"))
+				m.EXPECT().Ask(gomock.Any()).Return(errors.New("some error"))
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
 
@@ -315,9 +316,9 @@ type: Worker Service`)
 			inDeployEnv: aws.Bool(false),
 			mockSel:     func(m *mocks.MockwsSelector) {},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate()
-				m.EXPECT().Execute()
+				m.EXPECT().Execute(gomock.Any())
 				m.EXPECT().RecommendActions()
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -368,7 +369,7 @@ type: Worker Service`)
 
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Return(errors.New("some error"))
+				m.EXPECT().Ask(gomock.Any()).Return(errors.New("some error"))
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
@@ -397,7 +398,7 @@ type: Worker Service`)
 
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate().Return(errors.New("some error"))
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
@@ -427,9 +428,9 @@ type: Worker Service`)
 
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate()
-				m.EXPECT().Execute().Return(errors.New("some error"))
+				m.EXPECT().Execute(gomock.Any()).Return(errors.New("some error"))
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
@@ -487,20 +488,20 @@ type: Worker Service`)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				// Deploy svc
-				m.EXPECT().Ask()
+				m.EXPECT().Ask(gomock.Any())
 				m.EXPECT().Validate()
-				m.EXPECT().Execute()
+				m.EXPECT().Execute(gomock.Any())
 				m.EXPECT().RecommendActions()
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
 				// Init env
 				m.EXPECT().Validate()
-				m.EXPECT().Ask()
-				m.EXPECT().Execute()
+				m.EXPECT().Ask(gomock.Any())
+				m.EXPECT().Execute(gomock.Any())
 				// Deploy env
 				m.EXPECT().Validate()
-				m.EXPECT().Ask()
-				m.EXPECT().Execute()
+				m.EXPECT().Ask(gomock.Any())
+				m.EXPECT().Execute(gomock.Any())
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments("app").Return([]*config.Environment{&mockEnv}, nil)
@@ -561,9 +562,9 @@ type: Worker Service`)
 			mockSel: func(m *mocks.MockwsSelector) {
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Times(2)
+				m.EXPECT().Ask(gomock.Any()).Times(2)
 				m.EXPECT().Validate().Times(2)
-				m.EXPECT().Execute().Times(2)
+				m.EXPECT().Execute(gomock.Any()).Times(2)
 				m.EXPECT().RecommendActions().Times(2)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -600,9 +601,9 @@ type: Worker Service`)
 			mockSel: func(m *mocks.MockwsSelector) {
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Times(3)
+				m.EXPECT().Ask(gomock.Any()).Times(3)
 				m.EXPECT().Validate().Times(3)
-				m.EXPECT().Execute().Times(3)
+				m.EXPECT().Execute(gomock.Any()).Times(3)
 				m.EXPECT().RecommendActions().Times(3)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -644,9 +645,9 @@ type: Worker Service`)
 				m.EXPECT().Workloads(gomock.Any(), gomock.Any()).Return([]string{"be", "worker"}, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Times(2)
+				m.EXPECT().Ask(gomock.Any()).Times(2)
 				m.EXPECT().Validate().Times(2)
-				m.EXPECT().Execute().Times(2)
+				m.EXPECT().Execute(gomock.Any()).Times(2)
 				m.EXPECT().RecommendActions().Times(2)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
@@ -698,10 +699,10 @@ type: Worker Service`)
 			mockSel: func(m *mocks.MockwsSelector) {
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
-				m.EXPECT().Ask().Times(3)
+				m.EXPECT().Ask(gomock.Any()).Times(3)
 				m.EXPECT().Validate().Times(3)
-				m.EXPECT().Execute().Times(2)
-				m.EXPECT().Execute().Return(&errNoInfrastructureChanges{
+				m.EXPECT().Execute(gomock.Any()).Times(2)
+				m.EXPECT().Execute(gomock.Any()).Return(&errNoInfrastructureChanges{
 					parentErr: errors.New("some error"),
 				})
 				m.EXPECT().RecommendActions().Times(2)
@@ -786,7 +787,7 @@ type: Worker Service`)
 				opts.workloadNames = tc.inNames
 			}
 			// WHEN
-			err := opts.Run()
+			err := opts.Run(context.Background())
 
 			// THEN
 			if tc.wantedErr != "" {
@@ -956,7 +957,7 @@ func Test_deployOpts_maybeInitEnv(t *testing.T) {
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInitEnvCmd: func(m *mocks.Mockcmd) {
 				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().Ask().Return(mockError)
+				m.EXPECT().Ask(gomock.Any()).Return(mockError)
 			},
 
 			wantErr: "some error",
@@ -969,8 +970,8 @@ func Test_deployOpts_maybeInitEnv(t *testing.T) {
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInitEnvCmd: func(m *mocks.Mockcmd) {
 				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().Ask().Return(nil)
-				m.EXPECT().Execute().Return(mockError)
+				m.EXPECT().Ask(gomock.Any()).Return(nil)
+				m.EXPECT().Execute(gomock.Any()).Return(mockError)
 			},
 
 			wantErr: "some error",
@@ -984,8 +985,8 @@ func Test_deployOpts_maybeInitEnv(t *testing.T) {
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInitEnvCmd: func(m *mocks.Mockcmd) {
 				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().Ask().Return(nil)
-				m.EXPECT().Execute().Return(nil)
+				m.EXPECT().Ask(gomock.Any()).Return(nil)
+				m.EXPECT().Execute(gomock.Any()).Return(nil)
 			},
 
 			wantErr: "environment test was initialized but has not been deployed",
@@ -999,8 +1000,8 @@ func Test_deployOpts_maybeInitEnv(t *testing.T) {
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInitEnvCmd: func(m *mocks.Mockcmd) {
 				m.EXPECT().Validate().Return(nil).Times(0)
-				m.EXPECT().Ask().Return(nil).Times(0)
-				m.EXPECT().Execute().Return(nil).Times(0)
+				m.EXPECT().Ask(gomock.Any()).Return(nil).Times(0)
+				m.EXPECT().Execute(gomock.Any()).Return(nil).Times(0)
 			},
 
 			wantErr: "env test does not exist in app app",
@@ -1013,8 +1014,8 @@ func Test_deployOpts_maybeInitEnv(t *testing.T) {
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInitEnvCmd: func(m *mocks.Mockcmd) {
 				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().Ask().Return(nil)
-				m.EXPECT().Execute().Return(nil)
+				m.EXPECT().Ask(gomock.Any()).Return(nil)
+				m.EXPECT().Execute(gomock.Any()).Return(nil)
 			},
 			wantDeployEnv: aws.Bool(true),
 		},
@@ -1047,7 +1048,7 @@ func Test_deployOpts_maybeInitEnv(t *testing.T) {
 				},
 			}
 
-			err := o.maybeInitEnv()
+			err := o.maybeInitEnv(context.Background())
 			if err != nil {
 				require.EqualError(t, err, tc.wantErr)
 			} else {
@@ -1081,8 +1082,8 @@ func Test_deployOpts_maybeDeployEnv(t *testing.T) {
 			deployEnv:     aws.Bool(true),
 			mockDeployEnvCmd: func(m *mocks.Mockcmd) {
 				m.EXPECT().Validate().Return(nil)
-				m.EXPECT().Ask().Return(nil)
-				m.EXPECT().Execute().Return(nil)
+				m.EXPECT().Ask(gomock.Any()).Return(nil)
+				m.EXPECT().Execute(gomock.Any()).Return(nil)
 			},
 		},
 	}
@@ -1109,7 +1110,7 @@ func Test_deployOpts_maybeDeployEnv(t *testing.T) {
 				},
 			}
 
-			err := o.maybeDeployEnv()
+			err := o.maybeDeployEnv(context.Background())
 			if err != nil {
 				require.EqualError(t, err, tc.wantErr)
 			} else {

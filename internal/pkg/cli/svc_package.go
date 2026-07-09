@@ -175,7 +175,7 @@ func (o *packageSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *packageSvcOpts) Ask() error {
+func (o *packageSvcOpts) Ask(_ context.Context) error {
 	if o.appName != "" {
 		if _, err := o.getTargetApp(); err != nil {
 			return err
@@ -194,7 +194,7 @@ func (o *packageSvcOpts) Ask() error {
 }
 
 // Execute prints the CloudFormation template of the application for the environment.
-func (o *packageSvcOpts) Execute() error {
+func (o *packageSvcOpts) Execute(_ context.Context) error {
 	if !o.clientConfigured {
 		if err := o.configureClients(); err != nil {
 			return err
@@ -509,7 +509,7 @@ func buildSvcPackageCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", svcFlagDescription)

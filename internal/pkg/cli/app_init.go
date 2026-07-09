@@ -133,7 +133,7 @@ func (o *initAppOpts) Validate() error {
 }
 
 // Ask prompts the user for any required arguments that they didn't provide.
-func (o *initAppOpts) Ask() error {
+func (o *initAppOpts) Ask(_ context.Context) error {
 	ok, err := o.isSessionFromEnvVars()
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ If you'd like to delete the application and all of its resources, run %s.
 }
 
 // Execute creates a new managed empty application.
-func (o *initAppOpts) Execute() error {
+func (o *initAppOpts) Execute(_ context.Context) error {
 	caller, err := o.identity.Get()
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
@@ -420,7 +420,7 @@ An application is a collection of containerized services that operate together.`
 			if len(args) == 1 {
 				opts.name = args[0]
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVar(&vars.domainName, domainNameFlag, "", domainNameFlagDescription)

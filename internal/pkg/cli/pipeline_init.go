@@ -256,7 +256,7 @@ func (o *initPipelineOpts) Validate() error {
 }
 
 // Ask prompts for required fields that are not passed in and validates them.
-func (o *initPipelineOpts) Ask() error {
+func (o *initPipelineOpts) Ask(_ context.Context) error {
 	// This command must be executed in the app's workspace because the pipeline manifest and buildspec will be created and stored.
 	if err := validateWorkspaceApp(o.wsAppName, o.appName, o.store); err != nil {
 		return err
@@ -300,7 +300,7 @@ func (o *initPipelineOpts) Ask() error {
 }
 
 // Execute writes the pipeline manifest file.
-func (o *initPipelineOpts) Execute() error {
+func (o *initPipelineOpts) Execute(_ context.Context) error {
 	if o.provider == manifest.GithubV1ProviderName {
 		if err := o.storeGitHubAccessToken(); err != nil {
 			return err
@@ -890,10 +890,10 @@ func buildPipelineInitCmd() *cobra.Command {
 			if err := opts.Validate(); err != nil {
 				return err
 			}
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
-			if err := opts.Execute(); err != nil {
+			if err := opts.Execute(cmd.Context()); err != nil {
 				return err
 			}
 			log.Infoln()

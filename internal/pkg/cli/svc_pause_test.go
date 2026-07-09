@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -213,7 +214,7 @@ func TestSvcPause_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := svcPause.Ask()
+			err := svcPause.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -275,7 +276,7 @@ func TestSvcPause_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := svcPause.Execute()
+			err := svcPause.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

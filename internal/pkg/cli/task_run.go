@@ -630,7 +630,7 @@ func isWindowsOS(os string) bool {
 }
 
 // Ask prompts the user for any required or important fields that are not provided.
-func (o *runTaskOpts) Ask() error {
+func (o *runTaskOpts) Ask(_ context.Context) error {
 	if o.generateCommandTarget != "" {
 		return nil
 	}
@@ -662,7 +662,7 @@ func (o *runTaskOpts) shouldPromptForAppEnv() bool {
 }
 
 // Execute deploys and runs the task.
-func (o *runTaskOpts) Execute() error {
+func (o *runTaskOpts) Execute(_ context.Context) error {
 	if o.generateCommandTarget != "" {
 		return o.generateCommand()
 	}
@@ -1190,7 +1190,7 @@ func BuildTaskRunCmd() *cobra.Command {
 			if cmd.Flags().Changed(dockerFileFlag) {
 				opts.isDockerfileSet = true
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 

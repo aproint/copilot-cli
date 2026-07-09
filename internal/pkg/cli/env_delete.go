@@ -154,7 +154,7 @@ func (o *deleteEnvOpts) Validate() error {
 }
 
 // Ask prompts for fields that are required but not passed in.
-func (o *deleteEnvOpts) Ask() error {
+func (o *deleteEnvOpts) Ask(_ context.Context) error {
 	if err := o.askAppName(); err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (o *deleteEnvOpts) Ask() error {
 // 4. Deleting the parameter from the SSM store.
 // The environment is removed from the store only if other delete operations succeed.
 // Execute assumes that Validate is invoked first.
-func (o *deleteEnvOpts) Execute() error {
+func (o *deleteEnvOpts) Execute(_ context.Context) error {
 	if err := o.initRuntimeClients(o); err != nil {
 		return err
 	}
@@ -582,7 +582,7 @@ func buildEnvDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

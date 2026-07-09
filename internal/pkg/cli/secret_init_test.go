@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -328,7 +329,7 @@ func TestSecretInitOpts_Ask(t *testing.T) {
 
 			tc.setupMocks(m)
 
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 			if tc.wantedError == nil {
 				require.NoError(t, err)
 				require.Equal(t, tc.wantedVars, opts.secretInitVars)
@@ -593,7 +594,7 @@ db-host:
 				return nil
 			}
 
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 			if tc.wantedError == nil {
 				require.NoError(t, err)
 			} else {

@@ -153,7 +153,7 @@ func (o *packageEnvOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *packageEnvOpts) Ask() error {
+func (o *packageEnvOpts) Ask(_ context.Context) error {
 	if o.appName == "" {
 		// This command is required to be executed under a workspace. We don't prompt for it.
 		return errNoAppInWorkspace
@@ -166,7 +166,7 @@ func (o *packageEnvOpts) Ask() error {
 }
 
 // Execute prints the CloudFormation configuration for the environment.
-func (o *packageEnvOpts) Execute() error {
+func (o *packageEnvOpts) Execute(_ context.Context) error {
 	if !o.allowEnvDowngrade {
 		envVersionGetter, err := o.newEnvVersionGetter(o.appName, o.name)
 		if err != nil {
@@ -354,7 +354,7 @@ func buildEnvPkgCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", envFlagDescription)

@@ -83,20 +83,20 @@ func (o *overrideWorkloadOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *overrideWorkloadOpts) Ask() error {
+func (o *overrideWorkloadOpts) Ask(ctx context.Context) error {
 	if err := o.validateOrAskName(); err != nil {
 		return err
 	}
-	return o.overrideOpts.Ask()
+	return o.overrideOpts.Ask(ctx)
 }
 
 // Execute writes IaC override files to the local workspace.
 // This method assumes that the IaC tool chosen by the user is valid.
-func (o *overrideWorkloadOpts) Execute() error {
+func (o *overrideWorkloadOpts) Execute(ctx context.Context) error {
 	o.overrideOpts.dir = func() string {
 		return o.ws.WorkloadOverridesPath(o.name)
 	}
-	return o.overrideOpts.Execute()
+	return o.overrideOpts.Execute(ctx)
 }
 
 func (o *overrideWorkloadOpts) validateEnvName() error {
@@ -187,7 +187,7 @@ or add new resources to the service's template.`,
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", svcFlagDescription)

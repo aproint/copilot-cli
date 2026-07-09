@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -118,7 +119,7 @@ func TestDeleteAppOpts_Ask(t *testing.T) {
 				store:  mockStore,
 			}
 
-			got := opts.Ask()
+			got := opts.Ask(context.Background())
 
 			require.Equal(t, test.want, got)
 		})
@@ -188,26 +189,26 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 				gomock.InOrder(
 					// delete pipelines
 					mocks.codepipeline.EXPECT().ListDeployedPipelines(mockAppName).Return(mockPipelines, nil),
-					mocks.pipelineDeleter.EXPECT().Execute().Return(nil).Times(2),
+					mocks.pipelineDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteSvcs
 					mocks.store.EXPECT().ListServices(mockAppName).Return(mockServices, nil),
-					mocks.svcDeleter.EXPECT().Execute().Return(nil).Times(2),
+					mocks.svcDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteJobs
 					mocks.store.EXPECT().ListJobs(mockAppName).Return(mockJobs, nil),
-					mocks.jobDeleter.EXPECT().Execute().Return(nil).Times(2),
+					mocks.jobDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// listEnvs
 					mocks.store.EXPECT().ListEnvironments(mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
 					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
-					mocks.taskDeleter.EXPECT().Execute().Return(nil),
+					mocks.taskDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// deleteEnvs
-					mocks.envDeleter.EXPECT().Ask().Return(nil),
-					mocks.envDeleter.EXPECT().Execute().Return(nil),
+					mocks.envDeleter.EXPECT().Ask(gomock.Any()).Return(nil),
+					mocks.envDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// emptyS3bucket
 					mocks.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil),
@@ -238,26 +239,26 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 				gomock.InOrder(
 					// delete pipelines
 					mocks.codepipeline.EXPECT().ListDeployedPipelines(mockAppName).Return(mockPipelines, nil),
-					mocks.pipelineDeleter.EXPECT().Execute().Return(nil).Times(2),
+					mocks.pipelineDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteSvcs
 					mocks.store.EXPECT().ListServices(mockAppName).Return(mockServices, nil),
-					mocks.svcDeleter.EXPECT().Execute().Return(nil).Times(2),
+					mocks.svcDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteJobs
 					mocks.store.EXPECT().ListJobs(mockAppName).Return(mockJobs, nil),
-					mocks.jobDeleter.EXPECT().Execute().Return(nil).Times(2),
+					mocks.jobDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// listEnvs
 					mocks.store.EXPECT().ListEnvironments(mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
 					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
-					mocks.taskDeleter.EXPECT().Execute().Return(nil),
+					mocks.taskDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// deleteEnvs
-					mocks.envDeleter.EXPECT().Ask().Return(nil),
-					mocks.envDeleter.EXPECT().Execute().Return(nil),
+					mocks.envDeleter.EXPECT().Ask(gomock.Any()).Return(nil),
+					mocks.envDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// emptyS3bucket
 					mocks.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil),
@@ -362,7 +363,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			require.Equal(t, test.wantedError, err)

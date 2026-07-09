@@ -321,7 +321,7 @@ func (o *initSvcOpts) validateSourcePaths(sources []string) error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *initSvcOpts) Ask() error {
+func (o *initSvcOpts) Ask(_ context.Context) error {
 	// NOTE: we optimize the case where `name` is given as a flag while `wkldType` is not.
 	// In this case, we can try reading the manifest, and set `wkldType` to the value found in the manifest
 	// without having to validate it. We can then short circuit the rest of the prompts for an optimal UX.
@@ -369,7 +369,7 @@ func (o *initSvcOpts) Ask() error {
 }
 
 // Execute writes the service's manifest file and stores the service in SSM.
-func (o *initSvcOpts) Execute() error {
+func (o *initSvcOpts) Execute(_ context.Context) error {
 	if !o.allowAppDowngrade {
 		appVersionGetter, err := o.newAppVersionGetter(o.appName)
 		if err != nil {
@@ -940,10 +940,10 @@ This command is also run as part of "copilot init".`,
 				return err
 			}
 			log.Warningln("It's best to run this command in the root of your workspace.")
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
-			if err := opts.Execute(); err != nil {
+			if err := opts.Execute(cmd.Context()); err != nil {
 				return err
 			}
 			if err := opts.RecommendActions(); err != nil {

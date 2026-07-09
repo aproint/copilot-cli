@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -147,7 +148,7 @@ func TestAppUpgradeOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -341,7 +342,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 			opts := tc.given(ctrl)
 			opts.templateVersion = mockTemplateVersion
 
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())

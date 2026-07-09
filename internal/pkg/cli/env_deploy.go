@@ -139,7 +139,7 @@ func (o *deployEnvOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *deployEnvOpts) Ask() error {
+func (o *deployEnvOpts) Ask(_ context.Context) error {
 	if o.appName == "" {
 		// NOTE: This command is required to be executed under a workspace. We don't prompt for it.
 		return errNoAppInWorkspace
@@ -170,7 +170,7 @@ func validateEnvVersion(vg versionGetter, name, templateVersion string) error {
 }
 
 // Execute deploys an environment given a manifest.
-func (o *deployEnvOpts) Execute() error {
+func (o *deployEnvOpts) Execute(_ context.Context) error {
 	if !o.allowEnvDowngrade {
 		envVersionGetter, err := o.newEnvVersionGetter(o.appName, o.name)
 		if err != nil {
@@ -390,7 +390,7 @@ Deploy an environment named "test".
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

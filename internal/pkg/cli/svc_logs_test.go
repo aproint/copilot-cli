@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -332,7 +333,7 @@ func TestSvcLogs_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := svcLogs.Ask()
+			err := svcLogs.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -563,7 +564,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := svcLogs.Execute()
+			err := svcLogs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

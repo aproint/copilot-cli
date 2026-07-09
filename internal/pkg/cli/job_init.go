@@ -176,7 +176,7 @@ func (o *initJobOpts) Validate() error {
 }
 
 // Ask prompts for fields that are required but not passed in.
-func (o *initJobOpts) Ask() error {
+func (o *initJobOpts) Ask(_ context.Context) error {
 	if o.wkldType != "" {
 		if err := validateJobType(o.wkldType); err != nil {
 			return err
@@ -266,7 +266,7 @@ func envsWithPrivateSubnetsOnly(store store, initEnvDescriber func(string, strin
 }
 
 // Execute writes the job's manifest file, creates an ECR repo, and stores the name in SSM.
-func (o *initJobOpts) Execute() error {
+func (o *initJobOpts) Execute(_ context.Context) error {
 	if !o.allowAppDowngrade {
 		appVersionGetter, err := o.newAppVersionGetter(o.appName)
 		if err != nil {
@@ -477,7 +477,7 @@ func buildJobInitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

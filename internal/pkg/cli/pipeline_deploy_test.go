@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -157,7 +158,7 @@ func TestDeployPipelineOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -246,7 +247,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -282,7 +283,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -324,7 +325,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -361,7 +362,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -395,7 +396,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -443,7 +444,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -547,7 +548,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Return(errors.New("some error")),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Return(errors.New("some error")),
 				)
 			},
 			expectedError: fmt.Errorf("convert environments to deployment stage: get local services: some error"),
@@ -562,7 +563,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -584,7 +585,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -616,7 +617,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -652,7 +653,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -714,7 +715,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -751,7 +752,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -779,7 +780,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil),
 					m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil),
 					m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil),
-					m.actionCmd.EXPECT().Execute().Times(2),
+					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
 					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
@@ -805,7 +806,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
 				m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil)
 				m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil)
-				m.actionCmd.EXPECT().Execute().Times(2)
+				m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2)
 
 				// convertStages
 				m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1)
@@ -835,7 +836,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
 				m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil)
 				m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil)
-				m.actionCmd.EXPECT().Execute().Times(2)
+				m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2)
 
 				// convertStages
 				m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1)
@@ -875,7 +876,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 			callMocks: func(m deployPipelineMocks) {
 				m.ws.EXPECT().ReadPipelineManifest(pipelineManifestPath).Return(mockPipelineManifest, nil)
 				m.ws.EXPECT().Rel(pipelineManifestPath).Return(relativePath, nil)
-				m.actionCmd.EXPECT().Execute().Times(2)
+				m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2)
 
 				// convertStages
 				m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1)
@@ -968,7 +969,7 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.expectedError != nil {

@@ -92,7 +92,7 @@ func (o *showAppOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *showAppOpts) Ask() error {
+func (o *showAppOpts) Ask(_ context.Context) error {
 	if err := o.askName(); err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (o *showAppOpts) Ask() error {
 }
 
 // Execute writes the application's description.
-func (o *showAppOpts) Execute() error {
+func (o *showAppOpts) Execute(_ context.Context) error {
 	description, err := o.description()
 	if err != nil {
 		return err
@@ -253,7 +253,7 @@ func buildAppShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	// The flags bound by viper are available to all sub-commands through viper.GetString({flagName})

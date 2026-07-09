@@ -92,7 +92,7 @@ func (o *svcExecOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcExecOpts) Ask() error {
+func (o *svcExecOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (o *svcExecOpts) Ask() error {
 }
 
 // Execute executes a command in a running container.
-func (o *svcExecOpts) Execute() error {
+func (o *svcExecOpts) Execute(_ context.Context) error {
 	wkld, err := o.store.GetWorkload(o.appName, o.name)
 	if err != nil {
 		return fmt.Errorf("get workload: %w", err)
@@ -291,7 +291,7 @@ func buildSvcExecCmd() *cobra.Command {
 					opts.skipConfirmation = aws.Bool(true)
 				}
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

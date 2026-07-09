@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"testing"
@@ -306,7 +307,7 @@ func TestDeleteTaskOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantErr != "" {
@@ -660,7 +661,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {

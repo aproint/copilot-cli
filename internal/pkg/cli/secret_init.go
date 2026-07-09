@@ -177,7 +177,7 @@ func (o *secretInitOpts) Validate() error {
 }
 
 // Ask prompts the user for any required or important fields that are not provided.
-func (o *secretInitOpts) Ask() error {
+func (o *secretInitOpts) Ask(_ context.Context) error {
 	if o.overwrite {
 		log.Warningf("You have specified %s flag. Please note that overwriting an existing secret may break your deployed service.\n", color.HighlightCode(fmt.Sprintf("--%s", overwriteFlag)))
 	}
@@ -199,7 +199,7 @@ func (o *secretInitOpts) Ask() error {
 }
 
 // Execute creates or updates the secrets.
-func (o *secretInitOpts) Execute() error {
+func (o *secretInitOpts) Execute(_ context.Context) error {
 	if o.inputFilePath != "" {
 		secrets, err := o.parseSecretsInputFile()
 		if err != nil {
@@ -489,11 +489,11 @@ Create secrets from input.yml. For the format of the YAML file, please see https
 			if err := opts.Validate(); err != nil {
 				return err
 			}
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
 
-			err = opts.Execute()
+			err = opts.Execute(cmd.Context())
 			if opts.shouldShowOverwriteHint {
 				log.Warningf("If you want to overwrite an existing secret, use the %s flag.\n", color.HighlightCode(fmt.Sprintf("--%s", overwriteFlag)))
 			}

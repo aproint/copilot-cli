@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -71,7 +72,7 @@ func TestOverrideJob_Ask(t *testing.T) {
 						cfnPrompt:    mockCfnPrompt,
 						packageCmd: func(_ stringWriteCloser) (executor, error) {
 							mockCmd := mocks.NewMockexecutor(ctrl)
-							mockCmd.EXPECT().Execute().AnyTimes()
+							mockCmd.EXPECT().Execute(gomock.Any()).AnyTimes()
 							return mockCmd, nil
 						},
 						spinner: &spinnerTestDouble{},
@@ -81,7 +82,7 @@ func TestOverrideJob_Ask(t *testing.T) {
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {

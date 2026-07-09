@@ -67,7 +67,7 @@ func (o *listSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *listSvcOpts) Ask() error {
+func (o *listSvcOpts) Ask(_ context.Context) error {
 	if o.appName != "" {
 		// NOTE: Skip validating app name here because `Execute` will fail pretty soon with a clear error message.
 		// The validation (config.GetApplication) would only add additional operation time in this particular case.
@@ -83,7 +83,7 @@ func (o *listSvcOpts) Ask() error {
 }
 
 // Execute lists the services through the prompt.
-func (o *listSvcOpts) Execute() error {
+func (o *listSvcOpts) Execute(_ context.Context) error {
 	if err := o.list.Write(o.appName); err != nil {
 		return err
 	}
@@ -105,10 +105,10 @@ func buildSvcListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
-			return opts.Execute()
+			return opts.Execute(cmd.Context())
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

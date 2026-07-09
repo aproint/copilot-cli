@@ -43,10 +43,10 @@ type cmd interface {
 	Validate() error
 
 	// Ask prompts for flag values that are required but not passed in.
-	Ask() error
+	Ask(context.Context) error
 
 	// Execute runs the command after collecting all required options.
-	Execute() error
+	Execute(context.Context) error
 }
 
 // actionCommand is the interface that every command that creates a resource implements.
@@ -498,11 +498,11 @@ type deployedPipelineLister interface {
 }
 
 type executor interface {
-	Execute() error
+	Execute(context.Context) error
 }
 
 type executeAsker interface {
-	Ask() error
+	Ask(context.Context) error
 	executor
 }
 

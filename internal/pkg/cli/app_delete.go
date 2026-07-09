@@ -159,7 +159,7 @@ func (o *deleteAppOpts) Validate() error {
 }
 
 // Ask prompts the user for any required flags that they didn't provide.
-func (o *deleteAppOpts) Ask() error {
+func (o *deleteAppOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskAppName(); err != nil {
 		return err
 	}
@@ -183,20 +183,20 @@ func (o *deleteAppOpts) Ask() error {
 // Execute deletes the application.
 // It removes the pipelines, all the services from each environment, the environments, the pipeline S3 buckets,
 // the application, removes the variables from the config store, and deletes the local workspace.
-func (o *deleteAppOpts) Execute() error {
-	if err := o.deletePipelines(); err != nil {
+func (o *deleteAppOpts) Execute(ctx context.Context) error {
+	if err := o.deletePipelines(ctx); err != nil {
 		return err
 	}
 
-	if err := o.deleteSvcs(); err != nil {
+	if err := o.deleteSvcs(ctx); err != nil {
 		return err
 	}
 
-	if err := o.deleteJobs(); err != nil {
+	if err := o.deleteJobs(ctx); err != nil {
 		return err
 	}
 
-	if err := o.deleteEnvs(); err != nil {
+	if err := o.deleteEnvs(ctx); err != nil {
 		return err
 	}
 
@@ -232,7 +232,7 @@ func (o *deleteAppOpts) validateOrAskAppName() error {
 	return nil
 }
 
-func (o *deleteAppOpts) deleteSvcs() error {
+func (o *deleteAppOpts) deleteSvcs(ctx context.Context) error {
 	svcs, err := o.store.ListServices(o.name)
 	if err != nil {
 		return fmt.Errorf("list services for application %s: %w", o.name, err)
@@ -243,14 +243,14 @@ func (o *deleteAppOpts) deleteSvcs() error {
 		if err != nil {
 			return err
 		}
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.Execute(ctx); err != nil {
 			return fmt.Errorf("execute svc delete: %w", err)
 		}
 	}
 	return nil
 }
 
-func (o *deleteAppOpts) deleteJobs() error {
+func (o *deleteAppOpts) deleteJobs(ctx context.Context) error {
 	jobs, err := o.store.ListJobs(o.name)
 	if err != nil {
 		return fmt.Errorf("list jobs for application %s: %w", o.name, err)
@@ -261,14 +261,14 @@ func (o *deleteAppOpts) deleteJobs() error {
 		if err != nil {
 			return err
 		}
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.Execute(ctx); err != nil {
 			return fmt.Errorf("execute job delete: %w", err)
 		}
 	}
 	return nil
 }
 
-func (o *deleteAppOpts) deleteEnvs() error {
+func (o *deleteAppOpts) deleteEnvs(ctx context.Context) error {
 	envs, err := o.store.ListEnvironments(o.name)
 	if err != nil {
 		return fmt.Errorf("list environments for application %s: %w", o.name, err)
@@ -285,7 +285,7 @@ func (o *deleteAppOpts) deleteEnvs() error {
 			if err != nil {
 				return err
 			}
-			if err := taskCmd.Execute(); err != nil {
+			if err := taskCmd.Execute(ctx); err != nil {
 				return fmt.Errorf("execute task delete")
 			}
 		}
@@ -294,10 +294,10 @@ func (o *deleteAppOpts) deleteEnvs() error {
 		if err != nil {
 			return err
 		}
-		if err := cmd.Ask(); err != nil {
+		if err := cmd.Ask(ctx); err != nil {
 			return fmt.Errorf("ask env delete: %w", err)
 		}
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.Execute(ctx); err != nil {
 			return fmt.Errorf("execute env delete: %w", err)
 		}
 	}
@@ -335,7 +335,7 @@ func (o *deleteAppOpts) emptyS3Bucket() error {
 	return nil
 }
 
-func (o *deleteAppOpts) deletePipelines() error {
+func (o *deleteAppOpts) deletePipelines(ctx context.Context) error {
 	pipelines, err := o.pipelineLister.ListDeployedPipelines(o.name)
 	if err != nil {
 		return fmt.Errorf("list pipelines for application %s: %w", o.name, err)
@@ -346,7 +346,7 @@ func (o *deleteAppOpts) deletePipelines() error {
 		if err != nil {
 			return err
 		}
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.Execute(ctx); err != nil {
 			return fmt.Errorf("execute pipeline delete: %w", err)
 		}
 	}
@@ -403,7 +403,7 @@ func buildAppDeleteCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 

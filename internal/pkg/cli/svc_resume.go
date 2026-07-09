@@ -54,7 +54,7 @@ func (o *resumeSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *resumeSvcOpts) Ask() error {
+func (o *resumeSvcOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (o *resumeSvcOpts) Ask() error {
 }
 
 // Execute resumes the service through the prompt.
-func (o *resumeSvcOpts) Execute() error {
+func (o *resumeSvcOpts) Execute(_ context.Context) error {
 	if o.svcName == "" {
 		return nil
 	}
@@ -201,7 +201,7 @@ func buildSvcResumeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

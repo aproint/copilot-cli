@@ -111,7 +111,7 @@ func (o *deletePipelineOpts) Validate() error {
 }
 
 // Ask prompts for and validates required fields.
-func (o *deletePipelineOpts) Ask() error {
+func (o *deletePipelineOpts) Ask(_ context.Context) error {
 	if o.appName != "" {
 		if _, err := o.store.GetApplication(o.appName); err != nil {
 			return err
@@ -154,7 +154,7 @@ func (o *deletePipelineOpts) Ask() error {
 }
 
 // Execute deletes the secret and pipeline stack.
-func (o *deletePipelineOpts) Execute() error {
+func (o *deletePipelineOpts) Execute(_ context.Context) error {
 	if err := o.getSecret(); err != nil {
 		return err
 	}
@@ -307,7 +307,7 @@ func buildPipelineDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

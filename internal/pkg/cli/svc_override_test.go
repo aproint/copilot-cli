@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -222,7 +223,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 						cfnPrompt:    mockCfnPrompt,
 						packageCmd: func(_ stringWriteCloser) (executor, error) {
 							mockCmd := mocks.NewMockexecutor(ctrl)
-							mockCmd.EXPECT().Execute().AnyTimes()
+							mockCmd.EXPECT().Execute(gomock.Any()).AnyTimes()
 							return mockCmd, nil
 						},
 						spinner: &spinnerTestDouble{},
@@ -232,7 +233,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -285,7 +286,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 						cfnPrompt:    mockCfnPrompt,
 						packageCmd: func(_ stringWriteCloser) (executor, error) {
 							mockCmd := mocks.NewMockexecutor(ctrl)
-							mockCmd.EXPECT().Execute().AnyTimes()
+							mockCmd.EXPECT().Execute(gomock.Any()).AnyTimes()
 							return mockCmd, nil
 						},
 						spinner: &spinnerTestDouble{},
@@ -298,7 +299,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -334,7 +335,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 			"should return a wrapped error if package command fails to execute": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideWorkloadOpts) {
 					mockPkgCmd := mocks.NewMockexecutor(ctrl)
-					mockPkgCmd.EXPECT().Execute().Return(errors.New("some error"))
+					mockPkgCmd.EXPECT().Execute(gomock.Any()).Return(errors.New("some error"))
 					cmd.packageCmd = func(_ stringWriteCloser) (executor, error) {
 						return mockPkgCmd, nil
 					}
@@ -344,7 +345,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 			"should prompt for CloudFormation resources in a template": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideWorkloadOpts) {
 					mockPkgCmd := mocks.NewMockexecutor(ctrl)
-					mockPkgCmd.EXPECT().Execute().Return(nil)
+					mockPkgCmd.EXPECT().Execute(gomock.Any()).Return(nil)
 					mockPrompt := mocks.NewMockcfnSelector(ctrl)
 					template := `
 Resources:
@@ -386,7 +387,7 @@ Resources:
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -460,7 +461,7 @@ func TestOverrideSvc_Execute(t *testing.T) {
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Execute()
+				err := cmd.Execute(context.Background())
 
 				// THEN
 				if tc.wanted != nil {

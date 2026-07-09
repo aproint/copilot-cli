@@ -90,7 +90,7 @@ func (o *appUpgradeOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *appUpgradeOpts) Ask() error {
+func (o *appUpgradeOpts) Ask(_ context.Context) error {
 	if err := o.askName(); err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (o *appUpgradeOpts) Ask() error {
 
 // Execute updates the cloudformation stack as well as the stackset of an application to the latest version.
 // If any stack is busy updating, it spins and waits until the stack can be updated.
-func (o *appUpgradeOpts) Execute() error {
+func (o *appUpgradeOpts) Execute(_ context.Context) error {
 	vg, err := o.newVersionGetter(o.name)
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func buildAppUpgradeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, tryReadingAppName(), appFlagDescription)

@@ -432,7 +432,7 @@ func getTotalNumberOfWorkloads(deploymentGroups [][]workloadCommand) int {
 	return count
 }
 
-func (o *deployOpts) Run() error {
+func (o *deployOpts) Run(ctx context.Context) error {
 	if err := o.askNames(); err != nil {
 		return err
 	}
@@ -445,11 +445,11 @@ func (o *deployOpts) Run() error {
 		return err
 	}
 
-	if err := o.maybeInitEnv(); err != nil {
+	if err := o.maybeInitEnv(ctx); err != nil {
 		return err
 	}
 
-	if err := o.maybeDeployEnv(); err != nil {
+	if err := o.maybeDeployEnv(ctx); err != nil {
 		return err
 	}
 
@@ -480,7 +480,7 @@ func (o *deployOpts) Run() error {
 				actionCommand: deployCmd,
 			})
 			// 3. Ask() and Validate() for required info.
-			if err := deployCmd.Ask(); err != nil {
+			if err := deployCmd.Ask(ctx); err != nil {
 				return fmt.Errorf("ask %s deploy: %w", o.wlType, err)
 			}
 			if err := deployCmd.Validate(); err != nil {
@@ -499,7 +499,7 @@ func (o *deployOpts) Run() error {
 		// 2. Modify labeledSyncBuffer so it can display a spinner.
 		// 3. Wrap Execute() in a goroutine with ErrorGroup and context
 		for i, cmd := range deploymentGroup {
-			if err := cmd.Execute(); err != nil {
+			if err := cmd.Execute(ctx); err != nil {
 				var errNoInfraChanges *errNoInfrastructureChanges
 				if !errors.As(err, &errNoInfraChanges) {
 					return fmt.Errorf("execute deployment %d of %d in group %d: %w", i+1, len(deploymentGroup), g+1, err)
@@ -667,7 +667,7 @@ func (o *deployOpts) checkEnvExists() error {
 	return nil
 }
 
-func (o *deployOpts) maybeInitEnv() error {
+func (o *deployOpts) maybeInitEnv(ctx context.Context) error {
 	if o.envExistsInApp {
 		return nil
 	}
@@ -689,10 +689,10 @@ func (o *deployOpts) maybeInitEnv() error {
 		if err = cmd.Validate(); err != nil {
 			return err
 		}
-		if err = cmd.Ask(); err != nil {
+		if err = cmd.Ask(ctx); err != nil {
 			return err
 		}
-		if err = cmd.Execute(); err != nil {
+		if err = cmd.Execute(ctx); err != nil {
 			return err
 		}
 		if o.deployEnv == nil {
@@ -708,7 +708,7 @@ func (o *deployOpts) maybeInitEnv() error {
 	return fmt.Errorf("env %s does not exist in app %s", o.envName, o.appName)
 }
 
-func (o *deployOpts) maybeDeployEnv() error {
+func (o *deployOpts) maybeDeployEnv(ctx context.Context) error {
 	if !o.envExistsInWs {
 		return nil
 	}
@@ -721,10 +721,10 @@ func (o *deployOpts) maybeDeployEnv() error {
 		if err = cmd.Validate(); err != nil {
 			return err
 		}
-		if err = cmd.Ask(); err != nil {
+		if err = cmd.Ask(ctx); err != nil {
 			return err
 		}
-		return cmd.Execute()
+		return cmd.Execute(ctx)
 	}
 	return nil
 }
@@ -792,7 +792,7 @@ func BuildDeployCmd() *cobra.Command {
 				}
 			}
 
-			if err := opts.Run(); err != nil {
+			if err := opts.Run(cmd.Context()); err != nil {
 				return err
 			}
 			return nil

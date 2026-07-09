@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -444,7 +445,7 @@ func TestInitPipelineOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.expectedError != nil {
@@ -874,7 +875,7 @@ func TestInitPipelineOpts_Execute(t *testing.T) {
 
 			// WHEN
 			require.NoError(t, opts.parseRepoDetails())
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.expectedError != nil {

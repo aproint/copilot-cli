@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -37,14 +38,14 @@ func TestInitOpts_Run(t *testing.T) {
 		"returns prompt error for application": {
 			inWlType: "Load Balanced Web Service",
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(errors.New("my error"))
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(errors.New("my error"))
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Times(0)
 			},
 			wantedError: "ask app init: my error",
 		},
 		"returns validation error for application": {
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(errors.New("my error"))
 			},
 			wantedError: "my error",
@@ -52,17 +53,17 @@ func TestInitOpts_Run(t *testing.T) {
 		"returns prompt error for service": {
 			inWlType: "Backend Service",
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Times(1).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(errors.New("my error"))
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(errors.New("my error"))
 			},
 			wantedError: "ask Backend Service: my error",
 		},
 		"returns validation error for service": {
 			inWlType: "Load Balanced Web Service",
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(errors.New("my error"))
 			},
@@ -71,36 +72,36 @@ func TestInitOpts_Run(t *testing.T) {
 		"returns execute error for application": {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(errors.New("my error"))
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Times(0)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(errors.New("my error"))
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
 			},
 			wantedError: "execute app init: my error",
 		},
 		"returns execute error for service": {
 			inWlType: "Load Balanced Web Service",
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(errors.New("my error"))
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(errors.New("my error"))
 			},
 			wantedError: "execute Load Balanced Web Service init: my error",
 		},
 		"fail to deploy an environment": {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.sel.(*climocks.MockconfigSelector).EXPECT().Environment(initExistingEnvSelectPrompt, initExistingEnvSelectHelp, mockAppName, prompt.Option{Value: envPromptCreateNew}).Return(envPromptCreateNew, nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
 					Return(true, nil)
@@ -109,20 +110,20 @@ func TestInitOpts_Run(t *testing.T) {
 					ApplicationName: mockAppName,
 					EnvironmentName: "test2",
 				})
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Return(errors.New("some error"))
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Return(errors.New("some error"))
 			},
 			wantedError: "some error",
 		},
 		"fail to get env name": {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
 					Return(true, nil)
 				opts.sel.(*climocks.MockconfigSelector).EXPECT().Environment(initExistingEnvSelectPrompt, initExistingEnvSelectHelp, mockAppName, prompt.Option{Value: envPromptCreateNew}).Return(envPromptCreateNew, nil)
@@ -133,12 +134,12 @@ func TestInitOpts_Run(t *testing.T) {
 		"deploys environment": {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
 					Return(true, nil)
 				opts.sel.(*climocks.MockconfigSelector).EXPECT().Environment(initExistingEnvSelectPrompt, initExistingEnvSelectHelp, mockAppName, prompt.Option{Value: envPromptCreateNew}).Return(envPromptCreateNew, nil)
@@ -147,10 +148,10 @@ func TestInitOpts_Run(t *testing.T) {
 					ApplicationName: mockAppName,
 					EnvironmentName: "test2",
 				})
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().RecommendActions().Return(nil)
 			},
 		},
@@ -158,40 +159,40 @@ func TestInitOpts_Run(t *testing.T) {
 			inEnvName: "test2",
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
 					Return(true, nil)
 				opts.store.(*climocks.Mockstore).EXPECT().GetEnvironment(mockAppName, "test2").Return(&config.Environment{}, nil)
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Times(0)
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().RecommendActions().Return(nil)
 			},
 		},
 		"should not error out if environment change set is empty": {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
 					Return(true, nil)
 				opts.sel.(*climocks.MockconfigSelector).EXPECT().Environment(initExistingEnvSelectPrompt, initExistingEnvSelectHelp, mockAppName, prompt.Option{Value: envPromptCreateNew}).Return(envPromptCreateNew, nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Get(envInitNamePrompt, envInitNameHelpPrompt, gomock.Any(), gomock.Any()).Return("test2", nil)
 				opts.store.(*climocks.Mockstore).EXPECT().GetEnvironment(mockAppName, "test2").Return(&config.Environment{}, nil)
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Times(0)
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Return(fmt.Errorf("wrap: %w", &awscfn.ErrChangeSetEmpty{}))
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Return(fmt.Errorf("wrap: %w", &awscfn.ErrChangeSetEmpty{}))
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().RecommendActions().Return(nil)
 			},
 		},
@@ -223,32 +224,32 @@ func TestInitOpts_Run(t *testing.T) {
 						Hint:  jobTypeHint,
 					},
 				}, gomock.Any())
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
 					Return(true, nil)
 				opts.sel.(*climocks.MockconfigSelector).EXPECT().Environment(initExistingEnvSelectPrompt, initExistingEnvSelectHelp, mockAppName, prompt.Option{Value: envPromptCreateNew}).Return("test2", nil)
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Times(0)
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().RecommendActions().Return(nil)
 			},
 		},
 		"should not deploy the svc if shouldDeploy is false": {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
 					Return(false, nil)
@@ -258,12 +259,12 @@ func TestInitOpts_Run(t *testing.T) {
 			inShouldDeploy: aws.Bool(false),
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 			},
 		},
 		"should skip prompting if all flags and --deploy explicitly specified": {
@@ -272,17 +273,17 @@ func TestInitOpts_Run(t *testing.T) {
 			inWlType:       manifestinfo.LoadBalancedWebServiceType,
 			inAppName:      mockAppName,
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.store.(*climocks.Mockstore).EXPECT().GetEnvironment(mockAppName, "test2").Return(nil, &config.ErrNoSuchEnvironment{ApplicationName: mockAppName, EnvironmentName: "test2"})
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().RecommendActions().Return(nil)
 			},
 		},
@@ -292,17 +293,17 @@ func TestInitOpts_Run(t *testing.T) {
 			inWlType:       manifestinfo.LoadBalancedWebServiceType,
 			inAppName:      mockAppName,
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Times(0)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
 				opts.store.(*climocks.Mockstore).EXPECT().GetEnvironment(mockAppName, "test2").Return(nil, nil)
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().RecommendActions().Return(nil)
 			},
 		},
@@ -312,17 +313,17 @@ func TestInitOpts_Run(t *testing.T) {
 			inWlType:       manifestinfo.LoadBalancedWebServiceType,
 			inAppName:      mockAppName,
 			expect: func(opts *initOpts) {
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute().Return(nil)
-				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute().Times(0)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
+				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
 				opts.store.(*climocks.Mockstore).EXPECT().GetEnvironment(mockAppName, "test2").Return(nil, fmt.Errorf("some error"))
-				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute().Times(0)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask().Times(0)
-				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute().Times(0)
+				opts.deployEnvCmd.(*climocks.Mockcmd).EXPECT().Execute(gomock.Any()).Times(0)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Times(0)
+				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
 				opts.deploySvcCmd.(*climocks.MockactionCommand).EXPECT().RecommendActions().Times(0)
 			},
 			wantedError: "some error",
@@ -366,7 +367,7 @@ func TestInitOpts_Run(t *testing.T) {
 			tc.expect(opts)
 
 			// WHEN
-			err := opts.Run()
+			err := opts.Run(context.Background())
 
 			// THEN
 			if tc.wantedError != "" {

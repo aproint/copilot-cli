@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 
@@ -129,7 +130,7 @@ func TestEnvShow_Ask(t *testing.T) {
 				store: mockStore,
 			}
 			// WHEN
-			err := showEnvs.Ask()
+			err := showEnvs.Ask(context.Background())
 			// THEN
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
@@ -302,7 +303,7 @@ Resources
 			}
 
 			// WHEN
-			err := showEnvs.Execute()
+			err := showEnvs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

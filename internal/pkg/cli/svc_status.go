@@ -109,7 +109,7 @@ func (o *svcStatusOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcStatusOpts) Ask() error {
+func (o *svcStatusOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (o *svcStatusOpts) Ask() error {
 }
 
 // Execute displays the status of the service.
-func (o *svcStatusOpts) Execute() error {
+func (o *svcStatusOpts) Execute(_ context.Context) error {
 	err := o.initStatusDescriber(o)
 	if err != nil {
 		return err
@@ -191,7 +191,7 @@ func buildSvcStatusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.svcName, nameFlag, nameFlagShort, "", svcFlagDescription)

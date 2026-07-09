@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -118,7 +119,7 @@ func TestPackageEnvOpts_Ask(t *testing.T) {
 			cmd := tc.mockedCmd(ctrl, tc.in)
 
 			// WHEN
-			actual := cmd.Ask()
+			actual := cmd.Ask(context.Background())
 
 			// THEN
 			if tc.wanted == nil {
@@ -585,7 +586,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 			cmd.allowEnvDowngrade = true // downgrade logic is tested in env deploy
 
 			// WHEN
-			actual := cmd.Execute()
+			actual := cmd.Execute(context.Background())
 
 			// THEN
 			if tc.wantedErr == nil {

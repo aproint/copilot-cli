@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
@@ -278,7 +279,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := execTasks.Ask()
+			err := execTasks.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -408,7 +409,7 @@ func TestTaskExec_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := execTasks.Execute()
+			err := execTasks.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

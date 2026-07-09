@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -293,7 +294,7 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 				store:  m.store,
 			}
 
-			got := opts.Ask()
+			got := opts.Ask(context.Background())
 
 			if got != nil {
 				require.Equal(t, test.wantedError, got)
@@ -514,7 +515,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := tc.opts.Execute()
+			err := tc.opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

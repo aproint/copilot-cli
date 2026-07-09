@@ -275,7 +275,7 @@ func (o *initStorageOpts) validateServerlessVersion() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *initStorageOpts) Ask() error {
+func (o *initStorageOpts) Ask(_ context.Context) error {
 	if o.addIngressFrom != "" {
 		return nil
 	}
@@ -738,7 +738,7 @@ func (o *initStorageOpts) validateOrAskAuroraInitialDBName() error {
 }
 
 // Execute deploys a new environment with CloudFormation and adds it to SSM.
-func (o *initStorageOpts) Execute() error {
+func (o *initStorageOpts) Execute(_ context.Context) error {
 	o.consumeFlags()
 	if err := o.checkWorkloadExists(); err != nil {
 		return err
@@ -1225,7 +1225,7 @@ Storage resources are addons, either for a workload or the environments.`,
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.storageName, nameFlag, nameFlagShort, "", storageFlagDescription)

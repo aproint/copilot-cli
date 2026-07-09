@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -143,7 +144,7 @@ func TestJobRun_Ask(t *testing.T) {
 				sel:         mockSel,
 			}
 
-			err := jobRun.Ask()
+			err := jobRun.Ask(context.Background())
 
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
@@ -242,7 +243,7 @@ func TestJobRun_Execute(t *testing.T) {
 				},
 			}
 
-			err := jobRunOpts.Execute()
+			err := jobRunOpts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

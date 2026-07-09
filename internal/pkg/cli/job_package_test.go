@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -209,7 +210,7 @@ func TestPackageJobOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			require.Equal(t, tc.wantedJobName, opts.name)
@@ -242,7 +243,7 @@ func TestPackageJobOpts_Execute(t *testing.T) {
 			mockDependencies: func(ctrl *gomock.Controller, opts *packageJobOpts) {
 				opts.newPackageCmd = func(opts *packageJobOpts) {
 					mockCmd := mocks.NewMockactionCommand(ctrl)
-					mockCmd.EXPECT().Execute().Return(nil)
+					mockCmd.EXPECT().Execute(gomock.Any()).Return(nil)
 					opts.packageCmd = mockCmd
 				}
 			},
@@ -263,7 +264,7 @@ func TestPackageJobOpts_Execute(t *testing.T) {
 			tc.mockDependencies(ctrl, opts)
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			require.Equal(t, tc.wantedErr, err)

@@ -187,7 +187,7 @@ func (o *svcLogsOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcLogsOpts) Ask() error {
+func (o *svcLogsOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (o *svcLogsOpts) Ask() error {
 }
 
 // Execute outputs logs of the service.
-func (o *svcLogsOpts) Execute() error {
+func (o *svcLogsOpts) Execute(_ context.Context) error {
 	if err := o.initRuntimeClients(); err != nil {
 		return err
 	}
@@ -354,7 +354,7 @@ func buildSvcLogsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", svcFlagDescription)

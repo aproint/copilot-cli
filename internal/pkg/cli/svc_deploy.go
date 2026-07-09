@@ -185,7 +185,7 @@ func (o *deploySvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *deploySvcOpts) Ask() error {
+func (o *deploySvcOpts) Ask(_ context.Context) error {
 	if o.appName != "" {
 		if _, err := o.getTargetApp(); err != nil {
 			return err
@@ -206,7 +206,7 @@ func (o *deploySvcOpts) Ask() error {
 }
 
 // Execute builds and pushes the container image for the service,
-func (o *deploySvcOpts) Execute() error {
+func (o *deploySvcOpts) Execute(_ context.Context) error {
 	if !o.clientConfigured {
 		if err := o.configureClients(); err != nil {
 			return err
@@ -716,7 +716,7 @@ func buildSvcDeployCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

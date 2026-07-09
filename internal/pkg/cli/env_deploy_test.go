@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -128,7 +129,7 @@ func TestDeployEnvOpts_Ask(t *testing.T) {
 				sel:   m.sel,
 				store: m.store,
 			}
-			gotErr := opts.Ask()
+			gotErr := opts.Ask(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, gotErr, tc.wantedError.Error())
 			} else {
@@ -457,7 +458,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					Name: "mockEnv",
 				},
 			}
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 			if tc.wantedErr != nil {
 				require.Contains(t, err.Error(), tc.wantedErr.Error())
 			} else {

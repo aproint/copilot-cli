@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -96,7 +97,7 @@ func TestCompletionOpts_Execute(t *testing.T) {
 			opts := completionOpts{Shell: tc.inputShell, completer: mock}
 
 			// WHEN
-			opts.Execute()
+			opts.Execute(context.Background())
 		})
 	}
 }

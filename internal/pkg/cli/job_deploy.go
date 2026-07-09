@@ -150,7 +150,7 @@ func (o *deployJobOpts) Validate() error {
 }
 
 // Ask prompts the user for any required fields that are not provided.
-func (o *deployJobOpts) Ask() error {
+func (o *deployJobOpts) Ask(_ context.Context) error {
 	if err := o.askJobName(); err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (o *deployJobOpts) Ask() error {
 }
 
 // Execute builds and pushes the container image for the job.
-func (o *deployJobOpts) Execute() error {
+func (o *deployJobOpts) Execute(_ context.Context) error {
 	if !o.clientConfigured {
 		if err := o.configureClients(); err != nil {
 			return err
@@ -403,7 +403,7 @@ func buildJobDeployCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

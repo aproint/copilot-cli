@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -297,7 +298,7 @@ func TestJobLogs_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := jobLogs.Ask()
+			err := jobLogs.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -433,7 +434,7 @@ func TestJobLogs_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := svcLogs.Execute()
+			err := svcLogs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

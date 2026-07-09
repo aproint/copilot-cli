@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -59,7 +60,7 @@ func TestEnvList_Ask(t *testing.T) {
 				sel: mockSelector,
 			}
 
-			err := listEnvs.Ask()
+			err := listEnvs.Ask(context.Background())
 
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -191,7 +192,7 @@ func TestEnvList_Execute(t *testing.T) {
 			b := &bytes.Buffer{}
 			tc.mocking()
 			tc.listOpts.w = b
-			err := tc.listOpts.Execute()
+			err := tc.listOpts.Execute(context.Background())
 
 			if tc.expectedErr != nil {
 				require.EqualError(t, tc.expectedErr, err.Error())

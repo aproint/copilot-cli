@@ -112,7 +112,7 @@ func (o *deleteSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *deleteSvcOpts) Ask() error {
+func (o *deleteSvcOpts) Ask(_ context.Context) error {
 	if o.appName != "" {
 		if _, err := o.store.GetApplication(o.appName); err != nil {
 			return err
@@ -171,7 +171,7 @@ func (o *deleteSvcOpts) Ask() error {
 // Execute deletes the service's CloudFormation stack.
 // If the service is being removed from the application, Execute will
 // also delete the ECR repository and the SSM parameter.
-func (o *deleteSvcOpts) Execute() error {
+func (o *deleteSvcOpts) Execute(_ context.Context) error {
 	wkld, err := o.store.GetWorkload(o.appName, o.name)
 	if err != nil {
 		return fmt.Errorf("get workload: %w", err)
@@ -369,7 +369,7 @@ func buildSvcDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 

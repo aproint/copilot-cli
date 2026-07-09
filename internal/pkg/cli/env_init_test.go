@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -966,7 +967,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := addEnv.Ask()
+			err := addEnv.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError == nil {
@@ -1332,7 +1333,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedErrorS != "" {

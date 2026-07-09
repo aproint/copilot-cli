@@ -98,7 +98,7 @@ func (o *pipelineStatusOpts) Validate() error {
 }
 
 // Ask prompts for fields that are required but not passed in, and validates those that are.
-func (o *pipelineStatusOpts) Ask() error {
+func (o *pipelineStatusOpts) Ask(_ context.Context) error {
 	if o.appName != "" {
 		if _, err := o.store.GetApplication(o.appName); err != nil {
 			return fmt.Errorf("validate application name: %w", err)
@@ -124,7 +124,7 @@ func (o *pipelineStatusOpts) Ask() error {
 }
 
 // Execute displays the status of the pipeline.
-func (o *pipelineStatusOpts) Execute() error {
+func (o *pipelineStatusOpts) Execute(_ context.Context) error {
 	err := o.initDescriber(o)
 	if err != nil {
 		return fmt.Errorf("describe status of pipeline: %w", err)
@@ -184,7 +184,7 @@ Shows status of the pipeline "my-repo-my-branch".
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", pipelineFlagDescription)

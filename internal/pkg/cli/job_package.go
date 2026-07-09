@@ -128,7 +128,7 @@ func (o *packageJobOpts) Validate() error {
 }
 
 // Ask prompts the user for any missing required fields.
-func (o *packageJobOpts) Ask() error {
+func (o *packageJobOpts) Ask(_ context.Context) error {
 	if err := o.askJobName(); err != nil {
 		return err
 	}
@@ -139,9 +139,9 @@ func (o *packageJobOpts) Ask() error {
 }
 
 // Execute prints the CloudFormation template of the application for the environment.
-func (o *packageJobOpts) Execute() error {
+func (o *packageJobOpts) Execute(ctx context.Context) error {
 	o.newPackageCmd(o)
-	return o.packageCmd.Execute()
+	return o.packageCmd.Execute(ctx)
 }
 
 // RecommendActions suggests recommended actions before the packaged template is used for deployment.
@@ -197,7 +197,7 @@ func buildJobPackageCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", jobFlagDescription)

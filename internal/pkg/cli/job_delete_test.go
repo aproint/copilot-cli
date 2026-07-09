@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -277,7 +278,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 				sel:    mockSel,
 			}
 
-			got := opts.Ask()
+			got := opts.Ask(context.Background())
 
 			if got != nil {
 				require.Equal(t, test.wantedError, got)
@@ -475,7 +476,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if test.wantedError != nil {

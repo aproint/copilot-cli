@@ -19,7 +19,7 @@ type listAppOpts struct {
 }
 
 // Execute writes the existing applications.
-func (o *listAppOpts) Execute() error {
+func (o *listAppOpts) Execute(_ context.Context) error {
 	apps, err := o.store.ListApplications()
 	if err != nil {
 		return fmt.Errorf("list applications: %w", err)
@@ -49,7 +49,7 @@ func buildAppListCommand() *cobra.Command {
 				return fmt.Errorf("default config: %v", err)
 			}
 			opts.store = newSSMConfigStoreFromConfig(defaultConfig)
-			return opts.Execute()
+			return opts.Execute(cmd.Context())
 		}),
 	}
 	return cmd

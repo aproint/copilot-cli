@@ -240,7 +240,7 @@ func (o *deleteTaskOpts) askEnvName() error {
 }
 
 // Ask prompts for missing information and fills in gaps.
-func (o *deleteTaskOpts) Ask() error {
+func (o *deleteTaskOpts) Ask(_ context.Context) error {
 	if err := o.askAppName(); err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func (o *deleteTaskOpts) askTaskName() error {
 	return nil
 }
 
-func (o *deleteTaskOpts) Execute() error {
+func (o *deleteTaskOpts) Execute(_ context.Context) error {
 	if err := o.stopTasks(); err != nil {
 		return err
 	}
@@ -492,7 +492,7 @@ func BuildTaskDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 

@@ -113,7 +113,7 @@ func (o *deleteJobOpts) Validate() error {
 }
 
 // Ask prompts the user for any required flags.
-func (o *deleteJobOpts) Ask() error {
+func (o *deleteJobOpts) Ask(_ context.Context) error {
 	if err := o.askAppName(); err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (o *deleteJobOpts) Ask() error {
 // Execute deletes the job's CloudFormation stack.
 // If the job is being removed from the application, Execute will
 // also delete the ECR repository and the SSM parameter.
-func (o *deleteJobOpts) Execute() error {
+func (o *deleteJobOpts) Execute(_ context.Context) error {
 	envs, err := o.appEnvironments()
 	if err != nil {
 		return err
@@ -370,7 +370,7 @@ func buildJobDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 

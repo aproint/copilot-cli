@@ -5,6 +5,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -117,7 +118,7 @@ func TestPipelineList_Ask(t *testing.T) {
 				wsAppName:      tc.inWsAppName,
 			}
 
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -264,7 +265,7 @@ my-pipeline-repo
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.expectedErr != nil {

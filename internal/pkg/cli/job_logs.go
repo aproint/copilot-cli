@@ -142,7 +142,7 @@ func (o *jobLogsOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *jobLogsOpts) Ask() error {
+func (o *jobLogsOpts) Ask(_ context.Context) error {
 	if err := o.validateOrAskApp(); err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func (o *jobLogsOpts) Ask() error {
 }
 
 // Execute outputs logs of the job.
-func (o *jobLogsOpts) Execute() error {
+func (o *jobLogsOpts) Execute(_ context.Context) error {
 	if err := o.initRuntimeClients(); err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func buildJobLogsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", svcFlagDescription)

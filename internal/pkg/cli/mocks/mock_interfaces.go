@@ -64,31 +64,31 @@ func (m *Mockcmd) EXPECT() *MockcmdMockRecorder {
 }
 
 // Ask mocks base method.
-func (m *Mockcmd) Ask() error {
+func (m *Mockcmd) Ask(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ask")
+	ret := m.ctrl.Call(m, "Ask", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Ask indicates an expected call of Ask.
-func (mr *MockcmdMockRecorder) Ask() *gomock.Call {
+func (mr *MockcmdMockRecorder) Ask(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ask", reflect.TypeOf((*Mockcmd)(nil).Ask))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ask", reflect.TypeOf((*Mockcmd)(nil).Ask), arg0)
 }
 
 // Execute mocks base method.
-func (m *Mockcmd) Execute() error {
+func (m *Mockcmd) Execute(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute")
+	ret := m.ctrl.Call(m, "Execute", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockcmdMockRecorder) Execute() *gomock.Call {
+func (mr *MockcmdMockRecorder) Execute(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*Mockcmd)(nil).Execute))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*Mockcmd)(nil).Execute), arg0)
 }
 
 // Validate mocks base method.
@@ -129,31 +129,31 @@ func (m *MockactionCommand) EXPECT() *MockactionCommandMockRecorder {
 }
 
 // Ask mocks base method.
-func (m *MockactionCommand) Ask() error {
+func (m *MockactionCommand) Ask(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ask")
+	ret := m.ctrl.Call(m, "Ask", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Ask indicates an expected call of Ask.
-func (mr *MockactionCommandMockRecorder) Ask() *gomock.Call {
+func (mr *MockactionCommandMockRecorder) Ask(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ask", reflect.TypeOf((*MockactionCommand)(nil).Ask))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ask", reflect.TypeOf((*MockactionCommand)(nil).Ask), arg0)
 }
 
 // Execute mocks base method.
-func (m *MockactionCommand) Execute() error {
+func (m *MockactionCommand) Execute(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute")
+	ret := m.ctrl.Call(m, "Execute", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockactionCommandMockRecorder) Execute() *gomock.Call {
+func (mr *MockactionCommandMockRecorder) Execute(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockactionCommand)(nil).Execute))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockactionCommand)(nil).Execute), arg0)
 }
 
 // RecommendActions mocks base method.
@@ -5497,17 +5497,17 @@ func (m *Mockexecutor) EXPECT() *MockexecutorMockRecorder {
 }
 
 // Execute mocks base method.
-func (m *Mockexecutor) Execute() error {
+func (m *Mockexecutor) Execute(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute")
+	ret := m.ctrl.Call(m, "Execute", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockexecutorMockRecorder) Execute() *gomock.Call {
+func (mr *MockexecutorMockRecorder) Execute(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*Mockexecutor)(nil).Execute))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*Mockexecutor)(nil).Execute), arg0)
 }
 
 // MockexecuteAsker is a mock of executeAsker interface.
@@ -5534,31 +5534,31 @@ func (m *MockexecuteAsker) EXPECT() *MockexecuteAskerMockRecorder {
 }
 
 // Ask mocks base method.
-func (m *MockexecuteAsker) Ask() error {
+func (m *MockexecuteAsker) Ask(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ask")
+	ret := m.ctrl.Call(m, "Ask", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Ask indicates an expected call of Ask.
-func (mr *MockexecuteAskerMockRecorder) Ask() *gomock.Call {
+func (mr *MockexecuteAskerMockRecorder) Ask(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ask", reflect.TypeOf((*MockexecuteAsker)(nil).Ask))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ask", reflect.TypeOf((*MockexecuteAsker)(nil).Ask), arg0)
 }
 
 // Execute mocks base method.
-func (m *MockexecuteAsker) Execute() error {
+func (m *MockexecuteAsker) Execute(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute")
+	ret := m.ctrl.Call(m, "Execute", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockexecuteAskerMockRecorder) Execute() *gomock.Call {
+func (mr *MockexecuteAskerMockRecorder) Execute(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockexecuteAsker)(nil).Execute))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockexecuteAsker)(nil).Execute), arg0)
 }
 
 // MockappSelector is a mock of appSelector interface.

@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -151,7 +152,7 @@ func TestResumeSvcOpts_Ask(t *testing.T) {
 				store: m.store,
 			}
 
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if test.wantedError != nil {
@@ -266,7 +267,7 @@ func TestResumeSvcOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if test.wantedError != nil {

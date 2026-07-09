@@ -322,7 +322,7 @@ func (o *runLocalOpts) Validate() error {
 }
 
 // Ask prompts the user for any unprovided required fields and validates them.
-func (o *runLocalOpts) Ask() error {
+func (o *runLocalOpts) Ask(_ context.Context) error {
 	return o.validateAndAskWkldEnvName()
 }
 
@@ -359,7 +359,7 @@ func (o *runLocalOpts) validateAndAskWkldEnvName() error {
 }
 
 // Execute builds and runs the workload images locally.
-func (o *runLocalOpts) Execute() error {
+func (o *runLocalOpts) Execute(_ context.Context) error {
 	if err := o.configureClients(); err != nil {
 		return err
 	}
@@ -1229,7 +1229,7 @@ func BuildRunLocalCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 		Annotations: map[string]string{
 			"group": group.Develop,

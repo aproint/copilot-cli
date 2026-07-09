@@ -120,6 +120,9 @@ jobs:
           path: homebrew-tap
           token: ${{ steps.tap-token.outputs.token }}
           commit-message: "chore: upgrade copilot-cli to ${{ steps.release.outputs.version }}"
+          committer: "aproint-tap-manager[bot] <301659119+aproint-tap-manager[bot]@users.noreply.github.com>"
+          author: "aproint-tap-manager[bot] <301659119+aproint-tap-manager[bot]@users.noreply.github.com>"
+          sign-commits: true
           title: "chore: upgrade copilot-cli to ${{ steps.release.outputs.version }}"
           body: "Created by ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
           branch: upgrade-copilot-${{ steps.release.outputs.version }}

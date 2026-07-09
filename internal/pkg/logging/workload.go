@@ -5,6 +5,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -35,6 +36,7 @@ type serviceARNGetter interface {
 
 // NewWorkloadLoggerOpts contains fields that initiate workloadLogger struct.
 type NewWorkloadLoggerOpts struct {
+	Ctx  context.Context
 	App  string
 	Env  string
 	Name string
@@ -145,7 +147,11 @@ type NewAppRunnerServiceLoggerOpts struct {
 
 // NewAppRunnerServiceLogger returns an AppRunnerServiceLogger for the service under env and app.
 func NewAppRunnerServiceLogger(opts *NewAppRunnerServiceLoggerOpts) (*AppRunnerServiceLogger, error) {
-	serviceDescriber, err := describe.NewRDWebServiceDescriber(describe.NewServiceConfig{
+	ctx := opts.Ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	serviceDescriber, err := describe.NewRDWebServiceDescriber(ctx, describe.NewServiceConfig{
 		App:         opts.App,
 		Svc:         opts.Name,
 		ConfigStore: opts.ConfigStore,

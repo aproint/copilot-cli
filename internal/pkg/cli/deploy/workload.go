@@ -43,6 +43,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/version"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 )
@@ -168,6 +169,7 @@ func RepoName(app, workload string) string {
 }
 
 type workloadDeployer struct {
+	ctx           context.Context
 	name          string
 	app           *config.Application
 	env           *config.Environment
@@ -209,6 +211,7 @@ type ImagePerContainer struct {
 
 // WorkloadDeployerInput is the input to for workloadDeployer constructor.
 type WorkloadDeployerInput struct {
+	Ctx              context.Context
 	SessionProvider  *sessions.Provider
 	Name             string
 	App              *config.Application
@@ -248,6 +251,10 @@ type ImageActionInput struct {
 
 // newWorkloadDeployer is the constructor for workloadDeployer.
 func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
+	ctx := in.Ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -282,8 +289,8 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	repoName := RepoName(in.App.Name, in.Name)
 	repository := repository.NewWithURI(
 		ecr.New(defaultEnvRegionConfig), repoName, resources.RepositoryURLs[in.Name])
-	store := config.NewSSMStore(identity.New(defaultConfig), config.NewSSMClient(defaultConfig), defaultConfig.Region)
-	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	store := config.NewSSMStore(identity.New(defaultConfig), ssm.NewFromConfig(defaultConfig), defaultConfig.Region)
+	envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 		App:         in.App.Name,
 		Env:         in.Env.Name,
 		ConfigStore: store,
@@ -308,6 +315,7 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	}
 	docker := dockerengine.New(exec.NewCmd())
 	return &workloadDeployer{
+		ctx:                       ctx,
 		name:                      in.Name,
 		app:                       in.App,
 		env:                       in.Env,

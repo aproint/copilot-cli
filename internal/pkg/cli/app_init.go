@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
 	"github.com/spf13/cobra"
 
@@ -76,7 +77,7 @@ func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
 	return &initAppOpts{
 		initAppVars:    vars,
 		identity:       identity,
-		store:          config.NewSSMStore(identity, config.NewSSMClient(cfg), cfg.Region),
+		store:          config.NewSSMStore(identity, ssm.NewFromConfig(cfg), cfg.Region),
 		route53:        route53.New(cfg),
 		cfn:            cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr)),
 		prompt:         prompt.New(),
@@ -133,7 +134,7 @@ func (o *initAppOpts) Validate() error {
 }
 
 // Ask prompts the user for any required arguments that they didn't provide.
-func (o *initAppOpts) Ask(_ context.Context) error {
+func (o *initAppOpts) Ask(ctx context.Context) error {
 	ok, err := o.isSessionFromEnvVars()
 	if err != nil {
 		return err
@@ -194,7 +195,7 @@ If you'd like to delete the application and all of its resources, run %s.
 		return nil
 	}
 
-	existingApps, _ := o.store.ListApplications()
+	existingApps, _ := o.store.ListApplications(ctx)
 	if len(existingApps) == 0 {
 		return o.askAppName(fmtAppInitNamePrompt)
 	}
@@ -211,8 +212,8 @@ If you'd like to delete the application and all of its resources, run %s.
 }
 
 // Execute creates a new managed empty application.
-func (o *initAppOpts) Execute(_ context.Context) error {
-	caller, err := o.identity.Get()
+func (o *initAppOpts) Execute(ctx context.Context) error {
+	caller, err := o.identity.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
@@ -241,7 +242,7 @@ func (o *initAppOpts) Execute(_ context.Context) error {
 		return err
 	}
 
-	if err := o.store.CreateApplication(&config.Application{
+	if err := o.store.CreateApplication(ctx, &config.Application{
 		AccountID:           caller.Account,
 		Name:                o.name,
 		Domain:              o.domainName,
@@ -260,7 +261,7 @@ func (o *initAppOpts) validateAppName(name string) error {
 	if err := validateAppNameString(name); err != nil {
 		return err
 	}
-	app, err := o.store.GetApplication(name)
+	app, err := o.store.GetApplication(context.Background(), name)
 	if err == nil {
 		if o.domainName != "" && app.Domain != o.domainName {
 			return fmt.Errorf("application named %s already exists with a different domain name %s", name, app.Domain)

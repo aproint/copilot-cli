@@ -19,8 +19,8 @@ type listAppOpts struct {
 }
 
 // Execute writes the existing applications.
-func (o *listAppOpts) Execute(_ context.Context) error {
-	apps, err := o.store.ListApplications()
+func (o *listAppOpts) Execute(ctx context.Context) error {
+	apps, err := o.store.ListApplications(ctx)
 	if err != nil {
 		return fmt.Errorf("list applications: %w", err)
 	}

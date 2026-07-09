@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -20,15 +21,15 @@ func newOverrideJobOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, error
 	return cmd, nil
 }
 
-func (o *overrideWorkloadOpts) validateOrAskJobName() error {
+func (o *overrideWorkloadOpts) validateOrAskJobName(ctx context.Context) error {
 	if o.name == "" {
-		return o.askJobName()
+		return o.askJobName(ctx)
 	}
 	return o.validateJobName()
 }
 
-func (o *overrideWorkloadOpts) askJobName() error {
-	name, err := o.wsPrompt.Job("Which job's resources would you like to override?", "")
+func (o *overrideWorkloadOpts) askJobName(ctx context.Context) error {
+	name, err := o.wsPrompt.Job(ctx, "Which job's resources would you like to override?", "")
 	if err != nil {
 		return fmt.Errorf("select job name from workspace: %v", err)
 	}

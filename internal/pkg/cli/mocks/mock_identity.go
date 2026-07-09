@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	identity "github.com/aproint/copilot-cli/internal/pkg/aws/identity"
@@ -35,16 +36,16 @@ func (m *MockidentityService) EXPECT() *MockidentityServiceMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockidentityService) Get() (identity.Caller, error) {
+func (m *MockidentityService) Get(ctx context.Context) (identity.Caller, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get")
+	ret := m.ctrl.Call(m, "Get", ctx)
 	ret0, _ := ret[0].(identity.Caller)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockidentityServiceMockRecorder) Get() *gomock.Call {
+func (mr *MockidentityServiceMockRecorder) Get(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockidentityService)(nil).Get))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockidentityService)(nil).Get), ctx)
 }

@@ -4,6 +4,7 @@
 package list
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,9 +29,9 @@ const (
 
 // Store wraps the methods required for interacting with config stores.
 type Store interface {
-	GetApplication(appName string) (*config.Application, error)
-	ListJobs(appName string) ([]*config.Workload, error)
-	ListServices(appName string) ([]*config.Workload, error)
+	GetApplication(ctx context.Context, appName string) (*config.Application, error)
+	ListJobs(ctx context.Context, appName string) ([]*config.Workload, error)
+	ListServices(ctx context.Context, appName string) ([]*config.Workload, error)
 }
 
 // Workspace wraps the methods required to interact with a local workspace.
@@ -73,11 +74,11 @@ type JobJSONOutput struct {
 }
 
 // Jobs lists all jobs, either locally or in the workspace, and writes the output to a writer.
-func (l *JobListWriter) Write(appName string) error {
-	if _, err := l.Store.GetApplication(appName); err != nil {
+func (l *JobListWriter) Write(ctx context.Context, appName string) error {
+	if _, err := l.Store.GetApplication(ctx, appName); err != nil {
 		return fmt.Errorf("get application: %w", err)
 	}
-	wklds, err := l.Store.ListJobs(appName)
+	wklds, err := l.Store.ListJobs(ctx, appName)
 	if err != nil {
 		return fmt.Errorf("get %s names: %w", jobWorkloadType, err)
 	}
@@ -101,11 +102,11 @@ func (l *JobListWriter) Write(appName string) error {
 }
 
 // Write lists all services, either locally or in the workspace, and writes the output to a writer.
-func (l *SvcListWriter) Write(appName string) error {
-	if _, err := l.Store.GetApplication(appName); err != nil {
+func (l *SvcListWriter) Write(ctx context.Context, appName string) error {
+	if _, err := l.Store.GetApplication(ctx, appName); err != nil {
 		return fmt.Errorf("get application: %w", err)
 	}
-	wklds, err := l.Store.ListServices(appName)
+	wklds, err := l.Store.ListServices(ctx, appName)
 	if err != nil {
 		return fmt.Errorf("get %s names: %w", svcWorkloadType, err)
 	}

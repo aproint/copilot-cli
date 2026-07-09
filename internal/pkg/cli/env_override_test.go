@@ -33,7 +33,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				appName: "demo",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, errors.New("some error"))
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, errors.New("some error"))
 					cmd.cfgStore = mockSSM
 				},
 				wanted: errors.New(`get application "demo" configuration: some error`),
@@ -77,7 +77,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 			"skip validating if environment name is empty": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 				},
 			},
@@ -85,7 +85,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				name: "test",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					mockWS := mocks.NewMockwsEnvironmentReader(ctrl)
 					mockWS.EXPECT().ListEnvironments().Return(nil, errors.New("some error"))
 					cmd.cfgStore = mockSSM
@@ -97,7 +97,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				name: "test",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					mockWS := mocks.NewMockwsEnvironmentReader(ctrl)
 					mockWS.EXPECT().ListEnvironments().Return([]string{"prod"}, nil)
 					cmd.cfgStore = mockSSM
@@ -153,7 +153,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				defer ctrl.Finish()
 				mockSSM := mocks.NewMockstore(ctrl)
-				mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, nil)
+				mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, nil)
 
 				vars := overrideVars{appName: "demo", cdkLang: tc.lang}
 				cmd := &overrideEnvOpts{

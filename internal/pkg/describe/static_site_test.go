@@ -122,7 +122,7 @@ func TestStaticSiteDescriber_Describe(t *testing.T) {
 		"return error if fail to list environments": {
 			setupMocks: func(m staticSiteDescriberMocks) {
 				gomock.InOrder(
-					m.store.EXPECT().ListEnvironmentsDeployedTo(mockApp, mockSvc).Return(nil, mockErr),
+					m.store.EXPECT().ListEnvironmentsDeployedTo(ctx, mockApp, mockSvc).Return(nil, mockErr),
 				)
 			},
 			wantedError: fmt.Errorf(`list deployed environments for service "static": some error`),
@@ -130,7 +130,7 @@ func TestStaticSiteDescriber_Describe(t *testing.T) {
 		"success without resources flag or objects in bucket": {
 			setupMocks: func(m staticSiteDescriberMocks) {
 				gomock.InOrder(
-					m.store.EXPECT().ListEnvironmentsDeployedTo(mockApp, mockSvc).Return([]string{"test"}, nil),
+					m.store.EXPECT().ListEnvironmentsDeployedTo(ctx, mockApp, mockSvc).Return([]string{"test"}, nil),
 					m.wkldDescriber.EXPECT().Outputs().Return(map[string]string{
 						"CloudFrontDistributionDomainName": "dut843shvcmvn.cloudfront.net",
 					}, nil),
@@ -156,7 +156,7 @@ Routes
 			shouldOutputResources: true,
 			setupMocks: func(m staticSiteDescriberMocks) {
 				gomock.InOrder(
-					m.store.EXPECT().ListEnvironmentsDeployedTo(mockApp, mockSvc).Return([]string{"test"}, nil),
+					m.store.EXPECT().ListEnvironmentsDeployedTo(ctx, mockApp, mockSvc).Return([]string{"test"}, nil),
 					m.wkldDescriber.EXPECT().Outputs().Return(map[string]string{
 						"CloudFrontDistributionDomainName": "dut843shvcmvn.cloudfront.net",
 					}, nil),
@@ -171,7 +171,7 @@ Routes
 			shouldOutputResources: true,
 			setupMocks: func(m staticSiteDescriberMocks) {
 				gomock.InOrder(
-					m.store.EXPECT().ListEnvironmentsDeployedTo(mockApp, mockSvc).Return([]string{"test"}, nil),
+					m.store.EXPECT().ListEnvironmentsDeployedTo(ctx, mockApp, mockSvc).Return([]string{"test"}, nil),
 					m.wkldDescriber.EXPECT().Outputs().Return(map[string]string{
 						"CloudFrontDistributionDomainName": "dut843shvcmvn.cloudfront.net",
 					}, nil),

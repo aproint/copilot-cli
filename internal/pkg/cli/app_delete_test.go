@@ -52,21 +52,21 @@ func TestDeleteAppOpts_Ask(t *testing.T) {
 			inAppName:        "phonetool",
 			skipConfirmation: true,
 			setUpMocks: func(m *deleteAppMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(nil, nil)
 			},
 		},
 		"return an error if user provided app doesn't exist in SSM": {
 			inAppName:        "phonetool",
 			skipConfirmation: true,
 			setUpMocks: func(m *deleteAppMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(nil, errors.New("couldn't find an application named phonetool in account 555555555 and region us-west-2"))
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(nil, errors.New("couldn't find an application named phonetool in account 555555555 and region us-west-2"))
 			},
 			want: fmt.Errorf("couldn't find an application named phonetool in account 555555555 and region us-west-2"),
 		},
 		"wrap error returned from prompting": {
 			inAppName: "phonetool",
 			setUpMocks: func(m *deleteAppMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(nil, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(nil, nil)
 				m.prompt.EXPECT().
 					Confirm(fmt.Sprintf(fmtDeleteAppConfirmPrompt, "phonetool"),
 						deleteAppConfirmHelp,
@@ -77,7 +77,7 @@ func TestDeleteAppOpts_Ask(t *testing.T) {
 		},
 		"return error if user cancels operation": {
 			setUpMocks: func(m *deleteAppMocks) {
-				m.sel.EXPECT().Application(appDeleteNamePrompt, "").Return("phonetool", nil)
+				m.sel.EXPECT().Application(ctx, appDeleteNamePrompt, "").Return("phonetool", nil)
 				m.prompt.EXPECT().Confirm(fmt.Sprintf(fmtDeleteAppConfirmPrompt, "phonetool"),
 					deleteAppConfirmHelp,
 					gomock.Any()).
@@ -87,7 +87,7 @@ func TestDeleteAppOpts_Ask(t *testing.T) {
 		},
 		"select from list of apps and user confirms": {
 			setUpMocks: func(m *deleteAppMocks) {
-				m.sel.EXPECT().Application(appDeleteNamePrompt, "").Return("phonetool", nil)
+				m.sel.EXPECT().Application(ctx, appDeleteNamePrompt, "").Return("phonetool", nil)
 				m.prompt.EXPECT().Confirm(fmt.Sprintf(fmtDeleteAppConfirmPrompt, "phonetool"),
 					deleteAppConfirmHelp,
 					gomock.Any()).
@@ -192,15 +192,15 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.pipelineDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteSvcs
-					mocks.store.EXPECT().ListServices(mockAppName).Return(mockServices, nil),
+					mocks.store.EXPECT().ListServices(ctx, mockAppName).Return(mockServices, nil),
 					mocks.svcDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteJobs
-					mocks.store.EXPECT().ListJobs(mockAppName).Return(mockJobs, nil),
+					mocks.store.EXPECT().ListJobs(ctx, mockAppName).Return(mockJobs, nil),
 					mocks.jobDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// listEnvs
-					mocks.store.EXPECT().ListEnvironments(mockAppName).Return(mockEnvs, nil),
+					mocks.store.EXPECT().ListEnvironments(ctx, mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
 					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
@@ -211,7 +211,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.envDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// emptyS3bucket
-					mocks.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil),
+					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
 					mocks.deployer.EXPECT().GetRegionalAppResources(mockApp).Return(mockResources, nil),
 					mocks.spinner.EXPECT().Start(deleteAppCleanResourcesStartMsg),
 					mocks.bucketEmptier.EXPECT().EmptyBucket(mockResources[0].S3Bucket).Return(nil),
@@ -222,7 +222,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 
 					// deleteAppConfigs
 					mocks.spinner.EXPECT().Start(deleteAppConfigStartMsg),
-					mocks.store.EXPECT().DeleteApplication(mockAppName).Return(nil),
+					mocks.store.EXPECT().DeleteApplication(ctx, mockAppName).Return(nil),
 					mocks.spinner.EXPECT().Stop(log.Ssuccess(deleteAppConfigStopMsg)),
 
 					// deleteWs
@@ -242,15 +242,15 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.pipelineDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteSvcs
-					mocks.store.EXPECT().ListServices(mockAppName).Return(mockServices, nil),
+					mocks.store.EXPECT().ListServices(ctx, mockAppName).Return(mockServices, nil),
 					mocks.svcDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteJobs
-					mocks.store.EXPECT().ListJobs(mockAppName).Return(mockJobs, nil),
+					mocks.store.EXPECT().ListJobs(ctx, mockAppName).Return(mockJobs, nil),
 					mocks.jobDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// listEnvs
-					mocks.store.EXPECT().ListEnvironments(mockAppName).Return(mockEnvs, nil),
+					mocks.store.EXPECT().ListEnvironments(ctx, mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
 					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
@@ -261,7 +261,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.envDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// emptyS3bucket
-					mocks.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil),
+					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
 					mocks.deployer.EXPECT().GetRegionalAppResources(mockApp).Return(mockResources, nil),
 					mocks.spinner.EXPECT().Start(deleteAppCleanResourcesStartMsg),
 					mocks.bucketEmptier.EXPECT().EmptyBucket(mockResources[0].S3Bucket).Return(nil),
@@ -272,7 +272,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 
 					// deleteAppConfigs
 					mocks.spinner.EXPECT().Start(deleteAppConfigStartMsg),
-					mocks.store.EXPECT().DeleteApplication(mockAppName).Return(nil),
+					mocks.store.EXPECT().DeleteApplication(ctx, mockAppName).Return(nil),
 					mocks.spinner.EXPECT().Stop(log.Ssuccess(deleteAppConfigStopMsg)),
 
 					// deleteWs

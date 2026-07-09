@@ -51,7 +51,7 @@ func TestOverrideJob_Ask(t *testing.T) {
 				name: "",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideWorkloadOpts) {
 					mockPrompt := mocks.NewMockwsSelector(ctrl)
-					mockPrompt.EXPECT().Job(gomock.Any(), gomock.Any())
+					mockPrompt.EXPECT().Job(ctx, gomock.Any(), gomock.Any())
 					cmd.wsPrompt = mockPrompt
 				},
 			},

@@ -80,7 +80,7 @@ func TestDeployPipelineOpts_Ask(t *testing.T) {
 			inWsAppName: testAppName,
 			inAppName:   testAppName,
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication(testAppName).Return(nil, errors.New("some error"))
+				m.EXPECT().GetApplication(ctx, testAppName).Return(nil, errors.New("some error"))
 			},
 			mockWs:  func(m *mocks.MockwsPipelineReader) {},
 			mockSel: func(m *mocks.MockwsPipelineSelector) {},
@@ -94,7 +94,7 @@ func TestDeployPipelineOpts_Ask(t *testing.T) {
 
 			mockSel: func(m *mocks.MockwsPipelineSelector) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication(testAppName).Return(nil, nil)
+				m.EXPECT().GetApplication(ctx, testAppName).Return(nil, nil)
 			},
 			mockWs: func(m *mocks.MockwsPipelineReader) {
 				m.EXPECT().ListPipelines().Return([]workspace.PipelineManifest{pipeline}, nil)
@@ -105,7 +105,7 @@ func TestDeployPipelineOpts_Ask(t *testing.T) {
 			inAppName:   testAppName,
 			inWsAppName: testAppName,
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication(testAppName).Return(nil, nil)
+				m.EXPECT().GetApplication(ctx, testAppName).Return(nil, nil)
 			},
 			mockSel: func(m *mocks.MockwsPipelineSelector) {
 				m.EXPECT().WsPipeline(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
@@ -119,7 +119,7 @@ func TestDeployPipelineOpts_Ask(t *testing.T) {
 			inAppName:      testAppName,
 			inPipelineName: testPipelineName,
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication(testAppName).Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, testAppName).Return(&config.Application{
 					Name: testAppName,
 				}, nil)
 			},
@@ -250,8 +250,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -286,8 +286,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -328,8 +328,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -365,8 +365,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -399,8 +399,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -447,8 +447,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -566,8 +566,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, errors.New("some error")),
@@ -588,8 +588,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -620,8 +620,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -656,8 +656,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -718,8 +718,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -755,8 +755,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -783,8 +783,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
 					// getArtifactBuckets
 					m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil),
@@ -809,8 +809,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 				m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2)
 
 				// convertStages
-				m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1)
-				m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1)
 
 				// getArtifactBuckets
 				m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil)
@@ -839,8 +839,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 				m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2)
 
 				// convertStages
-				m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1)
-				m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1)
 
 				// getArtifactBuckets
 				m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil)
@@ -879,8 +879,8 @@ func TestDeployPipelineOpts_Execute(t *testing.T) {
 				m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2)
 
 				// convertStages
-				m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1)
-				m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1)
 
 				// getArtifactBuckets
 				m.deployer.EXPECT().GetRegionalAppResources(gomock.Any()).Return(mockResources, nil)

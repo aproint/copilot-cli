@@ -159,8 +159,8 @@ func (o *deleteAppOpts) Validate() error {
 }
 
 // Ask prompts the user for any required flags that they didn't provide.
-func (o *deleteAppOpts) Ask(_ context.Context) error {
-	if err := o.validateOrAskAppName(); err != nil {
+func (o *deleteAppOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskAppName(ctx); err != nil {
 		return err
 	}
 	if o.skipConfirmation {
@@ -200,31 +200,31 @@ func (o *deleteAppOpts) Execute(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.emptyS3Bucket(); err != nil {
+	if err := o.emptyS3Bucket(ctx); err != nil {
 		return err
 	}
 
-	if err := o.deleteAppResources(); err != nil {
+	if err := o.deleteAppResources(ctx); err != nil {
 		return err
 	}
 
-	if err := o.deleteAppConfigs(); err != nil {
+	if err := o.deleteAppConfigs(ctx); err != nil {
 		return err
 	}
 
-	if err := o.deleteWs(); err != nil {
+	if err := o.deleteWs(ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o *deleteAppOpts) validateOrAskAppName() error {
+func (o *deleteAppOpts) validateOrAskAppName(ctx context.Context) error {
 	if o.name != "" {
-		_, err := o.store.GetApplication(o.name)
+		_, err := o.store.GetApplication(ctx, o.name)
 		return err
 	}
-	name, err := o.sel.Application(appDeleteNamePrompt, "")
+	name, err := o.sel.Application(ctx, appDeleteNamePrompt, "")
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -233,7 +233,7 @@ func (o *deleteAppOpts) validateOrAskAppName() error {
 }
 
 func (o *deleteAppOpts) deleteSvcs(ctx context.Context) error {
-	svcs, err := o.store.ListServices(o.name)
+	svcs, err := o.store.ListServices(ctx, o.name)
 	if err != nil {
 		return fmt.Errorf("list services for application %s: %w", o.name, err)
 	}
@@ -251,7 +251,7 @@ func (o *deleteAppOpts) deleteSvcs(ctx context.Context) error {
 }
 
 func (o *deleteAppOpts) deleteJobs(ctx context.Context) error {
-	jobs, err := o.store.ListJobs(o.name)
+	jobs, err := o.store.ListJobs(ctx, o.name)
 	if err != nil {
 		return fmt.Errorf("list jobs for application %s: %w", o.name, err)
 	}
@@ -269,7 +269,7 @@ func (o *deleteAppOpts) deleteJobs(ctx context.Context) error {
 }
 
 func (o *deleteAppOpts) deleteEnvs(ctx context.Context) error {
-	envs, err := o.store.ListEnvironments(o.name)
+	envs, err := o.store.ListEnvironments(ctx, o.name)
 	if err != nil {
 		return fmt.Errorf("list environments for application %s: %w", o.name, err)
 	}
@@ -304,8 +304,8 @@ func (o *deleteAppOpts) deleteEnvs(ctx context.Context) error {
 	return nil
 }
 
-func (o *deleteAppOpts) emptyS3Bucket() error {
-	app, err := o.store.GetApplication(o.name)
+func (o *deleteAppOpts) emptyS3Bucket(ctx context.Context) error {
+	app, err := o.store.GetApplication(ctx, o.name)
 	if err != nil {
 		return fmt.Errorf("get application %s: %w", o.name, err)
 	}
@@ -353,16 +353,16 @@ func (o *deleteAppOpts) deletePipelines(ctx context.Context) error {
 	return nil
 }
 
-func (o *deleteAppOpts) deleteAppResources() error {
+func (o *deleteAppOpts) deleteAppResources(ctx context.Context) error {
 	if err := o.cfn.DeleteApp(o.name); err != nil {
 		return fmt.Errorf("delete app resources: %w", err)
 	}
 	return nil
 }
 
-func (o *deleteAppOpts) deleteAppConfigs() error {
+func (o *deleteAppOpts) deleteAppConfigs(ctx context.Context) error {
 	o.spinner.Start(deleteAppConfigStartMsg)
-	if err := o.store.DeleteApplication(o.name); err != nil {
+	if err := o.store.DeleteApplication(ctx, o.name); err != nil {
 		o.spinner.Stop(log.Serrorln("Error deleting application configuration."))
 		return fmt.Errorf("delete application %s configuration: %w", o.name, err)
 	}
@@ -370,7 +370,7 @@ func (o *deleteAppOpts) deleteAppConfigs() error {
 	return nil
 }
 
-func (o *deleteAppOpts) deleteWs() error {
+func (o *deleteAppOpts) deleteWs(ctx context.Context) error {
 	ws, err := o.existingWorkSpace()
 	if err != nil {
 		return nil

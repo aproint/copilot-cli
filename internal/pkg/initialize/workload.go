@@ -5,6 +5,7 @@
 package initialize
 
 import (
+	"context"
 	"encoding"
 	"fmt"
 	"os"
@@ -29,11 +30,11 @@ var fmtErrUnrecognizedWlType = "unrecognized workload type %s"
 
 // Store represents the methods needed to add workloads to the SSM parameter store.
 type Store interface {
-	GetApplication(appName string) (*config.Application, error)
-	CreateService(service *config.Workload) error
-	CreateJob(job *config.Workload) error
-	ListServices(appName string) ([]*config.Workload, error)
-	ListJobs(appName string) ([]*config.Workload, error)
+	GetApplication(ctx context.Context, appName string) (*config.Application, error)
+	CreateService(ctx context.Context, service *config.Workload) error
+	CreateJob(ctx context.Context, job *config.Workload) error
+	ListServices(ctx context.Context, appName string) ([]*config.Workload, error)
+	ListJobs(ctx context.Context, appName string) ([]*config.Workload, error)
 }
 
 // WorkloadAdder contains the methods needed to add jobs and services to an existing application.
@@ -98,18 +99,18 @@ type WorkloadInitializer struct {
 
 // AddWorkloadToApp contains the logic to create the SSM parameter and perform the stackset template update required
 // to add any workload to the app. It does not write the manifest.
-func (w *WorkloadInitializer) AddWorkloadToApp(appName, name, workloadType string) error {
+func (w *WorkloadInitializer) AddWorkloadToApp(ctx context.Context, appName, name, workloadType string) error {
 	svcOrJob := svcWlType
 	if manifestinfo.IsTypeAJob(workloadType) {
 		svcOrJob = jobWlType
 	}
 
-	app, err := w.Store.GetApplication(appName)
+	app, err := w.Store.GetApplication(ctx, appName)
 	if err != nil {
 		return fmt.Errorf("get application %s: %w", appName, err)
 	}
 	// addWlToAppandSSM only uses the App, Name, and Type
-	return w.addWlToAppAndSSM(app, WorkloadProps{
+	return w.addWlToAppAndSSM(ctx, app, WorkloadProps{
 		App:  appName,
 		Type: workloadType,
 		Name: name,
@@ -117,13 +118,13 @@ func (w *WorkloadInitializer) AddWorkloadToApp(appName, name, workloadType strin
 }
 
 // Service writes the service manifest, creates an ECR repository, and adds the service to SSM.
-func (w *WorkloadInitializer) Service(i *ServiceProps) (string, error) {
-	return w.initService(i)
+func (w *WorkloadInitializer) Service(ctx context.Context, i *ServiceProps) (string, error) {
+	return w.initService(ctx, i)
 }
 
 // Job writes the job manifest, creates an ECR repository, and adds the job to SSM.
-func (w *WorkloadInitializer) Job(i *JobProps) (string, error) {
-	return w.initJob(i)
+func (w *WorkloadInitializer) Job(ctx context.Context, i *JobProps) (string, error) {
+	return w.initJob(ctx, i)
 }
 
 func (w *WorkloadInitializer) addWlToApp(app *config.Application, props WorkloadProps, wlType string) error {
@@ -140,18 +141,18 @@ func (w *WorkloadInitializer) addWlToApp(app *config.Application, props Workload
 	}
 }
 
-func (w *WorkloadInitializer) addWlToStore(wl *config.Workload, wlType string) error {
+func (w *WorkloadInitializer) addWlToStore(ctx context.Context, wl *config.Workload, wlType string) error {
 	switch wlType {
 	case svcWlType:
-		return w.Store.CreateService(wl)
+		return w.Store.CreateService(ctx, wl)
 	case jobWlType:
-		return w.Store.CreateJob(wl)
+		return w.Store.CreateJob(ctx, wl)
 	default:
 		return fmt.Errorf(fmtErrUnrecognizedWlType, wlType)
 	}
 }
 
-func (w *WorkloadInitializer) initJob(props *JobProps) (string, error) {
+func (w *WorkloadInitializer) initJob(ctx context.Context, props *JobProps) (string, error) {
 	if props.DockerfilePath != "" {
 		path, err := w.Ws.Rel(props.DockerfilePath)
 		if err != nil {
@@ -189,12 +190,12 @@ func (w *WorkloadInitializer) initJob(props *JobProps) (string, error) {
 	log.Infoln(color.Help(helpText))
 	log.Infoln()
 
-	app, err := w.Store.GetApplication(props.App)
+	app, err := w.Store.GetApplication(ctx, props.App)
 	if err != nil {
 		return "", fmt.Errorf("get application %s: %w", props.App, err)
 	}
 
-	err = w.addJobToAppAndSSM(app, props.WorkloadProps)
+	err = w.addJobToAppAndSSM(ctx, app, props.WorkloadProps)
 	if err != nil {
 		return "", err
 	}
@@ -206,7 +207,7 @@ func (w *WorkloadInitializer) initJob(props *JobProps) (string, error) {
 	return path, nil
 }
 
-func (w *WorkloadInitializer) initService(props *ServiceProps) (string, error) {
+func (w *WorkloadInitializer) initService(ctx context.Context, props *ServiceProps) (string, error) {
 	if props.DockerfilePath != "" {
 		path, err := w.Ws.Rel(props.DockerfilePath)
 		if err != nil {
@@ -214,7 +215,7 @@ func (w *WorkloadInitializer) initService(props *ServiceProps) (string, error) {
 		}
 		props.DockerfilePath = path
 	}
-	app, err := w.Store.GetApplication(props.App)
+	app, err := w.Store.GetApplication(ctx, props.App)
 	if err != nil {
 		return "", fmt.Errorf("get application %s: %w", props.App, err)
 	}
@@ -223,7 +224,7 @@ func (w *WorkloadInitializer) initService(props *ServiceProps) (string, error) {
 	}
 
 	var manifestExists bool
-	mf, err := w.newServiceManifest(props)
+	mf, err := w.newServiceManifest(ctx, props)
 	if err != nil {
 		return "", err
 	}
@@ -249,7 +250,7 @@ func (w *WorkloadInitializer) initService(props *ServiceProps) (string, error) {
 	log.Infoln(color.Help(helpText))
 	log.Infoln()
 
-	err = w.addSvcToAppAndSSM(app, props.WorkloadProps)
+	err = w.addSvcToAppAndSSM(ctx, app, props.WorkloadProps)
 	if err != nil {
 		return "", err
 	}
@@ -261,21 +262,21 @@ func (w *WorkloadInitializer) initService(props *ServiceProps) (string, error) {
 	return path, nil
 }
 
-func (w *WorkloadInitializer) addSvcToAppAndSSM(app *config.Application, props WorkloadProps) error {
-	return w.addWlToAppAndSSM(app, props, svcWlType)
+func (w *WorkloadInitializer) addSvcToAppAndSSM(ctx context.Context, app *config.Application, props WorkloadProps) error {
+	return w.addWlToAppAndSSM(ctx, app, props, svcWlType)
 }
 
-func (w *WorkloadInitializer) addJobToAppAndSSM(app *config.Application, props WorkloadProps) error {
-	return w.addWlToAppAndSSM(app, props, jobWlType)
+func (w *WorkloadInitializer) addJobToAppAndSSM(ctx context.Context, app *config.Application, props WorkloadProps) error {
+	return w.addWlToAppAndSSM(ctx, app, props, jobWlType)
 }
 
 // addWlToAppAndSSM is a type-agnostic method to add a workload to the app and config store.
-func (w *WorkloadInitializer) addWlToAppAndSSM(app *config.Application, props WorkloadProps, wlType string) error {
+func (w *WorkloadInitializer) addWlToAppAndSSM(ctx context.Context, app *config.Application, props WorkloadProps, wlType string) error {
 	if err := w.addWlToApp(app, props, wlType); err != nil {
 		return fmt.Errorf("add %s %s to application %s: %w", wlType, props.Name, props.App, err)
 	}
 
-	if err := w.addWlToStore(&config.Workload{
+	if err := w.addWlToStore(ctx, &config.Workload{
 		App:  props.App,
 		Name: props.Name,
 		Type: props.Type,
@@ -308,10 +309,10 @@ func newJobManifest(i *JobProps) (encoding.BinaryMarshaler, error) {
 	}
 }
 
-func (w *WorkloadInitializer) newServiceManifest(i *ServiceProps) (encoding.BinaryMarshaler, error) {
+func (w *WorkloadInitializer) newServiceManifest(ctx context.Context, i *ServiceProps) (encoding.BinaryMarshaler, error) {
 	switch i.Type {
 	case manifestinfo.LoadBalancedWebServiceType:
-		return w.newLoadBalancedWebServiceManifest(i)
+		return w.newLoadBalancedWebServiceManifest(ctx, i)
 	case manifestinfo.RequestDrivenWebServiceType:
 		return newRequestDrivenWebServiceManifest(i), nil
 	case manifestinfo.BackendServiceType:
@@ -325,7 +326,7 @@ func (w *WorkloadInitializer) newServiceManifest(i *ServiceProps) (encoding.Bina
 	}
 }
 
-func (w *WorkloadInitializer) newLoadBalancedWebServiceManifest(inProps *ServiceProps) (*manifest.LoadBalancedWebService, error) {
+func (w *WorkloadInitializer) newLoadBalancedWebServiceManifest(ctx context.Context, inProps *ServiceProps) (*manifest.LoadBalancedWebService, error) {
 	outProps := &manifest.LoadBalancedWebServiceProps{
 		WorkloadProps: &manifest.WorkloadProps{
 			Name:                    inProps.Name,
@@ -338,7 +339,7 @@ func (w *WorkloadInitializer) newLoadBalancedWebServiceManifest(inProps *Service
 		HealthCheck: inProps.HealthCheck,
 		Platform:    inProps.Platform,
 	}
-	existingSvcs, err := w.Store.ListServices(inProps.App)
+	existingSvcs, err := w.Store.ListServices(ctx, inProps.App)
 	if err != nil {
 		return nil, err
 	}

@@ -33,7 +33,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				appName: "demo",
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, errors.New("some error"))
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, errors.New("some error"))
 					cmd.cfgStore = mockSSM
 				},
 				wanted: errors.New(`get application "demo" configuration: some error`),
@@ -77,7 +77,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 			"skip validating if pipeline name is empty": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 				},
 			},
@@ -85,7 +85,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				name: "pipeline-testing",
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 					mockWS := mocks.NewMockwsPipelineReader(ctrl)
 					mockWS.EXPECT().ListPipelines().Return(nil, errors.New("some error"))
@@ -98,7 +98,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				name: "pipeline-testing",
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 					mockWS := mocks.NewMockwsPipelineReader(ctrl)
 					mockWS.EXPECT().ListPipelines().Return([]workspace.PipelineManifest{{Name: "pipeline-production", Path: "path"}}, nil)

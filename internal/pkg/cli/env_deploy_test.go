@@ -39,14 +39,14 @@ func TestDeployEnvOpts_Ask(t *testing.T) {
 			inAppName: "mockApp",
 			inName:    "mockEnv",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("get application mockApp: some error"),
 		},
 		"error if no app in workspace": {
 			inName: "mockEnv",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Times(0)
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Times(0)
 			},
 			wantedError: errNoAppInWorkspace,
 		},
@@ -54,7 +54,7 @@ func TestDeployEnvOpts_Ask(t *testing.T) {
 			inAppName: "mockApp",
 			inName:    "mockEnv",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Return(&config.Application{}, nil)
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Return(&config.Application{}, nil)
 				m.ws.EXPECT().ListEnvironments().Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("list environments in workspace: some error"),
@@ -63,7 +63,7 @@ func TestDeployEnvOpts_Ask(t *testing.T) {
 			inAppName: "mockApp",
 			inName:    "mockEnv",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Return(&config.Application{}, nil)
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Return(&config.Application{}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"otherEnv"}, nil)
 			},
 			wantedError: errors.New(`environment manifest for "mockEnv" is not found`),
@@ -72,18 +72,18 @@ func TestDeployEnvOpts_Ask(t *testing.T) {
 			inAppName: "mockApp",
 			inName:    "mockEnv",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Return(&config.Application{}, nil)
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Return(&config.Application{}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv"}, nil)
-				m.store.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("get environment mockEnv in application mockApp: some error"),
 		},
 		"fail to ask for an env from workspace": {
 			inAppName: "mockApp",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Return(&config.Application{}, nil)
-				m.store.EXPECT().GetEnvironment("mockApp", "mockEnv").AnyTimes()
-				m.sel.EXPECT().LocalEnvironment(gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Return(&config.Application{}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").AnyTimes()
+				m.sel.EXPECT().LocalEnvironment(ctx, gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("select environment: some error"),
 		},
@@ -91,20 +91,20 @@ func TestDeployEnvOpts_Ask(t *testing.T) {
 			inAppName: "mockApp",
 			inName:    "mockEnv",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Return(&config.Application{}, nil)
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Return(&config.Application{}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv"}, nil)
-				m.store.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{}, nil)
-				m.sel.EXPECT().LocalEnvironment(gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(&config.Environment{}, nil)
+				m.sel.EXPECT().LocalEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedEnvName: "mockEnv",
 		},
 		"ask for env": {
 			inAppName: "mockApp",
 			setUpMocks: func(m *deployEnvAskMocks) {
-				m.store.EXPECT().GetApplication("mockApp").Return(&config.Application{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetApplication(ctx, "mockApp").Return(&config.Application{}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
 				m.ws.EXPECT().ListEnvironments().Times(0)
-				m.sel.EXPECT().LocalEnvironment(gomock.Any(), gomock.Any()).Return("mockEnv", nil)
+				m.sel.EXPECT().LocalEnvironment(ctx, gomock.Any(), gomock.Any()).Return("mockEnv", nil)
 			},
 			wantedEnvName: "mockEnv",
 		},
@@ -205,7 +205,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{}, errors.New("some error"))
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{}, errors.New("some error"))
 			},
 			wantedErr: errors.New("get identity: some error"),
 		},
@@ -214,7 +214,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\ncdn: true\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\ncdn: true\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(errors.New("mock error"))
@@ -226,7 +226,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -240,7 +240,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -255,7 +255,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -271,7 +271,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -288,7 +288,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -305,7 +305,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -322,7 +322,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -339,7 +339,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -358,7 +358,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Times(0)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -374,7 +374,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(mockEnvVersion, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -390,7 +390,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				m.envVersionGetter.EXPECT().Version().Return(version.EnvTemplateBootstrap, nil)
 				m.ws.EXPECT().ReadEnvironmentManifest("mockEnv").Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
 				m.interpolator.EXPECT().Interpolate("name: mockEnv\ntype: Environment\n").Return("name: mockEnv\ntype: Environment\n", nil)
-				m.identity.EXPECT().Get().Return(identity.Caller{
+				m.identity.EXPECT().Get(ctx).Return(identity.Caller{
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
@@ -439,10 +439,10 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				},
 				ws:       m.ws,
 				identity: m.identity,
-				newEnvDeployer: func() (envDeployer, error) {
+				newEnvDeployer: func(_ context.Context) (envDeployer, error) {
 					return m.deployer, nil
 				},
-				newEnvVersionGetter: func(appName, envName string) (versionGetter, error) {
+				newEnvVersionGetter: func(_ context.Context, appName, envName string) (versionGetter, error) {
 					return m.envVersionGetter, nil
 				},
 				templateVersion: mockCurrVersion,

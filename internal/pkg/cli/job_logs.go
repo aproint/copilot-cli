@@ -64,8 +64,8 @@ func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 			sel:         selector.NewDeploySelect(prompt.New(), configStore, deployStore),
 		},
 	}
-	opts.initRuntimeClients = func() error {
-		env, err := opts.getTargetEnv()
+	opts.initRuntimeClients = func(ctx context.Context) error {
+		env, err := opts.getTargetEnv(ctx)
 		if err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
@@ -74,6 +74,7 @@ func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 			return err
 		}
 		opts.logsSvc = logging.NewJobLogger(&logging.NewWorkloadLoggerOpts{
+			Ctx:  ctx,
 			Cfg:  cfg,
 			App:  opts.appName,
 			Env:  opts.envName,
@@ -86,17 +87,18 @@ func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 
 // Validate returns an error if the values provided by flags are invalid.
 func (o *jobLogsOpts) Validate() error {
+	ctx := context.Background()
 	if o.appName != "" {
-		if _, err := o.configStore.GetApplication(o.appName); err != nil {
+		if _, err := o.configStore.GetApplication(ctx, o.appName); err != nil {
 			return err
 		}
 		if o.envName != "" {
-			if _, err := o.configStore.GetEnvironment(o.appName, o.envName); err != nil {
+			if _, err := o.configStore.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 				return err
 			}
 		}
 		if o.name != "" {
-			if _, err := o.configStore.GetJob(o.appName, o.name); err != nil {
+			if _, err := o.configStore.GetJob(ctx, o.appName, o.name); err != nil {
 				return err
 			}
 		}
@@ -142,16 +144,16 @@ func (o *jobLogsOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *jobLogsOpts) Ask(_ context.Context) error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *jobLogsOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	return o.validateAndAskJobEnvName()
+	return o.validateAndAskJobEnvName(ctx)
 }
 
 // Execute outputs logs of the job.
-func (o *jobLogsOpts) Execute(_ context.Context) error {
-	if err := o.initRuntimeClients(); err != nil {
+func (o *jobLogsOpts) Execute(ctx context.Context) error {
+	if err := o.initRuntimeClients(ctx); err != nil {
 		return err
 	}
 	eventsWriter := logging.WriteHumanLogs
@@ -185,11 +187,11 @@ func (o *jobLogsOpts) Execute(_ context.Context) error {
 	return nil
 }
 
-func (o *jobLogsOpts) getTargetEnv() (*config.Environment, error) {
+func (o *jobLogsOpts) getTargetEnv(ctx context.Context) (*config.Environment, error) {
 	if o.targetEnv != nil {
 		return o.targetEnv, nil
 	}
-	env, err := o.configStore.GetEnvironment(o.appName, o.envName)
+	env, err := o.configStore.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return nil, err
 	}
@@ -197,12 +199,12 @@ func (o *jobLogsOpts) getTargetEnv() (*config.Environment, error) {
 	return o.targetEnv, nil
 }
 
-func (o *jobLogsOpts) validateOrAskApp() error {
+func (o *jobLogsOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.configStore.GetApplication(o.appName)
+		_, err := o.configStore.GetApplication(ctx, o.appName)
 		return err
 	}
-	app, err := o.sel.Application(jobAppNamePrompt, wkldAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, jobAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -210,18 +212,18 @@ func (o *jobLogsOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *jobLogsOpts) validateAndAskJobEnvName() error {
+func (o *jobLogsOpts) validateAndAskJobEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		if _, err := o.getTargetEnv(); err != nil {
+		if _, err := o.getTargetEnv(ctx); err != nil {
 			return err
 		}
 	}
 	if o.name != "" {
-		if _, err := o.configStore.GetJob(o.appName, o.name); err != nil {
+		if _, err := o.configStore.GetJob(ctx, o.appName, o.name); err != nil {
 			return err
 		}
 	}
-	deployedJob, err := o.sel.DeployedJob(jobLogNamePrompt, jobLogNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.name))
+	deployedJob, err := o.sel.DeployedJob(ctx, jobLogNamePrompt, jobLogNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.name))
 	if err != nil {
 		return fmt.Errorf("select deployed jobs for application %s: %w", o.appName, err)
 	}

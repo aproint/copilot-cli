@@ -107,6 +107,7 @@ type envDeployer struct {
 
 // NewEnvDeployerInput contains information needed to construct an environment deployer.
 type NewEnvDeployerInput struct {
+	Ctx             context.Context
 	App             *config.Application
 	Env             *config.Environment
 	SessionProvider *sessions.Provider
@@ -117,6 +118,10 @@ type NewEnvDeployerInput struct {
 
 // NewEnvDeployer constructs an environment deployer.
 func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
+	ctx := in.Ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	defaultConfig, err := in.SessionProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("get default config: %w", err)
@@ -129,7 +134,7 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get env config: %w", err)
 	}
-	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 		App:         in.App.Name,
 		Env:         in.Env.Name,
 		ConfigStore: in.ConfigStore,

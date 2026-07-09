@@ -202,7 +202,7 @@ func (o *deployPipelineOpts) Validate() error {
 }
 
 // Ask prompts the user for any unprovided required fields and validates them.
-func (o *deployPipelineOpts) Ask(_ context.Context) error {
+func (o *deployPipelineOpts) Ask(ctx context.Context) error {
 	if o.wsAppName == "" {
 		return errNoAppInWorkspace
 	}
@@ -210,7 +210,7 @@ func (o *deployPipelineOpts) Ask(_ context.Context) error {
 	if o.appName != "" && o.appName != o.wsAppName {
 		return fmt.Errorf("cannot specify app %s because the workspace is already registered with app %s", o.appName, o.wsAppName)
 	}
-	appConfig, err := o.store.GetApplication(o.wsAppName)
+	appConfig, err := o.store.GetApplication(ctx, o.wsAppName)
 	if err != nil {
 		return fmt.Errorf("get application %s configuration: %w", o.wsAppName, err)
 	}
@@ -468,7 +468,7 @@ func (o *deployPipelineOpts) convertStages(ctx context.Context, manifestStages [
 		return nil, err
 	}
 	for _, stage := range manifestStages {
-		env, err := o.store.GetEnvironment(o.appName, stage.Name)
+		env, err := o.store.GetEnvironment(ctx, o.appName, stage.Name)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s in application %s: %w", stage.Name, o.appName, err)
 		}

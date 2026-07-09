@@ -44,7 +44,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 		"valid app name without application in SSM and without IAM adminrole": {
 			inAppName: "metrics",
 			mock: func(m *initAppMocks) {
-				m.mockStore.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.mockRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
@@ -53,7 +53,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 		"valid app name without application in SSM and with IAM adminrole with copliot tag": {
 			inAppName: "metrics",
 			mock: func(m *initAppMocks) {
-				m.mockStore.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.mockRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(
@@ -66,7 +66,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 		"valid app name without application in SSM and with IAM adminrole without copilot tag": {
 			inAppName: "metrics",
 			mock: func(m *initAppMocks) {
-				m.mockStore.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.mockRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(
@@ -79,7 +79,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 		"valid app name without application in SSM and with IAM adminrole without any tag": {
 			inAppName: "metrics",
 			mock: func(m *initAppMocks) {
-				m.mockStore.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.mockRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(nil, nil)
@@ -96,7 +96,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			inAppName:    "metrics",
 			inDomainName: "badDomain.com",
 			mock: func(m *initAppMocks) {
-				m.mockStore.EXPECT().GetApplication("metrics").Return(&config.Application{
+				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(&config.Application{
 					Name:   "metrics",
 					Domain: "domain.com",
 				}, nil)
@@ -109,13 +109,13 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			inDomainName: "",
 
 			mock: func(m *initAppMocks) {
-				m.mockStore.EXPECT().GetApplication("metrics").Return(nil, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, nil)
 			},
 		},
 		"errors if failed to get application": {
 			inAppName: "metrics",
 			mock: func(m *initAppMocks) {
-				m.mockStore.EXPECT().GetApplication("metrics").Return(nil, errors.New("some error"))
+				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("get application metrics: some error"),
 		},
@@ -258,7 +258,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 					m.ws.EXPECT().Summary().Return(&workspace.Summary{Application: "metrics", Path: "/test"}, nil)
 					return m.ws, nil
 				}
-				m.store.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
@@ -271,7 +271,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 					m.ws.EXPECT().Summary().Return(&workspace.Summary{Application: "metrics", Path: "/test"}, nil)
 					return m.ws, nil
 				}
-				m.store.EXPECT().GetApplication("metrics").Return(&config.Application{Name: "metrics"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(&config.Application{Name: "metrics"}, nil)
 			},
 			wantedAppName: "metrics",
 		},
@@ -281,7 +281,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 					m.ws.EXPECT().Summary().Return(&workspace.Summary{Application: "metrics", Path: "/test"}, nil)
 					return m.ws, nil
 				}
-				m.store.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(
@@ -297,7 +297,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 					m.ws.EXPECT().Summary().Return(&workspace.Summary{Application: "metrics", Path: "/test"}, nil)
 					return m.ws, nil
 				}
-				m.store.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(
@@ -313,7 +313,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, errors.New("some error")
 				}
-				m.store.EXPECT().ListApplications().Times(0)
+				m.store.EXPECT().ListApplications(ctx).Times(0)
 			},
 			wantedErr: "some error",
 		},
@@ -323,7 +323,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Times(0)
+				m.store.EXPECT().ListApplications(ctx).Times(0)
 			},
 			wantedAppName: "metrics",
 		},
@@ -334,7 +334,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 					m.ws.EXPECT().Summary().Return(nil, &workspace.ErrNoAssociatedApplication{})
 					return m.ws, nil
 				}
-				m.store.EXPECT().ListApplications().Times(0)
+				m.store.EXPECT().ListApplications(ctx).Times(0)
 			},
 			wantedAppName: "metrics",
 		},
@@ -345,7 +345,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 					m.ws.EXPECT().Summary().Return(nil, errors.New("some error"))
 					return m.ws, nil
 				}
-				m.store.EXPECT().ListApplications().Times(0)
+				m.store.EXPECT().ListApplications(ctx).Times(0)
 			},
 			wantedErr: "some error",
 		},
@@ -356,7 +356,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 					m.ws.EXPECT().Summary().Return(&workspace.Summary{Application: "metrics", Path: "/test"}, nil)
 					return m.ws, nil
 				}
-				m.store.EXPECT().ListApplications().Times(0)
+				m.store.EXPECT().ListApplications(ctx).Times(0)
 			},
 			wantedErr: "workspace already registered with metrics",
 		},
@@ -365,7 +365,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{}, nil)
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{}, nil)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("my error"))
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -378,9 +378,9 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{}, nil)
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{}, nil)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("metrics", nil)
-				m.store.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
@@ -394,9 +394,9 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{}, nil)
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{}, nil)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("metrics", nil)
-				m.store.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(
@@ -413,9 +413,9 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{}, nil)
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{}, nil)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("metrics", nil)
-				m.store.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(
@@ -432,9 +432,9 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{}, nil)
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{}, nil)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("metrics", nil)
-				m.store.EXPECT().GetApplication("metrics").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("metrics-adminrole")).Return(nil, nil)
@@ -449,7 +449,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{
 					{
 						Name: "metrics",
 					},
@@ -467,7 +467,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{
 					{
 						Name: "metrics",
 					},
@@ -485,7 +485,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{
 					{
 						Name: "metrics",
 					},
@@ -496,7 +496,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mock-app", nil)
-				m.store.EXPECT().GetApplication("mock-app").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("mock-app-adminrole")).Return(nil, errors.New("role not found"))
@@ -508,7 +508,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{
 					{
 						Name: "metrics",
 					},
@@ -519,7 +519,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mock-app", nil)
-				m.store.EXPECT().GetApplication("mock-app").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("mock-app-adminrole")).Return(
@@ -534,7 +534,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{
 					{
 						Name: "metrics",
 					},
@@ -545,7 +545,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mock-app", nil)
-				m.store.EXPECT().GetApplication("mock-app").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("mock-app-adminrole")).Return(
@@ -560,7 +560,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.existingWorkspace = func() (wsAppManager, error) {
 					return nil, &workspace.ErrWorkspaceNotFound{}
 				}
-				m.store.EXPECT().ListApplications().Return([]*config.Application{
+				m.store.EXPECT().ListApplications(ctx).Return([]*config.Application{
 					{
 						Name: "metrics",
 					},
@@ -571,7 +571,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				m.prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mock-app", nil)
-				m.store.EXPECT().GetApplication("mock-app").Return(nil, &config.ErrNoSuchApplication{
+				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
 				m.iamRoleManager.EXPECT().ListRoleTags(gomock.Eq("mock-app-adminrole")).Return(nil, nil)
@@ -646,10 +646,10 @@ func TestInitAppOpts_Execute(t *testing.T) {
 			inPermissionsBoundaryPolicy: "mockPolicy",
 
 			mocking: func(m *initAppExecuteMocks) {
-				m.identityService.EXPECT().Get().Return(identity.Caller{
+				m.identityService.EXPECT().Get(ctx).Return(identity.Caller{
 					Account: "12345",
 				}, nil)
-				m.store.EXPECT().CreateApplication(&config.Application{
+				m.store.EXPECT().CreateApplication(ctx, &config.Application{
 					AccountID:           "12345",
 					Name:                "myapp",
 					Domain:              "amazon.com",
@@ -678,7 +678,7 @@ func TestInitAppOpts_Execute(t *testing.T) {
 		"should return error from workspace.Create": {
 			expectedError: mockError,
 			mocking: func(m *initAppExecuteMocks) {
-				m.identityService.EXPECT().Get().Return(identity.Caller{
+				m.identityService.EXPECT().Get(ctx).Return(identity.Caller{
 					Account: "12345",
 				}, nil)
 				m.newWorkspace = func(appName string) (wsAppManager, error) {
@@ -689,7 +689,7 @@ func TestInitAppOpts_Execute(t *testing.T) {
 		"with an error while deploying myapp": {
 			expectedError: mockError,
 			mocking: func(m *initAppExecuteMocks) {
-				m.identityService.EXPECT().Get().Return(identity.Caller{
+				m.identityService.EXPECT().Get(ctx).Return(identity.Caller{
 					Account: "12345",
 				}, nil)
 				m.newWorkspace = func(appName string) (wsAppManager, error) {
@@ -701,10 +701,10 @@ func TestInitAppOpts_Execute(t *testing.T) {
 		"should return error from CreateApplication": {
 			expectedError: mockError,
 			mocking: func(m *initAppExecuteMocks) {
-				m.identityService.EXPECT().Get().Return(identity.Caller{
+				m.identityService.EXPECT().Get(ctx).Return(identity.Caller{
 					Account: "12345",
 				}, nil)
-				m.store.EXPECT().CreateApplication(gomock.Any()).Return(mockError)
+				m.store.EXPECT().CreateApplication(ctx, gomock.Any()).Return(mockError)
 				m.newWorkspace = func(appName string) (wsAppManager, error) {
 					return m.ws, nil
 				}

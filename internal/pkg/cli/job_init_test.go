@@ -58,7 +58,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inImage:          "mockImage",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(nil, errors.New("some error"))
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(nil, errors.New("some error"))
 			},
 			wantedErr: fmt.Errorf("get application phonetool configuration: some error"),
 		},
@@ -67,7 +67,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inDockerfilePath: "./hello/Dockerfile",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{}, nil)
 			},
 			wantedErr: fmt.Errorf("open %s: file does not exist", filepath.FromSlash("hello/Dockerfile")),
 		},
@@ -76,7 +76,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inTimeout: "30 minutes",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{}, nil)
 			},
 			wantedErr: fmt.Errorf("timeout value 30 minutes is invalid: %s", errDurationInvalid),
 		},
@@ -85,7 +85,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inTimeout: "30m45.5s",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{}, nil)
 			},
 			wantedErr: fmt.Errorf("timeout value 30m45.5s is invalid: %s", errDurationBadUnits),
 		},
@@ -94,7 +94,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inTimeout: "3ms",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{}, nil)
 			},
 			wantedErr: fmt.Errorf("timeout value 3ms is invalid: %s", errDurationBadUnits),
 		},
@@ -103,7 +103,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inTimeout: "0s",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{}, nil)
 			},
 			wantedErr: errors.New("timeout value 0s is invalid: duration must be 1s or greater"),
 		},
@@ -112,7 +112,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inRetries: -3,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{}, nil)
 			},
 			wantedErr: errors.New("number of retries must be non-negative"),
 		},
@@ -122,7 +122,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			inImage:          "mockImage",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{}, nil)
+				m.mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{}, nil)
 			},
 			wantedErr: fmt.Errorf("--dockerfile and --image cannot be specified together"),
 		},
@@ -223,7 +223,7 @@ func TestJobInitOpts_Ask(t *testing.T) {
 			setupMocks: func(m initJobMocks) {
 				m.mockPrompt.EXPECT().Get(gomock.Eq("What do you want to name this job?"), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(wantedJobName, nil)
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(&config.Workload{}, nil)
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(&config.Workload{}, nil)
 			},
 			wantedErr: fmt.Errorf("job cuteness-aggregator already exists"),
 		},
@@ -235,7 +235,7 @@ func TestJobInitOpts_Ask(t *testing.T) {
 			setupMocks: func(m initJobMocks) {
 				m.mockPrompt.EXPECT().Get(gomock.Eq("What do you want to name this job?"), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(wantedJobName, nil)
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, mockError)
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, mockError)
 			},
 			wantedErr: fmt.Errorf("validate if job exists: mock error"),
 		},
@@ -252,7 +252,7 @@ func TestJobInitOpts_Ask(t *testing.T) {
 					gomock.Any(),
 					gomock.Any(),
 				).Return(wantedJobName, nil)
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 			},
 
@@ -265,7 +265,7 @@ func TestJobInitOpts_Ask(t *testing.T) {
 			inJobSchedule:    wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, mockError)
 			},
 
@@ -276,7 +276,7 @@ func TestJobInitOpts_Ask(t *testing.T) {
 			inJobName: wantedJobName,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return([]byte(`
 type: Backend Service`), nil)
 			},
@@ -289,7 +289,7 @@ type: Backend Service`), nil)
 			inJobSchedule:    wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return([]byte(`name: cuteness-aggregator
 type: Scheduled Job`), nil)
 			},
@@ -304,7 +304,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule:    wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 			},
 
@@ -316,7 +316,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule: wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(errors.New("some error"))
 			},
@@ -329,7 +329,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule: wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("mockImage", nil)
@@ -344,7 +344,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule: wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("mockImage", nil)
@@ -359,7 +359,7 @@ type: Scheduled Job`), nil)
 			inDockerfilePath: "",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("", mockError)
@@ -382,7 +382,7 @@ type: Scheduled Job`), nil)
 			inDockerfilePath: "",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("mockImage", nil)
@@ -405,7 +405,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule:    wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockDockerfileSel.EXPECT().Dockerfile(
 					gomock.Eq(fmt.Sprintf(fmtWkldInitDockerfilePrompt, color.HighlightUserInput(wantedJobName))),
@@ -426,7 +426,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule:    wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockDockerfileSel.EXPECT().Dockerfile(
 					gomock.Eq(fmt.Sprintf(fmtWkldInitDockerfilePrompt, color.HighlightUserInput(wantedJobName))),
@@ -447,7 +447,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule:    "",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{})
 				m.mockScheduleSel.EXPECT().Schedule(
 					gomock.Eq(jobInitSchedulePrompt),
@@ -466,7 +466,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule:    "",
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockScheduleSel.EXPECT().Schedule(
 					gomock.Any(),
@@ -485,7 +485,7 @@ type: Scheduled Job`), nil)
 			inJobSchedule:    wantedCronSchedule,
 
 			setupMocks: func(m initJobMocks) {
-				m.mockStore.EXPECT().GetJob(mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
+				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 			},
 
@@ -605,7 +605,7 @@ network:
 				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
-				m.EXPECT().Job(&initialize.JobProps{
+				m.EXPECT().Job(ctx, &initialize.JobProps{
 					WorkloadProps: initialize.WorkloadProps{
 						App:            "sample",
 						Name:           "mailer",
@@ -624,7 +624,7 @@ network:
 				}).Return("manifest/path", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("sample").Return(nil, nil)
+				m.EXPECT().ListEnvironments(ctx, "sample").Return(nil, nil)
 			},
 		},
 		"fail to init job": {
@@ -633,10 +633,10 @@ network:
 				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("").Return(nil, nil)
+				m.EXPECT().ListEnvironments(ctx, "").Return(nil, nil)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
-				m.EXPECT().Job(gomock.Any()).Return("", errors.New("some error"))
+				m.EXPECT().Job(ctx, gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedErr: errors.New("some error"),
 		},
@@ -663,7 +663,7 @@ network:
 				m.EXPECT().GetPlatform().Times(0)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
-				m.EXPECT().Job(&initialize.JobProps{
+				m.EXPECT().Job(ctx, &initialize.JobProps{
 					WorkloadProps: initialize.WorkloadProps{
 						App:            "sample",
 						Name:           "mailer",
@@ -682,7 +682,7 @@ network:
 				}).Return("manifest/path", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("sample").Return(nil, nil)
+				m.EXPECT().ListEnvironments(ctx, "sample").Return(nil, nil)
 			},
 		},
 		"doesn't complain if docker is unavailable": {
@@ -707,7 +707,7 @@ network:
 				m.EXPECT().GetPlatform().Times(0)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
-				m.EXPECT().Job(&initialize.JobProps{
+				m.EXPECT().Job(ctx, &initialize.JobProps{
 					WorkloadProps: initialize.WorkloadProps{
 						App:            "sample",
 						Name:           "mailer",
@@ -726,7 +726,7 @@ network:
 				}).Return("manifest/path", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("sample").Return(nil, nil)
+				m.EXPECT().ListEnvironments(ctx, "sample").Return(nil, nil)
 			},
 		},
 		"return error if platform detection fails": {
@@ -758,7 +758,7 @@ network:
 				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
-				m.EXPECT().Job(&initialize.JobProps{
+				m.EXPECT().Job(ctx, &initialize.JobProps{
 					WorkloadProps: initialize.WorkloadProps{
 						App:                     "sample",
 						Name:                    "mailer",
@@ -778,7 +778,7 @@ network:
 				}).Return("manifest/path", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("sample").Return([]*config.Environment{
+				m.EXPECT().ListEnvironments(ctx, "sample").Return([]*config.Environment{
 					{
 						App:  "sample",
 						Name: "test",
@@ -836,7 +836,7 @@ network:
 				dockerEngine:   mockDockerEngine,
 				manifestExists: tc.inManifestExists,
 				store:          mockStore,
-				initEnvDescriber: func(string, string) (envDescriber, error) {
+				initEnvDescriber: func(_ context.Context, appName, envName string) (envDescriber, error) {
 					return mockEnvDescriber, nil
 				},
 			}

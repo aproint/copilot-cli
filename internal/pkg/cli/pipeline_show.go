@@ -101,13 +101,13 @@ func (o *showPipelineOpts) Validate() error {
 }
 
 // Ask prompts for fields that are required but not passed in, and validates those that are.
-func (o *showPipelineOpts) Ask(_ context.Context) error {
+func (o *showPipelineOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
-		if _, err := o.store.GetApplication(o.appName); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 			return fmt.Errorf("validate application name: %w", err)
 		}
 	} else {
-		if err := o.askAppName(); err != nil {
+		if err := o.askAppName(ctx); err != nil {
 			return err
 		}
 	}
@@ -163,8 +163,8 @@ func (o *showPipelineOpts) getTargetPipeline() (deploy.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (o *showPipelineOpts) askAppName() error {
-	name, err := o.sel.Application(pipelineShowAppNamePrompt, pipelineShowAppNameHelpPrompt)
+func (o *showPipelineOpts) askAppName(ctx context.Context) error {
+	name, err := o.sel.Application(ctx, pipelineShowAppNamePrompt, pipelineShowAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}

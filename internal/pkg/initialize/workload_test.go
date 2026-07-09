@@ -3,6 +3,7 @@
 package initialize
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -16,6 +17,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+var ctx = context.Background()
 
 func TestWorkloadInitializer_Job(t *testing.T) {
 	testCases := map[string]struct {
@@ -52,8 +55,8 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				m.EXPECT().WriteJobManifest(gomock.Any(), "resizer").Return("/resizer/copilot/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateJob(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateJob(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "resizer",
 							App:  "app",
@@ -61,7 +64,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 						}, app)
 					}).
 					Return(nil)
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -89,8 +92,8 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				}).Return("/resizer/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateJob(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateJob(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "resizer",
 							App:  "app",
@@ -98,7 +101,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 						}, app)
 					}).
 					Return(nil)
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -138,7 +141,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				m.EXPECT().WriteJobManifest(gomock.Any(), "resizer").Return("/copilot/resizer/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().GetApplication(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: errors.New("get application app: some error"),
 		},
@@ -155,7 +158,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				m.EXPECT().WriteJobManifest(gomock.Any(), "resizer").Return("/resizer/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -178,9 +181,9 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				m.EXPECT().WriteJobManifest(gomock.Any(), "resizer").Return("/resizer/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateJob(gomock.Any()).
+				m.EXPECT().CreateJob(ctx, gomock.Any()).
 					Return(fmt.Errorf("oops"))
-				m.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{}, nil)
+				m.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
 				m.EXPECT().AddJobToApp(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -228,7 +231,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 			}
 
 			// WHEN
-			_, err := initializer.Job(initJobProps)
+			_, err := initializer.Job(ctx, initJobProps)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -259,7 +262,7 @@ func TestAppInitOpts_createLoadBalancedAppManifest(t *testing.T) {
 			inDockerfilePath: "/Dockerfile",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{}, nil)
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{}, nil)
 			},
 
 			wantedPath: "/",
@@ -271,7 +274,7 @@ func TestAppInitOpts_createLoadBalancedAppManifest(t *testing.T) {
 			inDockerfilePath: "/Dockerfile",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{
 					{
 						Name: "frontend",
 						Type: manifestinfo.LoadBalancedWebServiceType,
@@ -288,7 +291,7 @@ func TestAppInitOpts_createLoadBalancedAppManifest(t *testing.T) {
 			inDockerfilePath: "/Dockerfile",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{
 					{
 						Name: "another-app",
 						Type: "backend",
@@ -305,7 +308,7 @@ func TestAppInitOpts_createLoadBalancedAppManifest(t *testing.T) {
 			inDockerfilePath: "/Dockerfile",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{
 					{
 						Name: "admin",
 						Type: manifestinfo.LoadBalancedWebServiceType,
@@ -323,7 +326,7 @@ func TestAppInitOpts_createLoadBalancedAppManifest(t *testing.T) {
 			inAppDomain:      "example.com",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{
 					{
 						Name: "admin",
 						Type: manifestinfo.LoadBalancedWebServiceType,
@@ -361,7 +364,7 @@ func TestAppInitOpts_createLoadBalancedAppManifest(t *testing.T) {
 			}
 
 			// WHEN
-			manifest, err := initter.newLoadBalancedWebServiceManifest(&props)
+			manifest, err := initter.newLoadBalancedWebServiceManifest(ctx, &props)
 
 			// THEN
 			if tc.wantedErr == nil {
@@ -469,9 +472,9 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				m.EXPECT().WriteServiceManifest(gomock.Any(), "frontend").Return("/frontend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{}, nil)
-				m.EXPECT().CreateService(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{}, nil)
+				m.EXPECT().CreateService(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "frontend",
 							App:  "app",
@@ -479,7 +482,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 						}, app)
 					}).
 					Return(nil)
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -503,8 +506,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				m.EXPECT().WriteServiceManifest(gomock.Any(), "static").Return("/static/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateService(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "static",
 							App:  "app",
@@ -512,7 +515,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 						}, app)
 					}).
 					Return(nil)
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -536,7 +539,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				m.EXPECT().Rel("frontend/Dockerfile").Return("Dockerfile", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().GetApplication("app").Return(nil, errors.New("some error"))
+				m.EXPECT().GetApplication(ctx, "app").Return(nil, errors.New("some error"))
 			},
 			wantedErr: errors.New("get application app: some error"),
 		},
@@ -553,8 +556,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				m.EXPECT().WriteServiceManifest(gomock.Any(), "frontend").Return("/frontend/manifest.yml", errors.New("some error"))
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app")
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().ListServices(ctx, "app")
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -574,8 +577,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				m.EXPECT().WriteServiceManifest(gomock.Any(), "frontend").Return("/frontend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{}, nil)
-				m.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{}, nil)
+				m.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -597,10 +600,10 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				m.EXPECT().WriteServiceManifest(gomock.Any(), "frontend").Return("/frontend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().ListServices("app").Return([]*config.Workload{}, nil)
-				m.EXPECT().CreateService(gomock.Any()).
+				m.EXPECT().ListServices(ctx, "app").Return([]*config.Workload{}, nil)
+				m.EXPECT().CreateService(ctx, gomock.Any()).
 					Return(fmt.Errorf("oops"))
-				m.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{}, nil)
+				m.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
 				m.EXPECT().AddServiceToApp(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -625,8 +628,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/backend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateService(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "backend",
 							App:  "app",
@@ -635,7 +638,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).
 					Return(nil)
 
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -666,8 +669,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/backend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateService(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "backend",
 							App:  "app",
@@ -676,7 +679,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).
 					Return(nil)
 
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -719,8 +722,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/backend/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateService(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "backend",
 							App:  "app",
@@ -728,7 +731,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 						}, app)
 					}).
 					Return(nil)
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -765,8 +768,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/worker/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateService(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "worker",
 							App:  "app",
@@ -775,7 +778,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).
 					Return(nil)
 
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -813,8 +816,8 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).Return("/worker/manifest.yml", nil)
 			},
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().CreateService(gomock.Any()).
-					Do(func(app *config.Workload) {
+				m.EXPECT().CreateService(ctx, gomock.Any()).
+					Do(func(_ context.Context, app *config.Workload) {
 						require.Equal(t, &config.Workload{
 							Name: "worker",
 							App:  "app",
@@ -823,7 +826,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 					}).
 					Return(nil)
 
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, nil)
@@ -866,7 +869,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 			}
 
 			// WHEN
-			_, err := initializer.Service(&ServiceProps{
+			_, err := initializer.Service(ctx, &ServiceProps{
 				WorkloadProps: WorkloadProps{
 					App:            tc.inAppName,
 					Name:           tc.inSvcName,
@@ -906,10 +909,10 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 			inWlName:  "job",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, nil)
-				m.EXPECT().CreateJob(&config.Workload{
+				m.EXPECT().CreateJob(ctx, &config.Workload{
 					App:  "app",
 					Name: "job",
 					Type: manifestinfo.ScheduledJobType,
@@ -927,10 +930,10 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 			inWlName:  "svc",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, nil)
-				m.EXPECT().CreateService(&config.Workload{
+				m.EXPECT().CreateService(ctx, &config.Workload{
 					App:  "app",
 					Name: "svc",
 					Type: manifestinfo.LoadBalancedWebServiceType,
@@ -948,10 +951,10 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 			inWlName:  "svc",
 
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, nil)
-				m.EXPECT().CreateService(&config.Workload{
+				m.EXPECT().CreateService(ctx, &config.Workload{
 					App:  "app",
 					Name: "svc",
 					Type: manifestinfo.StaticSiteType,
@@ -970,10 +973,10 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 
 			wantedErr: errors.New("get application app: some error"),
 			mockstore: func(m *mocks.MockStore) {
-				m.EXPECT().GetApplication("app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "app").Return(&config.Application{
 					Name: "app",
 				}, errors.New("some error"))
-				m.EXPECT().CreateService(gomock.Any()).Times(0)
+				m.EXPECT().CreateService(ctx, gomock.Any()).Times(0)
 			},
 		},
 	}
@@ -999,7 +1002,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 			}
 
 			// WHEN
-			err := initializer.AddWorkloadToApp(tc.inAppName, tc.inWlName, tc.inWlType)
+			err := initializer.AddWorkloadToApp(ctx, tc.inAppName, tc.inWlName, tc.inWlType)
 
 			// THEN
 			if tc.wantedErr != nil {

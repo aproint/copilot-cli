@@ -186,10 +186,10 @@ func TestPipelinePackageOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
-					m.store.EXPECT().GetApplication(appName).Return(nil, someError),
+					m.store.EXPECT().GetApplication(ctx, appName).Return(nil, someError),
 				)
 			},
 			expectedError: fmt.Errorf("get application %v configuration: some error", appName),
@@ -203,10 +203,10 @@ func TestPipelinePackageOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
-					m.store.EXPECT().GetApplication(appName).Return(&config.Application{
+					m.store.EXPECT().GetApplication(ctx, appName).Return(&config.Application{
 						Name: appName,
 					}, nil),
 
@@ -225,10 +225,10 @@ func TestPipelinePackageOpts_Execute(t *testing.T) {
 					m.actionCmd.EXPECT().Execute(gomock.Any()).Times(2),
 
 					// convertStages
-					m.store.EXPECT().GetEnvironment(appName, "chicken").Return(mockEnv, nil).Times(1),
-					m.store.EXPECT().GetEnvironment(appName, "wings").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "chicken").Return(mockEnv, nil).Times(1),
+					m.store.EXPECT().GetEnvironment(ctx, appName, "wings").Return(mockEnv, nil).Times(1),
 
-					m.store.EXPECT().GetApplication(appName).Return(&config.Application{
+					m.store.EXPECT().GetApplication(ctx, appName).Return(&config.Application{
 						Name: appName,
 					}, nil),
 

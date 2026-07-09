@@ -40,8 +40,8 @@ type jobRunOpts struct {
 	targetEnv    *config.Environment
 	sessProvider *sessions.Provider
 
-	newRunner                  func() (runner, error)
-	newEnvCompatibilityChecker func() (versionCompatibilityChecker, error)
+	newRunner                  func(ctx context.Context) (runner, error)
+	newEnvCompatibilityChecker func(ctx context.Context) (versionCompatibilityChecker, error)
 }
 
 func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
@@ -67,8 +67,8 @@ func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
 
 		sessProvider: sessProvider,
 	}
-	opts.newRunner = func() (runner, error) {
-		cfg, err := opts.envConfig()
+	opts.newRunner = func(ctx context.Context) (runner, error) {
+		cfg, err := opts.envConfig(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -82,8 +82,8 @@ func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
 			StateMachine: stepfunctions.New(cfg),
 		}), nil
 	}
-	opts.newEnvCompatibilityChecker = func() (versionCompatibilityChecker, error) {
-		envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	opts.newEnvCompatibilityChecker = func(ctx context.Context) (versionCompatibilityChecker, error) {
+		envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 			App:         opts.appName,
 			Env:         opts.envName,
 			ConfigStore: opts.configStore,
@@ -103,25 +103,25 @@ func (o *jobRunOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *jobRunOpts) Ask(_ context.Context) error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *jobRunOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	if err := o.askJobName(); err != nil {
+	if err := o.askJobName(ctx); err != nil {
 		return err
 	}
-	if err := o.askEnvName(); err != nil {
+	if err := o.askEnvName(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Execute runs the "job run" command.
-func (o *jobRunOpts) Execute(_ context.Context) error {
-	if err := o.validateEnvCompatible(); err != nil {
+func (o *jobRunOpts) Execute(ctx context.Context) error {
+	if err := o.validateEnvCompatible(ctx); err != nil {
 		return err
 	}
-	runner, err := o.newRunner()
+	runner, err := o.newRunner(ctx)
 	if err != nil {
 		return err
 	}
@@ -132,12 +132,12 @@ func (o *jobRunOpts) Execute(_ context.Context) error {
 	return nil
 }
 
-func (o *jobRunOpts) validateOrAskApp() error {
+func (o *jobRunOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.configStore.GetApplication(o.appName)
+		_, err := o.configStore.GetApplication(ctx, o.appName)
 		return err
 	}
-	app, err := o.sel.Application(jobAppNamePrompt, wkldAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, jobAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -145,15 +145,15 @@ func (o *jobRunOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *jobRunOpts) askJobName() error {
+func (o *jobRunOpts) askJobName(ctx context.Context) error {
 	if o.jobName != "" {
-		if _, err := o.configStore.GetJob(o.appName, o.jobName); err != nil {
+		if _, err := o.configStore.GetJob(ctx, o.appName, o.jobName); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	name, err := o.sel.Job("Which job would you like to invoke?", "", o.appName)
+	name, err := o.sel.Job(ctx, "Which job would you like to invoke?", "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select job: %w", err)
 	}
@@ -161,15 +161,15 @@ func (o *jobRunOpts) askJobName() error {
 	return nil
 }
 
-func (o *jobRunOpts) askEnvName() error {
+func (o *jobRunOpts) askEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		if _, err := o.getTargetEnv(); err != nil {
+		if _, err := o.getTargetEnv(ctx); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	name, err := o.sel.Environment("Which environment?", "", o.appName)
+	name, err := o.sel.Environment(ctx, "Which environment?", "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select environment: %w", err)
 	}
@@ -177,11 +177,11 @@ func (o *jobRunOpts) askEnvName() error {
 	return nil
 }
 
-func (o *jobRunOpts) getTargetEnv() (*config.Environment, error) {
+func (o *jobRunOpts) getTargetEnv(ctx context.Context) (*config.Environment, error) {
 	if o.targetEnv != nil {
 		return o.targetEnv, nil
 	}
-	env, err := o.configStore.GetEnvironment(o.appName, o.envName)
+	env, err := o.configStore.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return nil, err
 	}
@@ -189,16 +189,16 @@ func (o *jobRunOpts) getTargetEnv() (*config.Environment, error) {
 	return o.targetEnv, nil
 }
 
-func (o *jobRunOpts) envConfig() (aws.Config, error) {
-	env, err := o.getTargetEnv()
+func (o *jobRunOpts) envConfig(ctx context.Context) (aws.Config, error) {
+	env, err := o.getTargetEnv(ctx)
 	if err != nil {
 		return aws.Config{}, err
 	}
 	return o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
 }
 
-func (o *jobRunOpts) validateEnvCompatible() error {
-	envStack, err := o.newEnvCompatibilityChecker()
+func (o *jobRunOpts) validateEnvCompatible(ctx context.Context) error {
+	envStack, err := o.newEnvCompatibilityChecker(ctx)
 	if err != nil {
 		return err
 	}

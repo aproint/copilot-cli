@@ -242,7 +242,7 @@ func (o *initEnvOpts) Validate() error {
 		if err := validateEnvironmentName(o.name); err != nil {
 			return err
 		}
-		if err := o.validateDuplicateEnv(); err != nil {
+		if err := o.validateDuplicateEnv(context.Background()); err != nil {
 			return err
 		}
 	}
@@ -254,8 +254,8 @@ func (o *initEnvOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *initEnvOpts) Ask(_ context.Context) error {
-	if err := o.askEnvName(); err != nil {
+func (o *initEnvOpts) Ask(ctx context.Context) error {
+	if err := o.askEnvName(ctx); err != nil {
 		return err
 	}
 	if err := o.askEnvSession(); err != nil {
@@ -268,7 +268,7 @@ func (o *initEnvOpts) Ask(_ context.Context) error {
 }
 
 // Execute deploys a new environment with CloudFormation and adds it to SSM.
-func (o *initEnvOpts) Execute(_ context.Context) error {
+func (o *initEnvOpts) Execute(ctx context.Context) error {
 	if err := o.initRuntimeClients(); err != nil {
 		return err
 	}
@@ -281,12 +281,12 @@ func (o *initEnvOpts) Execute(_ context.Context) error {
 			return err
 		}
 	}
-	app, err := o.store.GetApplication(o.appName)
+	app, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		// Ensure the app actually exists before we write the manifest.
 		return err
 	}
-	envCaller, err := o.envIdentity.Get()
+	envCaller, err := o.envIdentity.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
@@ -321,7 +321,7 @@ func (o *initEnvOpts) Execute(_ context.Context) error {
 	}
 
 	// 5. Start creating the CloudFormation stack for the environment.
-	if err := o.deployEnv(app); err != nil {
+	if err := o.deployEnv(ctx, app); err != nil {
 		return err
 	}
 
@@ -330,7 +330,7 @@ func (o *initEnvOpts) Execute(_ context.Context) error {
 	if err != nil {
 		return fmt.Errorf("get environment struct for %s: %w", o.name, err)
 	}
-	if err := o.store.CreateEnvironment(env); err != nil {
+	if err := o.store.CreateEnvironment(ctx, env); err != nil {
 		return fmt.Errorf("store environment: %w", err)
 	}
 	log.Successf("Provisioned bootstrap resources for environment %s in region %s under application %s.\n",
@@ -397,7 +397,7 @@ For default config without subnet placement specification, Copilot will place th
 	return nil
 }
 
-func (o *initEnvOpts) askEnvName() error {
+func (o *initEnvOpts) askEnvName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
@@ -407,7 +407,7 @@ func (o *initEnvOpts) askEnvName() error {
 		return fmt.Errorf("get environment name: %w", err)
 	}
 	o.name = envName
-	return o.validateDuplicateEnv()
+	return o.validateDuplicateEnv(ctx)
 }
 
 func (o *initEnvOpts) askEnvSession() error {
@@ -659,8 +659,8 @@ func (o *initEnvOpts) askAZs() ([]string, error) {
 	return selected, nil
 }
 
-func (o *initEnvOpts) validateDuplicateEnv() error {
-	_, err := o.store.GetEnvironment(o.appName, o.name)
+func (o *initEnvOpts) validateDuplicateEnv(ctx context.Context) error {
+	_, err := o.store.GetEnvironment(ctx, o.appName, o.name)
 	if err == nil {
 		// Skip error if environment already exists in workspace
 		envs, err := o.envLister.ListEnvironments()
@@ -718,7 +718,7 @@ func (o *initEnvOpts) adjustVPCConfig() *config.AdjustVPC {
 	}
 }
 
-func (o *initEnvOpts) deployEnv(app *config.Application) error {
+func (o *initEnvOpts) deployEnv(ctx context.Context, app *config.Application) error {
 	envRegion := o.cfg.Region
 	resources, err := o.appCFN.GetAppResourcesByRegion(app, envRegion)
 	if err != nil {
@@ -734,7 +734,7 @@ func (o *initEnvOpts) deployEnv(app *config.Application) error {
 	}
 	artifactBucketARN := s3.FormatARN(partition.ID(), resources.S3Bucket)
 
-	caller, err := o.identity.Get()
+	caller, err := o.identity.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}

@@ -112,9 +112,9 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           testSvcName,
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.store.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{}, nil)
-				m.sel.EXPECT().Application(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
+				m.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedName: testSvcName,
 		},
@@ -123,8 +123,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           testSvcName,
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.store.EXPECT().GetApplication(gomock.Any()).Return(nil, &config.ErrNoSuchApplication{})
-				m.sel.EXPECT().Application(gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, &config.ErrNoSuchApplication{})
+				m.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedError: &config.ErrNoSuchApplication{},
 		},
@@ -133,9 +133,9 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           testSvcName,
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return(testAppName, nil)
-				m.store.EXPECT().GetApplication(gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return(testAppName, nil)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedName: testSvcName,
 		},
@@ -144,9 +144,9 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           testSvcName,
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Return(&config.Workload{}, nil)
-				m.sel.EXPECT().Service(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Return(&config.Workload{}, nil)
+				m.sel.EXPECT().Service(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedName: testSvcName,
 		},
@@ -155,8 +155,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           testSvcName,
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.store.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{}, nil)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("some error"),
 		},
@@ -165,9 +165,9 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           "",
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.sel.EXPECT().Service("Which service would you like to delete?", "", testAppName).Return(testSvcName, nil)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.sel.EXPECT().Service(ctx, "Which service would you like to delete?", "", testAppName).Return(testSvcName, nil)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedName: testSvcName,
 		},
@@ -176,8 +176,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           "",
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.sel.EXPECT().Service("Which service would you like to delete?", "", testAppName).Return("", mockError)
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.sel.EXPECT().Service(ctx, "Which service would you like to delete?", "", testAppName).Return("", mockError)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedError: fmt.Errorf("select service: %w", mockError),
 		},
@@ -186,8 +186,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			inName:           "",
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.sel.EXPECT().Service("Which service would you like to delete?", "", testAppName).Return("", mockError)
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.sel.EXPECT().Service(ctx, "Which service would you like to delete?", "", testAppName).Return("", mockError)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedError: fmt.Errorf("select service: %w", mockError),
 		},
@@ -197,8 +197,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			skipConfirmation: true,
 			setUpMocks: func(m *svcDeleteAskMocks) {
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedName: testSvcName,
 		},
@@ -212,8 +212,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 					svcDeleteConfirmHelp,
 					gomock.Any(),
 				).Times(1).Return(true, mockError)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 
 			},
 			wantedError: fmt.Errorf("svc delete confirmation prompt: %w", mockError),
@@ -228,8 +228,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 					svcDeleteConfirmHelp,
 					gomock.Any(),
 				).Times(1).Return(false, nil)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedError: errSvcDeleteCancelled,
 		},
@@ -243,8 +243,8 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 					svcDeleteConfirmHelp,
 					gomock.Any(),
 				).Times(1).Return(true, nil)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedName: testSvcName,
 		},
@@ -254,14 +254,14 @@ func TestDeleteSvcOpts_Ask(t *testing.T) {
 			envName:          "test",
 			skipConfirmation: false,
 			setUpMocks: func(m *svcDeleteAskMocks) {
-				m.store.EXPECT().GetEnvironment(testAppName, "test").Return(&config.Environment{}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, testAppName, "test").Return(&config.Environment{}, nil)
 				m.prompt.EXPECT().Confirm(
 					fmt.Sprintf(fmtSvcDeleteFromEnvConfirmPrompt, testSvcName, "test"),
 					fmt.Sprintf(svcDeleteFromEnvConfirmHelp, "test"),
 					gomock.Any(),
 				).Times(1).Return(true, nil)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedName: testSvcName,
 		},
@@ -356,12 +356,12 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 			},
 			setupMocks: func(mocks deleteSvcMocks) {
 				gomock.InOrder(
-					mocks.store.EXPECT().GetWorkload(mockAppName, mockSvcName).Return(&config.Workload{
+					mocks.store.EXPECT().GetWorkload(ctx, mockAppName, mockSvcName).Return(&config.Workload{
 						Type: manifestinfo.LoadBalancedWebServiceType,
 					}, nil),
 
 					// appEnvironments
-					mocks.store.EXPECT().ListEnvironments(gomock.Eq(mockAppName)).Times(1).Return(mockEnvs, nil),
+					mocks.store.EXPECT().ListEnvironments(ctx, gomock.Eq(mockAppName)).Times(1).Return(mockEnvs, nil),
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
@@ -373,11 +373,11 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					mocks.ecr.EXPECT().ClearRepository(mockRepo).Return(nil),
 
 					// removeSvcFromApp
-					mocks.store.EXPECT().GetApplication(mockAppName).Return(mockApp, nil),
+					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
 					mocks.appCFN.EXPECT().RemoveServiceFromApp(mockApp, mockSvcName).Return(nil),
 
 					// deleteSSMParam
-					mocks.store.EXPECT().DeleteService(mockAppName, mockSvcName).Return(nil),
+					mocks.store.EXPECT().DeleteService(ctx, mockAppName, mockSvcName).Return(nil),
 				)
 			},
 			wantedError: nil,
@@ -398,12 +398,12 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 			},
 			setupMocks: func(mocks deleteSvcMocks) {
 				gomock.InOrder(
-					mocks.store.EXPECT().GetWorkload(mockAppName, mockSvcName).Return(&config.Workload{
+					mocks.store.EXPECT().GetWorkload(ctx, mockAppName, mockSvcName).Return(&config.Workload{
 						Type: manifestinfo.LoadBalancedWebServiceType,
 					}, nil),
 
 					// appEnvironments
-					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
+					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
@@ -416,7 +416,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 					mocks.appCFN.EXPECT().RemoveServiceFromApp(gomock.Any(), gomock.Any()).Return(nil).Times(0),
 
 					// It should **not** deleteSSMParam
-					mocks.store.EXPECT().DeleteService(gomock.Any(), gomock.Any()).Return(nil).Times(0),
+					mocks.store.EXPECT().DeleteService(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(0),
 				)
 			},
 			wantedError: nil,
@@ -430,7 +430,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 			},
 			setupMocks: func(mocks deleteSvcMocks) {
 				gomock.InOrder(
-					mocks.store.EXPECT().GetWorkload(mockAppName, mockSvcName).Return(nil, errors.New("some error")),
+					mocks.store.EXPECT().GetWorkload(ctx, mockAppName, mockSvcName).Return(nil, errors.New("some error")),
 				)
 			},
 			wantedError: errors.New("get workload: some error"),
@@ -448,10 +448,10 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 			},
 			setupMocks: func(mocks deleteSvcMocks) {
 				gomock.InOrder(
-					mocks.store.EXPECT().GetWorkload(mockAppName, mockSvcName).Return(&config.Workload{
+					mocks.store.EXPECT().GetWorkload(ctx, mockAppName, mockSvcName).Return(&config.Workload{
 						Type: manifestinfo.LoadBalancedWebServiceType,
 					}, nil),
-					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
+					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 				)
 			},
@@ -470,12 +470,12 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 			},
 			setupMocks: func(mocks deleteSvcMocks) {
 				gomock.InOrder(
-					mocks.store.EXPECT().GetWorkload(mockAppName, mockSvcName).Return(&config.Workload{
+					mocks.store.EXPECT().GetWorkload(ctx, mockAppName, mockSvcName).Return(&config.Workload{
 						Type: manifestinfo.LoadBalancedWebServiceType,
 					}, nil),
 
 					// appEnvironments
-					mocks.store.EXPECT().GetEnvironment(mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
+					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks

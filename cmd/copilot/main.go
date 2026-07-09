@@ -58,18 +58,16 @@ func main() {
 func rootContext() (context.Context, func()) {
 	ctx, cancel := context.WithCancel(context.Background())
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGTERM)
 	stop := func() {
 		signal.Stop(sigCh)
 		cancel()
 	}
 	go func() {
-		sig := <-sigCh
+		<-sigCh
 		cancel()
 		signal.Stop(sigCh)
-		if sig == syscall.SIGTERM {
-			os.Exit(sigtermExitCode)
-		}
+		os.Exit(sigtermExitCode)
 	}()
 	return ctx, stop
 }

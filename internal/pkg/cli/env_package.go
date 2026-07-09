@@ -72,8 +72,8 @@ type packageEnvOpts struct {
 	diffWriter   io.Writer
 
 	newInterpolator     func(appName, name string) interpolator
-	newEnvVersionGetter func(appName, name string) (versionGetter, error)
-	newEnvPackager      func() (envPackager, error)
+	newEnvVersionGetter func(ctx context.Context, appName, name string) (versionGetter, error)
+	newEnvPackager      func(ctx context.Context) (envPackager, error)
 
 	// Cached variables.
 	appCfg *config.Application
@@ -111,8 +111,8 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 		diffWriter:      os.Stdout,
 		templateVersion: version.LatestTemplateVersion(),
 
-		newEnvVersionGetter: func(appName, name string) (versionGetter, error) {
-			return describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		newEnvVersionGetter: func(ctx context.Context, appName, name string) (versionGetter, error) {
+			return describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 				App:         appName,
 				Env:         name,
 				ConfigStore: cfgStore,
@@ -122,12 +122,12 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 			return manifest.NewInterpolator(appName, name)
 		},
 	}
-	opts.newEnvPackager = func() (envPackager, error) {
-		appCfg, err := opts.getAppCfg()
+	opts.newEnvPackager = func(ctx context.Context) (envPackager, error) {
+		appCfg, err := opts.getAppCfg(ctx)
 		if err != nil {
 			return nil, err
 		}
-		envCfg, err := opts.getEnvCfg()
+		envCfg, err := opts.getEnvCfg(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -136,6 +136,7 @@ func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
 			return nil, err
 		}
 		return deploy.NewEnvDeployer(&deploy.NewEnvDeployerInput{
+			Ctx:             ctx,
 			App:             appCfg,
 			Env:             envCfg,
 			SessionProvider: sessProvider,
@@ -153,22 +154,22 @@ func (o *packageEnvOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *packageEnvOpts) Ask(_ context.Context) error {
+func (o *packageEnvOpts) Ask(ctx context.Context) error {
 	if o.appName == "" {
 		// This command is required to be executed under a workspace. We don't prompt for it.
 		return errNoAppInWorkspace
 	}
 
-	if _, err := o.getAppCfg(); err != nil {
+	if _, err := o.getAppCfg(ctx); err != nil {
 		return err
 	}
-	return o.validateOrAskName()
+	return o.validateOrAskName(ctx)
 }
 
 // Execute prints the CloudFormation configuration for the environment.
-func (o *packageEnvOpts) Execute(_ context.Context) error {
+func (o *packageEnvOpts) Execute(ctx context.Context) error {
 	if !o.allowEnvDowngrade {
-		envVersionGetter, err := o.newEnvVersionGetter(o.appName, o.name)
+		envVersionGetter, err := o.newEnvVersionGetter(ctx, o.appName, o.name)
 		if err != nil {
 			return err
 		}
@@ -180,11 +181,11 @@ func (o *packageEnvOpts) Execute(_ context.Context) error {
 	if err != nil {
 		return err
 	}
-	principal, err := o.caller.Get()
+	principal, err := o.caller.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get caller principal identity: %v", err)
 	}
-	packager, err := o.newEnvPackager()
+	packager, err := o.newEnvPackager(ctx)
 	if err != nil {
 		return err
 	}
@@ -246,11 +247,11 @@ func (o *packageEnvOpts) Execute(_ context.Context) error {
 	return o.writeAndClose(o.addonsWriter, addonsTemplate)
 }
 
-func (o *packageEnvOpts) getAppCfg() (*config.Application, error) {
+func (o *packageEnvOpts) getAppCfg(ctx context.Context) (*config.Application, error) {
 	if o.appCfg != nil {
 		return o.appCfg, nil
 	}
-	cfg, err := o.cfgStore.GetApplication(o.appName)
+	cfg, err := o.cfgStore.GetApplication(ctx, o.appName)
 	if err != nil {
 		return nil, fmt.Errorf("get application %q configuration: %w", o.appName, err)
 	}
@@ -258,11 +259,11 @@ func (o *packageEnvOpts) getAppCfg() (*config.Application, error) {
 	return o.appCfg, nil
 }
 
-func (o *packageEnvOpts) getEnvCfg() (*config.Environment, error) {
+func (o *packageEnvOpts) getEnvCfg(ctx context.Context) (*config.Environment, error) {
 	if o.envCfg != nil {
 		return o.envCfg, nil
 	}
-	cfg, err := o.cfgStore.GetEnvironment(o.appName, o.name)
+	cfg, err := o.cfgStore.GetEnvironment(ctx, o.appName, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %q in application %q: %w", o.name, o.appName, err)
 	}
@@ -270,9 +271,9 @@ func (o *packageEnvOpts) getEnvCfg() (*config.Environment, error) {
 	return o.envCfg, nil
 }
 
-func (o *packageEnvOpts) validateOrAskName() error {
+func (o *packageEnvOpts) validateOrAskName(ctx context.Context) error {
 	if o.name != "" {
-		if _, err := o.getEnvCfg(); err != nil {
+		if _, err := o.getEnvCfg(ctx); err != nil {
 			log.Errorf("It seems like environment %s is not added in application %s yet. Have you run %s?\n",
 				o.name, o.appName, color.HighlightCode("copilot env init"))
 			return err
@@ -280,7 +281,7 @@ func (o *packageEnvOpts) validateOrAskName() error {
 		return nil
 	}
 
-	name, err := o.sel.LocalEnvironment("Select an environment manifest from your workspace", "")
+	name, err := o.sel.LocalEnvironment(ctx, "Select an environment manifest from your workspace", "")
 	if err != nil {
 		return fmt.Errorf("select environment: %w", err)
 	}

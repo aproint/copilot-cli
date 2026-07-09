@@ -35,7 +35,7 @@ func TestListAppOpts_Execute(t *testing.T) {
 			mocking: func() {
 				mockstore.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return([]*config.Application{
 						{Name: "app1"},
 						{Name: "app2"},
@@ -51,7 +51,7 @@ func TestListAppOpts_Execute(t *testing.T) {
 			mocking: func() {
 				mockstore.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return(nil, testError).
 					Times(1)
 			},

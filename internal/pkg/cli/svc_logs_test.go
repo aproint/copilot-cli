@@ -186,10 +186,10 @@ func TestSvcLogs_Ask(t *testing.T) {
 			inputEnvName: inputEnv,
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil),
-					m.configStore.EXPECT().GetEnvironment("my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
-					m.configStore.EXPECT().GetService("my-app", "my-svc").Return(&config.Workload{}, nil),
-					m.sel.EXPECT().DeployedService(svcLogNamePrompt, svcLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+					m.configStore.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil),
+					m.configStore.EXPECT().GetEnvironment(ctx, "my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
+					m.configStore.EXPECT().GetService(ctx, "my-app", "my-svc").Return(&config.Workload{}, nil),
+					m.sel.EXPECT().DeployedService(ctx, svcLogNamePrompt, svcLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 						Return(&selector.DeployedService{
 							Env:  "my-env",
 							Name: "my-svc",
@@ -206,13 +206,13 @@ func TestSvcLogs_Ask(t *testing.T) {
 			inputEnvName: inputEnv,
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil),
-					m.configStore.EXPECT().GetEnvironment("my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
-					m.configStore.EXPECT().GetService("my-app", "my-svc").Return(
+					m.configStore.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil),
+					m.configStore.EXPECT().GetEnvironment(ctx, "my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
+					m.configStore.EXPECT().GetService(ctx, "my-app", "my-svc").Return(
 						&config.Workload{
 							Type: manifestinfo.StaticSiteType,
 						}, nil))
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedService{
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedService{
 					Env:     "my-env",
 					Name:    "my-svc",
 					SvcType: manifestinfo.StaticSiteType,
@@ -224,11 +224,11 @@ func TestSvcLogs_Ask(t *testing.T) {
 			inputSvc:     inputSvc,
 			inputEnvName: inputEnv,
 			setupMocks: func(m wkldLogsMock) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
-				m.configStore.EXPECT().GetApplication(gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedService{
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedService{
 					Env:     "my-env",
 					Name:    "my-svc",
 					SvcType: manifestinfo.BackendServiceType,
@@ -241,7 +241,7 @@ func TestSvcLogs_Ask(t *testing.T) {
 		"returns error if fail to select app": {
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error")),
+					m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error")),
 				)
 			},
 			wantedError: fmt.Errorf("select application: some error"),
@@ -249,10 +249,10 @@ func TestSvcLogs_Ask(t *testing.T) {
 		"prompt for svc and env": {
 			inputApp: "my-app",
 			setupMocks: func(m wkldLogsMock) {
-				m.configStore.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(svcLogNamePrompt, svcLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, svcLogNamePrompt, svcLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -265,10 +265,10 @@ func TestSvcLogs_Ask(t *testing.T) {
 		"return error if fail to select deployed services": {
 			inputApp: inputApp,
 			setupMocks: func(m wkldLogsMock) {
-				m.configStore.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(svcLogNamePrompt, svcLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, svcLogNamePrompt, svcLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select deployed services for application my-app: some error"),
@@ -277,10 +277,10 @@ func TestSvcLogs_Ask(t *testing.T) {
 			inputApp:     inputApp,
 			inputTaskIDs: []string{"mockTask1, mockTask2"},
 			setupMocks: func(m wkldLogsMock) {
-				m.configStore.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(svcLogNamePrompt, svcLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, svcLogNamePrompt, svcLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						SvcType: manifestinfo.RequestDrivenWebServiceType,
 					}, nil)
@@ -290,10 +290,10 @@ func TestSvcLogs_Ask(t *testing.T) {
 		"return error if selected svc is of Static Site type": {
 			inputApp: inputApp,
 			setupMocks: func(m wkldLogsMock) {
-				m.configStore.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(svcLogNamePrompt, svcLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, svcLogNamePrompt, svcLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						SvcType: manifestinfo.StaticSiteType,
 					}, nil)
@@ -554,7 +554,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 				wkldLogOpts: wkldLogOpts{
 					startTime:          &tc.startTime,
 					endTime:            &tc.endTime,
-					initRuntimeClients: func() error { return nil },
+					initRuntimeClients: func(_ context.Context) error { return nil },
 					logsSvc:            mockLogsSvc,
 					configStore:        mockConfigStoreReader,
 					sel:                mockSelector,

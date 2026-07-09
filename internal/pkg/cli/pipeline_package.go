@@ -163,7 +163,7 @@ func (o *packagePipelineOpts) Execute(ctx context.Context) error {
 		return fmt.Errorf("convert environments to deployment stage: %w", err)
 	}
 
-	appConfig, err := o.store.GetApplication(o.appName)
+	appConfig, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %s configuration: %w", o.appName, err)
 	}
@@ -252,7 +252,7 @@ func (o *packagePipelineOpts) convertStages(ctx context.Context, manifestStages 
 		return nil, err
 	}
 	for _, stage := range manifestStages {
-		env, err := o.store.GetEnvironment(o.appName, stage.Name)
+		env, err := o.store.GetEnvironment(ctx, o.appName, stage.Name)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s in application %s: %w", stage.Name, o.appName, err)
 		}

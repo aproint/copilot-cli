@@ -89,17 +89,17 @@ func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
 }
 
 // Ask asks for and validates fields that are required but not passed in.
-func (o *listPipelineOpts) Ask(_ context.Context) error {
+func (o *listPipelineOpts) Ask(ctx context.Context) error {
 	if o.shouldShowLocalPipelines {
 		return validateWorkspaceApp(o.wsAppName, o.appName, o.store)
 	}
 
 	if o.appName != "" {
-		if _, err := o.store.GetApplication(o.appName); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 			return fmt.Errorf("validate application: %w", err)
 		}
 	} else {
-		app, err := o.sel.Application(pipelineListAppNamePrompt, pipelineListAppNameHelper)
+		app, err := o.sel.Application(ctx, pipelineListAppNamePrompt, pipelineListAppNameHelper)
 		if err != nil {
 			return fmt.Errorf("select application: %w", err)
 		}

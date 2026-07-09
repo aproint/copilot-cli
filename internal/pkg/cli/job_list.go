@@ -63,12 +63,12 @@ func (o *listJobOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *listJobOpts) Ask(_ context.Context) error {
+func (o *listJobOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
 		return nil
 	}
 
-	name, err := o.sel.Application(jobListAppNamePrompt, wkldAppNameHelpPrompt)
+	name, err := o.sel.Application(ctx, jobListAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -77,8 +77,8 @@ func (o *listJobOpts) Ask(_ context.Context) error {
 }
 
 // Execute lists the jobs in the workspace or application.
-func (o *listJobOpts) Execute(_ context.Context) error {
-	if err := o.list.Write(o.appName); err != nil {
+func (o *listJobOpts) Execute(ctx context.Context) error {
+	if err := o.list.Write(ctx, o.appName); err != nil {
 		return err
 	}
 	return nil

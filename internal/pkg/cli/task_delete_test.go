@@ -39,7 +39,7 @@ func TestDeleteTaskOpts_Validate(t *testing.T) {
 		"with only app flag": {
 			inAppName: "phonetool",
 			setupMocks: func(m validateMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 			},
 			want: nil,
 		},
@@ -51,8 +51,8 @@ func TestDeleteTaskOpts_Validate(t *testing.T) {
 			inAppName: "phonetool",
 			inEnvName: "test",
 			setupMocks: func(m validateMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil)
-				m.store.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
 			},
 			want: nil,
 		},
@@ -61,9 +61,9 @@ func TestDeleteTaskOpts_Validate(t *testing.T) {
 			inEnvName: "test",
 			inName:    "oneoff",
 			setupMocks: func(m validateMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil)
-				m.store.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
-				m.store.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.cfn.EXPECT().GetTaskStack("oneoff")
 			},
@@ -75,9 +75,9 @@ func TestDeleteTaskOpts_Validate(t *testing.T) {
 			inName:    "oneoff",
 			want:      errors.New("get task: some error"),
 			setupMocks: func(m validateMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil)
-				m.store.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
-				m.store.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.cfn.EXPECT().GetTaskStack("oneoff").Return(nil, errors.New("some error"))
 			},
@@ -102,7 +102,7 @@ func TestDeleteTaskOpts_Validate(t *testing.T) {
 			inAppName: "phonetool",
 			inEnvName: "test",
 			setupMocks: func(m validateMocks) {
-				m.store.EXPECT().GetApplication("phonetool").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(nil, errors.New("some error"))
 			},
 			want: errors.New("get application: some error"),
 		},
@@ -186,7 +186,7 @@ func TestDeleteTaskOpts_Ask(t *testing.T) {
 
 			mockStore: func(m *mocks.Mockstore) {
 				// This call is in GetSession when an environment is specified and we need to get the Manager Role's session.
-				m.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
 			},
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockTaskSelect: func(m *mocks.MockcfTaskSelector) {
@@ -205,7 +205,7 @@ func TestDeleteTaskOpts_Ask(t *testing.T) {
 
 			mockStore: func(m *mocks.Mockstore) {
 				// This call is in GetSession when an environment is specified and we need to get the Manager Role's session.
-				m.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
 			},
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockTaskSelect: func(m *mocks.MockcfTaskSelector) {
@@ -238,11 +238,11 @@ func TestDeleteTaskOpts_Ask(t *testing.T) {
 		"no flags specified": {
 			mockStore: func(m *mocks.Mockstore) {
 				// This call is in GetSession when an environment is specified and we need to get the Manager Role's session.
-				m.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test", App: "phonetool"}, nil)
 			},
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Application(taskDeleteAppPrompt, "", appEnvOptionNone).Return("phonetool", nil)
-				m.EXPECT().Environment(taskDeleteEnvPrompt, "", "phonetool", prompt.Option{Value: appEnvOptionNone}).Return("test", nil)
+				m.EXPECT().Application(ctx, taskDeleteAppPrompt, "", appEnvOptionNone).Return("phonetool", nil)
+				m.EXPECT().Environment(ctx, taskDeleteEnvPrompt, "", "phonetool", prompt.Option{Value: appEnvOptionNone}).Return("test", nil)
 			},
 			mockTaskSelect: func(m *mocks.MockcfTaskSelector) {
 				m.EXPECT().Task(taskDeleteNamePrompt, "", gomock.Any()).Return("abc", nil)
@@ -257,7 +257,7 @@ func TestDeleteTaskOpts_Ask(t *testing.T) {
 		"no flags specified (default path)": {
 			mockStore: func(m *mocks.Mockstore) {},
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Application(taskDeleteAppPrompt, "", appEnvOptionNone).Return(appEnvOptionNone, nil)
+				m.EXPECT().Application(ctx, taskDeleteAppPrompt, "", appEnvOptionNone).Return(appEnvOptionNone, nil)
 			},
 			mockTaskSelect: func(m *mocks.MockcfTaskSelector) {
 				m.EXPECT().Task(taskDeleteNamePrompt, "", gomock.Any()).Return("abc", nil)
@@ -379,7 +379,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 				m.sess.EXPECT().ConfigFromRole(gomock.Any(), mockEnv.ManagerRoleARN, mockEnv.Region).Return(aws.Config{Region: "mockRegion"}, nil)
 				m.sess.EXPECT().DefaultConfigWithRegion(gomock.Any(), "mockRegion").Return(aws.Config{}, nil)
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(mockEnv, nil),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(mockEnv, nil),
 					m.spinner.EXPECT().Start(gomock.Any()),
 					m.ecs.EXPECT().StopOneOffTasks(mockApp, mockEnvName, mockTaskName).Return(nil),
 					m.spinner.EXPECT().Stop(gomock.Any()),
@@ -448,7 +448,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 
 			setupMocks: func(m deleteTaskMocks) {
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(nil, mockError),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(nil, mockError),
 				)
 			},
 		},
@@ -463,7 +463,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 				m.sess.EXPECT().ConfigFromRole(gomock.Any(), mockEnv.ManagerRoleARN, mockEnv.Region).Return(aws.Config{Region: "mockRegion"}, nil)
 				m.sess.EXPECT().DefaultConfigWithRegion(gomock.Any(), "mockRegion").Return(aws.Config{}, nil)
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(mockEnv, nil),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(mockEnv, nil),
 					m.spinner.EXPECT().Start(gomock.Any()),
 					m.ecs.EXPECT().StopOneOffTasks(mockApp, mockEnvName, mockTaskName).Return(nil),
 					m.spinner.EXPECT().Stop(gomock.Any()),
@@ -490,7 +490,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 				m.sess.EXPECT().ConfigFromRole(gomock.Any(), mockEnv.ManagerRoleARN, mockEnv.Region).Return(aws.Config{Region: "mockRegion"}, nil)
 				m.sess.EXPECT().DefaultConfigWithRegion(gomock.Any(), "mockRegion").Return(aws.Config{}, nil)
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(mockEnv, nil),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(mockEnv, nil),
 					m.spinner.EXPECT().Start(gomock.Any()),
 					m.ecs.EXPECT().StopOneOffTasks(mockApp, mockEnvName, mockTaskName).Return(nil),
 					m.spinner.EXPECT().Stop(gomock.Any()),
@@ -512,7 +512,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 				m.sess.EXPECT().ConfigFromRole(gomock.Any(), mockEnv.ManagerRoleARN, mockEnv.Region).Return(aws.Config{Region: "mockRegion"}, nil)
 				m.sess.EXPECT().DefaultConfigWithRegion(gomock.Any(), "mockRegion").Return(aws.Config{}, nil)
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(mockEnv, nil),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(mockEnv, nil),
 					m.spinner.EXPECT().Start(gomock.Any()),
 					m.ecs.EXPECT().StopOneOffTasks(mockApp, mockEnvName, mockTaskName).Return(nil),
 					m.spinner.EXPECT().Stop(gomock.Any()),
@@ -533,7 +533,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 				m.sess.EXPECT().ConfigFromRole(gomock.Any(), mockEnv.ManagerRoleARN, mockEnv.Region).Return(aws.Config{Region: "mockRegion"}, nil)
 				m.sess.EXPECT().DefaultConfigWithRegion(gomock.Any(), "mockRegion").Return(aws.Config{}, nil)
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(mockEnv, nil),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(mockEnv, nil),
 					m.spinner.EXPECT().Start(gomock.Any()),
 					m.ecs.EXPECT().StopOneOffTasks(mockApp, mockEnvName, mockTaskName).Return(nil),
 					m.spinner.EXPECT().Stop(gomock.Any()),
@@ -557,7 +557,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 			setupMocks: func(m deleteTaskMocks) {
 				m.sess.EXPECT().ConfigFromRole(gomock.Any(), mockEnv.ManagerRoleARN, mockEnv.Region).Return(aws.Config{Region: "mockRegion"}, nil)
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(mockEnv, nil),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(mockEnv, nil),
 					m.spinner.EXPECT().Start(gomock.Any()),
 					m.ecs.EXPECT().StopOneOffTasks(mockApp, mockEnvName, mockTaskName).Return(mockError),
 					m.spinner.EXPECT().Stop(gomock.Any()),
@@ -575,7 +575,7 @@ func TestDeleteTaskOpts_Execute(t *testing.T) {
 				m.sess.EXPECT().ConfigFromRole(gomock.Any(), mockEnv.ManagerRoleARN, mockEnv.Region).Return(aws.Config{Region: "mockRegion"}, nil)
 				m.sess.EXPECT().DefaultConfigWithRegion(gomock.Any(), "mockRegion").Return(aws.Config{}, nil)
 				gomock.InOrder(
-					m.store.EXPECT().GetEnvironment(mockApp, mockEnvName).Return(mockEnv, nil),
+					m.store.EXPECT().GetEnvironment(ctx, mockApp, mockEnvName).Return(mockEnv, nil),
 					m.spinner.EXPECT().Start(gomock.Any()),
 					m.ecs.EXPECT().StopOneOffTasks(mockApp, mockEnvName, mockTaskName).Return(nil),
 					m.spinner.EXPECT().Stop(gomock.Any()),

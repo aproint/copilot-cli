@@ -33,7 +33,7 @@ func TestOverrideSvc_Validate(t *testing.T) {
 				appName: "demo",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideWorkloadOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, errors.New("some error"))
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, errors.New("some error"))
 					cmd.cfgStore = mockSSM
 				},
 				wanted: errors.New(`get application "demo" configuration: some error`),
@@ -77,7 +77,7 @@ func TestOverrideSvc_Validate(t *testing.T) {
 			"skip validating if environment name is empty": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideWorkloadOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 				},
 			},
@@ -85,8 +85,8 @@ func TestOverrideSvc_Validate(t *testing.T) {
 				envName: "test",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideWorkloadOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-					mockSSM.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Return(nil, &config.ErrNoSuchEnvironment{})
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Return(nil, &config.ErrNoSuchEnvironment{})
 					cmd.cfgStore = mockSSM
 				},
 				wanted: errors.New(`get environment "test" configuration`),
@@ -140,7 +140,7 @@ func TestOverrideSvc_Validate(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				defer ctrl.Finish()
 				mockSSM := mocks.NewMockstore(ctrl)
-				mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, nil)
+				mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, nil)
 
 				vars := overrideVars{appName: "demo", cdkLang: tc.lang}
 				cmd := &overrideWorkloadOpts{
@@ -202,7 +202,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 				name: "",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideWorkloadOpts) {
 					mockPrompt := mocks.NewMockwsSelector(ctrl)
-					mockPrompt.EXPECT().Service(gomock.Any(), gomock.Any())
+					mockPrompt.EXPECT().Service(ctx, gomock.Any(), gomock.Any())
 					cmd.wsPrompt = mockPrompt
 				},
 			},

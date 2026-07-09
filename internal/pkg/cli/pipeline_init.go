@@ -99,7 +99,7 @@ var (
 
 type pipelineInitializer interface {
 	writeManifest() error
-	writeBuildspec() error
+	writeBuildspec(ctx context.Context) error
 }
 
 type workloadPipelineInitializer struct {
@@ -121,8 +121,8 @@ func (ini *workloadPipelineInitializer) writeManifest() error {
 	return ini.cmd.createPipelineManifest(stages)
 }
 
-func (ini *workloadPipelineInitializer) writeBuildspec() error {
-	if err := ini.cmd.createBuildspec(workloadsPipelineBuildspecTemplatePath); err != nil {
+func (ini *workloadPipelineInitializer) writeBuildspec(ctx context.Context) error {
+	if err := ini.cmd.createBuildspec(ctx, workloadsPipelineBuildspecTemplatePath); err != nil {
 		return err
 	}
 	log.Debugln(`The buildspec contains the commands to push your container images, and generate CloudFormation templates.
@@ -148,8 +148,8 @@ func (ini *envPipelineInitializer) writeManifest() error {
 	return ini.cmd.createPipelineManifest(stages)
 }
 
-func (ini *envPipelineInitializer) writeBuildspec() error {
-	if err := ini.cmd.createBuildspec(environmentsPipelineBuildspecTemplatePath); err != nil {
+func (ini *envPipelineInitializer) writeBuildspec(ctx context.Context) error {
+	if err := ini.cmd.createBuildspec(ctx, environmentsPipelineBuildspecTemplatePath); err != nil {
 		return err
 	}
 	log.Debugln(`The buildspec contains the commands to generate CloudFormation templates for your environments.`)
@@ -256,7 +256,7 @@ func (o *initPipelineOpts) Validate() error {
 }
 
 // Ask prompts for required fields that are not passed in and validates them.
-func (o *initPipelineOpts) Ask(_ context.Context) error {
+func (o *initPipelineOpts) Ask(ctx context.Context) error {
 	// This command must be executed in the app's workspace because the pipeline manifest and buildspec will be created and stored.
 	if err := validateWorkspaceApp(o.wsAppName, o.appName, o.store); err != nil {
 		return err
@@ -288,11 +288,11 @@ func (o *initPipelineOpts) Ask(_ context.Context) error {
 	}
 
 	if len(o.environments) == 0 {
-		if err := o.askEnvs(); err != nil {
+		if err := o.askEnvs(ctx); err != nil {
 			return err
 		}
 	}
-	if err := o.validateEnvs(); err != nil {
+	if err := o.validateEnvs(ctx); err != nil {
 		return err
 	}
 
@@ -300,7 +300,7 @@ func (o *initPipelineOpts) Ask(_ context.Context) error {
 }
 
 // Execute writes the pipeline manifest file.
-func (o *initPipelineOpts) Execute(_ context.Context) error {
+func (o *initPipelineOpts) Execute(ctx context.Context) error {
 	if o.provider == manifest.GithubV1ProviderName {
 		if err := o.storeGitHubAccessToken(); err != nil {
 			return err
@@ -311,7 +311,7 @@ func (o *initPipelineOpts) Execute(_ context.Context) error {
 	if err := ini.writeManifest(); err != nil {
 		return err
 	}
-	if err := ini.writeBuildspec(); err != nil {
+	if err := ini.writeBuildspec(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -443,10 +443,10 @@ func (o *initPipelineOpts) validateURL(url string) error {
 }
 
 // To avoid duplicating calls to GetEnvironment, validate and get config in the same step.
-func (o *initPipelineOpts) validateEnvs() error {
+func (o *initPipelineOpts) validateEnvs(ctx context.Context) error {
 	var envConfigs []*config.Environment
 	for _, env := range o.environments {
-		config, err := o.store.GetEnvironment(o.appName, env)
+		config, err := o.store.GetEnvironment(ctx, o.appName, env)
 		if err != nil {
 			return fmt.Errorf("validate environment %s: %w", env, err)
 		}
@@ -456,8 +456,8 @@ func (o *initPipelineOpts) validateEnvs() error {
 	return nil
 }
 
-func (o *initPipelineOpts) askEnvs() error {
-	envs, err := o.sel.Environments(pipelineSelectEnvPrompt, pipelineSelectEnvHelpPrompt, o.appName, func(order int) prompt.PromptConfig {
+func (o *initPipelineOpts) askEnvs(ctx context.Context) error {
+	envs, err := o.sel.Environments(ctx, pipelineSelectEnvPrompt, pipelineSelectEnvHelpPrompt, o.appName, func(order int) prompt.PromptConfig {
 		return prompt.WithFinalMessage(fmt.Sprintf("%s stage:", humanize.Ordinal(order)))
 	})
 	if err != nil {
@@ -766,8 +766,8 @@ Update the file to add stages, change the tracked branch, add test commands or m
 	return nil
 }
 
-func (o *initPipelineOpts) createBuildspec(buildSpecTemplatePath string) error {
-	artifactBuckets, err := o.artifactBuckets()
+func (o *initPipelineOpts) createBuildspec(ctx context.Context, buildSpecTemplatePath string) error {
+	artifactBuckets, err := o.artifactBuckets(ctx)
 	if err != nil {
 		return err
 	}
@@ -840,8 +840,8 @@ func (o *initPipelineOpts) pipelineProvider() (manifest.Provider, error) {
 	return manifest.NewProvider(config)
 }
 
-func (o *initPipelineOpts) artifactBuckets() ([]artifactBucket, error) {
-	app, err := o.store.GetApplication(o.appName)
+func (o *initPipelineOpts) artifactBuckets(ctx context.Context) ([]artifactBucket, error) {
+	app, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return nil, fmt.Errorf("get application %s: %w", o.appName, err)
 	}

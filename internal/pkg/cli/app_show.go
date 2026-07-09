@@ -82,7 +82,7 @@ func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 // Validate returns an error if the values provided by the user are invalid.
 func (o *showAppOpts) Validate() error {
 	if o.name != "" {
-		_, err := o.store.GetApplication(o.name)
+		_, err := o.store.GetApplication(context.Background(), o.name)
 		if err != nil {
 			return fmt.Errorf("get application %s: %w", o.name, err)
 		}
@@ -92,8 +92,8 @@ func (o *showAppOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *showAppOpts) Ask(_ context.Context) error {
-	if err := o.askName(); err != nil {
+func (o *showAppOpts) Ask(ctx context.Context) error {
+	if err := o.askName(ctx); err != nil {
 		return err
 	}
 
@@ -101,8 +101,8 @@ func (o *showAppOpts) Ask(_ context.Context) error {
 }
 
 // Execute writes the application's description.
-func (o *showAppOpts) Execute(_ context.Context) error {
-	description, err := o.description()
+func (o *showAppOpts) Execute(ctx context.Context) error {
+	description, err := o.description(ctx)
 	if err != nil {
 		return err
 	}
@@ -117,8 +117,8 @@ func (o *showAppOpts) Execute(_ context.Context) error {
 	fmt.Fprint(o.w, data)
 	return nil
 }
-func (o *showAppOpts) populateDeployedWorkloads(listWorkloads func(app, env string) ([]string, error), deployedEnvsFor map[string][]string, env string, lock sync.Locker) error {
-	deployedworkload, err := listWorkloads(o.name, env)
+func (o *showAppOpts) populateDeployedWorkloads(ctx context.Context, listWorkloads func(context.Context, string, string) ([]string, error), deployedEnvsFor map[string][]string, env string, lock sync.Locker) error {
+	deployedworkload, err := listWorkloads(ctx, o.name, env)
 	if err != nil {
 		return fmt.Errorf("list services/jobs deployed to %s: %w", env, err)
 	}
@@ -131,35 +131,35 @@ func (o *showAppOpts) populateDeployedWorkloads(listWorkloads func(app, env stri
 	return nil
 }
 
-func (o *showAppOpts) description() (*describe.App, error) {
-	app, err := o.store.GetApplication(o.name)
+func (o *showAppOpts) description(ctx context.Context) (*describe.App, error) {
+	app, err := o.store.GetApplication(ctx, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("get application %s: %w", o.name, err)
 	}
-	envs, err := o.store.ListEnvironments(o.name)
+	envs, err := o.store.ListEnvironments(ctx, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("list environments in application %s: %w", o.name, err)
 	}
-	svcs, err := o.store.ListServices(o.name)
+	svcs, err := o.store.ListServices(ctx, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("list services in application %s: %w", o.name, err)
 	}
-	jobs, err := o.store.ListJobs(o.name)
+	jobs, err := o.store.ListJobs(ctx, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("list jobs in application %s: %w", o.name, err)
 	}
 	wkldDeployedtoEnvs := make(map[string][]string)
-	ctx, cancelWait := context.WithTimeout(context.Background(), waitForStackTimeout)
+	ctx, cancelWait := context.WithTimeout(ctx, waitForStackTimeout)
 	defer cancelWait()
 	g, _ := errgroup.WithContext(ctx)
 	var mux sync.Mutex
 	for i := range envs {
 		env := envs[i]
 		g.Go(func() error {
-			return o.populateDeployedWorkloads(o.deployStore.ListDeployedJobs, wkldDeployedtoEnvs, env.Name, &mux)
+			return o.populateDeployedWorkloads(ctx, o.deployStore.ListDeployedJobs, wkldDeployedtoEnvs, env.Name, &mux)
 		})
 		g.Go(func() error {
-			return o.populateDeployedWorkloads(o.deployStore.ListDeployedServices, wkldDeployedtoEnvs, env.Name, &mux)
+			return o.populateDeployedWorkloads(ctx, o.deployStore.ListDeployedServices, wkldDeployedtoEnvs, env.Name, &mux)
 		})
 	}
 	if err := g.Wait(); err != nil {
@@ -226,11 +226,11 @@ func (o *showAppOpts) description() (*describe.App, error) {
 	}, nil
 }
 
-func (o *showAppOpts) askName() error {
+func (o *showAppOpts) askName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
-	name, err := o.sel.Application(appShowNamePrompt, appShowNameHelpPrompt)
+	name, err := o.sel.Application(ctx, appShowNamePrompt, appShowNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}

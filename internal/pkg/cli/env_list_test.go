@@ -27,7 +27,7 @@ func TestEnvList_Ask(t *testing.T) {
 	}{
 		"with no flags set": {
 			mockSelector: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Application(envListAppNamePrompt, envListAppNameHelper).Return("my-app", nil)
+				m.EXPECT().Application(ctx, envListAppNamePrompt, envListAppNameHelper).Return("my-app", nil)
 			},
 			wantedApp: "my-app",
 		},
@@ -38,7 +38,7 @@ func TestEnvList_Ask(t *testing.T) {
 		},
 		"error if fail to select app": {
 			mockSelector: func(m *mocks.MockconfigSelector) {
-				m.EXPECT().Application(envListAppNamePrompt, envListAppNameHelper).Return("", errors.New("some error"))
+				m.EXPECT().Application(ctx, envListAppNamePrompt, envListAppNameHelper).Return("", errors.New("some error"))
 			},
 			wantedApp: "my-app",
 			wantedErr: fmt.Errorf("select application: some error"),
@@ -93,11 +93,11 @@ func TestEnvList_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockstore.EXPECT().
-					GetApplication(gomock.Eq("coolapp")).
+					GetApplication(ctx, gomock.Eq("coolapp")).
 					Return(&config.Application{}, nil)
 				mockstore.
 					EXPECT().
-					ListEnvironments(gomock.Eq("coolapp")).
+					ListEnvironments(ctx, gomock.Eq("coolapp")).
 					Return([]*config.Environment{
 						{Name: "test"},
 						{Name: "test2"},
@@ -114,11 +114,11 @@ func TestEnvList_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockstore.EXPECT().
-					GetApplication(gomock.Eq("coolapp")).
+					GetApplication(ctx, gomock.Eq("coolapp")).
 					Return(&config.Application{}, nil)
 				mockstore.
 					EXPECT().
-					ListEnvironments(gomock.Eq("coolapp")).
+					ListEnvironments(ctx, gomock.Eq("coolapp")).
 					Return([]*config.Environment{
 						{Name: "test"},
 						{Name: "test2"},
@@ -136,12 +136,12 @@ func TestEnvList_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockstore.EXPECT().
-					GetApplication(gomock.Eq("coolapp")).
+					GetApplication(ctx, gomock.Eq("coolapp")).
 					Return(nil, mockError)
 
 				mockstore.
 					EXPECT().
-					ListEnvironments(gomock.Eq("coolapp")).
+					ListEnvironments(ctx, gomock.Eq("coolapp")).
 					Times(0)
 			},
 		},
@@ -155,12 +155,12 @@ func TestEnvList_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockstore.EXPECT().
-					GetApplication(gomock.Eq("coolapp")).
+					GetApplication(ctx, gomock.Eq("coolapp")).
 					Return(&config.Application{}, nil)
 
 				mockstore.
 					EXPECT().
-					ListEnvironments(gomock.Eq("coolapp")).
+					ListEnvironments(ctx, gomock.Eq("coolapp")).
 					Return(nil, mockError)
 			},
 		},
@@ -173,11 +173,11 @@ func TestEnvList_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockstore.EXPECT().
-					GetApplication(gomock.Eq("coolapp")).
+					GetApplication(ctx, gomock.Eq("coolapp")).
 					Return(&config.Application{}, nil)
 				mockstore.
 					EXPECT().
-					ListEnvironments(gomock.Eq("coolapp")).
+					ListEnvironments(ctx, gomock.Eq("coolapp")).
 					Return([]*config.Environment{
 						{Name: "test"},
 						{Name: "test2"},

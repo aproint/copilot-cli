@@ -44,7 +44,7 @@ type showSvcOpts struct {
 	store         store
 	describer     workloadDescriber
 	sel           configSelector
-	initDescriber func() error // Overridden in tests.
+	initDescriber func(ctx context.Context) error // Overridden in tests.
 
 	// Cached variables.
 	targetSvc *config.Workload
@@ -69,9 +69,9 @@ func newShowSvcOpts(vars showSvcVars) (*showSvcOpts, error) {
 		w:           log.OutputWriter,
 		sel:         selector.NewConfigSelector(prompt.New(), ssmStore),
 	}
-	opts.initDescriber = func() error {
+	opts.initDescriber = func(ctx context.Context) error {
 		var d workloadDescriber
-		svc, err := opts.getTargetSvc()
+		svc, err := opts.getTargetSvc(ctx)
 		if err != nil {
 			return err
 		}
@@ -84,15 +84,15 @@ func newShowSvcOpts(vars showSvcVars) (*showSvcOpts, error) {
 		}
 		switch svc.Type {
 		case manifestinfo.LoadBalancedWebServiceType:
-			d, err = describe.NewLBWebServiceDescriber(config)
+			d, err = describe.NewLBWebServiceDescriber(ctx, config)
 		case manifestinfo.RequestDrivenWebServiceType:
-			d, err = describe.NewRDWebServiceDescriber(config)
+			d, err = describe.NewRDWebServiceDescriber(ctx, config)
 		case manifestinfo.BackendServiceType:
-			d, err = describe.NewBackendServiceDescriber(config)
+			d, err = describe.NewBackendServiceDescriber(ctx, config)
 		case manifestinfo.WorkerServiceType:
-			d, err = describe.NewWorkerServiceDescriber(config)
+			d, err = describe.NewWorkerServiceDescriber(ctx, config)
 		case manifestinfo.StaticSiteType:
-			d, err = describe.NewStaticSiteDescriber(config)
+			d, err = describe.NewStaticSiteDescriber(ctx, config)
 		default:
 			return fmt.Errorf(`service type %q is not supported for %s`, svc.Type, color.HighlightCode("svc show"))
 		}
@@ -112,19 +112,19 @@ func (o *showSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *showSvcOpts) Ask(_ context.Context) error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *showSvcOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	return o.validateOrAskSvcName()
+	return o.validateOrAskSvcName(ctx)
 }
 
 // Execute shows the services through the prompt.
-func (o *showSvcOpts) Execute(_ context.Context) error {
+func (o *showSvcOpts) Execute(ctx context.Context) error {
 	if o.svcName == "" {
 		return nil
 	}
-	if err := o.initDescriber(); err != nil {
+	if err := o.initDescriber(ctx); err != nil {
 		return err
 	}
 
@@ -149,12 +149,12 @@ func (o *showSvcOpts) Execute(_ context.Context) error {
 	return nil
 }
 
-func (o *showSvcOpts) validateOrAskApp() error {
+func (o *showSvcOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.store.GetApplication(o.appName)
+		_, err := o.store.GetApplication(ctx, o.appName)
 		return err
 	}
-	appName, err := o.sel.Application(svcAppNamePrompt, wkldAppNameHelpPrompt)
+	appName, err := o.sel.Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -162,12 +162,12 @@ func (o *showSvcOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *showSvcOpts) validateOrAskSvcName() error {
+func (o *showSvcOpts) validateOrAskSvcName(ctx context.Context) error {
 	if o.svcName != "" {
-		_, err := o.getTargetSvc()
+		_, err := o.getTargetSvc(ctx)
 		return err
 	}
-	svcName, err := o.sel.Service(fmt.Sprintf(svcShowSvcNamePrompt, color.HighlightUserInput(o.appName)),
+	svcName, err := o.sel.Service(ctx, fmt.Sprintf(svcShowSvcNamePrompt, color.HighlightUserInput(o.appName)),
 		svcShowSvcNameHelpPrompt, o.appName)
 	if err != nil {
 		return fmt.Errorf("select service for application %s: %w", o.appName, err)
@@ -177,11 +177,11 @@ func (o *showSvcOpts) validateOrAskSvcName() error {
 	return nil
 }
 
-func (o *showSvcOpts) getTargetSvc() (*config.Workload, error) {
+func (o *showSvcOpts) getTargetSvc(ctx context.Context) (*config.Workload, error) {
 	if o.targetSvc != nil {
 		return o.targetSvc, nil
 	}
-	svc, err := o.store.GetService(o.appName, o.svcName)
+	svc, err := o.store.GetService(ctx, o.appName, o.svcName)
 	if err != nil {
 		return nil, err
 	}

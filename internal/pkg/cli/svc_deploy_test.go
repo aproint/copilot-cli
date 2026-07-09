@@ -51,19 +51,19 @@ func TestSvcDeployOpts_Ask(t *testing.T) {
 			inEnvName: "prod-iad",
 			inSvcName: "frontend",
 			setupMocks: func(m *svcDeployAskMocks) {
-				m.store.EXPECT().GetApplication("phonetool")
-				m.store.EXPECT().GetEnvironment("phonetool", "prod-iad").Return(&config.Environment{Name: "prod-iad"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool")
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "prod-iad").Return(&config.Environment{Name: "prod-iad"}, nil)
 				m.ws.EXPECT().ListServices().Return([]string{"frontend"}, nil)
-				m.store.EXPECT().GetService("phonetool", "frontend").Return(&config.Workload{}, nil)
-				m.sel.EXPECT().Service(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, "phonetool", "frontend").Return(&config.Workload{}, nil)
+				m.sel.EXPECT().Service(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedSvcName: "frontend",
 			wantedEnvName: "prod-iad",
 		},
 		"error instead of prompting for application name if not provided": {
 			setupMocks: func(m *svcDeployAskMocks) {
-				m.store.EXPECT().GetApplication(gomock.Any()).Times(0)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
 			},
 			wantedError: errNoAppInWorkspace,
 		},
@@ -71,10 +71,10 @@ func TestSvcDeployOpts_Ask(t *testing.T) {
 			inAppName: "phonetool",
 			inEnvName: "prod-iad",
 			setupMocks: func(m *svcDeployAskMocks) {
-				m.sel.EXPECT().Service("Select a service in your workspace", "").Return("frontend", nil)
-				m.store.EXPECT().GetApplication(gomock.Any()).Times(1)
-				m.store.EXPECT().GetEnvironment("phonetool", "prod-iad").Return(&config.Environment{Name: "prod-iad"}, nil)
-				m.store.EXPECT().GetService("phonetool", "frontend").Return(&config.Workload{}, nil)
+				m.sel.EXPECT().Service(ctx, "Select a service in your workspace", "").Return("frontend", nil)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, "phonetool", "prod-iad").Return(&config.Environment{Name: "prod-iad"}, nil)
+				m.store.EXPECT().GetService(ctx, "phonetool", "frontend").Return(&config.Workload{}, nil)
 			},
 			wantedSvcName: "frontend",
 			wantedEnvName: "prod-iad",
@@ -83,10 +83,10 @@ func TestSvcDeployOpts_Ask(t *testing.T) {
 			inAppName: "phonetool",
 			inSvcName: "frontend",
 			setupMocks: func(m *svcDeployAskMocks) {
-				m.sel.EXPECT().Environment(gomock.Any(), gomock.Any(), "phonetool").Return("prod-iad", nil)
-				m.store.EXPECT().GetApplication("phonetool")
+				m.sel.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), "phonetool").Return("prod-iad", nil)
+				m.store.EXPECT().GetApplication(ctx, "phonetool")
 				m.ws.EXPECT().ListServices().Return([]string{"frontend"}, nil)
-				m.store.EXPECT().GetService("phonetool", "frontend").Return(&config.Workload{}, nil)
+				m.store.EXPECT().GetService(ctx, "phonetool", "frontend").Return(&config.Workload{}, nil)
 			},
 			wantedSvcName: "frontend",
 			wantedEnvName: "prod-iad",
@@ -505,7 +505,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 					clientConfigured:   true,
 				},
 				svcType: tc.inSvcType,
-				newSvcDeployer: func() (workloadDeployer, error) {
+				newSvcDeployer: func(_ context.Context) (workloadDeployer, error) {
 					return m.mockDeployer, nil
 				},
 				newInterpolator: func(app, env string) interpolator {

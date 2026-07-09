@@ -183,8 +183,8 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 					templateVersion: version.LatestTemplateVersion(),
 					sessProvider:    sessProvider,
 				}
-				opts.newJobDeployer = func() (workloadDeployer, error) {
-					return newJobDeployer(opts)
+				opts.newJobDeployer = func(ctx context.Context) (workloadDeployer, error) {
+					return newJobDeployer(ctx, opts)
 				}
 				opts.name = workloadName
 				return opts, nil
@@ -203,8 +203,8 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 					sessProvider:    sessProvider,
 					templateVersion: version.LatestTemplateVersion(),
 				}
-				opts.newSvcDeployer = func() (workloadDeployer, error) {
-					return newSvcDeployer(opts)
+				opts.newSvcDeployer = func(ctx context.Context) (workloadDeployer, error) {
+					return newSvcDeployer(ctx, opts)
 				}
 				opts.name = workloadName
 				// Multi-deployments can have flags specified which are not compatible with all service types.
@@ -224,9 +224,9 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 // to convey the customer intention. When the customer specifies --all and --init-wkld,
 // we will add all un-initialized local workloads to the list to be deployed.
 // When the customer does not specify --init-wkld with --all, we will only deploy initialized workloads.
-func (o *deployOpts) maybeInitWkld(name string) error {
+func (o *deployOpts) maybeInitWkld(ctx context.Context, name string) error {
 	// Confirm that the workload needs to be initialized after asking for the name.
-	initializedWorkloads, err := o.listInitializedLocalWorkloads()
+	initializedWorkloads, err := o.listInitializedLocalWorkloads(ctx)
 	if err != nil {
 		return err
 	}
@@ -251,7 +251,7 @@ func (o *deployOpts) maybeInitWkld(name string) error {
 	}
 
 	wkldAdder := o.newWorkloadAdder()
-	if err = wkldAdder.AddWorkloadToApp(o.appName, name, workloadType); err != nil {
+	if err = wkldAdder.AddWorkloadToApp(ctx, o.appName, name, workloadType); err != nil {
 		return fmt.Errorf("add workload to app: %w", err)
 	}
 	return nil
@@ -311,7 +311,7 @@ func (o *deployOpts) parseDeploymentOrderTags(namesWithOptionalOrder []string) e
 //	[][]string{ {"be"}, {"fe"}, {"worker", "job", "db"} }.
 //
 // TODO: when there's a dependsOn field in the manifest, we should modify this function to respect it.
-func (o *deployOpts) getDeploymentOrder() ([][]string, error) {
+func (o *deployOpts) getDeploymentOrder(ctx context.Context) ([][]string, error) {
 
 	// Get a map from workload name to deployment priority
 	if err := o.parseDeploymentOrderTags(o.workloadNames); err != nil {
@@ -333,7 +333,7 @@ func (o *deployOpts) getDeploymentOrder() ([][]string, error) {
 
 		if o.yesInitWkld {
 			// Add all unspecified local workloads to the list of workloads to be deployed.
-			localWorkloads, err := o.listLocalWorkloads()
+			localWorkloads, err := o.listLocalWorkloads(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -343,7 +343,7 @@ func (o *deployOpts) getDeploymentOrder() ([][]string, error) {
 			}
 		} else {
 			// Otherwise (--init-wkld is false): get only get initialized local workloads.
-			initializedWorkloads, err := o.listInitializedLocalWorkloads()
+			initializedWorkloads, err := o.listInitializedLocalWorkloads(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -377,11 +377,11 @@ func (o *deployOpts) getDeploymentOrder() ([][]string, error) {
 	return res, nil
 }
 
-func (o *deployOpts) listStoreWorkloads() ([]*config.Workload, error) {
+func (o *deployOpts) listStoreWorkloads(ctx context.Context) ([]*config.Workload, error) {
 	if o.storeWorkloads != nil {
 		return o.storeWorkloads, nil
 	}
-	wls, err := o.store.ListWorkloads(o.appName)
+	wls, err := o.store.ListWorkloads(ctx, o.appName)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve store workloads: %w", err)
 	}
@@ -389,7 +389,7 @@ func (o *deployOpts) listStoreWorkloads() ([]*config.Workload, error) {
 	return o.storeWorkloads, nil
 }
 
-func (o *deployOpts) listLocalWorkloads() ([]string, error) {
+func (o *deployOpts) listLocalWorkloads(ctx context.Context) ([]string, error) {
 	if o.wsWorkloads != nil {
 		return o.wsWorkloads, nil
 	}
@@ -402,15 +402,15 @@ func (o *deployOpts) listLocalWorkloads() ([]string, error) {
 	return o.wsWorkloads, nil
 }
 
-func (o *deployOpts) listInitializedLocalWorkloads() ([]string, error) {
+func (o *deployOpts) listInitializedLocalWorkloads(ctx context.Context) ([]string, error) {
 	if o.initializedWsWorkloads != nil {
 		return o.initializedWsWorkloads, nil
 	}
-	storeWls, err := o.listStoreWorkloads()
+	storeWls, err := o.listStoreWorkloads(ctx)
 	if err != nil {
 		return nil, err
 	}
-	localWorkloads, err := o.listLocalWorkloads()
+	localWorkloads, err := o.listLocalWorkloads(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -433,15 +433,15 @@ func getTotalNumberOfWorkloads(deploymentGroups [][]workloadCommand) int {
 }
 
 func (o *deployOpts) Run(ctx context.Context) error {
-	if err := o.askNames(); err != nil {
+	if err := o.askNames(ctx); err != nil {
 		return err
 	}
 
-	if err := o.askEnv(); err != nil {
+	if err := o.askEnv(ctx); err != nil {
 		return err
 	}
 
-	if err := o.checkEnvExists(); err != nil {
+	if err := o.checkEnvExists(ctx); err != nil {
 		return err
 	}
 
@@ -453,7 +453,7 @@ func (o *deployOpts) Run(ctx context.Context) error {
 		return err
 	}
 
-	deploymentOrderGroups, err := o.getDeploymentOrder()
+	deploymentOrderGroups, err := o.getDeploymentOrder(ctx)
 	if err != nil {
 		return err
 	}
@@ -466,11 +466,11 @@ func (o *deployOpts) Run(ctx context.Context) error {
 	for order, deploymentGroup := range deploymentOrderGroups {
 		for _, workload := range deploymentGroup {
 			// 1. Decide whether the current workload needs initialization.
-			if err := o.maybeInitWkld(workload); err != nil {
+			if err := o.maybeInitWkld(ctx, workload); err != nil {
 				return err
 			}
 			// 2. Set up workload command.
-			deployCmd, err := o.loadWkldCmd(workload)
+			deployCmd, err := o.loadWkldCmd(ctx, workload)
 			if err != nil {
 				return err
 			}
@@ -529,7 +529,7 @@ func logDeploymentOrderInfo(cmds [][]workloadCommand, totalCount int) {
 	}
 }
 
-func (o *deployOpts) askNames() error {
+func (o *deployOpts) askNames(ctx context.Context) error {
 	if o.workloadNames != nil || len(o.workloadNames) != 0 {
 		return nil
 	}
@@ -545,7 +545,7 @@ func (o *deployOpts) askNames() error {
 		return nil
 	}
 
-	names, err := o.sel.Workloads("Select one or more services or jobs in your workspace.", "")
+	names, err := o.sel.Workloads(ctx, "Select one or more services or jobs in your workspace.", "")
 	if err != nil {
 		return fmt.Errorf("select service or job: %w", err)
 	}
@@ -587,7 +587,7 @@ func (o *deployOpts) askNames() error {
 	return nil
 }
 
-func (o *deployOpts) listWsEnvironments() ([]string, error) {
+func (o *deployOpts) listWsEnvironments(ctx context.Context) ([]string, error) {
 	if o.wsEnvironments == nil {
 		envs, err := o.ws.ListEnvironments()
 		if err != nil {
@@ -602,15 +602,15 @@ func (o *deployOpts) listWsEnvironments() ([]string, error) {
 	return o.wsEnvironments, nil
 }
 
-func (o *deployOpts) askEnv() error {
+func (o *deployOpts) askEnv(ctx context.Context) error {
 	if o.envName != "" {
 		return nil
 	}
-	localEnvs, err := o.listWsEnvironments()
+	localEnvs, err := o.listWsEnvironments(ctx)
 	if err != nil {
 		return fmt.Errorf("get workspace environments: %w", err)
 	}
-	initializedEnvs, err := o.store.ListEnvironments(o.appName)
+	initializedEnvs, err := o.store.ListEnvironments(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("get initialized environments: %w", err)
 	}
@@ -631,7 +631,7 @@ func (o *deployOpts) askEnv() error {
 		extraOptions = append(extraOptions, prompt.Option{Value: localEnv, Hint: "uninitialized"})
 	}
 
-	o.envName, err = o.sel.Environment("Select an environment to deploy to", "", o.appName, extraOptions...)
+	o.envName, err = o.sel.Environment(ctx, "Select an environment to deploy to", "", o.appName, extraOptions...)
 	if err != nil {
 		return fmt.Errorf("get environment name: %w", err)
 	}
@@ -639,9 +639,9 @@ func (o *deployOpts) askEnv() error {
 }
 
 // checkEnvExists checks whether the environment is initialized and has a local manifest.
-func (o *deployOpts) checkEnvExists() error {
+func (o *deployOpts) checkEnvExists(ctx context.Context) error {
 	o.envExistsInApp = true
-	_, err := o.store.GetEnvironment(o.appName, o.envName)
+	_, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		var errNotFound *config.ErrNoSuchEnvironment
 		if !errors.As(err, &errNotFound) {
@@ -649,7 +649,7 @@ func (o *deployOpts) checkEnvExists() error {
 		}
 		o.envExistsInApp = false
 	}
-	envs, err := o.listWsEnvironments()
+	envs, err := o.listWsEnvironments(ctx)
 	if err != nil {
 		return fmt.Errorf("list environments in workspace: %w", err)
 	}
@@ -729,8 +729,8 @@ func (o *deployOpts) maybeDeployEnv(ctx context.Context) error {
 	return nil
 }
 
-func (o *deployOpts) loadWkldCmd(name string) (actionCommand, error) {
-	wl, err := o.store.GetWorkload(o.appName, name)
+func (o *deployOpts) loadWkldCmd(ctx context.Context, name string) (actionCommand, error) {
+	wl, err := o.store.GetWorkload(ctx, o.appName, name)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve %s from application %s: %w", o.appName, name, err)
 	}

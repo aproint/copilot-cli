@@ -67,14 +67,14 @@ func (o *listSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *listSvcOpts) Ask(_ context.Context) error {
+func (o *listSvcOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
 		// NOTE: Skip validating app name here because `Execute` will fail pretty soon with a clear error message.
 		// The validation (config.GetApplication) would only add additional operation time in this particular case.
 		return nil
 	}
 
-	name, err := o.sel.Application(svcAppNamePrompt, wkldAppNameHelpPrompt)
+	name, err := o.sel.Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -83,8 +83,8 @@ func (o *listSvcOpts) Ask(_ context.Context) error {
 }
 
 // Execute lists the services through the prompt.
-func (o *listSvcOpts) Execute(_ context.Context) error {
-	if err := o.list.Write(o.appName); err != nil {
+func (o *listSvcOpts) Execute(ctx context.Context) error {
+	if err := o.list.Write(ctx, o.appName); err != nil {
 		return err
 	}
 

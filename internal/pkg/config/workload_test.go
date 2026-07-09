@@ -4,6 +4,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -30,13 +31,13 @@ func TestStore_ListServices(t *testing.T) {
 	lastPageInPaginatedResp := false
 
 	testCases := map[string]struct {
-		mockGetParametersByPath func(t *testing.T, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
+		mockGetParametersByPath func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
 
 		wantedSvcs []Workload
 		wantedErr  error
 	}{
 		"with multiple existing svcs": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, servicePath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -56,7 +57,7 @@ func TestStore_ListServices(t *testing.T) {
 			wantedErr:  nil,
 		},
 		"with malformed json": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, servicePath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -70,14 +71,14 @@ func TestStore_ListServices(t *testing.T) {
 			wantedErr: fmt.Errorf("read service configuration for application chicken: invalid character 'o' looking for beginning of value"),
 		},
 		"with SSM error": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, servicePath, *param.Path)
 				return nil, fmt.Errorf("broken")
 			},
 			wantedErr: fmt.Errorf("read service configuration for application chicken: broken"),
 		},
 		"with paginated response": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, servicePath, *param.Path)
 
 				if !lastPageInPaginatedResp {
@@ -120,7 +121,7 @@ func TestStore_ListServices(t *testing.T) {
 			}
 
 			// WHEN
-			svcPointers, err := store.ListServices("chicken")
+			svcPointers, err := store.ListServices(context.Background(), "chicken")
 			// THEN
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -149,13 +150,13 @@ func TestStore_ListWorkloads(t *testing.T) {
 	workloadPath := fmt.Sprintf(rootWkldParamPath, mailerJob.App)
 
 	testCases := map[string]struct {
-		mockGetParametersByPath func(t *testing.T, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
+		mockGetParametersByPath func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
 
 		wantedWls []Workload
 		wantedErr error
 	}{
 		"with existing workloads": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -174,7 +175,7 @@ func TestStore_ListWorkloads(t *testing.T) {
 			wantedErr: nil,
 		},
 		"with job": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -200,7 +201,7 @@ func TestStore_ListWorkloads(t *testing.T) {
 			}
 
 			// WHEN
-			wlPointers, err := store.ListWorkloads("chicken")
+			wlPointers, err := store.ListWorkloads(context.Background(), "chicken")
 			// THEN
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -234,13 +235,13 @@ func TestStore_ListJobs(t *testing.T) {
 	workloadPath := fmt.Sprintf(rootWkldParamPath, mailerJob.App)
 
 	testCases := map[string]struct {
-		mockGetParametersByPath func(t *testing.T, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
+		mockGetParametersByPath func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
 
 		wantedJobs []Workload
 		wantedErr  error
 	}{
 		"with existing jobs": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -259,7 +260,7 @@ func TestStore_ListJobs(t *testing.T) {
 			wantedErr:  nil,
 		},
 		"with service and job": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, workloadPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -289,7 +290,7 @@ func TestStore_ListJobs(t *testing.T) {
 			}
 
 			// WHEN
-			jobPointers, err := store.ListJobs("chicken")
+			jobPointers, err := store.ListJobs(context.Background(), "chicken")
 			// THEN
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -311,12 +312,12 @@ func TestStore_GetService(t *testing.T) {
 	require.NoError(t, err, "Marshal svc should not fail")
 
 	testCases := map[string]struct {
-		mockGetParameter func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+		mockGetParameter func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 		wantedSvc        Workload
 		wantedErr        error
 	}{
 		"with existing service": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -329,14 +330,14 @@ func TestStore_GetService(t *testing.T) {
 			wantedErr: nil,
 		},
 		"with no existing svc": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				return nil, &types.ParameterNotFound{}
 			},
 			wantedErr: errors.New("couldn't find service api in the application chicken"),
 		},
 		"with malformed json": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -348,7 +349,7 @@ func TestStore_GetService(t *testing.T) {
 			wantedErr: fmt.Errorf("read configuration for service api in application chicken: invalid character 'o' looking for beginning of value"),
 		},
 		"with SSM error": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				return nil, fmt.Errorf("broken")
 			},
 			wantedErr: fmt.Errorf("broken"),
@@ -366,7 +367,7 @@ func TestStore_GetService(t *testing.T) {
 			}
 
 			// WHEN
-			svc, err := store.GetService("chicken", "api")
+			svc, err := store.GetService(context.Background(), "chicken", "api")
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -390,12 +391,12 @@ func TestStore_GetJob(t *testing.T) {
 	require.NoError(t, err, "Marshal svc should not fail")
 
 	testCases := map[string]struct {
-		mockGetParameter func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+		mockGetParameter func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 		wantedJob        Workload
 		wantedErr        error
 	}{
 		"with existing job": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, mailerJobPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -408,14 +409,14 @@ func TestStore_GetJob(t *testing.T) {
 			wantedErr: nil,
 		},
 		"with no existing job": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, mailerJobPath, *param.Name)
 				return nil, &types.ParameterNotFound{}
 			},
 			wantedErr: errors.New("couldn't find job mailer in the application chicken"),
 		},
 		"with existing service": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, mailerJobPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -441,7 +442,7 @@ func TestStore_GetJob(t *testing.T) {
 			}
 
 			// WHEN
-			job, err := store.GetJob("chicken", "mailer")
+			job, err := store.GetJob(context.Background(), "chicken", "mailer")
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -474,12 +475,12 @@ func TestStore_CreateService(t *testing.T) {
 		},
 	}
 	testCases := map[string]struct {
-		mockGetParameter func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
-		mockPutParameter func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
+		mockGetParameter func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+		mockPutParameter func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
 		wantedErr        error
 	}{
 		"with no existing svc": {
-			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+			mockPutParameter: func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				require.Equal(t, testServiceString, *param.Value)
 				require.Equal(t, tagsForServiceParam, param.Tags)
@@ -487,7 +488,7 @@ func TestStore_CreateService(t *testing.T) {
 					Version: 1,
 				}, nil
 			},
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -498,12 +499,12 @@ func TestStore_CreateService(t *testing.T) {
 			},
 		},
 		"with existing svc": {
-			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+			mockPutParameter: func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, testServicePath, *param.Name)
 				require.Equal(t, tagsForServiceParam, param.Tags)
 				return nil, &types.ParameterAlreadyExists{}
 			},
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -515,11 +516,11 @@ func TestStore_CreateService(t *testing.T) {
 			wantedErr: nil,
 		},
 		"with SSM error": {
-			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+			mockPutParameter: func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, tagsForServiceParam, param.Tags)
 				return nil, fmt.Errorf("broken")
 			},
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -544,7 +545,7 @@ func TestStore_CreateService(t *testing.T) {
 			}
 
 			// WHEN
-			err := store.CreateService(&Workload{
+			err := store.CreateService(context.Background(), &Workload{
 				Name: testService.Name,
 				App:  testService.App,
 				Type: testService.Type})
@@ -563,23 +564,23 @@ func TestDeleteService(t *testing.T) {
 	mockError := errors.New("mockError")
 
 	tests := map[string]struct {
-		mockDeleteParam func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error)
+		mockDeleteParam func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error)
 
 		want error
 	}{
 		"parameter is already deleted": {
-			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+			mockDeleteParam: func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
 				return nil, &types.ParameterNotFound{}
 			},
 		},
 		"unexpected error": {
-			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+			mockDeleteParam: func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
 				return nil, mockError
 			},
 			want: fmt.Errorf("delete service %s from application %s: %w", mockSvcName, mockApplicationName, mockError),
 		},
 		"successfully deleted param": {
-			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+			mockDeleteParam: func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
 				wantedPath := fmt.Sprintf(fmtWkldParamPath, mockApplicationName, mockSvcName)
 
 				require.Equal(t, wantedPath, *in.Name)
@@ -599,7 +600,7 @@ func TestDeleteService(t *testing.T) {
 				},
 			}
 
-			got := s.DeleteService(mockApplicationName, mockSvcName)
+			got := s.DeleteService(context.Background(), mockApplicationName, mockSvcName)
 
 			require.Equal(t, test.want, got)
 		})

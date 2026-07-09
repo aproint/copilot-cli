@@ -52,11 +52,11 @@ func TestSvcStatus_Ask(t *testing.T) {
 			inputEnv: testEnvName,
 			setupMocks: func(m svcStatusAskMock) {
 				gomock.InOrder(
-					m.store.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil),
-					m.store.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test"}, nil),
-					m.store.EXPECT().GetService("phonetool", "api").Return(&config.Workload{}, nil),
+					m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil),
+					m.store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test"}, nil),
+					m.store.EXPECT().GetService(ctx, "phonetool", "api").Return(&config.Workload{}, nil),
 				)
-				m.sel.EXPECT().DeployedService(svcStatusNamePrompt, svcStatusNameHelpPrompt, "phonetool", gomock.Any(), gomock.Any()).
+				m.sel.EXPECT().DeployedService(ctx, svcStatusNamePrompt, svcStatusNameHelpPrompt, "phonetool", gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "test",
 						Name: "api",
@@ -70,11 +70,11 @@ func TestSvcStatus_Ask(t *testing.T) {
 			inputEnv: testEnvName,
 			inputSvc: testSvcName,
 			setupMocks: func(m svcStatusAskMock) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("phonetool", nil)
-				m.store.EXPECT().GetApplication(gomock.Any()).Times(0)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("phonetool", nil)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  testEnvName,
 						Name: testSvcName,
@@ -86,17 +86,17 @@ func TestSvcStatus_Ask(t *testing.T) {
 		},
 		"errors if failed to select application": {
 			setupMocks: func(m svcStatusAskMock) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select application: some error"),
 		},
 		"prompt for service and env": {
 			inputApp: testAppName,
 			setupMocks: func(m svcStatusAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(svcStatusNamePrompt, svcStatusNameHelpPrompt, testAppName, gomock.Any(), gomock.Any()).
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, svcStatusNamePrompt, svcStatusNameHelpPrompt, testAppName, gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  testEnvName,
 						Name: testSvcName,
@@ -109,10 +109,10 @@ func TestSvcStatus_Ask(t *testing.T) {
 		"errors if failed to select deployed service": {
 			inputApp: "mockApp",
 			setupMocks: func(m svcStatusAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(svcStatusNamePrompt, svcStatusNameHelpPrompt, "mockApp", gomock.Any(), gomock.Any()).Return(nil, mockError)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, svcStatusNamePrompt, svcStatusNameHelpPrompt, "mockApp", gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 
 			wantedError: fmt.Errorf("select deployed services for application mockApp: some error"),
@@ -186,7 +186,7 @@ func TestSvcStatus_Execute(t *testing.T) {
 					appName:          "mockApp",
 				},
 				statusDescriber:     mockStatusDescriber,
-				initStatusDescriber: func(*svcStatusOpts) error { return nil },
+				initStatusDescriber: func(_ context.Context, _ *svcStatusOpts) error { return nil },
 				w:                   b,
 			}
 

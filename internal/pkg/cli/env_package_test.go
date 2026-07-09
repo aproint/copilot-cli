@@ -49,7 +49,7 @@ func TestPackageEnvOpts_Ask(t *testing.T) {
 			},
 			mockedCmd: func(ctrl *gomock.Controller, vars packageEnvVars) *packageEnvOpts {
 				cfgStore := mocks.NewMockstore(ctrl)
-				cfgStore.EXPECT().GetApplication(gomock.Any()).Return(nil, errors.New("some error"))
+				cfgStore.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, errors.New("some error"))
 				return &packageEnvOpts{
 					packageEnvVars: vars,
 					cfgStore:       cfgStore,
@@ -65,8 +65,8 @@ func TestPackageEnvOpts_Ask(t *testing.T) {
 			},
 			mockedCmd: func(ctrl *gomock.Controller, vars packageEnvVars) *packageEnvOpts {
 				cfgStore := mocks.NewMockstore(ctrl)
-				cfgStore.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{}, nil)
-				cfgStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				cfgStore.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
+				cfgStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return &packageEnvOpts{
 					packageEnvVars: vars,
 					cfgStore:       cfgStore,
@@ -81,9 +81,9 @@ func TestPackageEnvOpts_Ask(t *testing.T) {
 			},
 			mockedCmd: func(ctrl *gomock.Controller, vars packageEnvVars) *packageEnvOpts {
 				cfgStore := mocks.NewMockstore(ctrl)
-				cfgStore.EXPECT().GetApplication(gomock.Any()).Return(&config.Application{}, nil)
+				cfgStore.EXPECT().GetApplication(ctx, gomock.Any()).Return(&config.Application{}, nil)
 				sel := mocks.NewMockwsEnvironmentSelector(ctrl)
-				sel.EXPECT().LocalEnvironment(gomock.Any(), gomock.Any()).Return("", errors.New("no environments found"))
+				sel.EXPECT().LocalEnvironment(ctx, gomock.Any(), gomock.Any()).Return("", errors.New("no environments found"))
 				return &packageEnvOpts{
 					packageEnvVars: vars,
 					cfgStore:       cfgStore,
@@ -99,9 +99,9 @@ func TestPackageEnvOpts_Ask(t *testing.T) {
 			},
 			mockedCmd: func(ctrl *gomock.Controller, vars packageEnvVars) *packageEnvOpts {
 				cfgStore := mocks.NewMockstore(ctrl)
-				cfgStore.EXPECT().GetApplication(vars.appName).Return(&config.Application{}, nil)
+				cfgStore.EXPECT().GetApplication(ctx, vars.appName).Return(&config.Application{}, nil)
 				sel := mocks.NewMockwsEnvironmentSelector(ctrl)
-				sel.EXPECT().LocalEnvironment("Select an environment manifest from your workspace", "").Return("test", nil)
+				sel.EXPECT().LocalEnvironment(ctx, "Select an environment manifest from your workspace", "").Return("test", nil)
 				return &packageEnvOpts{
 					packageEnvVars: vars,
 					cfgStore:       cfgStore,
@@ -183,7 +183,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate(gomock.Any()).Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, errors.New("some error"))
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, errors.New("some error"))
 
 				return &packageEnvOpts{
 					packageEnvVars: packageEnvVars{
@@ -206,7 +206,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate(gomock.Any()).Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(errors.New("mock error"))
 
@@ -219,7 +219,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					envCfg: &config.Environment{Name: "test"},
@@ -234,7 +234,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate(gomock.Any()).Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				deployer.EXPECT().UploadArtifacts().Return(nil, errors.New("some error"))
@@ -249,7 +249,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					envCfg: &config.Environment{Name: "test"},
@@ -264,7 +264,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate(gomock.Any()).Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(nil, errors.New("some error"))
@@ -278,7 +278,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					envCfg: &config.Environment{Name: "test"},
@@ -294,7 +294,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate(gomock.Any()).Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
@@ -309,7 +309,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					envCfg:     &config.Environment{Name: "test"},
@@ -326,7 +326,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate(gomock.Any()).Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				packager := mocks.NewMockenvPackager(ctrl)
 				packager.EXPECT().Validate(gomock.Any()).Return(nil)
 				packager.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{
@@ -343,7 +343,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return packager, nil
 					},
 					envCfg: &config.Environment{Name: "test"},
@@ -359,7 +359,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate("name: test\ntype: Environment\n").Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{
@@ -393,7 +393,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					fs:     fs,
@@ -412,7 +412,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate(gomock.Any()).Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
@@ -427,7 +427,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					envCfg:     &config.Environment{Name: "test"},
@@ -445,7 +445,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate("name: test\ntype: Environment\n").Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				deployer.EXPECT().GenerateCloudFormationTemplate(&deploy.DeployEnvironmentInput{
@@ -478,7 +478,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					fs:     fs,
@@ -512,7 +512,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				interop := mocks.NewMockinterpolator(ctrl)
 				interop.EXPECT().Interpolate("name: test\ntype: Environment\n").Return("name: test\ntype: Environment\n", nil)
 				caller := mocks.NewMockidentityService(ctrl)
-				caller.EXPECT().Get().Return(identity.Caller{}, nil)
+				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				deployer.EXPECT().GenerateCloudFormationTemplate(&deploy.DeployEnvironmentInput{
@@ -545,7 +545,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					newInterpolator: func(_, _ string) interpolator {
 						return interop
 					},
-					newEnvPackager: func() (envPackager, error) {
+					newEnvPackager: func(_ context.Context) (envPackager, error) {
 						return deployer, nil
 					},
 					fs:     fs,

@@ -36,7 +36,7 @@ func TestPackageJobOpts_Validate(t *testing.T) {
 		"invalid workspace": {
 			setupMocks: func() {
 				mockWorkspace.EXPECT().ListJobs().Times(0)
-				mockStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
+				mockStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedErrorS: "could not find an application attached to this workspace, please run `app init` first",
 		},
@@ -45,7 +45,7 @@ func TestPackageJobOpts_Validate(t *testing.T) {
 			inJobName: "resizer",
 			setupMocks: func() {
 				mockWorkspace.EXPECT().ListJobs().Return(nil, errors.New("some error"))
-				mockStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
+				mockStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 
 			wantedErrorS: "list jobs in the workspace: some error",
@@ -55,7 +55,7 @@ func TestPackageJobOpts_Validate(t *testing.T) {
 			inJobName: "resizer",
 			setupMocks: func() {
 				mockWorkspace.EXPECT().ListJobs().Return([]string{"other-job"}, nil)
-				mockStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
+				mockStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 
 			wantedErrorS: "job 'resizer' does not exist in the workspace",
@@ -66,7 +66,7 @@ func TestPackageJobOpts_Validate(t *testing.T) {
 
 			setupMocks: func() {
 				mockWorkspace.EXPECT().ListJobs().Times(0)
-				mockStore.EXPECT().GetEnvironment("phonetool", "test").Return(nil, &config.ErrNoSuchEnvironment{
+				mockStore.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(nil, &config.ErrNoSuchEnvironment{
 					ApplicationName: "phonetool",
 					EnvironmentName: "test",
 				})
@@ -132,8 +132,8 @@ func TestPackageJobOpts_Ask(t *testing.T) {
 	}{
 		"prompt for all options": {
 			expectSelector: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Job(jobPackageJobNamePrompt, "").Return("resizer", nil)
-				m.EXPECT().Environment(jobPackageEnvNamePrompt, "", testAppName).Return("test", nil)
+				m.EXPECT().Job(ctx, jobPackageJobNamePrompt, "").Return("resizer", nil)
+				m.EXPECT().Environment(ctx, jobPackageEnvNamePrompt, "", testAppName).Return("test", nil)
 			},
 			expectPrompt: func(m *mocks.Mockprompter) {},
 
@@ -144,8 +144,8 @@ func TestPackageJobOpts_Ask(t *testing.T) {
 			inEnvName: "test",
 
 			expectSelector: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Job(jobPackageJobNamePrompt, "").Return("resizer", nil)
-				m.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, jobPackageJobNamePrompt, "").Return("resizer", nil)
+				m.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			expectPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -158,8 +158,8 @@ func TestPackageJobOpts_Ask(t *testing.T) {
 			inJobName: "resizer",
 
 			expectSelector: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any()).Times(0)
-				m.EXPECT().Environment(jobPackageEnvNamePrompt, "", testAppName).Return("test", nil)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, jobPackageEnvNamePrompt, "", testAppName).Return("test", nil)
 			},
 			expectPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -173,8 +173,8 @@ func TestPackageJobOpts_Ask(t *testing.T) {
 			inEnvName: "test",
 
 			expectSelector: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any()).Times(0)
-				m.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			expectPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)

@@ -49,11 +49,11 @@ type ResourceGetter interface {
 
 // ConfigStoreClient wraps config store methods utilized by deploy store.
 type ConfigStoreClient interface {
-	GetEnvironment(appName string, environmentName string) (*config.Environment, error)
-	ListEnvironments(appName string) ([]*config.Environment, error)
-	ListWorkloads(appName string) ([]*config.Workload, error)
-	GetService(appName, svcName string) (*config.Workload, error)
-	GetJob(appName, jobname string) (*config.Workload, error)
+	GetEnvironment(ctx context.Context, appName string, environmentName string) (*config.Environment, error)
+	ListEnvironments(ctx context.Context, appName string) ([]*config.Environment, error)
+	ListWorkloads(ctx context.Context, appName string) ([]*config.Workload, error)
+	GetService(ctx context.Context, appName, svcName string) (*config.Workload, error)
+	GetJob(ctx context.Context, appName, jobname string) (*config.Workload, error)
 }
 
 // SessionProvider is the interface to provide configuration for the AWS SDK's service clients.
@@ -64,8 +64,8 @@ type SessionProvider interface {
 // Store fetches information on deployed services.
 type Store struct {
 	configStore         ConfigStoreClient
-	newRgClientFromIDs  func(string, string) (ResourceGetter, error)
-	newRgClientFromRole func(string, string) (ResourceGetter, error)
+	newRgClientFromIDs  func(context.Context, string, string) (ResourceGetter, error)
+	newRgClientFromRole func(context.Context, string, string) (ResourceGetter, error)
 }
 
 // NewStore returns a new store.
@@ -73,19 +73,19 @@ func NewStore(sessProvider SessionProvider, store ConfigStoreClient) (*Store, er
 	s := &Store{
 		configStore: store,
 	}
-	s.newRgClientFromIDs = func(appName, envName string) (ResourceGetter, error) {
-		env, err := s.configStore.GetEnvironment(appName, envName)
+	s.newRgClientFromIDs = func(ctx context.Context, appName, envName string) (ResourceGetter, error) {
+		env, err := s.configStore.GetEnvironment(ctx, appName, envName)
 		if err != nil {
 			return nil, fmt.Errorf("get environment config %s: %w", envName, err)
 		}
-		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, fmt.Errorf("create new config from env role: %w", err)
 		}
 		return rg.New(cfg), nil
 	}
-	s.newRgClientFromRole = func(roleARN, region string) (ResourceGetter, error) {
-		cfg, err := sessProvider.ConfigFromRole(context.Background(), roleARN, region)
+	s.newRgClientFromRole = func(ctx context.Context, roleARN, region string) (ResourceGetter, error) {
+		cfg, err := sessProvider.ConfigFromRole(ctx, roleARN, region)
 		if err != nil {
 			return nil, fmt.Errorf("create new config from env role: %w", err)
 		}
@@ -149,22 +149,22 @@ func (p *PipelineStore) ListDeployedPipelines(appName string) ([]Pipeline, error
 }
 
 // ListDeployedServices returns the names of deployed services in an environment.
-func (s *Store) ListDeployedServices(appName string, envName string) ([]string, error) {
-	return s.listDeployedWorkloads(appName, envName, manifestinfo.ServiceTypes())
+func (s *Store) ListDeployedServices(ctx context.Context, appName string, envName string) ([]string, error) {
+	return s.listDeployedWorkloads(ctx, appName, envName, manifestinfo.ServiceTypes())
 }
 
 // ListDeployedJobs returns the names of deployed jobs in an environment.
-func (s *Store) ListDeployedJobs(appName string, envName string) ([]string, error) {
-	return s.listDeployedWorkloads(appName, envName, manifestinfo.JobTypes())
+func (s *Store) ListDeployedJobs(ctx context.Context, appName string, envName string) ([]string, error) {
+	return s.listDeployedWorkloads(ctx, appName, envName, manifestinfo.JobTypes())
 }
 
 // ListDeployedWorkloads returns the names of deployed workloads in an environment.
-func (s *Store) ListDeployedWorkloads(appName string, envName string) ([]string, error) {
-	return s.listDeployedWorkloads(appName, envName, manifestinfo.WorkloadTypes())
+func (s *Store) ListDeployedWorkloads(ctx context.Context, appName string, envName string) ([]string, error) {
+	return s.listDeployedWorkloads(ctx, appName, envName, manifestinfo.WorkloadTypes())
 }
 
-func (s *Store) listDeployedWorkloads(appName string, envName string, workloadType []string) ([]string, error) {
-	allWorkloads, err := s.configStore.ListWorkloads(appName)
+func (s *Store) listDeployedWorkloads(ctx context.Context, appName string, envName string, workloadType []string) ([]string, error) {
+	allWorkloads, err := s.configStore.ListWorkloads(ctx, appName)
 	if err != nil {
 		return nil, fmt.Errorf("list all workloads in application %s: %w", appName, err)
 	}
@@ -178,7 +178,7 @@ func (s *Store) listDeployedWorkloads(appName string, envName string, workloadTy
 		}
 	}
 
-	rgClient, err := s.newRgClientFromIDs(appName, envName)
+	rgClient, err := s.newRgClientFromIDs(ctx, appName, envName)
 	if err != nil {
 		return nil, err
 	}
@@ -206,8 +206,8 @@ func (s *Store) listDeployedWorkloads(appName string, envName string, workloadTy
 
 // ListSNSTopics returns a list of SNS topics deployed to the current environment and tagged with
 // Copilot identifiers.
-func (s *Store) ListSNSTopics(appName string, envName string) ([]Topic, error) {
-	rgClient, err := s.newRgClientFromIDs(appName, envName)
+func (s *Store) ListSNSTopics(ctx context.Context, appName string, envName string) ([]Topic, error) {
+	rgClient, err := s.newRgClientFromIDs(ctx, appName, envName)
 	if err != nil {
 		return nil, err
 	}
@@ -270,8 +270,8 @@ func (s *Store) deployedServices(rgClient ResourceGetter, app, env, svc string) 
 }
 
 // ListEnvironmentsDeployedTo returns all the environment that a service is deployed in.
-func (s *Store) ListEnvironmentsDeployedTo(appName string, svcName string) ([]string, error) {
-	envs, err := s.configStore.ListEnvironments(appName)
+func (s *Store) ListEnvironmentsDeployedTo(ctx context.Context, appName string, svcName string) ([]string, error) {
+	envs, err := s.configStore.ListEnvironments(ctx, appName)
 	if err != nil {
 		return nil, fmt.Errorf("list environment for app %s: %w", appName, err)
 	}
@@ -279,7 +279,7 @@ func (s *Store) ListEnvironmentsDeployedTo(appName string, svcName string) ([]st
 	defer close(deployedEnv)
 	for _, env := range envs {
 		go func(env *config.Environment) {
-			rgClient, err := s.newRgClientFromRole(env.ManagerRoleARN, env.Region)
+			rgClient, err := s.newRgClientFromRole(ctx, env.ManagerRoleARN, env.Region)
 			if err != nil {
 				deployedEnv <- result{err: err}
 				return
@@ -301,18 +301,18 @@ func (s *Store) ListEnvironmentsDeployedTo(appName string, svcName string) ([]st
 }
 
 // IsServiceDeployed returns whether a service is deployed in an environment or not.
-func (s *Store) IsServiceDeployed(appName string, envName string, svcName string) (bool, error) {
-	return s.IsWorkloadDeployed(appName, envName, svcName)
+func (s *Store) IsServiceDeployed(ctx context.Context, appName string, envName string, svcName string) (bool, error) {
+	return s.IsWorkloadDeployed(ctx, appName, envName, svcName)
 }
 
 // IsJobDeployed returns whether a job is deployed in an environment or not by checking for a state machine.
-func (s *Store) IsJobDeployed(appName, envName, jobName string) (bool, error) {
-	return s.IsWorkloadDeployed(appName, envName, jobName)
+func (s *Store) IsJobDeployed(ctx context.Context, appName, envName, jobName string) (bool, error) {
+	return s.IsWorkloadDeployed(ctx, appName, envName, jobName)
 }
 
 // IsWorkloadDeployed returns whether a workload is deployed in an environment or not.
-func (s *Store) IsWorkloadDeployed(appName, envName, name string) (bool, error) {
-	rgClient, err := s.newRgClientFromIDs(appName, envName)
+func (s *Store) IsWorkloadDeployed(ctx context.Context, appName, envName, name string) (bool, error) {
+	rgClient, err := s.newRgClientFromIDs(ctx, appName, envName)
 	if err != nil {
 		return false, err
 	}

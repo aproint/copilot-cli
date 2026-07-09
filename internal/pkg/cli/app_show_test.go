@@ -39,7 +39,7 @@ func TestShowAppOpts_Validate(t *testing.T) {
 			inAppName: "my-app",
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name: "my-app",
 				}, nil)
 			},
@@ -49,7 +49,7 @@ func TestShowAppOpts_Validate(t *testing.T) {
 			inAppName: "my-app",
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(nil, testError)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(nil, testError)
 			},
 
 			wantedError: fmt.Errorf("get application %s: %w", "my-app", testError),
@@ -110,7 +110,7 @@ func TestShowAppOpts_Ask(t *testing.T) {
 			inApp: "",
 
 			setupMocks: func(m showAppMocks) {
-				m.sel.EXPECT().Application(appShowNamePrompt, appShowNameHelpPrompt).Return("my-app", nil)
+				m.sel.EXPECT().Application(ctx, appShowNamePrompt, appShowNameHelpPrompt).Return("my-app", nil)
 			},
 			wantedApp:   "my-app",
 			wantedError: nil,
@@ -119,7 +119,7 @@ func TestShowAppOpts_Ask(t *testing.T) {
 			inApp: "",
 
 			setupMocks: func(m showAppMocks) {
-				m.sel.EXPECT().Application(gomock.Any(), gomock.Any()).Return("", testError)
+				m.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Return("", testError)
 			},
 
 			wantedError: fmt.Errorf("select application: %w", testError),
@@ -189,24 +189,24 @@ func TestShowAppOpts_Execute(t *testing.T) {
 			shouldOutputJSON: true,
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -218,10 +218,10 @@ func TestShowAppOpts_Execute(t *testing.T) {
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{"my-job"}, nil).AnyTimes()
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{"my-job"}, nil).AnyTimes()
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{"my-svc"}, nil).AnyTimes()
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{"my-svc"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{"my-job"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil).AnyTimes()
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.pipelineGetter.EXPECT().
 					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
@@ -238,24 +238,24 @@ func TestShowAppOpts_Execute(t *testing.T) {
 		},
 		"correctly shows human output": {
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -267,10 +267,10 @@ func TestShowAppOpts_Execute(t *testing.T) {
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{"my-svc"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.pipelineGetter.EXPECT().
 					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
@@ -314,24 +314,24 @@ Pipelines
 		},
 		"correctly shows human output with latest version": {
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -343,10 +343,10 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{"my-svc"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
 			},
@@ -380,24 +380,24 @@ Pipelines
 		},
 		"correctly shows human output when URI and Permissions Boundary are empty": {
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "",
 					PermissionsBoundary: "",
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -409,10 +409,10 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{"my-svc"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
 
@@ -447,24 +447,24 @@ Pipelines
 		},
 		"when service/job is not deployed": {
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -476,10 +476,10 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.pipelineGetter.EXPECT().
 					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
@@ -518,24 +518,24 @@ Pipelines
 		},
 		"when multiple services/jobs are deployed": {
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test1",
 						Region:    "us-west-2",
@@ -562,16 +562,16 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test1").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod1").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod2").Return([]string{}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test2").Return([]string{}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "staging").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test1").Return([]string{}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod1").Return([]string{}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod2").Return([]string{"my-svc"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test2").Return([]string{"my-svc"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "staging").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test1").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod1").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod2").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test2").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "staging").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test1").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod1").Return([]string{}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod2").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test2").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "staging").Return([]string{"my-svc"}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.pipelineGetter.EXPECT().
 					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
@@ -615,19 +615,19 @@ Pipelines
 			shouldOutputJSON: false,
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(nil, testError)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(nil, testError)
 			},
 
 			wantedError: fmt.Errorf("get application %s: %w", "my-app", testError),
 		},
 		"returns error if fail to list environment": {
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return(nil, testError)
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return(nil, testError)
 			},
 
 			wantedError: fmt.Errorf("list environments in application %s: %w", "my-app", testError),
@@ -636,12 +636,12 @@ Pipelines
 			shouldOutputJSON: false,
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -653,7 +653,7 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return(nil, testError)
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return(nil, testError)
 			},
 
 			wantedError: fmt.Errorf("list services in application %s: %w", "my-app", testError),
@@ -662,12 +662,12 @@ Pipelines
 			shouldOutputJSON: false,
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -679,13 +679,13 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return(nil, testError)
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return(nil, testError)
 			},
 
 			wantedError: fmt.Errorf("list jobs in application %s: %w", "my-app", testError),
@@ -694,12 +694,12 @@ Pipelines
 			shouldOutputJSON: false,
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -711,22 +711,22 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{"my-svc"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return(nil, testError)
 			},
 			wantedError: fmt.Errorf("list pipelines in application %s: %w", "my-app", testError),
@@ -735,12 +735,12 @@ Pipelines
 			shouldOutputJSON: false,
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -752,22 +752,22 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{"my-job"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{"my-svc"}, nil)
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.pipelineGetter.EXPECT().
 					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(nil, testError)
@@ -778,12 +778,12 @@ Pipelines
 			shouldOutputJSON: false,
 
 			setupMocks: func(m showAppMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name:                "my-app",
 					Domain:              "example.com",
 					PermissionsBoundary: "examplePermissionsBoundaryPolicy",
 				}, nil)
-				m.storeSvc.EXPECT().ListEnvironments("my-app").Return([]*config.Environment{
+				m.storeSvc.EXPECT().ListEnvironments(ctx, "my-app").Return([]*config.Environment{
 					{
 						Name:      "test",
 						Region:    "us-west-2",
@@ -795,22 +795,22 @@ Pipelines
 						Region:    "us-west-1",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListServices("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListServices(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-svc",
 						Type: "lb-web-svc",
 					},
 				}, nil)
-				m.storeSvc.EXPECT().ListJobs("my-app").Return([]*config.Workload{
+				m.storeSvc.EXPECT().ListJobs(ctx, "my-app").Return([]*config.Workload{
 					{
 						Name: "my-job",
 						Type: "Scheduled Job",
 					},
 				}, nil)
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "test").Return([]string{"my-job"}, nil).AnyTimes()
-				m.deployStore.EXPECT().ListDeployedJobs("my-app", "prod").Return([]string{"my-job"}, nil).AnyTimes()
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "test").Return([]string{"my-svc"}, nil).AnyTimes()
-				m.deployStore.EXPECT().ListDeployedServices("my-app", "prod").Return([]string{"my-svc"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "test").Return([]string{"my-job"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil).AnyTimes()
+				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil).AnyTimes()
 				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.versionGetter.EXPECT().Version().Return("", testError)
 			},

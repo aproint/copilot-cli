@@ -137,7 +137,7 @@ type runLocalOpts struct {
 
 	newRecursiveWatcher  func() (recursiveWatcher, error)
 	buildContainerImages func(mft manifest.DynamicWorkload) (map[string]string, error)
-	configureClients     func() error
+	configureClients     func(ctx context.Context) error
 	labeledTermPrinter   func(fw syncbuffer.FileWriter, bufs []*syncbuffer.LabeledSyncBuffer, opts ...syncbuffer.LabeledTermPrinterOption) clideploy.LabeledTermPrinter
 	unmarshal            func([]byte) (manifest.DynamicWorkload, error)
 	newInterpolator      func(app, env string) interpolator
@@ -180,7 +180,7 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 		labeledTermPrinter: labeledTermPrinter,
 		prog:               termprogress.NewSpinner(log.DiagnosticWriter),
 	}
-	o.configureClients = func() error {
+	o.configureClients = func(ctx context.Context) error {
 		defaultConfigEnvRegion, err := o.sessProvider.DefaultConfigWithRegion(context.Background(), o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("create default config with region %s: %w", o.targetEnv.Region, err)
@@ -224,7 +224,7 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 			rg:   resourcegroups.New(envManagerConfig),
 			rds:  rds.NewFromConfig(envManagerConfig),
 		}
-		envDesc, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		envDesc, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 			App:         o.appName,
 			Env:         o.envName,
 			ConfigStore: store,
@@ -313,7 +313,7 @@ func (o *runLocalOpts) Validate() error {
 		return errNoAppInWorkspace
 	}
 	// Ensure that the application name provided exists in the workspace
-	app, err := o.store.GetApplication(o.appName)
+	app, err := o.store.GetApplication(context.Background(), o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %s: %w", o.appName, err)
 	}
@@ -322,30 +322,30 @@ func (o *runLocalOpts) Validate() error {
 }
 
 // Ask prompts the user for any unprovided required fields and validates them.
-func (o *runLocalOpts) Ask(_ context.Context) error {
-	return o.validateAndAskWkldEnvName()
+func (o *runLocalOpts) Ask(ctx context.Context) error {
+	return o.validateAndAskWkldEnvName(ctx)
 }
 
-func (o *runLocalOpts) validateAndAskWkldEnvName() error {
+func (o *runLocalOpts) validateAndAskWkldEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		env, err := o.store.GetEnvironment(o.appName, o.envName)
+		env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 		if err != nil {
 			return err
 		}
 		o.targetEnv = env
 	}
 	if o.wkldName != "" {
-		if _, err := o.store.GetWorkload(o.appName, o.wkldName); err != nil {
+		if _, err := o.store.GetWorkload(ctx, o.appName, o.wkldName); err != nil {
 			return err
 		}
 	}
 
-	deployedWorkload, err := o.sel.DeployedWorkload(workloadAskPrompt, "", o.appName, selector.WithEnv(o.envName), selector.WithName(o.wkldName))
+	deployedWorkload, err := o.sel.DeployedWorkload(ctx, workloadAskPrompt, "", o.appName, selector.WithEnv(o.envName), selector.WithName(o.wkldName))
 	if err != nil {
 		return fmt.Errorf("select a deployed workload from application %s: %w", o.appName, err)
 	}
 	if o.envName == "" {
-		env, err := o.store.GetEnvironment(o.appName, deployedWorkload.Env)
+		env, err := o.store.GetEnvironment(ctx, o.appName, deployedWorkload.Env)
 		if err != nil {
 			return fmt.Errorf("get environment %q configuration: %w", o.envName, err)
 		}
@@ -359,12 +359,10 @@ func (o *runLocalOpts) validateAndAskWkldEnvName() error {
 }
 
 // Execute builds and runs the workload images locally.
-func (o *runLocalOpts) Execute(_ context.Context) error {
-	if err := o.configureClients(); err != nil {
+func (o *runLocalOpts) Execute(ctx context.Context) error {
+	if err := o.configureClients(ctx); err != nil {
 		return err
 	}
-
-	ctx := context.Background()
 
 	task, err := o.prepareTask(ctx)
 	if err != nil {

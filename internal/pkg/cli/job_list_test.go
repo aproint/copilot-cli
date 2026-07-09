@@ -34,7 +34,7 @@ func TestListJobOpts_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockLister.EXPECT().
-					Write("coolapp").
+					Write(ctx, "coolapp").
 					Return(nil)
 			},
 		},
@@ -47,7 +47,7 @@ func TestListJobOpts_Execute(t *testing.T) {
 			},
 			mocking: func() {
 				mockLister.EXPECT().
-					Write(gomock.Eq("coolapp")).
+					Write(ctx, gomock.Eq("coolapp")).
 					Return(mockError)
 			},
 			expectedErr: fmt.Errorf("error"),
@@ -77,13 +77,13 @@ func TestListJobOpts_Ask(t *testing.T) {
 	}{
 		"with no flags set": {
 			mockSel: func(m *mocks.MockappSelector) {
-				m.EXPECT().Application(jobListAppNamePrompt, wkldAppNameHelpPrompt).Return("myapp", nil)
+				m.EXPECT().Application(ctx, jobListAppNamePrompt, wkldAppNameHelpPrompt).Return("myapp", nil)
 			},
 			wantedApp: "myapp",
 		},
 		"with app flag set": {
 			mockSel: func(m *mocks.MockappSelector) {
-				m.EXPECT().Application(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Times(0)
 			},
 			inApp:     "myapp",
 			wantedApp: "myapp",

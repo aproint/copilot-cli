@@ -60,7 +60,7 @@ func TestTaskExec_Validate(t *testing.T) {
 		"should bubble error if failed to get app": {
 			inApp: mockApp,
 			setupMocks: func(m execTaskMocks) {
-				m.storeSvc.EXPECT().GetApplication(mockApp).Return(nil, mockErr)
+				m.storeSvc.EXPECT().GetApplication(ctx, mockApp).Return(nil, mockErr)
 			},
 
 			wantedError: fmt.Errorf("some error"),
@@ -69,8 +69,8 @@ func TestTaskExec_Validate(t *testing.T) {
 			inApp: mockApp,
 			inEnv: mockEnv,
 			setupMocks: func(m execTaskMocks) {
-				m.storeSvc.EXPECT().GetApplication(mockApp).Return(&config.Application{}, nil)
-				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(nil, mockErr)
+				m.storeSvc.EXPECT().GetApplication(ctx, mockApp).Return(&config.Application{}, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(nil, mockErr)
 			},
 
 			wantedError: fmt.Errorf("some error"),
@@ -85,8 +85,8 @@ func TestTaskExec_Validate(t *testing.T) {
 			inApp: mockApp,
 			inEnv: mockEnv,
 			setupMocks: func(m execTaskMocks) {
-				m.storeSvc.EXPECT().GetApplication(mockApp).Return(&config.Application{}, nil)
-				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(&config.Environment{}, nil)
+				m.storeSvc.EXPECT().GetApplication(ctx, mockApp).Return(&config.Application{}, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(&config.Environment{}, nil)
 				m.ssmPluginManager.EXPECT().ValidateBinary().Return(nil)
 			},
 		},
@@ -165,7 +165,7 @@ func TestTaskExec_Ask(t *testing.T) {
 		},
 		"should bubble error if fail to select application": {
 			setupMocks: func(m execTaskMocks) {
-				m.configSel.EXPECT().Application(taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
+				m.configSel.EXPECT().Application(ctx, taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
 					Return("", mockErr)
 			},
 
@@ -174,7 +174,7 @@ func TestTaskExec_Ask(t *testing.T) {
 		"should bubble error if fail to select environment": {
 			inApp: mockApp,
 			setupMocks: func(m execTaskMocks) {
-				m.configSel.EXPECT().Environment(taskExecEnvNamePrompt, taskExecEnvNameHelpPrompt, mockApp, prompt.Option{Value: useDefaultClusterOption}).
+				m.configSel.EXPECT().Environment(ctx, taskExecEnvNamePrompt, taskExecEnvNameHelpPrompt, mockApp, prompt.Option{Value: useDefaultClusterOption}).
 					Return("", mockErr)
 			},
 
@@ -184,7 +184,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			inApp: mockApp,
 			inEnv: mockEnv,
 			setupMocks: func(m execTaskMocks) {
-				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(nil, mockErr)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(nil, mockErr)
 			},
 
 			wantedError: fmt.Errorf("get environment my-env: some error"),
@@ -193,7 +193,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			inApp: mockApp,
 			inEnv: mockEnv,
 			setupMocks: func(m execTaskMocks) {
-				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(&config.Environment{}, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(&config.Environment{}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockErr)
@@ -215,7 +215,7 @@ func TestTaskExec_Ask(t *testing.T) {
 		"success with default option chose": {
 			setupMocks: func(m execTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.configSel.EXPECT().Application(taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
+				m.configSel.EXPECT().Application(ctx, taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
 					Return(useDefaultClusterOption, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(mockTask, nil)
@@ -226,11 +226,11 @@ func TestTaskExec_Ask(t *testing.T) {
 		},
 		"success with env cluster": {
 			setupMocks: func(m execTaskMocks) {
-				m.configSel.EXPECT().Application(taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
+				m.configSel.EXPECT().Application(ctx, taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
 					Return(mockApp, nil)
-				m.configSel.EXPECT().Environment(taskExecEnvNamePrompt, taskExecEnvNameHelpPrompt, mockApp, prompt.Option{Value: useDefaultClusterOption}).
+				m.configSel.EXPECT().Environment(ctx, taskExecEnvNamePrompt, taskExecEnvNameHelpPrompt, mockApp, prompt.Option{Value: useDefaultClusterOption}).
 					Return(mockEnv, nil)
-				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(&config.Environment{}, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(&config.Environment{}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(mockTask, nil)
@@ -323,7 +323,7 @@ func TestTaskExec_Execute(t *testing.T) {
 	}{
 		"should bubble error if fail to get environment": {
 			setupMocks: func(m execTaskMocks) {
-				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(nil, mockErr)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(nil, mockErr)
 			},
 
 			wantedError: fmt.Errorf("get environment my-env: some error"),
@@ -363,7 +363,7 @@ func TestTaskExec_Execute(t *testing.T) {
 		"success": {
 			inTask: mockTask,
 			setupMocks: func(m execTaskMocks) {
-				m.storeSvc.EXPECT().GetEnvironment(mockApp, mockEnv).Return(&config.Environment{}, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(&config.Environment{}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.commandExec.EXPECT().ExecuteCommand(ecs.ExecuteCommandInput{
 					Cluster:   mockClusterARN,

@@ -54,11 +54,11 @@ func TestResumeSvcOpts_Ask(t *testing.T) {
 			inputEnv: testEnvName,
 			setupMocks: func(m svcResumeAskMock) {
 				gomock.InOrder(
-					m.store.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil),
-					m.store.EXPECT().GetEnvironment("phonetool", "test").Return(&config.Environment{Name: "test"}, nil),
-					m.store.EXPECT().GetService("phonetool", "api").Return(&config.Workload{}, nil),
+					m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil),
+					m.store.EXPECT().GetEnvironment(ctx, "phonetool", "test").Return(&config.Environment{Name: "test"}, nil),
+					m.store.EXPECT().GetService(ctx, "phonetool", "api").Return(&config.Workload{}, nil),
 				)
-				m.sel.EXPECT().DeployedService(fmt.Sprintf(svcResumeSvcNamePrompt, testAppName), svcResumeSvcNameHelpPrompt, "phonetool", gomock.Any(), gomock.Any(), gomock.Any()).
+				m.sel.EXPECT().DeployedService(ctx, fmt.Sprintf(svcResumeSvcNamePrompt, testAppName), svcResumeSvcNameHelpPrompt, "phonetool", gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "test",
 						Name: "api",
@@ -73,11 +73,11 @@ func TestResumeSvcOpts_Ask(t *testing.T) {
 			inputSvc:         testSvcName,
 			skipConfirmation: true,
 			setupMocks: func(m svcResumeAskMock) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("phonetool", nil)
-				m.store.EXPECT().GetApplication(gomock.Any()).Times(0)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("phonetool", nil)
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  testEnvName,
 						Name: testSvcName,
@@ -90,7 +90,7 @@ func TestResumeSvcOpts_Ask(t *testing.T) {
 		"errors if failed to select application": {
 			skipConfirmation: true,
 			setupMocks: func(m svcResumeAskMock) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select application: some error"),
 		},
@@ -100,10 +100,10 @@ func TestResumeSvcOpts_Ask(t *testing.T) {
 			inputSvc:         "",
 			skipConfirmation: true,
 			setupMocks: func(m svcResumeAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService("Which service of phonetool would you like to resume?",
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, "Which service of phonetool would you like to resume?",
 					svcResumeSvcNameHelpPrompt, testAppName, gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  testEnvName,
@@ -121,10 +121,10 @@ func TestResumeSvcOpts_Ask(t *testing.T) {
 			skipConfirmation: true,
 
 			setupMocks: func(m svcResumeAskMock) {
-				m.store.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService("Which service of phonetool would you like to resume?",
+				m.store.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, "Which service of phonetool would you like to resume?",
 					svcResumeSvcNameHelpPrompt, testAppName, gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, mockError)
 			},
@@ -261,7 +261,7 @@ func TestResumeSvcOpts_Execute(t *testing.T) {
 				spinner:            mockSpinner,
 				serviceResumer:     mockserviceResumer,
 				apprunnerDescriber: mockapprunnerDescriber,
-				initClients: func() error {
+				initClients: func(_ context.Context) error {
 					return nil
 				},
 			}

@@ -128,26 +128,26 @@ func (o *deleteTaskOpts) Validate() error {
 		return err
 	}
 
-	if err := o.validateFlagsWithEnv(); err != nil {
+	if err := o.validateFlagsWithEnv(context.Background()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o *deleteTaskOpts) validateFlagsWithEnv() error {
+func (o *deleteTaskOpts) validateFlagsWithEnv(ctx context.Context) error {
 	if o.app != "" {
-		if _, err := o.store.GetApplication(o.app); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.app); err != nil {
 			return fmt.Errorf("get application: %w", err)
 		}
 	}
 
 	if o.app != "" && o.env != "" {
-		if _, err := o.store.GetEnvironment(o.app, o.env); err != nil {
+		if _, err := o.store.GetEnvironment(ctx, o.app, o.env); err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
 
-		if err := o.validateTaskName(); err != nil {
+		if err := o.validateTaskName(ctx); err != nil {
 			return fmt.Errorf("get task: %w", err)
 		}
 	}
@@ -155,12 +155,12 @@ func (o *deleteTaskOpts) validateFlagsWithEnv() error {
 	return nil
 }
 
-func (o *deleteTaskOpts) validateTaskName() error {
+func (o *deleteTaskOpts) validateTaskName(ctx context.Context) error {
 	if o.name != "" {
 		// If fully specified, validate that the stack exists and is a task.
 		// This check prevents the command from stopping arbitrary tasks or emptying arbitrary ECR
 		// repositories.
-		_, err := o.getTaskInfo()
+		_, err := o.getTaskInfo(ctx)
 		if err != nil {
 			return err
 		}
@@ -188,14 +188,14 @@ func (o *deleteTaskOpts) validateFlagsWithDefaultCluster() error {
 		return fmt.Errorf("cannot specify both `--env` and `--default`")
 	}
 
-	if err := o.validateTaskName(); err != nil {
+	if err := o.validateTaskName(context.Background()); err != nil {
 		return fmt.Errorf("get task: %w", err)
 	}
 
 	return nil
 }
 
-func (o *deleteTaskOpts) askAppName() error {
+func (o *deleteTaskOpts) askAppName(ctx context.Context) error {
 	if o.defaultCluster {
 		return nil
 	}
@@ -204,7 +204,7 @@ func (o *deleteTaskOpts) askAppName() error {
 		return nil
 	}
 
-	app, err := o.sel.Application(taskDeleteAppPrompt, "", appEnvOptionNone)
+	app, err := o.sel.Application(ctx, taskDeleteAppPrompt, "", appEnvOptionNone)
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -217,7 +217,7 @@ func (o *deleteTaskOpts) askAppName() error {
 	return nil
 }
 
-func (o *deleteTaskOpts) askEnvName() error {
+func (o *deleteTaskOpts) askEnvName(ctx context.Context) error {
 	if o.defaultCluster {
 		return nil
 	}
@@ -225,7 +225,7 @@ func (o *deleteTaskOpts) askEnvName() error {
 	if o.env != "" {
 		return nil
 	}
-	env, err := o.sel.Environment(taskDeleteEnvPrompt, "", o.app, prompt.Option{Value: appEnvOptionNone})
+	env, err := o.sel.Environment(ctx, taskDeleteEnvPrompt, "", o.app, prompt.Option{Value: appEnvOptionNone})
 	if err != nil {
 		return fmt.Errorf("select environment: %w", err)
 	}
@@ -240,16 +240,16 @@ func (o *deleteTaskOpts) askEnvName() error {
 }
 
 // Ask prompts for missing information and fills in gaps.
-func (o *deleteTaskOpts) Ask(_ context.Context) error {
-	if err := o.askAppName(); err != nil {
+func (o *deleteTaskOpts) Ask(ctx context.Context) error {
+	if err := o.askAppName(ctx); err != nil {
 		return err
 	}
 
-	if err := o.askEnvName(); err != nil {
+	if err := o.askEnvName(ctx); err != nil {
 		return err
 	}
 
-	if err := o.askTaskName(); err != nil {
+	if err := o.askTaskName(ctx); err != nil {
 		return err
 	}
 
@@ -282,7 +282,7 @@ func (o *deleteTaskOpts) Ask(_ context.Context) error {
 	return nil
 }
 
-func (o *deleteTaskOpts) getConfig() (aws.Config, error) {
+func (o *deleteTaskOpts) getConfig(ctx context.Context) (aws.Config, error) {
 	if o.hasConfig {
 		return o.cfg, nil
 	}
@@ -296,7 +296,7 @@ func (o *deleteTaskOpts) getConfig() (aws.Config, error) {
 		return cfg, nil
 	}
 	// Get environment manager role for deleting stack.
-	env, err := o.store.GetEnvironment(o.app, o.env)
+	env, err := o.store.GetEnvironment(ctx, o.app, o.env)
 	if err != nil {
 		return aws.Config{}, err
 	}
@@ -309,12 +309,12 @@ func (o *deleteTaskOpts) getConfig() (aws.Config, error) {
 	return cfg, nil
 }
 
-func (o *deleteTaskOpts) askTaskName() error {
+func (o *deleteTaskOpts) askTaskName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
 
-	cfg, err := o.getConfig()
+	cfg, err := o.getConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("get task select session: %w", err)
 	}
@@ -335,21 +335,21 @@ func (o *deleteTaskOpts) askTaskName() error {
 	return nil
 }
 
-func (o *deleteTaskOpts) Execute(_ context.Context) error {
-	if err := o.stopTasks(); err != nil {
+func (o *deleteTaskOpts) Execute(ctx context.Context) error {
+	if err := o.stopTasks(ctx); err != nil {
 		return err
 	}
-	if err := o.clearECRRepository(); err != nil {
+	if err := o.clearECRRepository(ctx); err != nil {
 		return err
 	}
-	if err := o.deleteStack(); err != nil {
+	if err := o.deleteStack(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o *deleteTaskOpts) stopTasks() error {
-	cfg, err := o.getConfig()
+func (o *deleteTaskOpts) stopTasks(ctx context.Context) error {
+	cfg, err := o.getConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("get session: %w", err)
 	}
@@ -372,10 +372,10 @@ func (o *deleteTaskOpts) stopTasks() error {
 	return nil
 }
 
-func (o *deleteTaskOpts) clearECRRepository() error {
+func (o *deleteTaskOpts) clearECRRepository(ctx context.Context) error {
 	// ECR Deletion happens from the default profile in app delete. We can do it here too by getting
 	// a default session in whichever region we're deleting from.
-	defaultConfig, err := o.getConfig()
+	defaultConfig, err := o.getConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -399,9 +399,9 @@ func (o *deleteTaskOpts) clearECRRepository() error {
 	return nil
 }
 
-func (o *deleteTaskOpts) emptyS3Bucket(info *deploy.TaskStackInfo) error {
+func (o *deleteTaskOpts) emptyS3Bucket(ctx context.Context, info *deploy.TaskStackInfo) error {
 	o.spinner.Start(fmt.Sprintf("Emptying S3 bucket for task %s.", color.HighlightUserInput(o.name)))
-	cfg, err := o.getConfig()
+	cfg, err := o.getConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -417,11 +417,11 @@ func (o *deleteTaskOpts) emptyS3Bucket(info *deploy.TaskStackInfo) error {
 
 // getTaskInfo returns a struct of information about the task, including the app and env it's deployed to, if
 // applicable, and the ARN of any CF role it's associated with.
-func (o *deleteTaskOpts) getTaskInfo() (*deploy.TaskStackInfo, error) {
+func (o *deleteTaskOpts) getTaskInfo(ctx context.Context) (*deploy.TaskStackInfo, error) {
 	if o.stackInfo != nil {
 		return o.stackInfo, nil
 	}
-	cfg, err := o.getConfig()
+	cfg, err := o.getConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -434,12 +434,12 @@ func (o *deleteTaskOpts) getTaskInfo() (*deploy.TaskStackInfo, error) {
 	return info, nil
 }
 
-func (o *deleteTaskOpts) deleteStack() error {
-	cfg, err := o.getConfig()
+func (o *deleteTaskOpts) deleteStack(ctx context.Context) error {
+	cfg, err := o.getConfig(ctx)
 	if err != nil {
 		return err
 	}
-	info, err := o.getTaskInfo()
+	info, err := o.getTaskInfo(ctx)
 	if err != nil {
 		// If the stack doesn't exist, don't error.
 		var errStackNotExist *awscfn.ErrStackNotFound
@@ -453,7 +453,7 @@ func (o *deleteTaskOpts) deleteStack() error {
 		return nil
 	}
 	if info.BucketName != "" {
-		if err := o.emptyS3Bucket(info); err != nil {
+		if err := o.emptyS3Bucket(ctx, info); err != nil {
 			return err
 		}
 	}

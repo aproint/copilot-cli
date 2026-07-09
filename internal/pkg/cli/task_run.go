@@ -164,7 +164,7 @@ type runTaskOpts struct {
 	targetEnvironment *config.Environment
 
 	// Configurer functions.
-	configureRuntimeOpts func() error
+	configureRuntimeOpts func(ctx context.Context) error
 	configureRepository  func() error
 	// NOTE: configureEventsWriter is only called when tailing logs (i.e. --follow is specified)
 	configureEventsWriter func(tasks []*task.Task)
@@ -183,7 +183,7 @@ type runTaskOpts struct {
 	ssmParamSecrets         map[string]string
 	secretsManagerSecrets   map[string]string
 	envFileARN              string
-	envCompatibilityChecker func(app, env string) (versionCompatibilityChecker, error)
+	envCompatibilityChecker func(ctx context.Context, app, env string) (versionCompatibilityChecker, error)
 }
 
 func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
@@ -208,8 +208,8 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 		ssmParamSecrets:       make(map[string]string),
 	}
 
-	opts.configureRuntimeOpts = func() error {
-		opts.runner, err = opts.configureRunner()
+	opts.configureRuntimeOpts = func(ctx context.Context) error {
+		opts.runner, err = opts.configureRunner(ctx)
 		if err != nil {
 			return fmt.Errorf("configure task runner: %w", err)
 		}
@@ -241,8 +241,8 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 	opts.configureUploader = func(cfg aws.Config) uploader {
 		return s3.New(cfg)
 	}
-	opts.envCompatibilityChecker = func(app, env string) (versionCompatibilityChecker, error) {
-		envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	opts.envCompatibilityChecker = func(ctx context.Context, app, env string) (versionCompatibilityChecker, error) {
+		envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 			App:         app,
 			Env:         env,
 			ConfigStore: opts.store,
@@ -259,7 +259,7 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 	return &opts, nil
 }
 
-func (o *runTaskOpts) configureRunner() (taskRunner, error) {
+func (o *runTaskOpts) configureRunner(ctx context.Context) (taskRunner, error) {
 	vpcGetter := ec2.New(o.cfg)
 	ecsService := awsecs.New(o.cfg)
 
@@ -269,7 +269,7 @@ func (o *runTaskOpts) configureRunner() (taskRunner, error) {
 			return nil, fmt.Errorf("connect to copilot deploy store: %w", err)
 		}
 
-		d, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		d, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 			App:             o.appName,
 			Env:             o.env,
 			ConfigStore:     o.store,
@@ -316,13 +316,13 @@ func (o *runTaskOpts) configureRunner() (taskRunner, error) {
 
 }
 
-func (o *runTaskOpts) configureSessAndEnv() error {
+func (o *runTaskOpts) configureSessAndEnv(ctx context.Context) error {
 	var cfg aws.Config
 	var env *config.Environment
 
 	if o.env != "" {
 		var err error
-		env, err = o.targetEnv(o.appName, o.env)
+		env, err = o.targetEnv(ctx, o.appName, o.env)
 		if err != nil {
 			return err
 		}
@@ -418,13 +418,13 @@ func (o *runTaskOpts) Validate() error {
 	}
 
 	if o.appName != "" {
-		if err := o.validateAppName(); err != nil {
+		if err := o.validateAppName(context.Background()); err != nil {
 			return err
 		}
 	}
 
 	if o.env != "" {
-		if err := o.validateEnvName(); err != nil {
+		if err := o.validateEnvName(context.Background()); err != nil {
 			return err
 		}
 	}
@@ -516,8 +516,8 @@ func (o *runTaskOpts) confirmSecretsAccess() error {
 	return nil
 }
 
-func (o *runTaskOpts) validateEnvCompatibilityForGenerateJobCmd(app, env string) error {
-	envStack, err := o.envCompatibilityChecker(app, env)
+func (o *runTaskOpts) validateEnvCompatibilityForGenerateJobCmd(ctx context.Context, app, env string) error {
+	envStack, err := o.envCompatibilityChecker(ctx, app, env)
 	if err != nil {
 		return err
 	}
@@ -630,15 +630,15 @@ func isWindowsOS(os string) bool {
 }
 
 // Ask prompts the user for any required or important fields that are not provided.
-func (o *runTaskOpts) Ask(_ context.Context) error {
+func (o *runTaskOpts) Ask(ctx context.Context) error {
 	if o.generateCommandTarget != "" {
 		return nil
 	}
 	if o.shouldPromptForAppEnv() {
-		if err := o.askAppName(); err != nil {
+		if err := o.askAppName(ctx); err != nil {
 			return err
 		}
-		if err := o.askEnvName(); err != nil {
+		if err := o.askEnvName(ctx); err != nil {
 			return err
 		}
 	}
@@ -662,9 +662,9 @@ func (o *runTaskOpts) shouldPromptForAppEnv() bool {
 }
 
 // Execute deploys and runs the task.
-func (o *runTaskOpts) Execute(_ context.Context) error {
+func (o *runTaskOpts) Execute(ctx context.Context) error {
 	if o.generateCommandTarget != "" {
-		return o.generateCommand()
+		return o.generateCommand(ctx)
 	}
 
 	if o.groupName == "" {
@@ -677,11 +677,11 @@ func (o *runTaskOpts) Execute(_ context.Context) error {
 	}
 
 	// NOTE: all runtime options must be configured only after session is configured
-	if err := o.configureSessAndEnv(); err != nil {
+	if err := o.configureSessAndEnv(ctx); err != nil {
 		return err
 	}
 
-	if err := o.configureRuntimeOpts(); err != nil {
+	if err := o.configureRuntimeOpts(ctx); err != nil {
 		return err
 	}
 
@@ -700,7 +700,7 @@ func (o *runTaskOpts) Execute(_ context.Context) error {
 		}
 	}
 
-	if err := o.deployTaskResources(); err != nil {
+	if err := o.deployTaskResources(ctx); err != nil {
 		return err
 	}
 
@@ -712,7 +712,7 @@ func (o *runTaskOpts) Execute(_ context.Context) error {
 	var shouldUpdate bool
 
 	if o.envFile != "" {
-		envFileARN, err := o.deployEnvFile()
+		envFileARN, err := o.deployEnvFile(ctx)
 		if err != nil {
 			return fmt.Errorf("deploy env file %s: %w", o.envFile, err)
 		}
@@ -742,7 +742,7 @@ func (o *runTaskOpts) Execute(_ context.Context) error {
 	}
 
 	if shouldUpdate {
-		if err := o.updateTaskResources(); err != nil {
+		if err := o.updateTaskResources(ctx); err != nil {
 			return err
 		}
 	}
@@ -771,8 +771,8 @@ Did you tag your secrets with the "copilot-application" and "copilot-environment
 	return nil
 }
 
-func (o *runTaskOpts) generateCommand() error {
-	command, err := o.runTaskCommand()
+func (o *runTaskOpts) generateCommand(ctx context.Context) error {
+	command, err := o.runTaskCommand(ctx)
 	if err != nil {
 		return err
 	}
@@ -784,7 +784,7 @@ func (o *runTaskOpts) generateCommand() error {
 	return nil
 }
 
-func (o *runTaskOpts) runTaskCommand() (cliStringer, error) {
+func (o *runTaskOpts) runTaskCommand(ctx context.Context) (cliStringer, error) {
 	var cmd cliStringer
 	if arn.IsARN(o.generateCommandTarget) {
 		clusterName, serviceName, err := o.parseARN()
@@ -811,7 +811,7 @@ func (o *runTaskOpts) runTaskCommand() (cliStringer, error) {
 		}
 	case 3:
 		appName, envName, workloadName := parts[0], parts[1], parts[2]
-		env, err := o.targetEnv(appName, envName)
+		env, err := o.targetEnv(ctx, appName, envName)
 		if err != nil {
 			return nil, err
 		}
@@ -819,7 +819,7 @@ func (o *runTaskOpts) runTaskCommand() (cliStringer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("get environment config: %s", err)
 		}
-		cmd, err = o.runTaskCommandFromWorkload(cfg, appName, envName, workloadName)
+		cmd, err = o.runTaskCommandFromWorkload(ctx, cfg, appName, envName, workloadName)
 		if err != nil {
 			return nil, err
 		}
@@ -850,8 +850,8 @@ func (o *runTaskOpts) runTaskCommandFromECSService(cfg aws.Config, clusterName, 
 	return cmd, nil
 }
 
-func (o *runTaskOpts) runTaskCommandFromWorkload(cfg aws.Config, appName, envName, workloadName string) (cliStringer, error) {
-	workloadType, err := o.workloadType(appName, workloadName)
+func (o *runTaskOpts) runTaskCommandFromWorkload(ctx context.Context, cfg aws.Config, appName, envName, workloadName string) (cliStringer, error) {
+	workloadType, err := o.workloadType(ctx, appName, workloadName)
 	if err != nil {
 		return nil, err
 	}
@@ -859,7 +859,7 @@ func (o *runTaskOpts) runTaskCommandFromWorkload(cfg aws.Config, appName, envNam
 	var cmd cliStringer
 	switch workloadType {
 	case workloadTypeJob:
-		if err := o.validateEnvCompatibilityForGenerateJobCmd(appName, envName); err != nil {
+		if err := o.validateEnvCompatibilityForGenerateJobCmd(ctx, appName, envName); err != nil {
 			return nil, err
 		}
 		cmd, err = o.runTaskRequestFromJob(o.configureJobDescriber(cfg), appName, envName, workloadName)
@@ -875,8 +875,8 @@ func (o *runTaskOpts) runTaskCommandFromWorkload(cfg aws.Config, appName, envNam
 	return cmd, nil
 }
 
-func (o *runTaskOpts) workloadType(appName, workloadName string) (string, error) {
-	_, err := o.store.GetJob(appName, workloadName)
+func (o *runTaskOpts) workloadType(ctx context.Context, appName, workloadName string) (string, error) {
+	_, err := o.store.GetJob(ctx, appName, workloadName)
 	if err == nil {
 		return workloadTypeJob, nil
 	}
@@ -886,7 +886,7 @@ func (o *runTaskOpts) workloadType(appName, workloadName string) (string, error)
 		return "", fmt.Errorf("determine whether workload %s is a job: %w", workloadName, err)
 	}
 
-	_, err = o.store.GetService(appName, workloadName)
+	_, err = o.store.GetService(ctx, appName, workloadName)
 	if err == nil {
 		return workloadTypeSvc, nil
 	}
@@ -978,21 +978,21 @@ func (o *runTaskOpts) buildAndPushImage(uri string) error {
 	return nil
 }
 
-func (o *runTaskOpts) deployTaskResources() error {
-	if err := o.deploy(); err != nil {
+func (o *runTaskOpts) deployTaskResources(ctx context.Context) error {
+	if err := o.deploy(ctx); err != nil {
 		return fmt.Errorf("provision resources for task %s: %w", o.groupName, err)
 	}
 	return nil
 }
 
-func (o *runTaskOpts) updateTaskResources() error {
-	if err := o.deploy(); err != nil {
+func (o *runTaskOpts) updateTaskResources(ctx context.Context) error {
+	if err := o.deploy(ctx); err != nil {
 		return fmt.Errorf("update resources for task %s: %w", o.groupName, err)
 	}
 	return nil
 }
 
-func (o *runTaskOpts) deploy() error {
+func (o *runTaskOpts) deploy(ctx context.Context) error {
 	var deployOpts []awscloudformation.StackOption
 	if o.env != "" {
 		deployOpts = []awscloudformation.StackOption{awscloudformation.WithRoleARN(o.targetEnvironment.ExecutionRoleARN)}
@@ -1000,7 +1000,7 @@ func (o *runTaskOpts) deploy() error {
 
 	var boundaryPolicy string
 	if o.appName != "" {
-		app, err := o.store.GetApplication(o.appName)
+		app, err := o.store.GetApplication(ctx, o.appName)
 		if err != nil {
 			return fmt.Errorf("get application: %w", err)
 		}
@@ -1043,7 +1043,7 @@ func (o *runTaskOpts) deploy() error {
 }
 
 // deployEnvFileIfNeeded uploads the env file if needed, ensures that an S3 bucket is available, and returns the ARN of uploaded file.
-func (o *runTaskOpts) deployEnvFile() (string, error) {
+func (o *runTaskOpts) deployEnvFile(ctx context.Context) (string, error) {
 	if o.envFile == "" {
 		return "", nil
 	}
@@ -1090,16 +1090,16 @@ func (o *runTaskOpts) pushEnvFileToS3(bucket string) (string, error) {
 	return s3.FormatARN(partition.ID(), fmt.Sprintf("%s/%s", bucket, key)), nil
 }
 
-func (o *runTaskOpts) validateAppName() error {
-	if _, err := o.store.GetApplication(o.appName); err != nil {
+func (o *runTaskOpts) validateAppName(ctx context.Context) error {
+	if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 		return fmt.Errorf("get application: %w", err)
 	}
 	return nil
 }
 
-func (o *runTaskOpts) validateEnvName() error {
+func (o *runTaskOpts) validateEnvName(ctx context.Context) error {
 	if o.appName != "" {
-		if _, err := o.targetEnv(o.appName, o.env); err != nil {
+		if _, err := o.targetEnv(ctx, o.appName, o.env); err != nil {
 			return err
 		}
 	} else {
@@ -1109,13 +1109,13 @@ func (o *runTaskOpts) validateEnvName() error {
 	return nil
 }
 
-func (o *runTaskOpts) askAppName() error {
+func (o *runTaskOpts) askAppName(ctx context.Context) error {
 	if o.appName != "" {
 		return nil
 	}
 
 	// If the application is empty then the user wants to run in the default VPC. Do not prompt for an environment name.
-	app, err := o.sel.Application(taskRunAppPrompt, taskRunAppPromptHelp, appEnvOptionNone)
+	app, err := o.sel.Application(ctx, taskRunAppPrompt, taskRunAppPromptHelp, appEnvOptionNone)
 	if err != nil {
 		return fmt.Errorf("ask for application: %w", err)
 	}
@@ -1128,7 +1128,7 @@ func (o *runTaskOpts) askAppName() error {
 	return nil
 }
 
-func (o *runTaskOpts) askEnvName() error {
+func (o *runTaskOpts) askEnvName(ctx context.Context) error {
 	if o.env != "" {
 		return nil
 	}
@@ -1138,7 +1138,7 @@ func (o *runTaskOpts) askEnvName() error {
 		return nil
 	}
 
-	env, err := o.sel.Environment(taskRunEnvPrompt, taskRunEnvPromptHelp, o.appName, prompt.Option{Value: appEnvOptionNone})
+	env, err := o.sel.Environment(ctx, taskRunEnvPrompt, taskRunEnvPromptHelp, o.appName, prompt.Option{Value: appEnvOptionNone})
 	if err != nil {
 		return fmt.Errorf("ask for environment: %w", err)
 	}
@@ -1151,8 +1151,8 @@ func (o *runTaskOpts) askEnvName() error {
 	return nil
 }
 
-func (o *runTaskOpts) targetEnv(appName, envName string) (*config.Environment, error) {
-	env, err := o.store.GetEnvironment(appName, envName)
+func (o *runTaskOpts) targetEnv(ctx context.Context, appName, envName string) (*config.Environment, error) {
+	env, err := o.store.GetEnvironment(ctx, appName, envName)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s config: %w", o.env, err)
 	}

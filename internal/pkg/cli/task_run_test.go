@@ -122,11 +122,11 @@ func TestTaskRunOpts_Validate(t *testing.T) {
 
 			appName: "my-app",
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name: "my-app",
 				}, nil)
 
-				m.EXPECT().GetEnvironment("my-app", "dev").Return(&config.Environment{
+				m.EXPECT().GetEnvironment(ctx, "my-app", "dev").Return(&config.Environment{
 					App:  "my-app",
 					Name: "dev",
 				}, nil)
@@ -273,7 +273,7 @@ func TestTaskRunOpts_Validate(t *testing.T) {
 
 			appName: "my-app",
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name: "my-app",
 				}, nil)
 			},
@@ -285,7 +285,7 @@ func TestTaskRunOpts_Validate(t *testing.T) {
 
 			appName: "my-app",
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication("my-app").Return(nil, &config.ErrNoSuchApplication{
+				m.EXPECT().GetApplication(ctx, "my-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "my-app",
 					AccountID:       "115",
 					Region:          "us-east-1",
@@ -300,12 +300,12 @@ func TestTaskRunOpts_Validate(t *testing.T) {
 			inEnv:   "dev",
 
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("my-app", "dev").Return(&config.Environment{
+				m.EXPECT().GetEnvironment(ctx, "my-app", "dev").Return(&config.Environment{
 					App:  "my-app",
 					Name: "dev",
 				}, nil)
 
-				m.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name: "my-app",
 				}, nil)
 			},
@@ -318,12 +318,12 @@ func TestTaskRunOpts_Validate(t *testing.T) {
 			inEnv:   "dev",
 
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("my-app", "dev").Return(nil, &config.ErrNoSuchEnvironment{
+				m.EXPECT().GetEnvironment(ctx, "my-app", "dev").Return(nil, &config.ErrNoSuchEnvironment{
 					ApplicationName: "my-app",
 					EnvironmentName: "dev",
 				})
 
-				m.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name: "my-app",
 				}, nil)
 			},
@@ -493,8 +493,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), appEnvOptionNone).Return("app", nil)
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), appEnvOptionNone).Return("app", nil)
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			},
 			wantedApp: "app",
 		},
@@ -503,7 +503,7 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), appEnvOptionNone).Return(appEnvOptionNone, nil)
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), appEnvOptionNone).Return(appEnvOptionNone, nil)
 			},
 			wantedApp: "",
 		},
@@ -514,8 +514,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
 			},
 			wantedApp: "my-app",
 		},
@@ -527,7 +527,7 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 
 			wantedEnv: "test",
@@ -538,8 +538,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(gomock.Any(), gomock.Any(), appEnvOptionNone).Return(appEnvOptionNone, nil)
-				m.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Application(ctx, gomock.Any(), gomock.Any(), appEnvOptionNone).Return(appEnvOptionNone, nil)
+				m.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 
 			wantedEnv: "",
@@ -550,8 +550,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
 			},
 			wantedApp: "",
 		},
@@ -561,8 +561,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
-				m.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Application(ctx, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
+				m.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 
 			wantedEnv: "",
@@ -573,8 +573,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
 			},
 		},
 		"don't prompt for app if cluster is specified": {
@@ -583,8 +583,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
 			},
 		},
 		"don't prompt for env if subnets are specified": {
@@ -593,8 +593,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
 			},
 		},
 		"don't prompt for env if cluster is specified": {
@@ -603,8 +603,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
 			},
 		},
 		"don't prompt for app if security groups are specified": {
@@ -613,8 +613,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).AnyTimes()
 			},
 		},
 		"don't prompt for env if security groups are specified": {
@@ -623,8 +623,8 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Application(taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
+				m.EXPECT().Application(ctx, taskRunAppPrompt, gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), appEnvOptionNone).Times(0)
 			},
 		},
 		"selected an existing environment": {
@@ -634,7 +634,7 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(),
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(),
 					"my-app", prompt.Option{Value: appEnvOptionNone}).Return("test", nil)
 			},
 
@@ -648,7 +648,7 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(),
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(),
 					"my-app", prompt.Option{Value: appEnvOptionNone}).Return(appEnvOptionNone, nil)
 			},
 
@@ -662,7 +662,7 @@ func TestTaskRunOpts_Ask(t *testing.T) {
 				m.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockSel: func(m *mocks.MockappEnvSelector) {
-				m.EXPECT().Environment(taskRunEnvPrompt, gomock.Any(), gomock.Any(), prompt.Option{Value: appEnvOptionNone}).
+				m.EXPECT().Environment(ctx, taskRunEnvPrompt, gomock.Any(), gomock.Any(), prompt.Option{Value: appEnvOptionNone}).
 					Return("", fmt.Errorf("error selecting environment"))
 			},
 
@@ -811,7 +811,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"check if default cluster exists if deploying to default cluster": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any()).Return(nil).AnyTimes()
 				mockRepositoryAnytime(m)
@@ -823,7 +823,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Times(0)
 				m.store.EXPECT().
-					GetEnvironment(gomock.Any(), "test").
+					GetEnvironment(ctx, gomock.Any(), "test").
 					Return(&config.Environment{
 						ExecutionRoleARN: "env execution role",
 					}, nil)
@@ -836,7 +836,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"error deploying resources": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
@@ -850,7 +850,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"error performing docker login": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
@@ -865,7 +865,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"error updating resources": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
@@ -887,7 +887,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"error running tasks": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(gomock.Any()).Return(nil).Times(2)
 				mockRepositoryAnytime(m)
 				m.runner.EXPECT().Run().Return(nil, errors.New("error running"))
@@ -898,7 +898,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"deploy with execution role option if env is not empty": {
 			inEnv: "test",
 			setupMocks: func(m runTaskMocks) {
-				m.store.EXPECT().GetEnvironment(gomock.Any(), "test").
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), "test").
 					Return(&config.Environment{
 						ExecutionRoleARN: "env execution role",
 					}, nil)
@@ -912,7 +912,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"deploy without execution role option if env is empty": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Len(0)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
 				m.runner.EXPECT().Run().AnyTimes()
@@ -923,7 +923,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			inTag: tag,
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(gomock.Any()).AnyTimes()
 				m.repository.EXPECT().Login().Return(mockRepoURI, nil)
 				m.repository.EXPECT().BuildAndPush(ctx, gomock.Eq(
@@ -941,7 +941,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			inDockerCtx: "../../other",
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(gomock.Any()).AnyTimes()
 				m.repository.EXPECT().Login().Return(mockRepoURI, nil)
 				m.repository.EXPECT().BuildAndPush(ctx, gomock.Eq(
@@ -960,7 +960,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			inEntryPoint: `exec "some command"`,
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 				m.deployer.EXPECT().DeployTask(&deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
@@ -1039,12 +1039,12 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			inApp: "my-app",
 			inEnv: "test",
 			setupMocks: func(m runTaskMocks) {
-				m.store.EXPECT().GetEnvironment(gomock.Any(), "test").
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), "test").
 					Return(&config.Environment{
 						ExecutionRoleARN: "env execution role",
 					}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
-				m.store.EXPECT().GetApplication("my-app").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(nil, errors.New("some error"))
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Len(1)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
 				m.runner.EXPECT().Run().AnyTimes()
@@ -1066,7 +1066,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
-				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil).Times(2)
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil).Times(2)
 				m.deployer.EXPECT().GetTaskStack(inGroupName).Return(&info, nil)
 				key := "manual/env-files/magic.env/4963d64294508aa3fa103ccac5ad1537944c577d469608ddccad09b6f79b6406.env"
 				url := "https://bigbucket.s3-us-west-2.amazonaws.com/" + key
@@ -1086,7 +1086,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
-				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
 				m.deployer.EXPECT().GetTaskStack(inGroupName).Return(&info, nil)
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).Return(nil)
 			},
@@ -1105,7 +1105,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).Return(nil)
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
-				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
 				m.deployer.EXPECT().GetTaskStack(inGroupName).Return(nil, errors.New("hull breach in sector 3"))
 			},
 			wantedError: errors.New("deploy env file testdir/../magic.env: deploy env file: hull breach in sector 3"),
@@ -1124,7 +1124,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
 				m.defaultClusterGetter.EXPECT().HasDefaultCluster().Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
-				m.store.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil)
+				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
 				m.deployer.EXPECT().GetTaskStack(inGroupName).Return(&info, nil)
 
 				key := "manual/env-files/magic.env/4963d64294508aa3fa103ccac5ad1537944c577d469608ddccad09b6f79b6406.env"
@@ -1181,7 +1181,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				provider: mocks.provider,
 				fs:       fs.Fs,
 			}
-			opts.configureRuntimeOpts = func() error {
+			opts.configureRuntimeOpts = func(_ context.Context) error {
 				opts.runner = mocks.runner
 				opts.deployer = mocks.deployer
 				opts.defaultClusterGetter = mocks.defaultClusterGetter
@@ -1284,13 +1284,13 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"should generate a command given an app/env/svc target": {
 			inGenerateCommandTarget: "good-app/good-env/good-service",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "good-service").Return(nil, &config.ErrNoSuchJob{})
-				m.store.EXPECT().GetService("good-app", "good-service").Return(&config.Workload{}, nil)
+				m.store.EXPECT().GetJob(ctx, "good-app", "good-service").Return(nil, &config.ErrNoSuchJob{})
+				m.store.EXPECT().GetService(ctx, "good-app", "good-service").Return(&config.Workload{}, nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
 				mockRunTaskRequestFromService: func(client ecs.ServiceDescriber, app, env, svc string) (*ecs.RunTaskRequest, error) {
@@ -1302,13 +1302,13 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"fail to generate a command given an app/env/svc target": {
 			inGenerateCommandTarget: "good-app/good-env/good-service",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "good-service").Return(nil, &config.ErrNoSuchJob{})
-				m.store.EXPECT().GetService("good-app", "good-service").Return(&config.Workload{}, nil)
+				m.store.EXPECT().GetJob(ctx, "good-app", "good-service").Return(nil, &config.ErrNoSuchJob{})
+				m.store.EXPECT().GetService(ctx, "good-app", "good-service").Return(&config.Workload{}, nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
 				mockRunTaskRequestFromService: func(client ecs.ServiceDescriber, app, env, svc string) (*ecs.RunTaskRequest, error) {
@@ -1320,12 +1320,12 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"should generate a command given an app/env/job target": {
 			inGenerateCommandTarget: "good-app/good-env/good-job",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
+				m.store.EXPECT().GetJob(ctx, "good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("v1.12.2", nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
@@ -1338,12 +1338,12 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"fail to generate a command given an app/env/job target": {
 			inGenerateCommandTarget: "good-app/good-env/good-job",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
+				m.store.EXPECT().GetJob(ctx, "good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("v1.12.2", nil)
 			},
 			mockRunTaskRequester: mockRunTaskRequester{
@@ -1356,12 +1356,12 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"error out if fail to get env version when target is job": {
 			inGenerateCommandTarget: "good-app/good-env/good-job",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
+				m.store.EXPECT().GetJob(ctx, "good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("", errors.New("some error"))
 			},
 
@@ -1370,12 +1370,12 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"error out if env version doesn't support `--generate-cmd` for jobs": {
 			inGenerateCommandTarget: "good-app/good-env/good-job",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "good-job").Return(&config.Workload{}, nil)
+				m.store.EXPECT().GetJob(ctx, "good-app", "good-job").Return(&config.Workload{}, nil)
 				m.envCompatibilityChecker.EXPECT().Version().Return("v1.9.0", nil)
 			},
 
@@ -1384,38 +1384,38 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 		"fail to determine if the workload is a job given an app/env/workload target": {
 			inGenerateCommandTarget: "good-app/good-env/bad-workload",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "bad-workload").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetJob(ctx, "good-app", "bad-workload").Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("determine whether workload bad-workload is a job: some error"),
 		},
 		"fail to determine if the workload is a service given an app/env/workload target": {
 			inGenerateCommandTarget: "good-app/good-env/bad-workload",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "bad-workload").Return(nil, &config.ErrNoSuchJob{})
-				m.store.EXPECT().GetService("good-app", "bad-workload").Return(nil, errors.New("some error"))
+				m.store.EXPECT().GetJob(ctx, "good-app", "bad-workload").Return(nil, &config.ErrNoSuchJob{})
+				m.store.EXPECT().GetService(ctx, "good-app", "bad-workload").Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("determine whether workload bad-workload is a service: some error"),
 		},
 		"workload is neither a job nor a service": {
 			inGenerateCommandTarget: "good-app/good-env/bad-workload",
 			setUpMocks: func(m *taskRunMocks) {
-				m.store.EXPECT().GetEnvironment("good-app", "good-env").Return(&config.Environment{
+				m.store.EXPECT().GetEnvironment(ctx, "good-app", "good-env").Return(&config.Environment{
 					ManagerRoleARN: "mock-role",
 					Region:         "mock-region",
 				}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), "mock-role", "mock-region").Return(aws.Config{}, nil)
-				m.store.EXPECT().GetJob("good-app", "bad-workload").Return(nil, &config.ErrNoSuchJob{})
-				m.store.EXPECT().GetService("good-app", "bad-workload").Return(nil, &config.ErrNoSuchService{})
+				m.store.EXPECT().GetJob(ctx, "good-app", "bad-workload").Return(nil, &config.ErrNoSuchJob{})
+				m.store.EXPECT().GetService(ctx, "good-app", "bad-workload").Return(nil, &config.ErrNoSuchService{})
 			},
 			wantedError: fmt.Errorf("workload bad-workload is neither a service nor a job"),
 		},
@@ -1457,12 +1457,12 @@ func TestTaskRunOpts_runTaskCommand(t *testing.T) {
 				runTaskRequestFromECSService: tc.mockRunTaskRequester.mockRunTaskRequestFromECSService,
 				runTaskRequestFromService:    tc.mockRunTaskRequester.mockRunTaskRequestFromService,
 				runTaskRequestFromJob:        tc.mockRunTaskRequester.mockRunTaskRequestFromJob,
-				envCompatibilityChecker: func(app, env string) (versionCompatibilityChecker, error) {
+				envCompatibilityChecker: func(_ context.Context, app, env string) (versionCompatibilityChecker, error) {
 					return m.envCompatibilityChecker, nil
 				},
 			}
 
-			got, err := opts.runTaskCommand()
+			got, err := opts.runTaskCommand(ctx)
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
 			} else {

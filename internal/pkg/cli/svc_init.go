@@ -175,7 +175,7 @@ type initSvcOpts struct {
 	wsRoot              string
 
 	dockerfile          func(path string) dockerfileParser
-	initEnvDescriber    func(appName, envName string) (envDescriber, error)
+	initEnvDescriber    func(ctx context.Context, appName, envName string) (envDescriber, error)
 	newAppVersionGetter func(appName string) (versionGetter, error)
 
 	// Overridden in tests.
@@ -229,8 +229,8 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 		newAppVersionGetter: func(appName string) (versionGetter, error) {
 			return describe.NewAppDescriber(appName)
 		},
-		initEnvDescriber: func(appName string, envName string) (envDescriber, error) {
-			envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		initEnvDescriber: func(ctx context.Context, appName string, envName string) (envDescriber, error) {
+			envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 				App:         appName,
 				Env:         envName,
 				ConfigStore: store,
@@ -321,13 +321,13 @@ func (o *initSvcOpts) validateSourcePaths(sources []string) error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *initSvcOpts) Ask(_ context.Context) error {
+func (o *initSvcOpts) Ask(ctx context.Context) error {
 	// NOTE: we optimize the case where `name` is given as a flag while `wkldType` is not.
 	// In this case, we can try reading the manifest, and set `wkldType` to the value found in the manifest
 	// without having to validate it. We can then short circuit the rest of the prompts for an optimal UX.
 	if o.name != "" && o.wkldType == "" {
 		// Best effort to validate the service name without type.
-		if err := o.validateSvc(); err != nil {
+		if err := o.validateSvc(ctx); err != nil {
 			return err
 		}
 		shouldSkipAsking, err := o.manifestAlreadyExists()
@@ -352,7 +352,7 @@ func (o *initSvcOpts) Ask(_ context.Context) error {
 			return err
 		}
 	}
-	if err := o.validateSvc(); err != nil {
+	if err := o.validateSvc(ctx); err != nil {
 		return err
 	}
 	if err := o.askIngressType(); err != nil {
@@ -365,11 +365,11 @@ func (o *initSvcOpts) Ask(_ context.Context) error {
 	if shouldSkipAsking {
 		return nil
 	}
-	return o.askSvcDetails()
+	return o.askSvcDetails(ctx)
 }
 
 // Execute writes the service's manifest file and stores the service in SSM.
-func (o *initSvcOpts) Execute(_ context.Context) error {
+func (o *initSvcOpts) Execute(ctx context.Context) error {
 	if !o.allowAppDowngrade {
 		appVersionGetter, err := o.newAppVersionGetter(o.appName)
 		if err != nil {
@@ -399,12 +399,12 @@ func (o *initSvcOpts) Execute(_ context.Context) error {
 		}
 	}
 	// Environments that are deployed and have​ only private subnets.
-	envs, err := envsWithPrivateSubnetsOnly(o.store, o.initEnvDescriber, o.appName)
+	envs, err := envsWithPrivateSubnetsOnly(ctx, o.store, o.initEnvDescriber, o.appName)
 	if err != nil {
 		return err
 	}
 
-	o.manifestPath, err = o.init.Service(&initialize.ServiceProps{
+	o.manifestPath, err = o.init.Service(ctx, &initialize.ServiceProps{
 		WorkloadProps: initialize.WorkloadProps{
 			App:            o.appName,
 			Name:           o.name,
@@ -451,7 +451,7 @@ You can specify multiple paths where your service will receive traffic by settin
 	return nil
 }
 
-func (o *initSvcOpts) askSvcDetails() error {
+func (o *initSvcOpts) askSvcDetails(ctx context.Context) error {
 	if o.wkldType == manifestinfo.StaticSiteType {
 		return o.askStaticSite()
 	}
@@ -467,7 +467,7 @@ func (o *initSvcOpts) askSvcDetails() error {
 	if err := o.askSvcPort(); err != nil {
 		return err
 	}
-	return o.askSvcPublishers()
+	return o.askSvcPublishers(ctx)
 }
 
 func (o *initSvcOpts) askSvcType() error {
@@ -484,15 +484,15 @@ func (o *initSvcOpts) askSvcType() error {
 	return nil
 }
 
-func (o *initSvcOpts) validateSvc() error {
+func (o *initSvcOpts) validateSvc(ctx context.Context) error {
 	if err := validateSvcName(o.name, o.wkldType); err != nil {
 		return err
 	}
-	return o.validateDuplicateSvc()
+	return o.validateDuplicateSvc(ctx)
 }
 
-func (o *initSvcOpts) validateDuplicateSvc() error {
-	_, err := o.store.GetService(o.appName, o.name)
+func (o *initSvcOpts) validateDuplicateSvc(ctx context.Context) error {
+	_, err := o.store.GetService(ctx, o.appName, o.name)
 	if err == nil {
 		// Skip error if service already exists in workspace
 		if !o.wsPendingCreation {
@@ -800,7 +800,7 @@ func legitimizePlatform(engine dockerEngine, wkldType string) (manifest.Platform
 	return manifest.PlatformString(redirectedPlatform), nil
 }
 
-func (o *initSvcOpts) askSvcPublishers() (err error) {
+func (o *initSvcOpts) askSvcPublishers(ctx context.Context) (err error) {
 	if o.wkldType != manifestinfo.WorkerServiceType {
 		return nil
 	}
@@ -823,7 +823,7 @@ func (o *initSvcOpts) askSvcPublishers() (err error) {
 		return nil
 	}
 
-	topics, err := o.topicSel.Topics(svcInitPublisherPrompt, svcInitPublisherHelpPrompt, o.appName)
+	topics, err := o.topicSel.Topics(ctx, svcInitPublisherPrompt, svcInitPublisherHelpPrompt, o.appName)
 	if err != nil {
 		return fmt.Errorf("select publisher: %w", err)
 	}
@@ -849,7 +849,7 @@ func validateWorkspaceApp(wsApp, inputApp string, store store) error {
 	if inputApp != "" && inputApp != wsApp {
 		return fmt.Errorf("cannot specify app %s because the workspace is already registered with app %s", inputApp, wsApp)
 	}
-	if _, err := store.GetApplication(wsApp); err != nil {
+	if _, err := store.GetApplication(context.Background(), wsApp); err != nil {
 		return fmt.Errorf("get application %s configuration: %w", wsApp, err)
 	}
 	return nil

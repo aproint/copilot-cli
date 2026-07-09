@@ -111,13 +111,13 @@ func (o *deletePipelineOpts) Validate() error {
 }
 
 // Ask prompts for and validates required fields.
-func (o *deletePipelineOpts) Ask(_ context.Context) error {
+func (o *deletePipelineOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
-		if _, err := o.store.GetApplication(o.appName); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 			return err
 		}
 	} else {
-		if err := o.askAppName(); err != nil {
+		if err := o.askAppName(ctx); err != nil {
 			return err
 		}
 	}
@@ -202,8 +202,8 @@ func getDeployedPipelineInfo(lister deployedPipelineLister, app, name string) (d
 	return deploy.Pipeline{}, fmt.Errorf("cannot find pipeline named %s", name)
 }
 
-func (o *deletePipelineOpts) askAppName() error {
-	app, err := o.sel.Application(pipelineDeleteAppNamePrompt, pipelineDeleteAppNameHelpPrompt)
+func (o *deletePipelineOpts) askAppName(ctx context.Context) error {
+	app, err := o.sel.Application(ctx, pipelineDeleteAppNamePrompt, pipelineDeleteAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}

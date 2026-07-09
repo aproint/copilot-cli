@@ -52,7 +52,7 @@ func TestRunLocalOpts_Validate(t *testing.T) {
 		"fail to read the application from SSM store": {
 			inAppName: "testApp",
 			setupMocks: func(m *runLocalAskMocks) {
-				m.store.EXPECT().GetApplication("testApp").Return(nil, testError)
+				m.store.EXPECT().GetApplication(ctx, "testApp").Return(nil, testError)
 			},
 			wantError: fmt.Errorf("get application testApp: %w", testError),
 		},
@@ -109,7 +109,7 @@ func TestRunLocalOpts_Ask(t *testing.T) {
 			inputAppName: testAppName,
 			inputEnvName: testEnvName,
 			setupMocks: func(m *runLocalAskMocks) {
-				m.store.EXPECT().GetEnvironment(testAppName, testEnvName).Return(nil, testError)
+				m.store.EXPECT().GetEnvironment(ctx, testAppName, testEnvName).Return(nil, testError)
 			},
 			wantedError: testError,
 		},
@@ -117,8 +117,8 @@ func TestRunLocalOpts_Ask(t *testing.T) {
 			inputAppName:  testAppName,
 			inputWkldName: testWkldName,
 			setupMocks: func(m *runLocalAskMocks) {
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetWorkload(testAppName, testWkldName).Return(nil, testError)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetWorkload(ctx, testAppName, testWkldName).Return(nil, testError)
 			},
 			wantedError: testError,
 		},
@@ -127,9 +127,9 @@ func TestRunLocalOpts_Ask(t *testing.T) {
 			inputWkldName: testWkldName,
 			inputEnvName:  testEnvName,
 			setupMocks: func(m *runLocalAskMocks) {
-				m.store.EXPECT().GetEnvironment(testAppName, testEnvName).Return(&config.Environment{Name: "testEnv"}, nil)
-				m.store.EXPECT().GetWorkload(testAppName, testWkldName).Return(&config.Workload{Name: "testWkld"}, nil)
-				m.sel.EXPECT().DeployedWorkload(workloadAskPrompt, "", testAppName, gomock.Any()).Return(&selector.DeployedWorkload{
+				m.store.EXPECT().GetEnvironment(ctx, testAppName, testEnvName).Return(&config.Environment{Name: "testEnv"}, nil)
+				m.store.EXPECT().GetWorkload(ctx, testAppName, testWkldName).Return(&config.Workload{Name: "testWkld"}, nil)
+				m.sel.EXPECT().DeployedWorkload(ctx, workloadAskPrompt, "", testAppName, gomock.Any()).Return(&selector.DeployedWorkload{
 					Env:  "testEnv",
 					Name: "testWkld",
 					Type: "testWkldType",
@@ -142,14 +142,14 @@ func TestRunLocalOpts_Ask(t *testing.T) {
 		"prompt for workload and environment": {
 			inputAppName: testAppName,
 			setupMocks: func(m *runLocalAskMocks) {
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.store.EXPECT().GetWorkload(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedWorkload(workloadAskPrompt, "", testAppName, gomock.Any()).Return(&selector.DeployedWorkload{
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.store.EXPECT().GetWorkload(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedWorkload(ctx, workloadAskPrompt, "", testAppName, gomock.Any()).Return(&selector.DeployedWorkload{
 					Env:  "testEnv",
 					Name: "testWkld",
 					Type: "testWkldType",
 				}, nil)
-				m.store.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(1)
+				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(1)
 			},
 			wantedEnvName:  testEnvName,
 			wantedWkldName: testWkldName,
@@ -158,7 +158,7 @@ func TestRunLocalOpts_Ask(t *testing.T) {
 		"return error while failed to select workload": {
 			inputAppName: testAppName,
 			setupMocks: func(m *runLocalAskMocks) {
-				m.sel.EXPECT().DeployedWorkload(workloadAskPrompt, "", testAppName, gomock.Any()).
+				m.sel.EXPECT().DeployedWorkload(ctx, workloadAskPrompt, "", testAppName, gomock.Any()).
 					Return(nil, testError)
 			},
 			wantedError: fmt.Errorf("select a deployed workload from application %s: %w", testAppName, testError),
@@ -1177,7 +1177,7 @@ ecs exec: all containers failed to retrieve credentials`),
 				unmarshal: func(b []byte) (manifest.DynamicWorkload, error) {
 					return m.mockMft, nil
 				},
-				configureClients: func() error {
+				configureClients: func(_ context.Context) error {
 					return nil
 				},
 				buildContainerImages: func(mft manifest.DynamicWorkload) (map[string]string, error) {

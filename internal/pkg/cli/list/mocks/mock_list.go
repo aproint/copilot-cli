@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	config "github.com/aproint/copilot-cli/internal/pkg/config"
@@ -35,48 +36,48 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 }
 
 // GetApplication mocks base method.
-func (m *MockStore) GetApplication(appName string) (*config.Application, error) {
+func (m *MockStore) GetApplication(ctx context.Context, appName string) (*config.Application, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetApplication", appName)
+	ret := m.ctrl.Call(m, "GetApplication", ctx, appName)
 	ret0, _ := ret[0].(*config.Application)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetApplication indicates an expected call of GetApplication.
-func (mr *MockStoreMockRecorder) GetApplication(appName interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetApplication(ctx, appName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApplication", reflect.TypeOf((*MockStore)(nil).GetApplication), appName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApplication", reflect.TypeOf((*MockStore)(nil).GetApplication), ctx, appName)
 }
 
 // ListJobs mocks base method.
-func (m *MockStore) ListJobs(appName string) ([]*config.Workload, error) {
+func (m *MockStore) ListJobs(ctx context.Context, appName string) ([]*config.Workload, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListJobs", appName)
+	ret := m.ctrl.Call(m, "ListJobs", ctx, appName)
 	ret0, _ := ret[0].([]*config.Workload)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListJobs indicates an expected call of ListJobs.
-func (mr *MockStoreMockRecorder) ListJobs(appName interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) ListJobs(ctx, appName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListJobs", reflect.TypeOf((*MockStore)(nil).ListJobs), appName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListJobs", reflect.TypeOf((*MockStore)(nil).ListJobs), ctx, appName)
 }
 
 // ListServices mocks base method.
-func (m *MockStore) ListServices(appName string) ([]*config.Workload, error) {
+func (m *MockStore) ListServices(ctx context.Context, appName string) ([]*config.Workload, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServices", appName)
+	ret := m.ctrl.Call(m, "ListServices", ctx, appName)
 	ret0, _ := ret[0].([]*config.Workload)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListServices indicates an expected call of ListServices.
-func (mr *MockStoreMockRecorder) ListServices(appName interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) ListServices(ctx, appName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockStore)(nil).ListServices), appName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockStore)(nil).ListServices), ctx, appName)
 }
 
 // MockWorkspace is a mock of Workspace interface.

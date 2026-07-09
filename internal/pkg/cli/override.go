@@ -127,7 +127,7 @@ func (o *overrideOpts) validateAppName() error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
-	_, err := o.cfgStore.GetApplication(o.appName)
+	_, err := o.cfgStore.GetApplication(context.Background(), o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %q configuration: %v", o.appName, err)
 	}

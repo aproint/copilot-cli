@@ -83,7 +83,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to list environment": {
 			setupMocks: func(m apprunnerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return(nil, mockErr),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return(nil, mockErr),
 				)
 			},
 			wantedError: fmt.Errorf("list deployed environments for application testapp: some error"),
@@ -91,7 +91,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve service configuration": {
 			setupMocks: func(m apprunnerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsSvcDescriber.EXPECT().Service().Return(nil, mockErr),
 				)
 			},
@@ -101,7 +101,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m apprunnerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsSvcDescriber.EXPECT().Service().Return(&apprunner.Service{}, nil),
 					m.ecsSvcDescriber.EXPECT().ServiceURL().Return("", mockErr),
 				)
@@ -112,7 +112,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m apprunnerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsSvcDescriber.EXPECT().Service().Return(&apprunner.Service{}, nil),
 					m.ecsSvcDescriber.EXPECT().ServiceURL().Return("", nil),
 					m.ecsSvcDescriber.EXPECT().IsPrivate().Return(false, mockErr),
@@ -124,7 +124,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m apprunnerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsSvcDescriber.EXPECT().Service().Return(&apprunner.Service{}, nil),
 					m.ecsSvcDescriber.EXPECT().ServiceURL().Return("", nil),
 					m.ecsSvcDescriber.EXPECT().IsPrivate().Return(false, nil),
@@ -137,7 +137,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m apprunnerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv, prodEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv, prodEnv}, nil),
 					m.ecsSvcDescriber.EXPECT().Service().Return(&apprunner.Service{
 						ServiceARN: "arn:aws:apprunner:us-east-1:111111111111:service/testapp-test-testsvc",
 						ServiceURL: "6znxd4ra33.public.us-east-1.apprunner.amazonaws.com",
@@ -269,7 +269,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m apprunnerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv, prodEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv, prodEnv}, nil),
 					m.ecsSvcDescriber.EXPECT().Service().Return(&apprunner.Service{
 						ServiceARN: "arn:aws:apprunner:us-east-1:111111111111:service/testapp-test-testsvc",
 						ServiceURL: "6znxd4ra33.public.us-east-1.apprunner.amazonaws.com",

@@ -85,10 +85,10 @@ type: Worker Service`)
 				m.EXPECT().Execute(gomock.Any())
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(nil, &config.ErrNoSuchEnvironment{})
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(nil, &config.ErrNoSuchEnvironment{})
 				// After env init/deploy
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{{Name: "fe", Type: "Load Balanced Web Service"}}, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&config.Workload{Name: "fe", Type: "Load Balanced Web Service"}, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{{Name: "fe", Type: "Load Balanced Web Service"}}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&config.Workload{Name: "fe", Type: "Load Balanced Web Service"}, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -104,7 +104,7 @@ type: Worker Service`)
 			inInitEnv:   aws.Bool(false),
 			inDeployEnv: aws.Bool(false),
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Workloads("Select one or more services or jobs in your workspace.", "").Return([]string{"fe"}, nil)
+				m.EXPECT().Workloads(ctx, "Select one or more services or jobs in your workspace.", "").Return([]string{"fe"}, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				m.EXPECT().Ask(gomock.Any())
@@ -116,9 +116,9 @@ type: Worker Service`)
 
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl}, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ReadWorkloadManifest("fe").Times(0)
@@ -142,9 +142,9 @@ type: Worker Service`)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return(nil, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return(nil, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				m.EXPECT().Ask(gomock.Any())
@@ -157,7 +157,7 @@ type: Worker Service`)
 			},
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp("app", "fe", manifestinfo.LoadBalancedWebServiceType).Return(nil)
+				m.EXPECT().AddWorkloadToApp(ctx, "app", "fe", manifestinfo.LoadBalancedWebServiceType).Return(nil)
 			},
 		},
 		"errors reading manifest": {
@@ -173,8 +173,8 @@ type: Worker Service`)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return(nil, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return(nil, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				m.EXPECT().Ask(gomock.Any()).Times(0)
@@ -185,7 +185,7 @@ type: Worker Service`)
 			mockCmd: func(m *mocks.Mockcmd) {},
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedErr: "read manifest for workload fe: some error",
 		},
@@ -202,8 +202,8 @@ type: Worker Service`)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return(nil, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return(nil, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				m.EXPECT().Ask(gomock.Any()).Times(0)
@@ -216,7 +216,7 @@ type: Worker Service`)
 			},
 			mockSel: func(m *mocks.MockwsSelector) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantedErr: "unrecognized workload type \"nothing here\" in manifest for workload fe",
 		},
@@ -228,9 +228,9 @@ type: Worker Service`)
 			inDeployEnv: aws.Bool(false),
 			mockSel:     func(m *mocks.MockwsSelector) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return(nil, errors.New("some error"))
-				m.EXPECT().GetWorkload("app", "fe").Times(0)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return(nil, errors.New("some error"))
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Times(0)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {},
 			mockCmd: func(m *mocks.Mockcmd) {
@@ -238,7 +238,7 @@ type: Worker Service`)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -258,9 +258,9 @@ type: Worker Service`)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return(nil, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return(nil, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				m.EXPECT().Ask(gomock.Any())
@@ -272,10 +272,10 @@ type: Worker Service`)
 
 			},
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Workloads(gomock.Any(), gomock.Any()).Return([]string{"fe"}, nil)
+				m.EXPECT().Workloads(ctx, gomock.Any(), gomock.Any()).Return([]string{"fe"}, nil)
 			},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp("app", "fe", manifestinfo.LoadBalancedWebServiceType).Return(nil)
+				m.EXPECT().AddWorkloadToApp(ctx, "app", "fe", manifestinfo.LoadBalancedWebServiceType).Return(nil)
 			},
 		},
 		"errors correctly if job returned": {
@@ -285,7 +285,7 @@ type: Worker Service`)
 			inDeployEnv: aws.Bool(false),
 			wantedErr:   "ask job deploy: some error",
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Workloads("Select one or more services or jobs in your workspace.", "").Return([]string{"mailer"}, nil)
+				m.EXPECT().Workloads(ctx, "Select one or more services or jobs in your workspace.", "").Return([]string{"mailer"}, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				m.EXPECT().Ask(gomock.Any()).Return(errors.New("some error"))
@@ -294,13 +294,13 @@ type: Worker Service`)
 
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockJob}, nil)
-				m.EXPECT().GetWorkload("app", "mailer").Return(&mockJob, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockJob}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "mailer").Return(&mockJob, nil)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -325,13 +325,13 @@ type: Worker Service`)
 
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl}, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -346,14 +346,14 @@ type: Worker Service`)
 			inDeployEnv: aws.Bool(false),
 			wantedErr:   "select service or job: some error",
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Workloads(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().Workloads(ctx, gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {},
 			mockCmd:           func(m *mocks.Mockcmd) {},
 			mockStore:         func(m *mocks.Mockstore) {},
 			mockPrompt:        func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ReadWorkloadManifest("fe").Times(0)
@@ -373,14 +373,14 @@ type: Worker Service`)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl}, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl}, nil)
 
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -403,14 +403,14 @@ type: Worker Service`)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl}, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl}, nil)
 
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -434,13 +434,13 @@ type: Worker Service`)
 			},
 			mockCmd: func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl}, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl}, nil)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().AddWorkloadToApp(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -460,11 +460,11 @@ type: Worker Service`)
 			mockActionCommand: func(m *mocks.MockactionCommand) {},
 			mockCmd:           func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
 				// After env init/deploy
-				m.EXPECT().ListWorkloads("app").Return(nil, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return(nil, nil)
 				// After wkld init
-				m.EXPECT().GetWorkload("app", "fe").Times(0)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Times(0)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -472,7 +472,7 @@ type: Worker Service`)
 				m.EXPECT().ListWorkloads().Return([]string{"fe"}, nil)
 			},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp("app", "fe", "Load Balanced Web Service").Return(errors.New("some error"))
+				m.EXPECT().AddWorkloadToApp(ctx, "app", "fe", "Load Balanced Web Service").Return(errors.New("some error"))
 			},
 		},
 		"both uninitialized and initialized environments and workloads": {
@@ -480,8 +480,8 @@ type: Worker Service`)
 			wantedErr: "",
 			mockSel: func(m *mocks.MockwsSelector) {
 
-				m.EXPECT().Workloads("Select one or more services or jobs in your workspace.", "").Return([]string{"fe"}, nil)
-				m.EXPECT().Environment("Select an environment to deploy to", "", "app", prompt.Option{Value: "prod", Hint: "uninitialized"}).Return("prod", nil)
+				m.EXPECT().Workloads(ctx, "Select one or more services or jobs in your workspace.", "").Return([]string{"fe"}, nil)
+				m.EXPECT().Environment(ctx, "Select an environment to deploy to", "", "app", prompt.Option{Value: "prod", Hint: "uninitialized"}).Return("prod", nil)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {
 				m.EXPECT().Confirm("Environment \"prod\" does not exist in app \"app\". Initialize it?", "").Return(true, nil)
@@ -504,11 +504,11 @@ type: Worker Service`)
 				m.EXPECT().Execute(gomock.Any())
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("app").Return([]*config.Environment{&mockEnv}, nil)
-				m.EXPECT().GetEnvironment("app", "prod").Return(nil, &config.ErrNoSuchEnvironment{})
+				m.EXPECT().ListEnvironments(ctx, "app").Return([]*config.Environment{&mockEnv}, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "prod").Return(nil, &config.ErrNoSuchEnvironment{})
 				// After env init/deploy
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{{Name: "fe", Type: "Load Balanced Web Service"}}, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&config.Workload{Name: "fe", Type: "Load Balanced Web Service"}, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{{Name: "fe", Type: "Load Balanced Web Service"}}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&config.Workload{Name: "fe", Type: "Load Balanced Web Service"}, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test", "prod"}, nil)
@@ -527,7 +527,7 @@ type: Worker Service`)
 			mockActionCommand: func(m *mocks.MockactionCommand) {},
 			mockCmd:           func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("app").Return(nil, errors.New("some error"))
+				m.EXPECT().ListEnvironments(ctx, "app").Return(nil, errors.New("some error"))
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{}, nil)
@@ -539,13 +539,13 @@ type: Worker Service`)
 			inNames:   []string{"fe"},
 			wantedErr: "get environment name: some error",
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Environment(gomock.Any(), "", "app", prompt.Option{Value: "prod", Hint: "uninitialized"}).Return("", errors.New("some error"))
+				m.EXPECT().Environment(ctx, gomock.Any(), "", "app", prompt.Option{Value: "prod", Hint: "uninitialized"}).Return("", errors.New("some error"))
 			},
 			mockPrompt:        func(m *mocks.Mockprompter) {},
 			mockActionCommand: func(m *mocks.MockactionCommand) {},
 			mockCmd:           func(m *mocks.Mockcmd) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments("app").Return([]*config.Environment{&mockEnv}, nil)
+				m.EXPECT().ListEnvironments(ctx, "app").Return([]*config.Environment{&mockEnv}, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"prod"}, nil)
@@ -576,10 +576,10 @@ type: Worker Service`)
 					Name: "be",
 					Type: "Backend Service",
 				}
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl, &mockBeWl}, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
-				m.EXPECT().GetWorkload("app", "be").Return(&mockBeWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl, &mockBeWl}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "be").Return(&mockBeWl, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ReadWorkloadManifest("fe").Times(0)
@@ -620,11 +620,11 @@ type: Worker Service`)
 					Name: "worker",
 					Type: "Worker Service",
 				}
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl, &mockBeWl}, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
-				m.EXPECT().GetWorkload("app", "be").Return(&mockBeWl, nil)
-				m.EXPECT().GetWorkload("app", "worker").Return(&mockWorkerWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl, &mockBeWl}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "be").Return(&mockBeWl, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "worker").Return(&mockWorkerWl, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ReadWorkloadManifest("fe").Times(0)
@@ -634,7 +634,7 @@ type: Worker Service`)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp("app", "worker", manifestinfo.WorkerServiceType).Return(nil)
+				m.EXPECT().AddWorkloadToApp(ctx, "app", "worker", manifestinfo.WorkerServiceType).Return(nil)
 			},
 		},
 		"deploys multiple workloads with specified order by prompting": {
@@ -642,7 +642,7 @@ type: Worker Service`)
 			inEnvName: "test",
 
 			mockSel: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Workloads(gomock.Any(), gomock.Any()).Return([]string{"be", "worker"}, nil)
+				m.EXPECT().Workloads(ctx, gomock.Any(), gomock.Any()).Return([]string{"be", "worker"}, nil)
 			},
 			mockActionCommand: func(m *mocks.MockactionCommand) {
 				m.EXPECT().Ask(gomock.Any()).Times(2)
@@ -662,10 +662,10 @@ type: Worker Service`)
 					Name: "worker",
 					Type: "Worker Service",
 				}
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWorkerWl, &mockBeWl}, nil)
-				m.EXPECT().GetWorkload("app", "be").Return(&mockBeWl, nil)
-				m.EXPECT().GetWorkload("app", "worker").Return(&mockWorkerWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWorkerWl, &mockBeWl}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "be").Return(&mockBeWl, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "worker").Return(&mockWorkerWl, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListWorkloads().Return([]string{"fe", "be", "worker"}, nil)
@@ -721,11 +721,11 @@ type: Worker Service`)
 					Name: "worker",
 					Type: "Worker Service",
 				}
-				m.EXPECT().GetEnvironment("app", "test").Return(&mockEnv, nil)
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{&mockWl, &mockBeWl}, nil)
-				m.EXPECT().GetWorkload("app", "fe").Return(&mockWl, nil)
-				m.EXPECT().GetWorkload("app", "be").Return(&mockBeWl, nil)
-				m.EXPECT().GetWorkload("app", "worker").Return(&mockWorkerWl, nil)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&mockEnv, nil)
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{&mockWl, &mockBeWl}, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "fe").Return(&mockWl, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "be").Return(&mockBeWl, nil)
+				m.EXPECT().GetWorkload(ctx, "app", "worker").Return(&mockWorkerWl, nil)
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ReadWorkloadManifest("fe").Times(0)
@@ -735,7 +735,7 @@ type: Worker Service`)
 			},
 			mockPrompt: func(m *mocks.Mockprompter) {},
 			mockInit: func(m *mocks.MockwkldInitializerWithoutManifest) {
-				m.EXPECT().AddWorkloadToApp("app", "worker", manifestinfo.WorkerServiceType).Return(nil)
+				m.EXPECT().AddWorkloadToApp(ctx, "app", "worker", manifestinfo.WorkerServiceType).Return(nil)
 			},
 		},
 	}
@@ -809,14 +809,14 @@ func Test_deployOpts_checkEnvExists(t *testing.T) {
 	}{
 		"error getting environment": {
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(nil, mockError)
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(nil, mockError)
 			},
 			mockWs:  func(m *mocks.MockwsWlDirReader) {},
 			wantErr: "get environment from config store: some error",
 		},
 		"env exists in ws but not app": {
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(nil, &config.ErrNoSuchEnvironment{})
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(nil, &config.ErrNoSuchEnvironment{})
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return([]string{"test"}, nil)
@@ -826,7 +826,7 @@ func Test_deployOpts_checkEnvExists(t *testing.T) {
 		},
 		"env exists in app but not ws": {
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&config.Environment{
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&config.Environment{
 					App:  "app",
 					Name: "test",
 				}, nil)
@@ -839,7 +839,7 @@ func Test_deployOpts_checkEnvExists(t *testing.T) {
 		},
 		"env does not exist anywhere": {
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(nil, &config.ErrNoSuchEnvironment{})
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(nil, &config.ErrNoSuchEnvironment{})
 			},
 			mockWs: func(m *mocks.MockwsWlDirReader) {
 				m.EXPECT().ListEnvironments().Return(nil, nil)
@@ -848,7 +848,7 @@ func Test_deployOpts_checkEnvExists(t *testing.T) {
 		},
 		"error listing envs": {
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("app", "test").Return(&config.Environment{
+				m.EXPECT().GetEnvironment(ctx, "app", "test").Return(&config.Environment{
 					App:  "app",
 					Name: "test",
 				}, nil)
@@ -881,7 +881,7 @@ func Test_deployOpts_checkEnvExists(t *testing.T) {
 				ws:    mockWs,
 			}
 
-			err := o.checkEnvExists()
+			err := o.checkEnvExists(ctx)
 			if err != nil {
 				require.EqualError(t, err, tc.wantErr)
 			} else {
@@ -1158,7 +1158,7 @@ func Test_deployOpts_getDeploymentOrder(t *testing.T) {
 				m.EXPECT().ListWorkloads().Return([]string{"be", "db", "fe"}, nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{
 					mockFe,
 					mockBe,
 					mockDb,
@@ -1173,7 +1173,7 @@ func Test_deployOpts_getDeploymentOrder(t *testing.T) {
 				m.EXPECT().ListWorkloads().Return([]string{"be", "db", "fe", "worker"}, nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{
 					mockFe,
 					mockBe,
 					mockDb,
@@ -1189,7 +1189,7 @@ func Test_deployOpts_getDeploymentOrder(t *testing.T) {
 				m.EXPECT().ListWorkloads().Return([]string{"be", "db", "fe", "worker"}, nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{
 					mockFe,
 					mockBe,
 					mockDb,
@@ -1205,7 +1205,7 @@ func Test_deployOpts_getDeploymentOrder(t *testing.T) {
 				m.EXPECT().ListWorkloads().Return([]string{"be", "db", "fe", "worker"}, nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{
 					mockFe,
 					mockBe,
 					mockDb,
@@ -1221,7 +1221,7 @@ func Test_deployOpts_getDeploymentOrder(t *testing.T) {
 				m.EXPECT().ListWorkloads().Return([]string{"be", "db", "fe", "worker"}, nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{
 					mockFe,
 					mockBe,
 					mockDb,
@@ -1244,7 +1244,7 @@ func Test_deployOpts_getDeploymentOrder(t *testing.T) {
 				m.EXPECT().ListWorkloads().Return([]string{"be", "db", "fe", "worker"}, nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListWorkloads("app").Return([]*config.Workload{
+				m.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{
 					{
 						App:  "app",
 						Name: "fe",
@@ -1290,7 +1290,7 @@ func Test_deployOpts_getDeploymentOrder(t *testing.T) {
 				store: mockStore,
 				ws:    mockWs,
 			}
-			got, err := o.getDeploymentOrder()
+			got, err := o.getDeploymentOrder(ctx)
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)
 			} else {

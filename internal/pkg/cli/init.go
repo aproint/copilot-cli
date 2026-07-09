@@ -160,8 +160,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		identity:        id,
 		fs:              fs,
 		newInterpolator: newManifestInterpolator,
-		newEnvVersionGetter: func(appName, envName string) (versionGetter, error) {
-			return describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		newEnvVersionGetter: func(ctx context.Context, appName, envName string) (versionGetter, error) {
+			return describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 				App:         appName,
 				Env:         envName,
 				ConfigStore: configStore,
@@ -183,8 +183,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		sessProvider:    sessProvider,
 		templateVersion: version.LatestTemplateVersion(),
 	}
-	deploySvcCmd.newSvcDeployer = func() (workloadDeployer, error) {
-		return newSvcDeployer(deploySvcCmd)
+	deploySvcCmd.newSvcDeployer = func(ctx context.Context) (workloadDeployer, error) {
+		return newSvcDeployer(ctx, deploySvcCmd)
 	}
 	deployJobCmd := &deployJobOpts{
 		deployWkldVars: deployWkldVars{
@@ -197,8 +197,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		sessProvider:    sessProvider,
 		templateVersion: version.LatestTemplateVersion(),
 	}
-	deployJobCmd.newJobDeployer = func() (workloadDeployer, error) {
-		return newJobDeployer(deployJobCmd)
+	deployJobCmd.newJobDeployer = func(ctx context.Context) (workloadDeployer, error) {
+		return newJobDeployer(ctx, deployJobCmd)
 	}
 
 	cmd := exec.NewCmd()
@@ -212,8 +212,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		initEnvCmd.manifestWriter = ws
 		initEnvCmd.envLister = ws
 		deployEnvCmd.ws = ws
-		deployEnvCmd.newEnvDeployer = func() (envDeployer, error) {
-			return newEnvDeployer(deployEnvCmd, ws)
+		deployEnvCmd.newEnvDeployer = func(ctx context.Context) (envDeployer, error) {
+			return newEnvDeployer(ctx, deployEnvCmd, ws)
 		}
 		deploySvcCmd.ws = ws
 		deploySvcCmd.sel = sel
@@ -289,8 +289,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 						return dockerfile.New(fs, s)
 					},
 					templateVersion: version.LatestTemplateVersion(),
-					initEnvDescriber: func(appName string, envName string) (envDescriber, error) {
-						envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+					initEnvDescriber: func(ctx context.Context, appName string, envName string) (envDescriber, error) {
+						envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 							App:         appName,
 							Env:         envName,
 							ConfigStore: configStore,
@@ -337,8 +337,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 					opts.df = dockerfile.New(opts.fs, opts.dockerfilePath)
 					return opts.df
 				}
-				opts.initEnvDescriber = func(appName string, envName string) (envDescriber, error) {
-					envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+				opts.initEnvDescriber = func(ctx context.Context, appName string, envName string) (envDescriber, error) {
+					envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 						App:         appName,
 						Env:         envName,
 						ConfigStore: opts.store,
@@ -572,7 +572,7 @@ func (o *initOpts) askShouldDeploy() error {
 func (o *initOpts) askEnvNameAndMaybeInit(ctx context.Context) error {
 	if o.initVars.envName == "" {
 		// Select one of existing envs or create a new one.
-		selectedEnv, err := o.sel.Environment(initExistingEnvSelectPrompt, initExistingEnvSelectHelp, *o.appName, prompt.Option{Value: envPromptCreateNew})
+		selectedEnv, err := o.sel.Environment(ctx, initExistingEnvSelectPrompt, initExistingEnvSelectHelp, *o.appName, prompt.Option{Value: envPromptCreateNew})
 		if err != nil {
 			return fmt.Errorf("select environment: %w", err)
 		}
@@ -594,7 +594,7 @@ func (o *initOpts) askEnvNameAndMaybeInit(ctx context.Context) error {
 	}
 
 	// If the environment doesn't exist, initialize it. If it does exist, return early.
-	_, err := o.store.GetEnvironment(*o.appName, o.initVars.envName)
+	_, err := o.store.GetEnvironment(ctx, *o.appName, o.initVars.envName)
 	// nil error means environment exists and we don't need to init.
 	if err == nil {
 		return nil

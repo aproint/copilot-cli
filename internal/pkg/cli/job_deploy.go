@@ -45,7 +45,7 @@ type deployJobOpts struct {
 	cmd                  execRunner
 	jobVersionGetter     versionGetter
 	sessProvider         *sessions.Provider
-	newJobDeployer       func() (workloadDeployer, error)
+	newJobDeployer       func(context.Context) (workloadDeployer, error)
 	envFeaturesDescriber versionCompatibilityChecker
 	sel                  wsSelector
 	prompt               prompter
@@ -90,14 +90,14 @@ func newJobDeployOpts(vars deployWkldVars) (*deployJobOpts, error) {
 		templateVersion: version.LatestTemplateVersion(),
 		diffWriter:      os.Stdout,
 	}
-	opts.newJobDeployer = func() (workloadDeployer, error) {
+	opts.newJobDeployer = func(ctx context.Context) (workloadDeployer, error) {
 		// NOTE: Defined as a struct member to facilitate unit testing.
-		return newJobDeployer(opts)
+		return newJobDeployer(ctx, opts)
 	}
 	return opts, nil
 }
 
-func newJobDeployer(o *deployJobOpts) (workloadDeployer, error) {
+func newJobDeployer(ctx context.Context, o *deployJobOpts) (workloadDeployer, error) {
 	ovrdr, err := deploy.NewOverrider(o.ws.WorkloadOverridesPath(o.name), o.appName, o.envName, afero.NewOsFs(), o.sessProvider)
 	if err != nil {
 		return nil, err
@@ -105,6 +105,7 @@ func newJobDeployer(o *deployJobOpts) (workloadDeployer, error) {
 
 	content := o.appliedDynamicMft.Manifest()
 	in := deploy.WorkloadDeployerInput{
+		Ctx:             ctx,
 		SessionProvider: o.sessProvider,
 		Name:            o.name,
 		App:             o.targetApp,
@@ -137,12 +138,12 @@ func (o *deployJobOpts) Validate() error {
 		return errNoAppInWorkspace
 	}
 	if o.name != "" {
-		if err := o.validateJobName(); err != nil {
+		if err := o.validateJobName(context.Background()); err != nil {
 			return err
 		}
 	}
 	if o.envName != "" {
-		if err := o.validateEnvName(); err != nil {
+		if err := o.validateEnvName(context.Background()); err != nil {
 			return err
 		}
 	}
@@ -150,20 +151,20 @@ func (o *deployJobOpts) Validate() error {
 }
 
 // Ask prompts the user for any required fields that are not provided.
-func (o *deployJobOpts) Ask(_ context.Context) error {
-	if err := o.askJobName(); err != nil {
+func (o *deployJobOpts) Ask(ctx context.Context) error {
+	if err := o.askJobName(ctx); err != nil {
 		return err
 	}
-	if err := o.askEnvName(); err != nil {
+	if err := o.askEnvName(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Execute builds and pushes the container image for the job.
-func (o *deployJobOpts) Execute(_ context.Context) error {
+func (o *deployJobOpts) Execute(ctx context.Context) error {
 	if !o.clientConfigured {
-		if err := o.configureClients(); err != nil {
+		if err := o.configureClients(ctx); err != nil {
 			return err
 		}
 	}
@@ -189,7 +190,7 @@ func (o *deployJobOpts) Execute(_ context.Context) error {
 	if err := validateWorkloadManifestCompatibilityWithEnv(o.ws, o.envFeaturesDescriber, mft, o.envName); err != nil {
 		return err
 	}
-	deployer, err := o.newJobDeployer()
+	deployer, err := o.newJobDeployer(ctx)
 	if err != nil {
 		return err
 	}
@@ -281,14 +282,14 @@ After fixing the deployment, you can:
 	return nil
 }
 
-func (o *deployJobOpts) configureClients() error {
+func (o *deployJobOpts) configureClients(ctx context.Context) error {
 	o.gitShortCommit = imageTagFromGit(o.cmd) // Best effort assign git tag.
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return err
 	}
 	o.targetEnv = env
-	app, err := o.store.GetApplication(o.appName)
+	app, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return err
 	}
@@ -306,13 +307,13 @@ func (o *deployJobOpts) configureClients() error {
 	o.envConfig = envConfig
 
 	// client to retrieve caller identity.
-	caller, err := identity.New(defaultConfig).Get()
+	caller, err := identity.New(defaultConfig).Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
 	o.rootUserARN = caller.RootUserARN
 
-	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 		App:         o.appName,
 		Env:         o.envName,
 		ConfigStore: o.store,
@@ -322,7 +323,7 @@ func (o *deployJobOpts) configureClients() error {
 	}
 	o.envFeaturesDescriber = envDescriber
 
-	wkldDescriber, err := describe.NewWorkloadStackDescriber(describe.NewWorkloadConfig{
+	wkldDescriber, err := describe.NewWorkloadStackDescriber(ctx, describe.NewWorkloadConfig{
 		App:         o.appName,
 		Env:         o.envName,
 		Name:        o.name,
@@ -340,7 +341,7 @@ func (o *deployJobOpts) RecommendActions() error {
 	return nil
 }
 
-func (o *deployJobOpts) validateJobName() error {
+func (o *deployJobOpts) validateJobName(ctx context.Context) error {
 	names, err := o.ws.ListJobs()
 	if err != nil {
 		return fmt.Errorf("list jobs in the workspace: %w", err)
@@ -353,19 +354,19 @@ func (o *deployJobOpts) validateJobName() error {
 	return fmt.Errorf("job %s not found in the workspace", color.HighlightUserInput(o.name))
 }
 
-func (o *deployJobOpts) validateEnvName() error {
-	if _, err := o.store.GetEnvironment(o.appName, o.envName); err != nil {
+func (o *deployJobOpts) validateEnvName(ctx context.Context) error {
+	if _, err := o.store.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 		return fmt.Errorf("get environment %s configuration: %w", o.envName, err)
 	}
 	return nil
 }
 
-func (o *deployJobOpts) askJobName() error {
+func (o *deployJobOpts) askJobName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
 
-	name, err := o.sel.Job("Select a job from your workspace", "")
+	name, err := o.sel.Job(ctx, "Select a job from your workspace", "")
 	if err != nil {
 		return fmt.Errorf("select job: %w", err)
 	}
@@ -373,12 +374,12 @@ func (o *deployJobOpts) askJobName() error {
 	return nil
 }
 
-func (o *deployJobOpts) askEnvName() error {
+func (o *deployJobOpts) askEnvName(ctx context.Context) error {
 	if o.envName != "" {
 		return nil
 	}
 
-	name, err := o.sel.Environment("Select an environment", "", o.appName)
+	name, err := o.sel.Environment(ctx, "Select an environment", "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select environment: %w", err)
 	}

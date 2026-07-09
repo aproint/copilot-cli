@@ -83,7 +83,7 @@ type wkldLogOpts struct {
 	sel                deploySelector
 	logsSvc            logEventsWriter
 	ecs                serviceDescriber
-	initRuntimeClients func() error // Overridden in tests.
+	initRuntimeClients func(context.Context) error // Overridden in tests.
 }
 
 func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
@@ -107,8 +107,8 @@ func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
 			sel:         selector.NewDeploySelect(prompt.New(), configStore, deployStore),
 		},
 	}
-	opts.initRuntimeClients = func() error {
-		env, err := opts.getTargetEnv()
+	opts.initRuntimeClients = func(ctx context.Context) error {
+		env, err := opts.getTargetEnv(ctx)
 		if err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
@@ -119,6 +119,7 @@ func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
 		opts.ecs = ecs.New(cfg)
 
 		newWorkloadLoggerOpts := &logging.NewWorkloadLoggerOpts{
+			Ctx:  ctx,
 			App:  opts.appName,
 			Env:  opts.envName,
 			Name: opts.name,
@@ -187,16 +188,16 @@ func (o *svcLogsOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcLogsOpts) Ask(_ context.Context) error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *svcLogsOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	return o.validateAndAskSvcEnvName()
+	return o.validateAndAskSvcEnvName(ctx)
 }
 
 // Execute outputs logs of the service.
-func (o *svcLogsOpts) Execute(_ context.Context) error {
-	if err := o.initRuntimeClients(); err != nil {
+func (o *svcLogsOpts) Execute(ctx context.Context) error {
+	if err := o.initRuntimeClients(ctx); err != nil {
 		return err
 	}
 	eventsWriter := logging.WriteHumanLogs
@@ -253,12 +254,12 @@ func (o *svcLogsOpts) latestStoppedTaskID() (string, error) {
 	return "", noPreviousTasksErr
 }
 
-func (o *svcLogsOpts) validateOrAskApp() error {
+func (o *svcLogsOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.configStore.GetApplication(o.appName)
+		_, err := o.configStore.GetApplication(ctx, o.appName)
 		return err
 	}
-	app, err := o.sel.Application(svcAppNamePrompt, wkldAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -266,21 +267,21 @@ func (o *svcLogsOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *svcLogsOpts) validateAndAskSvcEnvName() error {
+func (o *svcLogsOpts) validateAndAskSvcEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		if _, err := o.getTargetEnv(); err != nil {
+		if _, err := o.getTargetEnv(ctx); err != nil {
 			return err
 		}
 	}
 
 	if o.name != "" {
-		if _, err := o.configStore.GetService(o.appName, o.name); err != nil {
+		if _, err := o.configStore.GetService(ctx, o.appName, o.name); err != nil {
 			return err
 		}
 	}
 	// Note: we let prompter handle the case when there is only option for user to choose from.
 	// This is naturally the case when `o.envName != "" && o.name != ""`.
-	deployedService, err := o.sel.DeployedService(svcLogNamePrompt, svcLogNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.name))
+	deployedService, err := o.sel.DeployedService(ctx, svcLogNamePrompt, svcLogNameHelpPrompt, o.appName, selector.WithEnv(o.envName), selector.WithName(o.name))
 	if err != nil {
 		return fmt.Errorf("select deployed services for application %s: %w", o.appName, err)
 	}
@@ -303,11 +304,11 @@ func (o *svcLogsOpts) validatePrevious() error {
 	return nil
 }
 
-func (o *svcLogsOpts) getTargetEnv() (*config.Environment, error) {
+func (o *svcLogsOpts) getTargetEnv(ctx context.Context) (*config.Environment, error) {
 	if o.targetEnv != nil {
 		return o.targetEnv, nil
 	}
-	env, err := o.configStore.GetEnvironment(o.appName, o.envName)
+	env, err := o.configStore.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return nil, err
 	}

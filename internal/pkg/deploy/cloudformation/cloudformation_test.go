@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +18,8 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
+	"github.com/aproint/copilot-cli/internal/pkg/interrupt"
+	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	sdkcloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	sdkcloudformationtypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -109,9 +110,6 @@ func TestCloudFormation_ExecuteAndRenderChangeSetStopsOnCallerCancellation(t *te
 	cf := CloudFormation{
 		cfnClient: m,
 		console:   mockFileWriter{Writer: new(strings.Builder)},
-		notifySignals: func() chan os.Signal {
-			return make(chan os.Signal, 1)
-		},
 	}
 	go func() {
 		<-started
@@ -160,18 +158,42 @@ func TestCloudFormation_QueuedInterruptWinsOverCallerCancellation(t *testing.T) 
 			return nil, wantedErr
 		},
 	)
-	parent, cancel := context.WithCancel(context.Background())
+	interruptCtx, notifyInterrupt := interrupt.WithContext(context.Background())
+	parent, cancel := context.WithCancel(interruptCtx)
 	cancel()
-	sigCh := make(chan os.Signal, 1)
-	sigCh <- os.Interrupt
+	notifyInterrupt()
 	cf := CloudFormation{cfnClient: m}
 
-	err := cf.waitForSignalAndHandleInterrupt(signalHandlerInput{
+	err := cf.waitForInterruptAndHandle(interruptHandlerInput{
 		ctx:            parent,
 		cancelFn:       func() {},
 		localInterrupt: make(chan struct{}),
-		sigCh:          sigCh,
+		interruptCh:    interrupt.FromContext(parent),
 		stackName:      "stack",
+	})
+
+	require.ErrorIs(t, err, wantedErr)
+}
+
+func TestCloudFormation_ExecuteAndRenderChangeSetReturnsInterruptCleanupErrorWhenCanceled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockcfnClient(ctrl)
+	wantedErr := errors.New("cleanup started")
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "change-set", "stack").Return(nil, context.Canceled)
+	m.EXPECT().DescribeWithContext(gomock.Any(), "stack").Return(nil, wantedErr)
+	interruptCtx, notifyInterrupt := interrupt.WithContext(context.Background())
+	ctx, cancel := context.WithCancel(interruptCtx)
+	notifyInterrupt()
+	cancel()
+	cf := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: new(strings.Builder)}}
+
+	err := cf.executeAndRenderChangeSet(ctx, &executeAndRenderChangeSetInput{
+		stackName:       "stack",
+		enableInterrupt: true,
+		createChangeSet: func(context.Context) (string, error) {
+			return "change-set", nil
+		},
 	})
 
 	require.ErrorIs(t, err, wantedErr)
@@ -180,7 +202,9 @@ func TestCloudFormation_QueuedInterruptWinsOverCallerCancellation(t *testing.T) 
 func TestCloudFormation_InterruptDuringCreationDeletesStack(t *testing.T) {
 	type contextKey string
 	const key contextKey = "sentinel"
-	parent, cancelParent := context.WithCancel(context.WithValue(context.Background(), key, "interrupt-cleanup"))
+	interruptCtx, notifyInterrupt := interrupt.WithContext(context.WithValue(context.Background(), key, "interrupt-cleanup"))
+	parent, cancelParent := context.WithCancel(interruptCtx)
+	notifyInterrupt()
 	cancelParent()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -217,26 +241,32 @@ func TestCloudFormation_InterruptDuringCreationDeletesStack(t *testing.T) {
 	).AnyTimes()
 	renderDone := make(chan bool)
 	close(renderDone)
-	sigCh := make(chan os.Signal, 1)
 	cf := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: new(strings.Builder)}}
+	messageBuf := new(strings.Builder)
+	originalDiagnosticWriter := log.DiagnosticWriter
+	log.DiagnosticWriter = messageBuf
+	t.Cleanup(func() { log.DiagnosticWriter = originalDiagnosticWriter })
 
-	err := cf.handleInterrupt(signalHandlerInput{
+	err := cf.waitForInterruptAndHandle(interruptHandlerInput{
 		ctx:              parent,
 		cancelFn:         func() {},
 		localInterrupt:   make(chan struct{}),
-		sigCh:            sigCh,
+		interruptCh:      interrupt.FromContext(parent),
 		stackName:        "stack",
 		updateRenderDone: renderDone,
 	})
 
 	var interruptErr *ErrStackDeletedOnInterrupt
 	require.ErrorAs(t, err, &interruptErr)
+	require.Contains(t, messageBuf.String(), "Command canceled; deleting stack stack (90m timeout).")
+	require.Contains(t, messageBuf.String(), "Press Ctrl-C again to exit immediately without waiting for CloudFormation.")
 }
 
 func TestCloudFormation_InterruptDuringUpdateCancelsAndRendersRollback(t *testing.T) {
 	type contextKey string
 	const key contextKey = "sentinel"
-	parent := context.WithValue(context.Background(), key, "interrupt-cleanup")
+	parent, notifyInterrupt := interrupt.WithContext(context.WithValue(context.Background(), key, "interrupt-cleanup"))
+	notifyInterrupt()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := mocks.NewMockcfnClient(ctrl)
@@ -286,20 +316,25 @@ func TestCloudFormation_InterruptDuringUpdateCancelsAndRendersRollback(t *testin
 	).AnyTimes()
 	renderDone := make(chan bool)
 	close(renderDone)
-	sigCh := make(chan os.Signal, 1)
 	cf := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: new(strings.Builder)}}
+	messageBuf := new(strings.Builder)
+	originalDiagnosticWriter := log.DiagnosticWriter
+	log.DiagnosticWriter = messageBuf
+	t.Cleanup(func() { log.DiagnosticWriter = originalDiagnosticWriter })
 
-	err := cf.handleInterrupt(signalHandlerInput{
+	err := cf.waitForInterruptAndHandle(interruptHandlerInput{
 		ctx:              parent,
 		cancelFn:         func() {},
 		localInterrupt:   make(chan struct{}),
-		sigCh:            sigCh,
+		interruptCh:      interrupt.FromContext(parent),
 		stackName:        "stack",
 		updateRenderDone: renderDone,
 	})
 
 	var interruptErr *ErrStackUpdateCanceledOnInterrupt
 	require.ErrorAs(t, err, &interruptErr)
+	require.Contains(t, messageBuf.String(), "Command canceled; canceling update for stack stack and waiting for rollback (90m timeout).")
+	require.Contains(t, messageBuf.String(), "Press Ctrl-C again to exit immediately without waiting for CloudFormation.")
 }
 
 func terminalStackEvents(stackName string, status sdkcloudformationtypes.ResourceStatus) *sdkcloudformation.DescribeStackEventsOutput {
@@ -339,10 +374,6 @@ func testDeployWorkload_OnPushToS3Failure(t *testing.T, when func(cf CloudFormat
 	client := CloudFormation{
 		s3Client: mS3Client,
 		console:  mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
 	}
 
 	// WHEN
@@ -363,12 +394,7 @@ func testDeployWorkload_OnCreateChangeSetFailure(t *testing.T, when func(cf Clou
 	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", wantedErr)
 	m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 
 	// WHEN
 	err := when(client)
@@ -389,12 +415,7 @@ func testDeployWorkload_OnUpdateChangeSetFailure(t *testing.T, when func(cf Clou
 	m.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any()).Return("", wantedErr)
 	m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 
 	// WHEN
 	err := when(client)
@@ -413,12 +434,7 @@ func testDeployWorkload_OnDescribeChangeSetFailure(t *testing.T, when func(cf Cl
 	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
 	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeChangeSet error"))
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 	// WHEN
 	err := when(client)
 
@@ -437,12 +453,7 @@ func testDeployWorkload_OnTemplateBodyFailure(t *testing.T, when func(cf CloudFo
 	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
 	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("TemplateBody error"))
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 
 	// WHEN
 	err := when(client)
@@ -464,12 +475,7 @@ func testDeployWorkload_StackStreamerFailureShouldCancelRenderer(t *testing.T, w
 	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, wantedErr)
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 	// WHEN
 	err := when(client)
 
@@ -512,12 +518,7 @@ func testDeployWorkload_StreamUntilStackCreationFails(t *testing.T, stackName st
 			},
 		}, nil)
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 
 	// WHEN
 	err := when(client)
@@ -598,12 +599,7 @@ Resources:
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: mockCFN, ecsClient: mockECS, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: mockCFN, ecsClient: mockECS, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 
 	// WHEN
 	err := when(client)
@@ -683,12 +679,7 @@ Resources:
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: mockCFN, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: mockCFN, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 
 	// WHEN
 	err := when(client)
@@ -809,12 +800,7 @@ Resources:
 		},
 	}, nil).AnyTimes()
 	buf := new(strings.Builder)
-	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
-		notifySignals: func() chan os.Signal {
-			sigCh := make(chan os.Signal, 1)
-			return sigCh
-		},
-	}
+	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf}}
 
 	// WHEN
 	err := when(client)

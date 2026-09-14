@@ -10,9 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecr"
@@ -26,6 +24,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
+	"github.com/aproint/copilot-cli/internal/pkg/interrupt"
 	"github.com/aproint/copilot-cli/internal/pkg/stream"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/cursor"
@@ -221,7 +220,6 @@ type CloudFormation struct {
 	// Overridden in tests.
 	renderStackSet               func(context.Context, renderStackSetInput) error
 	dnsDelegatedAccountsForStack func(stack *types.Stack) []string
-	notifySignals                func() chan os.Signal
 }
 
 // New returns a configured CloudFormation client.
@@ -257,7 +255,6 @@ func New(v2Config aws.Config, opts ...OptFn) CloudFormation {
 	}
 	client.renderStackSet = client.renderStackSetImpl
 	client.dnsDelegatedAccountsForStack = stack.DNSDelegatedAccountsForStack
-	client.notifySignals = notifySignals
 	return client
 }
 
@@ -389,9 +386,9 @@ func (cf CloudFormation) executeAndRenderChangeSet(ctx context.Context, in *exec
 	if in.detach {
 		return nil
 	}
-	var sigChannel chan os.Signal
+	var interruptCh <-chan struct{}
 	if in.enableInterrupt {
-		sigChannel = cf.notifySignals()
+		interruptCh = interrupt.FromContext(ctx)
 	}
 	g, groupCtx := errgroup.WithContext(ctx)
 	renderCtx, cancel := context.WithCancel(groupCtx)
@@ -408,6 +405,9 @@ func (cf CloudFormation) executeAndRenderChangeSet(ctx context.Context, in *exec
 				case <-localInterrupt:
 					cursor.EraseLinesAbove(cf.console, nl)
 					return nil
+				case <-interruptCh:
+					cursor.EraseLinesAbove(cf.console, nl)
+					return nil
 				default:
 				}
 			}
@@ -420,11 +420,11 @@ func (cf CloudFormation) executeAndRenderChangeSet(ctx context.Context, in *exec
 	})
 	if in.enableInterrupt {
 		g.Go(func() error {
-			err := cf.waitForSignalAndHandleInterrupt(signalHandlerInput{
+			err := cf.waitForInterruptAndHandle(interruptHandlerInput{
 				ctx:              renderCtx,
 				cancelFn:         cancel,
 				localInterrupt:   localInterrupt,
-				sigCh:            sigChannel,
+				interruptCh:      interruptCh,
 				stackName:        in.stackName,
 				updateRenderDone: prevChangeSetRenderComplete,
 			})
@@ -466,41 +466,39 @@ func (cf CloudFormation) renderChangeSet(ctx context.Context, changeSetID string
 	return prevNumLines, nil
 }
 
-type signalHandlerInput struct {
+type interruptHandlerInput struct {
 	ctx              context.Context
 	cancelFn         context.CancelFunc
 	localInterrupt   chan struct{}
-	sigCh            chan os.Signal
+	interruptCh      <-chan struct{}
 	stackName        string
 	updateRenderDone chan bool
 }
 
-func (cf CloudFormation) waitForSignalAndHandleInterrupt(in signalHandlerInput) error {
+func (cf CloudFormation) waitForInterruptAndHandle(in interruptHandlerInput) error {
 	for {
 		select {
-		case <-in.sigCh:
+		case <-in.interruptCh:
 			return cf.handleInterrupt(in)
 		default:
 		}
 		select {
-		case <-in.sigCh:
+		case <-in.interruptCh:
 			return cf.handleInterrupt(in)
 		case <-in.ctx.Done():
 			select {
-			case <-in.sigCh:
+			case <-in.interruptCh:
 				return cf.handleInterrupt(in)
 			default:
 			}
-			stopCatchSignals(in.sigCh)
 			return in.ctx.Err()
 		}
 	}
 }
 
-func (cf CloudFormation) handleInterrupt(in signalHandlerInput) error {
+func (cf CloudFormation) handleInterrupt(in interruptHandlerInput) error {
 	close(in.localInterrupt)
 	in.cancelFn()
-	stopCatchSignals(in.sigCh)
 	cleanupCtx, cancel := cleanupContext(in.ctx)
 	defer cancel()
 	stackDescr, err := cf.cfnClient.DescribeWithContext(cleanupCtx, in.stackName)
@@ -510,9 +508,8 @@ func (cf CloudFormation) handleInterrupt(in signalHandlerInput) error {
 	switch stackDescr.StackStatus {
 	case types.StackStatusCreateInProgress:
 		log.Infoln()
-		log.Infof(`Received Interrupt for Ctrl-C.
-Pressing Ctrl-C again will exit immediately but the deletion of stack %s will continue
-`, in.stackName)
+		log.Infof("Command canceled; deleting stack %s (90m timeout).\n", in.stackName)
+		log.Infoln("Press Ctrl-C again to exit immediately without waiting for CloudFormation.")
 		description := fmt.Sprintf("Delete stack %s", in.stackName)
 		if err := cf.deleteAndRenderStack(deleteAndRenderInput{
 			ctx:         cleanupCtx,
@@ -528,9 +525,8 @@ Pressing Ctrl-C again will exit immediately but the deletion of stack %s will co
 		return &ErrStackDeletedOnInterrupt{stackName: in.stackName}
 	case types.StackStatusUpdateInProgress:
 		log.Infoln()
-		log.Infof(`Received Interrupt for Ctrl-C.
-Pressing Ctrl-C again will exit immediately but stack %s rollback will continue
-`, in.stackName)
+		log.Infof("Command canceled; canceling update for stack %s and waiting for rollback (90m timeout).\n", in.stackName)
+		log.Infoln("Press Ctrl-C again to exit immediately without waiting for CloudFormation.")
 		description := fmt.Sprintf("Canceling stack update %s", in.stackName)
 		if err := cf.cancelUpdateAndRender(&cancelUpdateAndRenderInput{
 			ctx:         cleanupCtx,
@@ -625,17 +621,6 @@ func (cf CloudFormation) errOnFailedCancelUpdate(ctx context.Context, stackName 
 		return fmt.Errorf("stack %s did not rollback successfully and exited with status %s", stackName, status)
 	}
 	return nil
-}
-
-func notifySignals() chan os.Signal {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT)
-	return sigCh
-}
-
-func stopCatchSignals(sigCh chan os.Signal) {
-	signal.Stop(sigCh)
-	close(sigCh)
 }
 
 // ErrStackDeletedOnInterrupt means stack is deleted on interrupt.

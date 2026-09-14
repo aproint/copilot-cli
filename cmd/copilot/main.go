@@ -14,6 +14,7 @@ import (
 
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
 	"github.com/aproint/copilot-cli/internal/pkg/cli"
+	"github.com/aproint/copilot-cli/internal/pkg/interrupt"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/term/log"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
@@ -63,7 +64,8 @@ func rootContextWithSignals(
 	stopSignals func(chan<- os.Signal),
 	exit func(int),
 ) (context.Context, func()) {
-	ctx, cancel := context.WithCancel(context.Background())
+	interruptCtx, notifyInterrupt := interrupt.WithContext(context.Background())
+	ctx, cancel := context.WithCancel(interruptCtx)
 	sigCh := make(chan os.Signal, 2)
 	done := make(chan struct{})
 	var wg sync.WaitGroup
@@ -73,7 +75,7 @@ func rootContextWithSignals(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		handleRootSignals(sigCh, done, cancel, exit)
+		handleRootSignals(sigCh, done, notifyInterrupt, cancel, exit)
 	}()
 
 	shutdown := func() {
@@ -87,7 +89,7 @@ func rootContextWithSignals(
 	return ctx, shutdown
 }
 
-func handleRootSignals(signals <-chan os.Signal, done <-chan struct{}, cancel context.CancelFunc, exit func(int)) {
+func handleRootSignals(signals <-chan os.Signal, done <-chan struct{}, notifyInterrupt func(), cancel context.CancelFunc, exit func(int)) {
 	seenSignal := false
 	for {
 		select {
@@ -102,6 +104,9 @@ func handleRootSignals(signals <-chan os.Signal, done <-chan struct{}, cancel co
 		case sig := <-signals:
 			if !seenSignal {
 				seenSignal = true
+				if sig == os.Interrupt {
+					notifyInterrupt()
+				}
 				cancel()
 				continue
 			}

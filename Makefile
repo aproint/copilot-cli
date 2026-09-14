@@ -102,6 +102,17 @@ package-custom-resources-clean:
 run-unit-test:
 	go test -coverprofile=${COVERAGE} ${PACKAGES}
 
+.PHONY: download-go-modules
+download-go-modules:
+	@attempt=1; \
+	while true; do \
+		go mod download && exit 0; \
+		if [ "$$attempt" -ge 3 ]; then exit 1; fi; \
+		echo "Go module download failed (attempt $$attempt/3); retrying"; \
+		sleep $$((attempt * 2)); \
+		attempt=$$((attempt + 1)); \
+	done
+
 .PHONY: test-race
 test-race:
 	go test -race -count=1 ${PACKAGES}

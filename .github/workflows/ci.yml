@@ -18,9 +18,24 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
+        id: setup-go
         uses: actions/setup-go@v6
         with:
           go-version-file: .go-version
+          cache: false
+
+      - name: Cache Go dependencies and build outputs
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-build-${{ matrix.command }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-build-${{ matrix.command }}-
+
+      - name: Download Go modules
+        run: make download-go-modules
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -43,9 +58,24 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
+        id: setup-go
         uses: actions/setup-go@v6
         with:
           go-version-file: .go-version
+          cache: false
+
+      - name: Cache Go dependencies and build outputs
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-mocks-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-mocks-
+
+      - name: Download Go modules
+        run: make download-go-modules
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -70,9 +100,24 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
+        id: setup-go
         uses: actions/setup-go@v6
         with:
           go-version-file: .go-version
+          cache: false
+
+      - name: Cache Go dependencies and build outputs
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-unit-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-unit-
+
+      - name: Download Go modules
+        run: make download-go-modules
 
       - name: Run Go unit tests
         run: make run-unit-test
@@ -122,9 +167,24 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
+        id: setup-go
         uses: actions/setup-go@v6
         with:
           go-version-file: .go-version
+          cache: false
+
+      - name: Cache Go dependencies and build outputs
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-local-integration-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-local-integration-
+
+      - name: Download Go modules
+        run: make download-go-modules
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -144,6 +204,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: .go-version
+          cache: false
 
       - name: Run license check
         run: ./scripts/license.sh .

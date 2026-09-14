@@ -42,6 +42,11 @@ func (d *Double) Create(stack *cfn.Stack) (string, error) {
 	return d.CreateFn(stack)
 }
 
+// CreateWithContext calls the stubbed function.
+func (d *Double) CreateWithContext(_ context.Context, stack *cfn.Stack) (string, error) {
+	return d.CreateFn(stack)
+}
+
 // CreateAndWait calls the stubbed function.
 func (d *Double) CreateAndWait(stack *cfn.Stack) error {
 	return d.CreateAndWaitFn(stack)
@@ -52,6 +57,11 @@ func (d *Double) DescribeChangeSet(id, stack string) (*cfn.ChangeSetDescription,
 	return d.DescribeChangeSetFn(id, stack)
 }
 
+// DescribeChangeSetWithContext calls the stubbed function.
+func (d *Double) DescribeChangeSetWithContext(_ context.Context, id, stack string) (*cfn.ChangeSetDescription, error) {
+	return d.DescribeChangeSetFn(id, stack)
+}
+
 // WaitForCreate calls the stubbed function.
 func (d *Double) WaitForCreate(ctx context.Context, stack string) error {
 	return d.WaitForCreateFn(ctx, stack)
@@ -59,6 +69,11 @@ func (d *Double) WaitForCreate(ctx context.Context, stack string) error {
 
 // Update calls the stubbed function.
 func (d *Double) Update(stack *cfn.Stack) (string, error) {
+	return d.UpdateFn(stack)
+}
+
+// UpdateWithContext calls the stubbed function.
+func (d *Double) UpdateWithContext(_ context.Context, stack *cfn.Stack) (string, error) {
 	return d.UpdateFn(stack)
 }
 
@@ -79,6 +94,11 @@ func (d *Double) Delete(stackName string) error {
 
 // DeleteAndWait calls the stubbed function.
 func (d *Double) DeleteAndWait(stackName string) error {
+	return d.DeleteAndWaitFn(stackName)
+}
+
+// DeleteAndWaitWithContext calls the stubbed function.
+func (d *Double) DeleteAndWaitWithContext(_ context.Context, stackName string) error {
 	return d.DeleteAndWaitFn(stackName)
 }
 
@@ -110,13 +130,28 @@ func (d *Double) Metadata(opt cfn.MetadataOpts) (string, error) {
 	return d.MetadataFn(opt)
 }
 
+// MetadataWithContext calls the stubbed function.
+func (d *Double) MetadataWithContext(_ context.Context, opt cfn.MetadataOpts) (string, error) {
+	return d.MetadataFn(opt)
+}
+
 // TemplateBody calls the stubbed function.
 func (d *Double) TemplateBody(name string) (string, error) {
 	return d.TemplateBodyFn(name)
 }
 
+// TemplateBodyWithContext calls the stubbed function.
+func (d *Double) TemplateBodyWithContext(_ context.Context, name string) (string, error) {
+	return d.TemplateBodyFn(name)
+}
+
 // TemplateBodyFromChangeSet calls the stubbed function.
 func (d *Double) TemplateBodyFromChangeSet(changeSetID, stackName string) (string, error) {
+	return d.TemplateBodyFromChangeSetFn(changeSetID, stackName)
+}
+
+// TemplateBodyFromChangeSetWithContext calls the stubbed function.
+func (d *Double) TemplateBodyFromChangeSetWithContext(_ context.Context, changeSetID, stackName string) (string, error) {
 	return d.TemplateBodyFromChangeSetFn(changeSetID, stackName)
 }
 
@@ -140,6 +175,11 @@ func (d *Double) ErrorEvents(stackName string) ([]cfn.StackEvent, error) {
 	return d.ErrorEventsFn(stackName)
 }
 
+// ErrorEventsWithContext calls the stubbed function.
+func (d *Double) ErrorEventsWithContext(_ context.Context, stackName string) ([]cfn.StackEvent, error) {
+	return d.ErrorEventsFn(stackName)
+}
+
 // ListStacksWithTags calls the stubbed function.
 func (d *Double) ListStacksWithTags(tags map[string]string) ([]cfn.StackDescription, error) {
 	return d.ListStacksWithTagsFn(tags)
@@ -150,7 +190,17 @@ func (d *Double) DescribeStackEvents(input *sdk.DescribeStackEventsInput) (*sdk.
 	return d.DescribeStackEventsFn(input)
 }
 
+// DescribeStackEventsWithContext calls the stubbed function.
+func (d *Double) DescribeStackEventsWithContext(_ context.Context, input *sdk.DescribeStackEventsInput) (*sdk.DescribeStackEventsOutput, error) {
+	return d.DescribeStackEventsFn(input)
+}
+
 // CancelUpdateStack calls the stubbed function.
 func (d *Double) CancelUpdateStack(stackName string) error {
+	return d.CancelUpdateStackFn(stackName)
+}
+
+// CancelUpdateStackWithContext calls the stubbed function.
+func (d *Double) CancelUpdateStackWithContext(_ context.Context, stackName string) error {
 	return d.CancelUpdateStackFn(stackName)
 }

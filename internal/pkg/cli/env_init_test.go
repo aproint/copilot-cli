@@ -1213,7 +1213,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				)
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(errors.New("some deploy error"))
+				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some deploy error"))
 				m.appCFN.EXPECT().GetAppResourcesByRegion(&config.Application{Name: "phonetool"}, "us-west-2").
 					Return(&stack.AppRegionalResources{
 						S3Bucket: "mockBucket",
@@ -1234,7 +1234,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.iam.EXPECT().ListRoleTags(gomock.Any()).
 					Return(nil, errors.New("does not exist")).AnyTimes()
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
-				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
+				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					App:       "phonetool",
 					Name:      "test",
@@ -1266,7 +1266,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist"))
 				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
-				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
+				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					AccountID: "1234",
 					Region:    "mars-1",
@@ -1298,7 +1298,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist"))
 				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
-				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
+				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					AccountID: "1234",
 					Region:    "mars-1",
@@ -1328,7 +1328,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				// Don't attempt to delete any roles since an environment stack already exists.
 				m.iam.EXPECT().ListRoleTags(gomock.Any()).Times(0)
 				m.cfn.EXPECT().Exists("phonetool-test").Return(true, nil)
-				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).DoAndReturn(func(conf deploycfn.StackConfiguration, bucketARN string) error {
+				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, conf deploycfn.StackConfiguration, bucketARN string) error {
 					require.Equal(t, conf, stack.NewBootstrapEnvStackConfig(&stack.EnvConfig{
 						Name: "test",
 						App: deploy.AppInformation{
@@ -1387,7 +1387,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.progress.EXPECT().Start(fmt.Sprintf(fmtDNSDelegationStart, "4567"))
 				m.progress.EXPECT().Stop(log.Ssuccessf(fmtDNSDelegationComplete, "4567"))
 				m.deployer.EXPECT().DelegateDNSPermissions(gomock.Any(), "4567").Return(nil)
-				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
+				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 					AccountID: "4567",
 					Region:    "us-west-2",
@@ -1489,7 +1489,7 @@ func TestInitEnvOpts_Execute_PreMutationCanceledContextPreventsDeploy(t *testing
 	m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
 	m.iam.EXPECT().CreateECSServiceLinkedRole().Times(0)
 	m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Times(0)
-	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Times(0)
+	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	m.deployer.EXPECT().GetEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).Times(0)
 
@@ -1518,7 +1518,7 @@ func TestInitEnvOpts_DeployEnv_CancellationDuringCleanupPreventsStackCreation(t 
 	})
 	iam.EXPECT().ListRoleTags(gomock.Any()).Times(0)
 	iam.EXPECT().DeleteRole(gomock.Any()).Times(0)
-	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Times(0)
+	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	opts := &initEnvOpts{
 		initEnvVars: initEnvVars{appName: "phonetool", name: "test"},
@@ -1555,7 +1555,7 @@ func TestInitEnvOpts_DeployEnv_CancellationAfterRoleLookupPreventsRoleDeletion(t
 		return map[string]string{deploy.EnvTagKey: "test"}, nil
 	})
 	iam.EXPECT().DeleteRole(gomock.Any()).Times(0)
-	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Times(0)
+	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	opts := &initEnvOpts{
 		initEnvVars: initEnvVars{appName: "phonetool", name: "test"},
@@ -1602,7 +1602,7 @@ func TestInitEnvOpts_Execute_CanceledParentStillCommitsMetadata(t *testing.T) {
 			S3Bucket: "mockBucket",
 		}, nil)
 	m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
-	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).DoAndReturn(func(deploycfn.StackConfiguration, string) error {
+	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, deploycfn.StackConfiguration, string) error {
 		cancel()
 		return nil
 	})
@@ -1662,7 +1662,7 @@ func TestInitEnvOpts_Execute_MetadataCommitErrorIsPartialSuccess(t *testing.T) {
 			S3Bucket: "mockBucket",
 		}, nil)
 	m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
-	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Return(nil)
+	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
 		App:       "phonetool",
 		Name:      "test",

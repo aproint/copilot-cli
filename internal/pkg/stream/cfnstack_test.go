@@ -4,6 +4,7 @@
 package stream
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -18,6 +19,20 @@ import (
 type mockStackClient struct {
 	out *cloudformation.DescribeStackEventsOutput
 	err error
+}
+
+type contextualMockStackClient struct {
+	gotCtx context.Context
+	out    *cloudformation.DescribeStackEventsOutput
+}
+
+func (m *contextualMockStackClient) DescribeStackEvents(*cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+	return nil, errors.New("legacy describe stack events called")
+}
+
+func (m *contextualMockStackClient) DescribeStackEventsWithContext(ctx context.Context, _ *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+	m.gotCtx = ctx
+	return m.out, nil
 }
 
 func (m mockStackClient) DescribeStackEvents(*cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
@@ -89,6 +104,18 @@ func TestStackStreamer_Fetch(t *testing.T) {
 	t.Run("stores only events that have not been seen yet", testStackStreamer_Fetch_WithSeenEvents)
 	t.Run("returns wrapped error if describe call fails", testStackStreamer_Fetch_WithError)
 	t.Run("throttle results in a gracefully handled error and exponential backoff", testStackStreamer_Fetch_withThrottle)
+}
+
+func TestStackStreamer_FetchUsesConstructorContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "stack-streamer")
+	client := &contextualMockStackClient{out: &cloudformation.DescribeStackEventsOutput{}}
+	streamer := NewStackStreamerWithContext(ctx, client, "stack", time.Now())
+
+	_, _, err := streamer.Fetch()
+
+	require.NoError(t, err)
+	require.Same(t, ctx, client.gotCtx)
 }
 
 func TestStackStreamer_Notify(t *testing.T) {

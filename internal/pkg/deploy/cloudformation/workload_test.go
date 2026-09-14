@@ -71,7 +71,7 @@ func TestCloudFormation_DeployService(t *testing.T) {
 		},
 	}
 	when := func(cf CloudFormation) error {
-		return cf.DeployService(serviceConfig, "mockBucket", false)
+		return cf.DeployService(t.Context(), serviceConfig, "mockBucket", false)
 	}
 
 	t.Run("returns a wrapped error if pushing to s3 bucket fails", func(t *testing.T) {

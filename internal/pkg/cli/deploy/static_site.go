@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -96,7 +97,7 @@ func (*staticSiteDeployer) IsServiceAvailableInRegion(region string) (bool, erro
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.
-func (d *staticSiteDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFormationTemplateInput) (
+func (d *staticSiteDeployer) GenerateCloudFormationTemplate(_ context.Context, in *GenerateCloudFormationTemplateInput) (
 	*GenerateCloudFormationTemplateOutput, error) {
 	conf, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
@@ -106,25 +107,25 @@ func (d *staticSiteDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFor
 }
 
 // DeployWorkload deploys a static site service using CloudFormation.
-func (d *staticSiteDeployer) DeployWorkload(in *DeployWorkloadInput) (ActionRecommender, error) {
+func (d *staticSiteDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloadInput) (ActionRecommender, error) {
 	conf, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
-	if err := d.deploy(in.Options, svcStackConfigurationOutput{conf: conf}); err != nil {
+	if err := d.deploy(ctx, in.Options, svcStackConfigurationOutput{conf: conf}); err != nil {
 		return nil, err
 	}
 	return noopActionRecommender{}, nil
 }
 
-func (d *staticSiteDeployer) deploy(deployOptions Options, stackConfigOutput svcStackConfigurationOutput) error {
+func (d *staticSiteDeployer) deploy(ctx context.Context, deployOptions Options, stackConfigOutput svcStackConfigurationOutput) error {
 	opts := []awscloudformation.StackOption{
 		awscloudformation.WithRoleARN(d.env.ExecutionRoleARN),
 	}
 	if deployOptions.DisableRollback {
 		opts = append(opts, awscloudformation.WithDisableRollback())
 	}
-	if err := d.deployer.DeployService(stackConfigOutput.conf, d.resources.S3Bucket, deployOptions.Detach, opts...); err != nil {
+	if err := d.deployer.DeployService(ctx, stackConfigOutput.conf, d.resources.S3Bucket, deployOptions.Detach, opts...); err != nil {
 		return fmt.Errorf("deploy service: %w", err)
 	}
 	return nil

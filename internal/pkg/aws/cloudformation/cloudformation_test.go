@@ -210,6 +210,33 @@ func TestCloudFormation_Create(t *testing.T) {
 	}
 }
 
+func TestCloudFormation_CreateWithContextUsesContextForChangeSetLifecycle(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "create-change-set")
+	seed := bytes.NewBufferString("12345678901233456789")
+	uuid.SetRand(seed)
+	defer uuid.SetRand(nil)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockclient(ctrl)
+	m.EXPECT().DescribeStacks(gomock.Eq(ctx), gomock.Any()).Return(nil, errDoesNotExist)
+	m.EXPECT().CreateChangeSet(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.CreateChangeSetOutput{
+		Id:      aws.String(mockChangeSetID),
+		StackId: aws.String(mockStack.Name),
+	}, nil)
+	m.EXPECT().WaitUntilChangeSetCreateComplete(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	m.EXPECT().DescribeChangeSet(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.DescribeChangeSetOutput{
+		Changes:         []types.Change{{ResourceChange: &types.ResourceChange{}}},
+		ExecutionStatus: types.ExecutionStatusAvailable,
+	}, nil)
+	m.EXPECT().ExecuteChangeSet(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.ExecuteChangeSetOutput{}, nil)
+	cfn := CloudFormation{client: m}
+
+	_, err := cfn.CreateWithContext(ctx, mockStack)
+
+	require.NoError(t, err)
+}
+
 func TestCloudFormation_DescribeChangeSet(t *testing.T) {
 	t.Run("returns an error if the DescribeChangeSet action fails", func(t *testing.T) {
 		// GIVEN
@@ -281,6 +308,25 @@ func TestCloudFormation_DescribeChangeSet(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, wantedChanges, out.Changes)
 	})
+}
+
+func TestCloudFormation_DescribeChangeSetWithContextUsesContextForEveryPage(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "change-set-pages")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockclient(ctrl)
+	gomock.InOrder(
+		m.EXPECT().DescribeChangeSet(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.DescribeChangeSetOutput{
+			NextToken: aws.String("next"),
+		}, nil),
+		m.EXPECT().DescribeChangeSet(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.DescribeChangeSetOutput{}, nil),
+	)
+	cfn := CloudFormation{client: m}
+
+	_, err := cfn.DescribeChangeSetWithContext(ctx, mockChangeSetID, "phonetool-test")
+
+	require.NoError(t, err)
 }
 
 func TestCloudFormation_WaitForCreate(t *testing.T) {
@@ -762,6 +808,21 @@ func TestCloudFormation_DeleteAndWait(t *testing.T) {
 			require.Equal(t, tc.wantedErr, err)
 		})
 	}
+}
+
+func TestCloudFormation_DeleteAndWaitWithContextUsesContextForDeleteAndWaiter(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "delete-waiter")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockclient(ctrl)
+	m.EXPECT().DeleteStack(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+	m.EXPECT().WaitUntilStackDeleteComplete(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	cfn := CloudFormation{client: m}
+
+	err := cfn.DeleteAndWaitWithContext(ctx, mockStack.Name)
+
+	require.NoError(t, err)
 }
 
 func TestStackDescriber_Metadata(t *testing.T) {

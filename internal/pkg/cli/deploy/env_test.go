@@ -419,7 +419,7 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, mockError)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 			wantedError: errors.New("describe environment stack parameters: some error"),
 		},
@@ -431,8 +431,8 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", mockError)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", mockError)
 			},
 			wantedError: errors.New("retrieve environment stack force update ID: some error"),
 		},
@@ -444,8 +444,8 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("", mockError)
 			},
 			wantedError: errors.New("generate stack template: some error"),
@@ -458,8 +458,8 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("", nil)
 				m.stackSerializer.EXPECT().SerializedParameters().Return("", mockError)
 			},
@@ -497,8 +497,8 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(mockAppName, mockEnvName).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), mockAppName, mockEnvName).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("aloo", nil)
 				m.stackSerializer.EXPECT().SerializedParameters().Return("gobi", nil)
 			},
@@ -516,8 +516,8 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 					mockStack.EXPECT().Template().Return("template", nil)
 					return mockStack, nil
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(mockAppName, mockEnvName).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), mockAppName, mockEnvName).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("aloo", nil)
 				m.stackSerializer.EXPECT().SerializedParameters().Return("gobi", nil)
 			},
@@ -550,7 +550,7 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				},
 				parseAddons: m.parseAddons,
 			}
-			actual, err := d.GenerateCloudFormationTemplate(&DeployEnvironmentInput{
+			actual, err := d.GenerateCloudFormationTemplate(t.Context(), &DeployEnvironmentInput{
 				Manifest: &tc.inManifest,
 			})
 			if tc.wantedError != nil {
@@ -616,11 +616,11 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID().Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			inManifest: nil,
 		},
@@ -630,7 +630,7 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("describe environment stack parameters: some error"),
 		},
@@ -640,8 +640,8 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("retrieve environment stack force update ID: some error"),
 		},
@@ -652,9 +652,9 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 				}, nil)
 				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID().Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
-				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error"))
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error"))
 			},
 			wantedError: errors.New("some error"),
 		},
@@ -665,9 +665,9 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 				}, nil)
 				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID().Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
-				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 		},
 		"successful environment deployment, no rollback": {
@@ -678,9 +678,9 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 				}, nil)
 				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID().Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any()).Return("", nil)
-				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Len(2)).Return(nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Len(2)).Return(nil)
 			},
 		},
 	}
@@ -719,7 +719,7 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 				Manifest:        tc.inManifest,
 				DisableRollback: tc.inDisableRollback,
 			}
-			gotErr := d.DeployEnvironment(mockIn)
+			gotErr := d.DeployEnvironment(t.Context(), mockIn)
 			if tc.wantedError != nil {
 				require.EqualError(t, gotErr, tc.wantedError.Error())
 			} else {

@@ -785,7 +785,7 @@ func TestInitAppOpts_Execute(t *testing.T) {
 				m.newWorkspace = func(appName string) (wsAppManager, error) {
 					return m.ws, nil
 				}
-				m.deployer.EXPECT().DeployApp(&deploy.CreateAppInput{
+				m.deployer.EXPECT().DeployApp(gomock.Any(), &deploy.CreateAppInput{
 					Name:               "myapp",
 					AccountID:          "12345",
 					DomainName:         "amazon.com",
@@ -818,7 +818,7 @@ func TestInitAppOpts_Execute(t *testing.T) {
 				m.newWorkspace = func(appName string) (wsAppManager, error) {
 					return m.ws, nil
 				}
-				m.deployer.EXPECT().DeployApp(gomock.Any()).Return(mockError)
+				m.deployer.EXPECT().DeployApp(gomock.Any(), gomock.Any()).Return(mockError)
 			},
 		},
 		"should return error from CreateApplication": {
@@ -831,7 +831,7 @@ func TestInitAppOpts_Execute(t *testing.T) {
 				m.newWorkspace = func(appName string) (wsAppManager, error) {
 					return m.ws, nil
 				}
-				m.deployer.EXPECT().DeployApp(gomock.Any()).Return(nil)
+				m.deployer.EXPECT().DeployApp(gomock.Any(), gomock.Any()).Return(nil)
 			},
 		},
 	}
@@ -892,7 +892,7 @@ func TestInitAppOpts_Execute_PreMutationCanceledContextPreventsDeploy(t *testing
 	mockDeployer := mocks.NewMockappDeployer(ctrl)
 
 	mockIdentity.EXPECT().Get(parent).Return(identity.Caller{Account: "12345"}, nil)
-	mockDeployer.EXPECT().DeployApp(gomock.Any()).Times(0)
+	mockDeployer.EXPECT().DeployApp(gomock.Any(), gomock.Any()).Times(0)
 	mockStore.EXPECT().CreateApplication(gomock.Any(), gomock.Any()).Times(0)
 
 	opts := &initAppOpts{
@@ -912,6 +912,34 @@ func TestInitAppOpts_Execute_PreMutationCanceledContextPreventsDeploy(t *testing
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+func TestInitAppOpts_Execute_UsesCallerContextForDeploy(t *testing.T) {
+	type contextKey string
+	parent := context.WithValue(context.Background(), contextKey("sentinel"), "app-deploy")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockStore := mocks.NewMockstore(ctrl)
+	mockIdentity := mocks.NewMockidentityService(ctrl)
+	mockDeployer := mocks.NewMockappDeployer(ctrl)
+	wantedErr := errors.New("stop after deploy")
+
+	mockIdentity.EXPECT().Get(parent).Return(identity.Caller{Account: "12345"}, nil)
+	mockDeployer.EXPECT().DeployApp(gomock.Eq(parent), gomock.Any()).Return(wantedErr)
+	mockStore.EXPECT().CreateApplication(gomock.Any(), gomock.Any()).Times(0)
+	opts := &initAppOpts{
+		initAppVars: initAppVars{name: "myapp"},
+		store:       mockStore,
+		identity:    mockIdentity,
+		cfn:         mockDeployer,
+		newWorkspace: func(string) (wsAppManager, error) {
+			return mocks.NewMockwsAppManager(ctrl), nil
+		},
+	}
+
+	err := opts.Execute(parent)
+
+	require.ErrorIs(t, err, wantedErr)
+}
+
 func TestInitAppOpts_Execute_CanceledParentStillCommitsMetadata(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -922,7 +950,7 @@ func TestInitAppOpts_Execute_CanceledParentStillCommitsMetadata(t *testing.T) {
 	mockDeployer := mocks.NewMockappDeployer(ctrl)
 
 	mockIdentity.EXPECT().Get(parent).Return(identity.Caller{Account: "12345"}, nil)
-	mockDeployer.EXPECT().DeployApp(gomock.Any()).DoAndReturn(func(*deploy.CreateAppInput) error {
+	mockDeployer.EXPECT().DeployApp(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *deploy.CreateAppInput) error {
 		cancel()
 		return nil
 	})
@@ -962,7 +990,7 @@ func TestInitAppOpts_Execute_MetadataCommitErrorIsPartialSuccess(t *testing.T) {
 	mockDeployer := mocks.NewMockappDeployer(ctrl)
 
 	mockIdentity.EXPECT().Get(ctx).Return(identity.Caller{Account: "12345"}, nil)
-	mockDeployer.EXPECT().DeployApp(gomock.Any()).Return(nil)
+	mockDeployer.EXPECT().DeployApp(gomock.Any(), gomock.Any()).Return(nil)
 	mockStore.EXPECT().CreateApplication(gomock.Any(), gomock.Any()).Return(mockErr)
 
 	opts := &initAppOpts{

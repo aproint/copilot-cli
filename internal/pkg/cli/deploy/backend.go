@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
@@ -69,7 +70,7 @@ func (d *backendSvcDeployer) UploadArtifacts() (*UploadArtifactsOutput, error) {
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.
-func (d *backendSvcDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFormationTemplateInput) (
+func (d *backendSvcDeployer) GenerateCloudFormationTemplate(_ context.Context, in *GenerateCloudFormationTemplateInput) (
 	*GenerateCloudFormationTemplateOutput, error) {
 	output, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
@@ -79,12 +80,12 @@ func (d *backendSvcDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFor
 }
 
 // DeployWorkload deploys a backend service using CloudFormation.
-func (d *backendSvcDeployer) DeployWorkload(in *DeployWorkloadInput) (ActionRecommender, error) {
+func (d *backendSvcDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloadInput) (ActionRecommender, error) {
 	stackConfigOutput, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
-	if err := d.deploy(in.Options, *stackConfigOutput); err != nil {
+	if err := d.deploy(ctx, in.Options, *stackConfigOutput); err != nil {
 		return nil, err
 	}
 	return noopActionRecommender{}, nil

@@ -208,7 +208,7 @@ func (o *deployJobOpts) Execute(ctx context.Context) error {
 		return fmt.Errorf("upload deploy resources for job %s: %w", o.name, err)
 	}
 	if o.showDiff {
-		output, err := deployer.GenerateCloudFormationTemplate(&deploy.GenerateCloudFormationTemplateInput{
+		output, err := deployer.GenerateCloudFormationTemplate(ctx, &deploy.GenerateCloudFormationTemplateInput{
 			StackRuntimeConfiguration: deploy.StackRuntimeConfiguration{
 				RootUserARN:        o.rootUserARN,
 				Tags:               o.targetApp.Tags,
@@ -236,7 +236,7 @@ func (o *deployJobOpts) Execute(ctx context.Context) error {
 			return nil
 		}
 	}
-	if _, err = deployer.DeployWorkload(&deploy.DeployWorkloadInput{
+	if _, err = deployer.DeployWorkload(ctx, &deploy.DeployWorkloadInput{
 		StackRuntimeConfiguration: deploy.StackRuntimeConfiguration{
 			ImageDigests:       uploadOut.ImageDigests,
 			EnvFileARNs:        uploadOut.EnvFileARNs,

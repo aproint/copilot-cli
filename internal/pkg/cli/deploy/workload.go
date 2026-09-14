@@ -105,7 +105,7 @@ type endpointGetter interface {
 }
 
 type serviceDeployer interface {
-	DeployService(conf cloudformation.StackConfiguration, bucketName string, detach bool, opts ...awscloudformation.StackOption) error
+	DeployService(context.Context, cloudformation.StackConfiguration, string, bool, ...awscloudformation.StackOption) error
 }
 
 type deployedTemplateGetter interface {

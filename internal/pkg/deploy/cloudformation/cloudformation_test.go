@@ -4,6 +4,7 @@
 package cloudformation
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -88,6 +89,238 @@ func TestIsEmptyErr(t *testing.T) {
 	}
 }
 
+func TestCloudFormation_ExecuteAndRenderChangeSetStopsOnCallerCancellation(t *testing.T) {
+	type contextKey string
+	const key contextKey = "sentinel"
+	ctx, cancel := context.WithCancel(context.WithValue(context.Background(), key, "caller"))
+	defer cancel()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockcfnClient(ctrl)
+	started := make(chan struct{})
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "change-set", "stack").DoAndReturn(
+		func(gotCtx context.Context, _, _ string) (*cloudformation.ChangeSetDescription, error) {
+			require.Equal(t, "caller", gotCtx.Value(key))
+			close(started)
+			<-gotCtx.Done()
+			return nil, gotCtx.Err()
+		},
+	)
+	cf := CloudFormation{
+		cfnClient: m,
+		console:   mockFileWriter{Writer: new(strings.Builder)},
+		notifySignals: func() chan os.Signal {
+			return make(chan os.Signal, 1)
+		},
+	}
+	go func() {
+		<-started
+		cancel()
+	}()
+	startedAt := time.Now()
+
+	err := cf.executeAndRenderChangeSet(ctx, &executeAndRenderChangeSetInput{
+		stackName:       "stack",
+		enableInterrupt: true,
+		createChangeSet: func(gotCtx context.Context) (string, error) {
+			require.Same(t, ctx, gotCtx)
+			return "change-set", nil
+		},
+	})
+
+	require.ErrorIs(t, err, context.Canceled)
+	require.Less(t, time.Since(startedAt), time.Second)
+}
+
+func TestCleanupContextSurvivesCanceledParent(t *testing.T) {
+	type contextKey string
+	const key contextKey = "sentinel"
+	parent, cancelParent := context.WithCancel(context.WithValue(context.Background(), key, "cleanup"))
+	cancelParent()
+	ctx, cancel := cleanupContext(parent)
+	defer cancel()
+
+	require.NoError(t, ctx.Err())
+	require.Equal(t, "cleanup", ctx.Value(key))
+	deadline, ok := ctx.Deadline()
+	require.True(t, ok)
+	require.False(t, deadline.After(time.Now().Add(waitForStackTimeout)))
+}
+
+func TestCloudFormation_QueuedInterruptWinsOverCallerCancellation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockcfnClient(ctrl)
+	wantedErr := errors.New("cleanup started")
+	m.EXPECT().DescribeWithContext(gomock.Any(), "stack").DoAndReturn(
+		func(ctx context.Context, _ string) (*cloudformation.StackDescription, error) {
+			require.NoError(t, ctx.Err())
+			_, hasDeadline := ctx.Deadline()
+			require.True(t, hasDeadline)
+			return nil, wantedErr
+		},
+	)
+	parent, cancel := context.WithCancel(context.Background())
+	cancel()
+	sigCh := make(chan os.Signal, 1)
+	sigCh <- os.Interrupt
+	cf := CloudFormation{cfnClient: m}
+
+	err := cf.waitForSignalAndHandleInterrupt(signalHandlerInput{
+		ctx:            parent,
+		cancelFn:       func() {},
+		localInterrupt: make(chan struct{}),
+		sigCh:          sigCh,
+		stackName:      "stack",
+	})
+
+	require.ErrorIs(t, err, wantedErr)
+}
+
+func TestCloudFormation_InterruptDuringCreationDeletesStack(t *testing.T) {
+	type contextKey string
+	const key contextKey = "sentinel"
+	parent, cancelParent := context.WithCancel(context.WithValue(context.Background(), key, "interrupt-cleanup"))
+	cancelParent()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockcfnClient(ctrl)
+	gomock.InOrder(
+		m.EXPECT().DescribeWithContext(gomock.Any(), "stack").DoAndReturn(
+			func(ctx context.Context, _ string) (*cloudformation.StackDescription, error) {
+				assertInterruptCleanupContext(t, ctx, key, "interrupt-cleanup")
+				return &cloudformation.StackDescription{StackStatus: sdkcloudformationtypes.StackStatusCreateInProgress}, nil
+			}),
+		m.EXPECT().DescribeWithContext(gomock.Any(), "stack").DoAndReturn(
+			func(ctx context.Context, _ string) (*cloudformation.StackDescription, error) {
+				assertInterruptCleanupContext(t, ctx, key, "interrupt-cleanup")
+				return &cloudformation.StackDescription{StackId: aws.String("stack")}, nil
+			}),
+	)
+	m.EXPECT().TemplateBodyWithContext(gomock.Any(), "stack").DoAndReturn(
+		func(ctx context.Context, _ string) (string, error) {
+			assertInterruptCleanupContext(t, ctx, key, "interrupt-cleanup")
+			return "{}", nil
+		},
+	)
+	m.EXPECT().DeleteAndWaitWithContext(gomock.Any(), "stack").DoAndReturn(
+		func(ctx context.Context, _ string) error {
+			assertInterruptCleanupContext(t, ctx, key, "interrupt-cleanup")
+			return nil
+		},
+	)
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, _ *sdkcloudformation.DescribeStackEventsInput) (*sdkcloudformation.DescribeStackEventsOutput, error) {
+			assertInterruptCleanupContext(t, ctx, key, "interrupt-cleanup")
+			return terminalStackEvents("stack", sdkcloudformationtypes.ResourceStatusDeleteComplete), nil
+		},
+	).AnyTimes()
+	renderDone := make(chan bool)
+	close(renderDone)
+	sigCh := make(chan os.Signal, 1)
+	cf := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: new(strings.Builder)}}
+
+	err := cf.handleInterrupt(signalHandlerInput{
+		ctx:              parent,
+		cancelFn:         func() {},
+		localInterrupt:   make(chan struct{}),
+		sigCh:            sigCh,
+		stackName:        "stack",
+		updateRenderDone: renderDone,
+	})
+
+	var interruptErr *ErrStackDeletedOnInterrupt
+	require.ErrorAs(t, err, &interruptErr)
+}
+
+func TestCloudFormation_InterruptDuringUpdateCancelsAndRendersRollback(t *testing.T) {
+	type contextKey string
+	const key contextKey = "sentinel"
+	parent := context.WithValue(context.Background(), key, "interrupt-cleanup")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockcfnClient(ctrl)
+	assertCleanup := func(ctx context.Context) {
+		assertInterruptCleanupContext(t, ctx, key, "interrupt-cleanup")
+	}
+	gomock.InOrder(
+		m.EXPECT().DescribeWithContext(gomock.Any(), "stack").DoAndReturn(
+			func(ctx context.Context, _ string) (*cloudformation.StackDescription, error) {
+				assertCleanup(ctx)
+				return &cloudformation.StackDescription{StackStatus: sdkcloudformationtypes.StackStatusUpdateInProgress}, nil
+			}),
+		m.EXPECT().DescribeWithContext(gomock.Any(), "stack").DoAndReturn(
+			func(ctx context.Context, _ string) (*cloudformation.StackDescription, error) {
+				assertCleanup(ctx)
+				return &cloudformation.StackDescription{ChangeSetId: aws.String("change-set")}, nil
+			}),
+		m.EXPECT().DescribeWithContext(gomock.Any(), "stack").DoAndReturn(
+			func(ctx context.Context, _ string) (*cloudformation.StackDescription, error) {
+				assertCleanup(ctx)
+				return &cloudformation.StackDescription{StackStatus: sdkcloudformationtypes.StackStatusUpdateRollbackComplete}, nil
+			}),
+	)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "change-set", "stack").DoAndReturn(
+		func(ctx context.Context, _, _ string) (*cloudformation.ChangeSetDescription, error) {
+			assertCleanup(ctx)
+			return &cloudformation.ChangeSetDescription{CreationTime: time.Now()}, nil
+		},
+	)
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), "change-set", "stack").DoAndReturn(
+		func(ctx context.Context, _, _ string) (string, error) {
+			assertCleanup(ctx)
+			return "{}", nil
+		},
+	)
+	m.EXPECT().CancelUpdateStackWithContext(gomock.Any(), "stack").DoAndReturn(
+		func(ctx context.Context, _ string) error {
+			assertCleanup(ctx)
+			return nil
+		},
+	)
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, _ *sdkcloudformation.DescribeStackEventsInput) (*sdkcloudformation.DescribeStackEventsOutput, error) {
+			assertCleanup(ctx)
+			return terminalStackEvents("stack", sdkcloudformationtypes.ResourceStatusUpdateRollbackComplete), nil
+		},
+	).AnyTimes()
+	renderDone := make(chan bool)
+	close(renderDone)
+	sigCh := make(chan os.Signal, 1)
+	cf := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: new(strings.Builder)}}
+
+	err := cf.handleInterrupt(signalHandlerInput{
+		ctx:              parent,
+		cancelFn:         func() {},
+		localInterrupt:   make(chan struct{}),
+		sigCh:            sigCh,
+		stackName:        "stack",
+		updateRenderDone: renderDone,
+	})
+
+	var interruptErr *ErrStackUpdateCanceledOnInterrupt
+	require.ErrorAs(t, err, &interruptErr)
+}
+
+func terminalStackEvents(stackName string, status sdkcloudformationtypes.ResourceStatus) *sdkcloudformation.DescribeStackEventsOutput {
+	return &sdkcloudformation.DescribeStackEventsOutput{StackEvents: []sdkcloudformationtypes.StackEvent{{
+		EventId:           aws.String("terminal"),
+		LogicalResourceId: aws.String(stackName),
+		ResourceType:      aws.String("AWS::CloudFormation::Stack"),
+		ResourceStatus:    status,
+		Timestamp:         aws.Time(time.Now().Add(time.Minute)),
+	}}}
+}
+
+func assertInterruptCleanupContext(t *testing.T, ctx context.Context, key, wantedValue interface{}) {
+	t.Helper()
+	require.NoError(t, ctx.Err())
+	require.Equal(t, wantedValue, ctx.Value(key))
+	deadline, ok := ctx.Deadline()
+	require.True(t, ok)
+	require.False(t, deadline.After(time.Now().Add(waitForStackTimeout)))
+}
+
 type mockFileWriter struct {
 	io.Writer
 }
@@ -127,8 +360,8 @@ func testDeployWorkload_OnCreateChangeSetFailure(t *testing.T, when func(cf Clou
 	mS3Client := mocks.NewMocks3Client(ctrl)
 	mS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("", wantedErr)
-	m.EXPECT().ErrorEvents(gomock.Any()).Return(nil, nil)
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", wantedErr)
+	m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
 		notifySignals: func() chan os.Signal {
@@ -152,9 +385,9 @@ func testDeployWorkload_OnUpdateChangeSetFailure(t *testing.T, when func(cf Clou
 	mS3Client := mocks.NewMocks3Client(ctrl)
 	mS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
-	m.EXPECT().Update(gomock.Any()).Return("", wantedErr)
-	m.EXPECT().ErrorEvents(gomock.Any()).Return(nil, nil)
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
+	m.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any()).Return("", wantedErr)
+	m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
 		notifySignals: func() chan os.Signal {
@@ -177,8 +410,8 @@ func testDeployWorkload_OnDescribeChangeSetFailure(t *testing.T, when func(cf Cl
 	mS3Client := mocks.NewMocks3Client(ctrl)
 	mS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeChangeSet error"))
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeChangeSet error"))
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
 		notifySignals: func() chan os.Signal {
@@ -200,9 +433,9 @@ func testDeployWorkload_OnTemplateBodyFailure(t *testing.T, when func(cf CloudFo
 	mS3Client := mocks.NewMocks3Client(ctrl)
 	mS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
-	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", errors.New("TemplateBody error"))
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("TemplateBody error"))
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
 		notifySignals: func() chan os.Signal {
@@ -226,10 +459,10 @@ func testDeployWorkload_StackStreamerFailureShouldCancelRenderer(t *testing.T, w
 	mS3Client := mocks.NewMocks3Client(ctrl)
 	mS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
-	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", nil)
-	m.EXPECT().DescribeStackEvents(gomock.Any()).Return(nil, wantedErr)
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, wantedErr)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, s3Client: mS3Client, console: mockFileWriter{Writer: buf},
 		notifySignals: func() chan os.Signal {
@@ -251,10 +484,10 @@ func testDeployWorkload_StreamUntilStackCreationFails(t *testing.T, stackName st
 	mS3Client := mocks.NewMocks3Client(ctrl)
 	mS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
-	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", nil)
-	m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("2"),
@@ -265,10 +498,10 @@ func testDeployWorkload_StreamUntilStackCreationFails(t *testing.T, stackName st
 			},
 		},
 	}, nil).AnyTimes()
-	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
+	m.EXPECT().DescribeWithContext(gomock.Any(), stackName).Return(&cloudformation.StackDescription{
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_FAILED"),
 	}, nil)
-	m.EXPECT().ErrorEvents(stackName).Return(
+	m.EXPECT().ErrorEventsWithContext(gomock.Any(), stackName).Return(
 		[]cloudformation.StackEvent{
 			{
 				EventId:            aws.String("2"),
@@ -303,8 +536,8 @@ func testDeployWorkload_RenderNewlyCreatedStackWithECSService(t *testing.T, stac
 	mockECS := mocks.NewMockecsClient(ctrl)
 	deploymentTime := time.Date(2020, time.November, 23, 18, 0, 0, 0, time.UTC)
 
-	mockCFN.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	mockCFN.EXPECT().DescribeChangeSet("1234", stackName).Return(&cloudformation.ChangeSetDescription{
+	mockCFN.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	mockCFN.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "1234", stackName).Return(&cloudformation.ChangeSetDescription{
 		Changes: []sdkcloudformationtypes.Change{
 			{
 				ResourceChange: &sdkcloudformationtypes.ResourceChange{
@@ -314,14 +547,14 @@ func testDeployWorkload_RenderNewlyCreatedStackWithECSService(t *testing.T, stac
 			},
 		},
 	}, nil)
-	mockCFN.EXPECT().TemplateBodyFromChangeSet("1234", stackName).Return(`
+	mockCFN.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), "1234", stackName).Return(`
 Resources:
   Service:
     Metadata:
       'aws:copilot:description': 'My ECS Service'
     Type: AWS::ECS::Service
 `, nil)
-	mockCFN.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
+	mockCFN.EXPECT().DescribeStackEventsWithContext(gomock.Any(), &sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{
@@ -361,7 +594,7 @@ Resources:
 		},
 	}, nil)
 	mockECS.EXPECT().StoppedServiceTasks("cluster", "service").Return(nil, nil)
-	mockCFN.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
+	mockCFN.EXPECT().DescribeWithContext(gomock.Any(), stackName).Return(&cloudformation.StackDescription{
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 	buf := new(strings.Builder)
@@ -391,8 +624,8 @@ func testDeployWorkload_WithEnvControllerRenderer_NoStackUpdates(t *testing.T, s
 	mockCFN := mocks.NewMockcfnClient(ctrl)
 	deploymentTime := time.Date(2020, time.November, 23, 18, 0, 0, 0, time.UTC)
 
-	mockCFN.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	mockCFN.EXPECT().DescribeChangeSet("1234", svcStackName).Return(&cloudformation.ChangeSetDescription{
+	mockCFN.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	mockCFN.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "1234", svcStackName).Return(&cloudformation.ChangeSetDescription{
 		Changes: []sdkcloudformationtypes.Change{
 			{
 				ResourceChange: &sdkcloudformationtypes.ResourceChange{
@@ -403,13 +636,13 @@ func testDeployWorkload_WithEnvControllerRenderer_NoStackUpdates(t *testing.T, s
 			},
 		},
 	}, nil)
-	mockCFN.EXPECT().TemplateBodyFromChangeSet("1234", svcStackName).Return(`
+	mockCFN.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), "1234", svcStackName).Return(`
 Resources:
   EnvControllerAction:
     Metadata:
       'aws:copilot:description': "Updating environment"
 `, nil)
-	mockCFN.EXPECT().Describe(svcStackName).Return(&cloudformation.StackDescription{
+	mockCFN.EXPECT().DescribeWithContext(gomock.Any(), svcStackName).Return(&cloudformation.StackDescription{
 		Tags: []sdkcloudformationtypes.Tag{
 			{
 				Key:   aws.String("copilot-application"),
@@ -421,13 +654,13 @@ Resources:
 			},
 		},
 	}, nil)
-	mockCFN.EXPECT().TemplateBody("my-app-my-env").Return(`
+	mockCFN.EXPECT().TemplateBodyWithContext(gomock.Any(), "my-app-my-env").Return(`
 Resources:
   PublicLoadBalancer:
     Metadata:
       'aws:copilot:description': "Updating ALB"
 `, nil)
-	mockCFN.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
+	mockCFN.EXPECT().DescribeStackEventsWithContext(gomock.Any(), &sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(svcStackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{
@@ -440,13 +673,13 @@ Resources:
 			},
 		},
 	}, nil).AnyTimes()
-	mockCFN.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
+	mockCFN.EXPECT().DescribeStackEventsWithContext(gomock.Any(), &sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String("my-app-my-env"),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{}, // No updates for the env stack.
 	}, nil).AnyTimes()
 
-	mockCFN.EXPECT().Describe(svcStackName).Return(&cloudformation.StackDescription{
+	mockCFN.EXPECT().DescribeWithContext(gomock.Any(), svcStackName).Return(&cloudformation.StackDescription{
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 	buf := new(strings.Builder)
@@ -473,8 +706,8 @@ func testDeployWorkload_RenderNewlyCreatedStackWithAddons(t *testing.T, stackNam
 	mS3Client.EXPECT().Upload("mockBucket", "manual/templates/myapp-myenv-mysvc/5cde0f1298f41f7d1c8b907a36992a7a513225a2615bd6e307bf1a9149b06b40.yml", gomock.Any()).Return("mockURL", nil)
 
 	// Mocks for the parent stack.
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet("1234", stackName).Return(&cloudformation.ChangeSetDescription{
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "1234", stackName).Return(&cloudformation.ChangeSetDescription{
 		Changes: []sdkcloudformationtypes.Change{
 			{
 				ResourceChange: &sdkcloudformationtypes.ResourceChange{
@@ -492,7 +725,7 @@ func testDeployWorkload_RenderNewlyCreatedStackWithAddons(t *testing.T, stackNam
 		},
 	}, nil)
 
-	m.EXPECT().TemplateBodyFromChangeSet("1234", stackName).Return(`
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), "1234", stackName).Return(`
 Resources:
   Cluster:
     Metadata:
@@ -504,7 +737,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
 `, nil)
 
-	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), &sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{
@@ -532,12 +765,12 @@ Resources:
 		},
 	}, nil).AnyTimes()
 
-	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
+	m.EXPECT().DescribeWithContext(gomock.Any(), stackName).Return(&cloudformation.StackDescription{
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 
 	// Mocks for the addons stack.
-	m.EXPECT().DescribeChangeSet("5678", "my-nested-stack").Return(&cloudformation.ChangeSetDescription{
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "5678", "my-nested-stack").Return(&cloudformation.ChangeSetDescription{
 		Changes: []sdkcloudformationtypes.Change{
 			{
 				ResourceChange: &sdkcloudformationtypes.ResourceChange{
@@ -548,14 +781,14 @@ Resources:
 		},
 	}, nil)
 
-	m.EXPECT().TemplateBodyFromChangeSet("5678", "my-nested-stack").Return(`
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), "5678", "my-nested-stack").Return(`
 Resources:
   MyTable:
     Metadata:
       'aws:copilot:description': 'A DynamoDB table to store data'
     Type: AWS::DynamoDB::Table`, nil)
 
-	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), &sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String("my-nested-stack"),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{
@@ -599,8 +832,8 @@ func testDeployTask_OnCreateChangeSetFailure(t *testing.T, when func(cf CloudFor
 	defer ctrl.Finish()
 	wantedErr := errors.New("some error")
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("", wantedErr)
-	m.EXPECT().ErrorEvents(gomock.Any()).Return(nil, nil)
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", wantedErr)
+	m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: buf}}
 
@@ -617,9 +850,9 @@ func testDeployTask_ReturnNilOnEmptyChangeSetWhileUpdatingStack(t *testing.T, wh
 	defer ctrl.Finish()
 	wantedErr := &cloudformation.ErrChangeSetEmpty{}
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
-	m.EXPECT().Update(gomock.Any()).Return("", wantedErr)
-	m.EXPECT().ErrorEvents(gomock.Any()).Return(nil, nil)
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
+	m.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any()).Return("", wantedErr)
+	m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: buf}}
 
@@ -636,9 +869,9 @@ func testDeployTask_OnUpdateChangeSetFailure(t *testing.T, when func(cf CloudFor
 	defer ctrl.Finish()
 	wantedErr := errors.New("some error")
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
-	m.EXPECT().Update(gomock.Any()).Return("", wantedErr)
-	m.EXPECT().ErrorEvents(gomock.Any()).Return(nil, nil)
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
+	m.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any()).Return("", wantedErr)
+	m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: buf}}
 
@@ -654,8 +887,8 @@ func testDeployTask_OnDescribeChangeSetFailure(t *testing.T, when func(cf CloudF
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeChangeSet error"))
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeChangeSet error"))
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: buf}}
 
@@ -671,9 +904,9 @@ func testDeployTask_OnTemplateBodyFailure(t *testing.T, when func(cf CloudFormat
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
-	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", errors.New("TemplateBody error"))
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("TemplateBody error"))
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: buf}}
 
@@ -690,10 +923,10 @@ func testDeployTask_StackStreamerFailureShouldCancelRenderer(t *testing.T, when 
 	defer ctrl.Finish()
 	wantedErr := errors.New("streamer error")
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
-	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", nil)
-	m.EXPECT().DescribeStackEvents(gomock.Any()).Return(nil, wantedErr)
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, wantedErr)
 	buf := new(strings.Builder)
 	client := CloudFormation{cfnClient: m, console: mockFileWriter{Writer: buf}}
 
@@ -709,10 +942,10 @@ func testDeployTask_StreamUntilStackCreationFails(t *testing.T, stackName string
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := mocks.NewMockcfnClient(ctrl)
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet(gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
-	m.EXPECT().TemplateBodyFromChangeSet(gomock.Any(), gomock.Any()).Return("", nil)
-	m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ChangeSetDescription{}, nil)
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{
 			{
 				EventId:            aws.String("2"),
@@ -723,10 +956,10 @@ func testDeployTask_StreamUntilStackCreationFails(t *testing.T, stackName string
 			},
 		},
 	}, nil).AnyTimes()
-	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
+	m.EXPECT().DescribeWithContext(gomock.Any(), stackName).Return(&cloudformation.StackDescription{
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_FAILED"),
 	}, nil)
-	m.EXPECT().ErrorEvents(stackName).Return(
+	m.EXPECT().ErrorEventsWithContext(gomock.Any(), stackName).Return(
 		[]cloudformation.StackEvent{
 			{
 				EventId:            aws.String("2"),
@@ -752,8 +985,8 @@ func testDeployTask_RenderNewlyCreatedStackWithAddons(t *testing.T, stackName st
 	m := mocks.NewMockcfnClient(ctrl)
 
 	// Mocks for the parent stack.
-	m.EXPECT().Create(gomock.Any()).Return("1234", nil)
-	m.EXPECT().DescribeChangeSet("1234", stackName).Return(&cloudformation.ChangeSetDescription{
+	m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("1234", nil)
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "1234", stackName).Return(&cloudformation.ChangeSetDescription{
 		Changes: []sdkcloudformationtypes.Change{
 			{
 				ResourceChange: &sdkcloudformationtypes.ResourceChange{
@@ -771,7 +1004,7 @@ func testDeployTask_RenderNewlyCreatedStackWithAddons(t *testing.T, stackName st
 		},
 	}, nil)
 
-	m.EXPECT().TemplateBodyFromChangeSet("1234", stackName).Return(`
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), "1234", stackName).Return(`
 Resources:
   Cluster:
     Metadata:
@@ -783,7 +1016,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
 `, nil)
 
-	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), &sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stackName),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{
@@ -811,12 +1044,12 @@ Resources:
 		},
 	}, nil).AnyTimes()
 
-	m.EXPECT().Describe(stackName).Return(&cloudformation.StackDescription{
+	m.EXPECT().DescribeWithContext(gomock.Any(), stackName).Return(&cloudformation.StackDescription{
 		StackStatus: sdkcloudformationtypes.StackStatus("CREATE_COMPLETE"),
 	}, nil)
 
 	// Mocks for the addons stack.
-	m.EXPECT().DescribeChangeSet("5678", "my-nested-stack").Return(&cloudformation.ChangeSetDescription{
+	m.EXPECT().DescribeChangeSetWithContext(gomock.Any(), "5678", "my-nested-stack").Return(&cloudformation.ChangeSetDescription{
 		Changes: []sdkcloudformationtypes.Change{
 			{
 				ResourceChange: &sdkcloudformationtypes.ResourceChange{
@@ -827,14 +1060,14 @@ Resources:
 		},
 	}, nil)
 
-	m.EXPECT().TemplateBodyFromChangeSet("5678", "my-nested-stack").Return(`
+	m.EXPECT().TemplateBodyFromChangeSetWithContext(gomock.Any(), "5678", "my-nested-stack").Return(`
 Resources:
   MyTable:
     Metadata:
       'aws:copilot:description': 'A DynamoDB table to store data'
     Type: AWS::DynamoDB::Table`, nil)
 
-	m.EXPECT().DescribeStackEvents(&sdkcloudformation.DescribeStackEventsInput{
+	m.EXPECT().DescribeStackEventsWithContext(gomock.Any(), &sdkcloudformation.DescribeStackEventsInput{
 		StackName: aws.String("my-nested-stack"),
 	}).Return(&sdkcloudformation.DescribeStackEventsOutput{
 		StackEvents: []sdkcloudformationtypes.StackEvent{

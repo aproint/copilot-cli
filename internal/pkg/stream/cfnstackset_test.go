@@ -4,6 +4,7 @@
 package stream
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -18,6 +19,31 @@ import (
 type mockStackSetClient struct {
 	instanceSummariesFn func(name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
 	describeOpFn        func(name, opID string) (stackset.Operation, error)
+}
+
+type contextualMockStackSetClient struct {
+	gotInstanceCtx  context.Context
+	gotOperationCtx context.Context
+	instances       []stackset.InstanceSummary
+	operation       stackset.Operation
+}
+
+func (m *contextualMockStackSetClient) InstanceSummaries(string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
+	return nil, errors.New("legacy instance summaries called")
+}
+
+func (m *contextualMockStackSetClient) DescribeOperation(string, string) (stackset.Operation, error) {
+	return stackset.Operation{}, errors.New("legacy describe operation called")
+}
+
+func (m *contextualMockStackSetClient) InstanceSummariesWithContext(ctx context.Context, _ string, _ ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
+	m.gotInstanceCtx = ctx
+	return m.instances, nil
+}
+
+func (m *contextualMockStackSetClient) DescribeOperationWithContext(ctx context.Context, _, _ string) (stackset.Operation, error) {
+	m.gotOperationCtx = ctx
+	return m.operation, nil
 }
 
 func (m mockStackSetClient) InstanceSummaries(name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
@@ -161,6 +187,22 @@ func TestStackSetStreamer_InstanceStreamers(t *testing.T) {
 	})
 }
 
+func TestStackSetStreamer_InstanceStreamersStopsDuringPollingDelay(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	client := &contextualMockStackSetClient{operation: stackset.Operation{Status: "RUNNING"}}
+	streamer := NewStackSetStreamerWithContext(ctx, client, "demo-infrastructure", "1", time.Now())
+	streamer.instanceSummariesInterval = time.Hour
+	cancel()
+
+	started := time.Now()
+	_, err := streamer.InstanceStreamers(func(string) StackEventsDescriber { return mockStackClient{} })
+
+	require.ErrorIs(t, err, context.Canceled)
+	require.Less(t, time.Since(started), time.Second)
+	require.Same(t, ctx, client.gotInstanceCtx)
+	require.Same(t, ctx, client.gotOperationCtx)
+}
+
 func TestStackSetStreamer_Subscribe(t *testing.T) {
 	t.Run("subscribing to a closed streamer should return a closed channel", func(t *testing.T) {
 		// GIVEN
@@ -263,6 +305,19 @@ func TestStackSetStreamer_Fetch(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, startTime.Add(streamerFetchIntervalDurationMs*time.Millisecond), next)
 	})
+}
+
+func TestStackSetStreamer_FetchUsesConstructorContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "stack-set-streamer")
+	client := &contextualMockStackSetClient{operation: stackset.Operation{Status: "SUCCEEDED"}}
+	streamer := NewStackSetStreamerWithContext(ctx, client, "demo-infrastructure", "1", time.Now())
+
+	_, done, err := streamer.Fetch()
+
+	require.NoError(t, err)
+	require.True(t, done)
+	require.Same(t, ctx, client.gotOperationCtx)
 }
 
 func TestStackSetStreamer_Integration(t *testing.T) {

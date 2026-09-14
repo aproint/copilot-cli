@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation/stackset/mocks"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -857,6 +858,25 @@ func TestStackSet_InstanceSummaries(t *testing.T) {
 	}
 }
 
+func TestStackSet_InstanceSummariesWithContextUsesContextForEveryPage(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "stack-set-pages")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockapi(ctrl)
+	gomock.InOrder(
+		m.EXPECT().ListStackInstances(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.ListStackInstancesOutput{
+			NextToken: aws.String("next"),
+		}, nil),
+		m.EXPECT().ListStackInstances(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.ListStackInstancesOutput{}, nil),
+	)
+	client := StackSet{client: m}
+
+	_, err := client.InstanceSummariesWithContext(ctx, testName)
+
+	require.NoError(t, err)
+}
+
 func TestStackSet_WaitForOperation(t *testing.T) {
 	const (
 		testName = "demo-infrastructure"
@@ -932,4 +952,27 @@ func TestStackSet_WaitForOperation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStackSet_WaitForOperationWithContextStopsDuringPollingDelay(t *testing.T) {
+	type contextKey string
+	ctx, cancel := context.WithCancel(context.WithValue(context.Background(), contextKey("sentinel"), "stack-set-operation"))
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockapi(ctrl)
+	m.EXPECT().DescribeStackSetOperation(gomock.Eq(ctx), gomock.Any()).DoAndReturn(
+		func(context.Context, *cloudformation.DescribeStackSetOperationInput, ...func(*cloudformation.Options)) (*cloudformation.DescribeStackSetOperationOutput, error) {
+			cancel()
+			return &cloudformation.DescribeStackSetOperationOutput{
+				StackSetOperation: &types.StackSetOperation{Status: types.StackSetOperationStatusRunning},
+			}, nil
+		},
+	)
+	client := StackSet{client: m}
+	started := time.Now()
+
+	err := client.WaitForOperationWithContext(ctx, testName, "1")
+
+	require.ErrorIs(t, err, context.Canceled)
+	require.Less(t, time.Since(started), time.Second)
 }

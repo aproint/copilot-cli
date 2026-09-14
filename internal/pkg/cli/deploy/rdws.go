@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -96,7 +97,7 @@ func (d *rdwsDeployOutput) RecommendedActions() []string {
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.
-func (d *rdwsDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFormationTemplateInput) (
+func (d *rdwsDeployer) GenerateCloudFormationTemplate(_ context.Context, in *GenerateCloudFormationTemplateInput) (
 	*GenerateCloudFormationTemplateOutput, error) {
 	output, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
@@ -106,12 +107,12 @@ func (d *rdwsDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFormation
 }
 
 // DeployWorkload deploys a request driven web service using CloudFormation.
-func (d *rdwsDeployer) DeployWorkload(in *DeployWorkloadInput) (ActionRecommender, error) {
+func (d *rdwsDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloadInput) (ActionRecommender, error) {
 	stackConfigOutput, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
-	if err := d.deploy(in.Options, stackConfigOutput.svcStackConfigurationOutput); err != nil {
+	if err := d.deploy(ctx, in.Options, stackConfigOutput.svcStackConfigurationOutput); err != nil {
 		return nil, err
 	}
 	return &rdwsDeployOutput{

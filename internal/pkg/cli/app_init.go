@@ -269,7 +269,7 @@ func (o *initAppOpts) Execute(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	err = o.cfn.DeployApp(&deploy.CreateAppInput{
+	err = o.cfn.DeployApp(ctx, &deploy.CreateAppInput{
 		Name:                o.name,
 		AccountID:           caller.Account,
 		DomainName:          o.domainName,

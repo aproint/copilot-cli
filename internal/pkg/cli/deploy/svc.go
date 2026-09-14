@@ -5,6 +5,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -58,7 +59,7 @@ func newSvcDeployer(in *WorkloadDeployerInput) (*svcDeployer, error) {
 	}, nil
 }
 
-func (d *svcDeployer) deploy(deployOptions Options, stackConfigOutput svcStackConfigurationOutput) error {
+func (d *svcDeployer) deploy(ctx context.Context, deployOptions Options, stackConfigOutput svcStackConfigurationOutput) error {
 	opts := []awscloudformation.StackOption{
 		awscloudformation.WithRoleARN(d.env.ExecutionRoleARN),
 	}
@@ -66,7 +67,7 @@ func (d *svcDeployer) deploy(deployOptions Options, stackConfigOutput svcStackCo
 		opts = append(opts, awscloudformation.WithDisableRollback())
 	}
 	cmdRunAt := d.now()
-	if err := d.deployer.DeployService(stackConfigOutput.conf, d.resources.S3Bucket, deployOptions.Detach, opts...); err != nil {
+	if err := d.deployer.DeployService(ctx, stackConfigOutput.conf, d.resources.S3Bucket, deployOptions.Detach, opts...); err != nil {
 		var errEmptyCS *awscloudformation.ErrChangeSetEmpty
 		if !errors.As(err, &errEmptyCS) {
 			return fmt.Errorf("deploy service: %w", err)

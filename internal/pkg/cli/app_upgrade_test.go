@@ -173,8 +173,9 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		given     func(ctrl *gomock.Controller) *appUpgradeOpts
-		wantedErr error
+		given       func(ctrl *gomock.Controller) *appUpgradeOpts
+		wantedErr   error
+		wantedCause error
 	}{
 		"should return error if fail to get template version": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
@@ -269,7 +270,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 			},
 			wantedErr: fmt.Errorf("get hosted zone ID for domain foobar.com: some error"),
 		},
-		"should return error if fail to upgrade application": {
+		"should preserve cancellation when upgrading application": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
 				mockIdentity := mocks.NewMockidentityService(ctrl)
 				mockIdentity.EXPECT().Get(ctx).Return(identity.Caller{Account: "1234"}, nil)
@@ -279,7 +280,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				mockStore.EXPECT().UpdateApplication(ctx, &config.Application{Name: "phonetool"}).Return(nil)
 
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
-				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any()).Return(errors.New("some error"))
+				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any(), gomock.Any()).Return(context.Canceled)
 
 				return &appUpgradeOpts{
 					appUpgradeVars: appUpgradeVars{
@@ -291,7 +292,8 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 					upgrader:         mockUpgrader,
 				}
 			},
-			wantedErr: fmt.Errorf("upgrade application phonetool from version v0.0.0 to version %s: some error", mockTemplateVersion),
+			wantedErr:   fmt.Errorf("upgrade application phonetool from version v0.0.0 to version %s: context canceled", mockTemplateVersion),
+			wantedCause: context.Canceled,
 		},
 		"success": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
@@ -313,7 +315,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				mockRoute53.EXPECT().PublicDomainHostedZoneID("hello.com").Return("2klfqok3", nil)
 
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
-				mockUpgrader.EXPECT().UpgradeApplication(&deploy.CreateAppInput{
+				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any(), &deploy.CreateAppInput{
 					Name:               "phonetool",
 					AccountID:          "1234",
 					DomainName:         "hello.com",
@@ -348,6 +350,9 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				require.EqualError(t, err, tc.wantedErr.Error())
 			} else {
 				require.NoError(t, err)
+			}
+			if tc.wantedCause != nil {
+				require.ErrorIs(t, err, tc.wantedCause)
 			}
 		})
 	}

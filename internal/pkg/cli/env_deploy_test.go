@@ -245,7 +245,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(nil, errors.New("some error"))
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: fmt.Errorf(`generate the template for environment "mockEnv": some error`),
 		},
@@ -260,7 +260,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedErr: errors.New(`generate diff for environment "mockEnv": some error`),
@@ -276,7 +276,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, nil)
 			},
@@ -293,7 +293,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, nil)
 			},
@@ -310,7 +310,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, errors.New("some error"))
 			},
@@ -327,10 +327,10 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, nil)
-				m.deployer.EXPECT().DeployEnvironment(gomock.Any()).Times(0)
+				m.deployer.EXPECT().DeployEnvironment(gomock.Any(), gomock.Any()).Times(0)
 			},
 		},
 		"deploy if asked to": {
@@ -344,10 +344,10 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(true, nil)
-				m.deployer.EXPECT().DeployEnvironment(gomock.Any()).Times(1)
+				m.deployer.EXPECT().DeployEnvironment(gomock.Any(), gomock.Any()).Times(1)
 			},
 		},
 		"skip prompt and deploy immediately after diff; also skip version check when downgrade is allowed": {
@@ -363,10 +363,10 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Times(0)
-				m.deployer.EXPECT().DeployEnvironment(gomock.Any()).Times(1)
+				m.deployer.EXPECT().DeployEnvironment(gomock.Any(), gomock.Any()).Times(1)
 			},
 		},
 		"fail to deploy the environment": {
@@ -379,7 +379,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
-				m.deployer.EXPECT().DeployEnvironment(gomock.Any()).DoAndReturn(func(_ *deploy.DeployEnvironmentInput) error {
+				m.deployer.EXPECT().DeployEnvironment(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *deploy.DeployEnvironmentInput) error {
 					return errors.New("some error")
 				})
 			},
@@ -400,7 +400,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 						"mockResource": "mockURL",
 					},
 				}, nil)
-				m.deployer.EXPECT().DeployEnvironment(gomock.Any()).DoAndReturn(func(in *deploy.DeployEnvironmentInput) error {
+				m.deployer.EXPECT().DeployEnvironment(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, in *deploy.DeployEnvironmentInput) error {
 					require.Equal(t, in.RootUserARN, "mockRootUserARN")
 					require.Equal(t, in.AddonsURL, "mockAddonsURL")
 					require.Equal(t, in.CustomResourcesURLs, map[string]string{
@@ -466,4 +466,45 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDeployEnvOpts_Execute_UsesCallerContextForDeploy(t *testing.T) {
+	type contextKey string
+	parent := context.WithValue(context.Background(), contextKey("sentinel"), "environment-deploy")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := &deployEnvExecuteMocks{
+		ws:               mocks.NewMockwsEnvironmentReader(ctrl),
+		identity:         mocks.NewMockidentityService(ctrl),
+		deployer:         mocks.NewMockenvDeployer(ctrl),
+		interpolator:     mocks.NewMockinterpolator(ctrl),
+		envVersionGetter: mocks.NewMockversionGetter(ctrl),
+	}
+	wantedErr := errors.New("stop after deploy")
+	m.envVersionGetter.EXPECT().Version().Return("v0.0.0", nil)
+	m.ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: mockEnv\ntype: Environment\n"), nil)
+	m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
+	m.identity.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "mockRootUserARN"}, nil)
+	m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
+	m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+	m.deployer.EXPECT().DeployEnvironment(gomock.Eq(parent), gomock.Any()).Return(wantedErr)
+	opts := deployEnvOpts{
+		deployEnvVars: deployEnvVars{name: "mockEnv"},
+		ws:            m.ws,
+		identity:      m.identity,
+		newEnvDeployer: func(context.Context) (envDeployer, error) {
+			return m.deployer, nil
+		},
+		newEnvVersionGetter: func(context.Context, string, string) (versionGetter, error) {
+			return m.envVersionGetter, nil
+		},
+		templateVersion: "v1.29.0",
+		newInterpolator: func(string, string) interpolator { return m.interpolator },
+		targetApp:       &config.Application{Name: "mockApp"},
+		targetEnv:       &config.Environment{Name: "mockEnv"},
+	}
+
+	err := opts.Execute(parent)
+
+	require.ErrorIs(t, err, wantedErr)
 }

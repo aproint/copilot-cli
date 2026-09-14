@@ -152,6 +152,8 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 	)
 	mockError := errors.New("some error")
 	mockErrStackNotFound := cloudformation.ErrStackNotFound{}
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("sentinel"), "workload-deploy")
 	testCases := map[string]struct {
 		inShowDiff       bool
 		inSkipDiffPrompt bool
@@ -264,7 +266,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(nil, errors.New("some error"))
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("generate the template for workload %q against environment %q: some error", mockSvcName, mockEnvName),
 		},
@@ -283,7 +285,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Eq(callerCtx), gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("some error"),
@@ -303,7 +305,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.mockDiffWriter = &strings.Builder{}
 				m.mockPrompter.EXPECT().Confirm(gomock.Eq("Continue with the deployment?"), gomock.Any(), gomock.Any()).Return(false, nil)
@@ -325,7 +327,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
 				m.mockPrompter.EXPECT().Confirm(gomock.Eq("Continue with the deployment?"), gomock.Any(), gomock.Any()).Return(false, nil)
@@ -347,7 +349,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
 				m.mockPrompter.EXPECT().Confirm(gomock.Eq("Continue with the deployment?"), gomock.Any(), gomock.Any()).Return(false, errors.New("some error"))
@@ -369,11 +371,11 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
 				m.mockPrompter.EXPECT().Confirm(gomock.Eq("Continue with the deployment?"), gomock.Any(), gomock.Any()).Return(false, nil)
-				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any()).Times(0)
+				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any(), gomock.Any()).Times(0)
 			},
 		},
 		"deploy if asked to": {
@@ -391,11 +393,11 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
 				m.mockPrompter.EXPECT().Confirm(gomock.Eq("Continue with the deployment?"), gomock.Any(), gomock.Any()).Return(true, nil)
-				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any()).Times(1)
+				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any(), gomock.Any()).Times(1)
 			},
 		},
 		"skip prompt and deploy immediately after diff": {
@@ -414,11 +416,11 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
+				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&clideploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
 				m.mockPrompter.EXPECT().Confirm(gomock.Eq("Continue with the deployment?"), gomock.Any(), gomock.Any()).Times(0)
-				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any()).Times(1)
+				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any(), gomock.Any()).Times(1)
 			},
 		},
 		"error if failed to deploy service": {
@@ -434,7 +436,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any()).Return(nil, mockError)
+				m.mockDeployer.EXPECT().DeployWorkload(gomock.Eq(callerCtx), gomock.Any()).Return(nil, mockError)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 			},
 
@@ -454,7 +456,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any()).Return(nil, nil)
+				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any(), gomock.Any()).Return(nil, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 			},
 		},
@@ -471,7 +473,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().UploadArtifacts().Return(&clideploy.UploadArtifactsOutput{}, nil)
-				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any()).Return(nil, nil)
+				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any(), gomock.Any()).Return(nil, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 			},
 		},
@@ -525,7 +527,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute(context.Background())
+			err := opts.Execute(callerCtx)
 
 			// THEN
 			if tc.wantedError == nil {

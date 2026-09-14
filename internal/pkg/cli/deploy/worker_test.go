@@ -30,7 +30,7 @@ func TestWorkerSvcDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		worker := mockWorkerServiceDeployer()
 
 		// WHEN
-		out, err := worker.GenerateCloudFormationTemplate(&GenerateCloudFormationTemplateInput{})
+		out, err := worker.GenerateCloudFormationTemplate(t.Context(), &GenerateCloudFormationTemplateInput{})
 
 		// THEN
 		require.NoError(t, err)

@@ -29,7 +29,7 @@ func TestRdwsDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		rdws := mockRDWSDeployer()
 
 		// WHEN
-		out, err := rdws.GenerateCloudFormationTemplate(&GenerateCloudFormationTemplateInput{})
+		out, err := rdws.GenerateCloudFormationTemplate(t.Context(), &GenerateCloudFormationTemplateInput{})
 
 		// THEN
 		require.NoError(t, err)

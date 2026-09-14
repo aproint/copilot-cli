@@ -213,7 +213,7 @@ func (o *deployEnvOpts) Execute(ctx context.Context) error {
 		Detach:              o.detach,
 	}
 	if o.showDiff {
-		contd, err := o.showDiffAndConfirmDeployment(deployer, deployInput)
+		contd, err := o.showDiffAndConfirmDeployment(ctx, deployer, deployInput)
 		if err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ func (o *deployEnvOpts) Execute(ctx context.Context) error {
 			return nil
 		}
 	}
-	err = deployer.DeployEnvironment(deployInput)
+	err = deployer.DeployEnvironment(ctx, deployInput)
 	if err == nil {
 		if o.detach {
 			return nil
@@ -282,8 +282,8 @@ func environmentManifest(envName string, reader wsEnvironmentReader, transformer
 	return mft, interpolated, nil
 }
 
-func (o *deployEnvOpts) showDiffAndConfirmDeployment(deployer envDeployer, input *deploy.DeployEnvironmentInput) (bool, error) {
-	output, err := deployer.GenerateCloudFormationTemplate(input)
+func (o *deployEnvOpts) showDiffAndConfirmDeployment(ctx context.Context, deployer envDeployer, input *deploy.DeployEnvironmentInput) (bool, error) {
+	output, err := deployer.GenerateCloudFormationTemplate(ctx, input)
 	if err != nil {
 		return false, fmt.Errorf("generate the template for environment %q: %w", o.name, err)
 	}

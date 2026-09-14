@@ -202,41 +202,41 @@ func (m *MockenvironmentDeployer) EXPECT() *MockenvironmentDeployerMockRecorder 
 	return m.recorder
 }
 
-// DeployedEnvironmentParameters mocks base method.
-func (m *MockenvironmentDeployer) DeployedEnvironmentParameters(app, env string) ([]types.Parameter, error) {
+// DeployedEnvironmentParametersWithContext mocks base method.
+func (m *MockenvironmentDeployer) DeployedEnvironmentParametersWithContext(arg0 context.Context, arg1, arg2 string) ([]types.Parameter, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeployedEnvironmentParameters", app, env)
+	ret := m.ctrl.Call(m, "DeployedEnvironmentParametersWithContext", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]types.Parameter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DeployedEnvironmentParameters indicates an expected call of DeployedEnvironmentParameters.
-func (mr *MockenvironmentDeployerMockRecorder) DeployedEnvironmentParameters(app, env interface{}) *gomock.Call {
+// DeployedEnvironmentParametersWithContext indicates an expected call of DeployedEnvironmentParametersWithContext.
+func (mr *MockenvironmentDeployerMockRecorder) DeployedEnvironmentParametersWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployedEnvironmentParameters", reflect.TypeOf((*MockenvironmentDeployer)(nil).DeployedEnvironmentParameters), app, env)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployedEnvironmentParametersWithContext", reflect.TypeOf((*MockenvironmentDeployer)(nil).DeployedEnvironmentParametersWithContext), arg0, arg1, arg2)
 }
 
-// ForceUpdateOutputID mocks base method.
-func (m *MockenvironmentDeployer) ForceUpdateOutputID(app, env string) (string, error) {
+// ForceUpdateOutputIDWithContext mocks base method.
+func (m *MockenvironmentDeployer) ForceUpdateOutputIDWithContext(arg0 context.Context, arg1, arg2 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ForceUpdateOutputID", app, env)
+	ret := m.ctrl.Call(m, "ForceUpdateOutputIDWithContext", arg0, arg1, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ForceUpdateOutputID indicates an expected call of ForceUpdateOutputID.
-func (mr *MockenvironmentDeployerMockRecorder) ForceUpdateOutputID(app, env interface{}) *gomock.Call {
+// ForceUpdateOutputIDWithContext indicates an expected call of ForceUpdateOutputIDWithContext.
+func (mr *MockenvironmentDeployerMockRecorder) ForceUpdateOutputIDWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateOutputID", reflect.TypeOf((*MockenvironmentDeployer)(nil).ForceUpdateOutputID), app, env)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateOutputIDWithContext", reflect.TypeOf((*MockenvironmentDeployer)(nil).ForceUpdateOutputIDWithContext), arg0, arg1, arg2)
 }
 
 // UpdateAndRenderEnvironment mocks base method.
-func (m *MockenvironmentDeployer) UpdateAndRenderEnvironment(conf cloudformation0.StackConfiguration, bucketARN string, detach bool, opts ...cloudformation.StackOption) error {
+func (m *MockenvironmentDeployer) UpdateAndRenderEnvironment(arg0 context.Context, arg1 cloudformation0.StackConfiguration, arg2 string, arg3 bool, arg4 ...cloudformation.StackOption) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{conf, bucketARN, detach}
-	for _, a := range opts {
+	varargs := []interface{}{arg0, arg1, arg2, arg3}
+	for _, a := range arg4 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "UpdateAndRenderEnvironment", varargs...)
@@ -245,9 +245,9 @@ func (m *MockenvironmentDeployer) UpdateAndRenderEnvironment(conf cloudformation
 }
 
 // UpdateAndRenderEnvironment indicates an expected call of UpdateAndRenderEnvironment.
-func (mr *MockenvironmentDeployerMockRecorder) UpdateAndRenderEnvironment(conf, bucketARN, detach interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockenvironmentDeployerMockRecorder) UpdateAndRenderEnvironment(arg0, arg1, arg2, arg3 interface{}, arg4 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{conf, bucketARN, detach}, opts...)
+	varargs := append([]interface{}{arg0, arg1, arg2, arg3}, arg4...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAndRenderEnvironment", reflect.TypeOf((*MockenvironmentDeployer)(nil).UpdateAndRenderEnvironment), varargs...)
 }
 

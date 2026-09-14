@@ -215,7 +215,7 @@ count: 1`
 				}
 				m.envFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.envFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{}, nil)
-				m.generator.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{
+				m.generator.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{
 					Template:   "mystack",
 					Parameters: "myparams",
 				}, nil)
@@ -240,7 +240,7 @@ count: 1`
 				}
 				m.envFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.envFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{}, nil)
-				m.generator.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{
+				m.generator.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{
 					Template:   "mystack",
 					Parameters: "myparams",
 				}, nil)
@@ -268,7 +268,7 @@ count: 1`
 						},
 					},
 				}, nil)
-				m.generator.EXPECT().GenerateCloudFormationTemplate(&deploy.GenerateCloudFormationTemplateInput{
+				m.generator.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), &deploy.GenerateCloudFormationTemplateInput{
 					StackRuntimeConfiguration: deploy.StackRuntimeConfiguration{
 						ImageDigests: map[string]deploy.ContainerImageIdentifier{
 							"api": {
@@ -314,7 +314,7 @@ count: 1`
 					},
 				}
 				m.envFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{}, nil)
-				m.generator.EXPECT().GenerateCloudFormationTemplate(&deploy.GenerateCloudFormationTemplateInput{
+				m.generator.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), &deploy.GenerateCloudFormationTemplateInput{
 					StackRuntimeConfiguration: deploy.StackRuntimeConfiguration{
 						RootUserARN: mockARN,
 					},

@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 
 	awscloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
@@ -61,7 +62,7 @@ func (d *jobDeployer) UploadArtifacts() (*UploadArtifactsOutput, error) {
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.
-func (d *jobDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFormationTemplateInput) (
+func (d *jobDeployer) GenerateCloudFormationTemplate(_ context.Context, in *GenerateCloudFormationTemplateInput) (
 	*GenerateCloudFormationTemplateOutput, error) {
 	output, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
@@ -71,7 +72,7 @@ func (d *jobDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFormationT
 }
 
 // DeployWorkload deploys a job using CloudFormation.
-func (d *jobDeployer) DeployWorkload(in *DeployWorkloadInput) (ActionRecommender, error) {
+func (d *jobDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloadInput) (ActionRecommender, error) {
 	opts := []awscloudformation.StackOption{
 		awscloudformation.WithRoleARN(d.env.ExecutionRoleARN),
 	}
@@ -82,7 +83,7 @@ func (d *jobDeployer) DeployWorkload(in *DeployWorkloadInput) (ActionRecommender
 	if err != nil {
 		return nil, err
 	}
-	if err := d.deployer.DeployService(stackConfigOutput.conf, d.resources.S3Bucket, in.Detach, opts...); err != nil {
+	if err := d.deployer.DeployService(ctx, stackConfigOutput.conf, d.resources.S3Bucket, in.Detach, opts...); err != nil {
 		return nil, fmt.Errorf("deploy job: %w", err)
 	}
 	return noopActionRecommender{}, nil

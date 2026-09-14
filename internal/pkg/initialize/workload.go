@@ -280,17 +280,19 @@ func (w *WorkloadInitializer) addWlToAppAndSSM(ctx context.Context, app *config.
 		return fmt.Errorf("add %s %s to application %s: %w", wlType, props.Name, props.App, err)
 	}
 
-	if ctx.Err() != nil {
-		log.Warningln(metadata.CommitAfterCancellationWarning)
-	}
-	commitCtx, cancel := metadata.CommitContext(ctx)
-	defer cancel()
-	if err := w.addWlToStore(commitCtx, &config.Workload{
-		App:  props.App,
-		Name: props.Name,
-		Type: props.Type,
-	}, wlType); err != nil {
-		return metadata.NewCommitError("workload registration in application stack", fmt.Errorf("saving %s %s: %w", wlType, props.Name, err))
+	if err := metadata.Commit(ctx, "workload registration in application stack", func(message string) {
+		log.Warningln(message)
+	}, func(commitCtx context.Context) error {
+		if err := w.addWlToStore(commitCtx, &config.Workload{
+			App:  props.App,
+			Name: props.Name,
+			Type: props.Type,
+		}, wlType); err != nil {
+			return fmt.Errorf("saving %s %s: %w", wlType, props.Name, err)
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

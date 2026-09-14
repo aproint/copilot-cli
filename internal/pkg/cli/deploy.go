@@ -90,7 +90,7 @@ type deployOpts struct {
 	newWorkloadAdder func() wkldInitializerWithoutManifest
 	setupDeployCmd   func(*deployOpts, string, string) (actionCommand, error)
 
-	newInitEnvCmd   func(o *deployOpts) (cmd, error)
+	newInitEnvCmd   func(ctx context.Context, o *deployOpts) (cmd, error)
 	newDeployEnvCmd func(o *deployOpts) (cmd, error)
 
 	sel    wsSelector
@@ -154,10 +154,10 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 			})
 		},
 
-		newInitEnvCmd: func(o *deployOpts) (cmd, error) {
+		newInitEnvCmd: func(ctx context.Context, o *deployOpts) (cmd, error) {
 			// This vars struct sets "default config" so that no vpc questions are asked during env init and the manifest
 			// is not written. It passes in credential flags and allow-downgrade from the parent command.
-			return newInitEnvOpts(initEnvVars{
+			return newInitEnvOpts(ctx, initEnvVars{
 				appName:           o.appName,
 				name:              o.envName,
 				profile:           o.profile,
@@ -682,7 +682,7 @@ func (o *deployOpts) maybeInitEnv(ctx context.Context) error {
 	}
 
 	if aws.ToBool(o.yesInitEnv) {
-		cmd, err := o.newInitEnvCmd(o)
+		cmd, err := o.newInitEnvCmd(ctx, o)
 		if err != nil {
 			return fmt.Errorf("load env init command : %w", err)
 		}

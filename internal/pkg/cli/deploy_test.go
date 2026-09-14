@@ -772,7 +772,7 @@ type: Worker Service`)
 					yesInitEnv:         tc.inInitEnv,
 					deployAllWorkloads: tc.inDeployAll,
 				},
-				newInitEnvCmd:   func(o *deployOpts) (cmd, error) { return mockNoActionCmd, nil },
+				newInitEnvCmd:   func(ctx context.Context, o *deployOpts) (cmd, error) { return mockNoActionCmd, nil },
 				newDeployEnvCmd: func(o *deployOpts) (cmd, error) { return mockNoActionCmd, nil },
 				sel:             mockSel,
 				prompt:          mockPrompt,
@@ -1043,7 +1043,7 @@ func Test_deployOpts_maybeInitEnv(t *testing.T) {
 				envExistsInApp: tc.envExistsInApp,
 				envExistsInWs:  tc.envExistsInWs,
 				prompt:         mockPrompt,
-				newInitEnvCmd: func(o *deployOpts) (cmd, error) {
+				newInitEnvCmd: func(ctx context.Context, o *deployOpts) (cmd, error) {
 					return mockInitEnvCmd, nil
 				},
 			}

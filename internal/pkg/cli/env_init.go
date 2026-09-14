@@ -166,7 +166,7 @@ type initEnvOpts struct {
 	identity            identityService
 	envIdentity         identityService
 	ec2Client           ec2Client
-	newAppVersionGetter func(appName string) (versionGetter, error)
+	newAppVersionGetter func(ctx context.Context, appName string) (versionGetter, error)
 	iam                 roleManager
 	cfn                 stackExistChecker
 	prog                progress
@@ -188,9 +188,12 @@ type initEnvOpts struct {
 	templateVersion string
 }
 
-func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
-	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env init"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+func newInitEnvOpts(ctx context.Context, vars initEnvVars) (*initEnvOpts, error) {
+	return newInitEnvOptsWithSessionProvider(ctx, vars, sessions.ImmutableProvider(sessions.UserAgentExtras("env init")))
+}
+
+func newInitEnvOptsWithSessionProvider(ctx context.Context, vars initEnvVars, sessProvider sessionProvider) (*initEnvOpts, error) {
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +222,8 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 				Prompt:  prompt.New(),
 			}, nil
 		},
-		newAppVersionGetter: func(appName string) (versionGetter, error) {
-			return describe.NewAppDescriber(appName)
+		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
+			return describe.NewAppDescriberWithContext(ctx, appName)
 		},
 		selApp:         selector.NewAppEnvSelector(prompt.New(), store),
 		appCFN:         deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
@@ -234,16 +237,16 @@ func newInitEnvOpts(vars initEnvVars) (*initEnvOpts, error) {
 
 // Validate returns an error if the values passed by flags are invalid.
 func (o *initEnvOpts) Validate() error {
-	if err := validateWorkspaceApp(o.wsAppName, o.appName, o.store); err != nil {
-		return err
+	if o.wsAppName == "" {
+		return errNoAppInWorkspace
+	}
+	if o.appName != "" && o.appName != o.wsAppName {
+		return fmt.Errorf("cannot specify app %s because the workspace is already registered with app %s", o.appName, o.wsAppName)
 	}
 	o.appName = o.wsAppName
 
 	if o.name != "" {
 		if err := validateEnvironmentName(o.name); err != nil {
-			return err
-		}
-		if err := o.validateDuplicateEnv(context.Background()); err != nil {
 			return err
 		}
 	}
@@ -256,10 +259,16 @@ func (o *initEnvOpts) Validate() error {
 
 // Ask asks for fields that are required but not passed in.
 func (o *initEnvOpts) Ask(ctx context.Context) error {
+	if err := o.validateWorkspaceApp(ctx); err != nil {
+		return err
+	}
 	if err := o.askEnvName(ctx); err != nil {
 		return err
 	}
-	if err := o.askEnvSession(); err != nil {
+	if err := o.validateDuplicateEnv(ctx); err != nil {
+		return err
+	}
+	if err := o.askEnvSession(ctx); err != nil {
 		return err
 	}
 	if err := o.askEnvRegion(); err != nil {
@@ -268,13 +277,23 @@ func (o *initEnvOpts) Ask(ctx context.Context) error {
 	return o.askCustomizedResources()
 }
 
+func (o *initEnvOpts) validateWorkspaceApp(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
+		return fmt.Errorf("get application %s configuration: %w", o.appName, err)
+	}
+	return nil
+}
+
 // Execute deploys a new environment with CloudFormation and adds it to SSM.
 func (o *initEnvOpts) Execute(ctx context.Context) error {
 	if err := o.initRuntimeClients(); err != nil {
 		return err
 	}
 	if !o.allowAppDowngrade {
-		versionGetter, err := o.newAppVersionGetter(o.appName)
+		versionGetter, err := o.newAppVersionGetter(ctx, o.appName)
 		if err != nil {
 			return err
 		}
@@ -301,6 +320,9 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 
 	// 2. Perform DNS delegation from app to env.
 	if app.Domain != "" {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err := o.delegateDNSFromApp(app, envCaller.Account); err != nil {
 			return fmt.Errorf("granting DNS permissions: %w", err)
 		}
@@ -309,6 +331,9 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 	// 3. Attempt to create the service linked role if it doesn't exist.
 	// If the call fails because the role already exists, nothing to do.
 	// If the call fails because the user doesn't have permissions, then the role must be created outside of Copilot.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	_ = o.iam.CreateECSServiceLinkedRole()
 
 	// 4. Add the stack set instance to the app stackset.
@@ -330,17 +355,21 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 	}
 
 	// 6. Store the environment in SSM with information about the deployed bootstrap roles.
-	if ctx.Err() != nil {
-		log.Warningln(metadata.CommitAfterCancellationWarning)
-	}
-	commitCtx, cancel := metadata.CommitContext(ctx)
-	defer cancel()
-	env, err := o.envDeployer.GetEnvironment(commitCtx, o.appName, o.name)
-	if err != nil {
-		return metadata.NewCommitError("environment infrastructure deployment", fmt.Errorf("get environment struct for %s: %w", o.name, err))
-	}
-	if err := o.store.CreateEnvironment(commitCtx, env); err != nil {
-		return metadata.NewCommitError("environment infrastructure deployment", fmt.Errorf("store environment: %w", err))
+	var env *config.Environment
+	if err := metadata.Commit(ctx, "environment infrastructure deployment", func(message string) {
+		log.Warningln(message)
+	}, func(commitCtx context.Context) error {
+		var err error
+		env, err = o.envDeployer.GetEnvironment(commitCtx, o.appName, o.name)
+		if err != nil {
+			return fmt.Errorf("get environment struct for %s: %w", o.name, err)
+		}
+		if err := o.store.CreateEnvironment(commitCtx, env); err != nil {
+			return fmt.Errorf("store environment: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 	log.Successf("Provisioned bootstrap resources for environment %s in region %s under application %s.\n",
 		color.HighlightUserInput(env.Name), color.Emphasize(env.Region), color.HighlightUserInput(env.App))
@@ -416,12 +445,12 @@ func (o *initEnvOpts) askEnvName(ctx context.Context) error {
 		return fmt.Errorf("get environment name: %w", err)
 	}
 	o.name = envName
-	return o.validateDuplicateEnv(ctx)
+	return nil
 }
 
-func (o *initEnvOpts) askEnvSession() error {
+func (o *initEnvOpts) askEnvSession(ctx context.Context) error {
 	if o.profile != "" {
-		cfg, err := o.sessProvider.ConfigFromProfile(context.Background(), o.profile)
+		cfg, err := o.sessProvider.ConfigFromProfile(ctx, o.profile)
 		if err != nil {
 			return fmt.Errorf("create config from profile %s: %w", o.profile, err)
 		}
@@ -440,7 +469,7 @@ func (o *initEnvOpts) askEnvSession() error {
 	selCreds, err := o.selCreds()
 	if err != nil {
 		errRetrieveCreds := err
-		cfg, err := o.sessProvider.DefaultConfig(context.Background())
+		cfg, err := o.sessProvider.DefaultConfig(ctx)
 		if err != nil {
 			return errors.Join(errRetrieveCreds, fmt.Errorf("falling back on default credentials: %w", err))
 		}
@@ -448,7 +477,7 @@ func (o *initEnvOpts) askEnvSession() error {
 		return nil
 	}
 
-	cfg, err := selCreds.Creds(fmt.Sprintf(fmtEnvInitCredsPrompt, color.HighlightUserInput(o.name)), envInitCredsHelpPrompt)
+	cfg, err := selCreds.Creds(ctx, fmt.Sprintf(fmtEnvInitCredsPrompt, color.HighlightUserInput(o.name)), envInitCredsHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select creds: %w", err)
 	}
@@ -669,6 +698,9 @@ func (o *initEnvOpts) askAZs() ([]string, error) {
 }
 
 func (o *initEnvOpts) validateDuplicateEnv(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	_, err := o.store.GetEnvironment(ctx, o.appName, o.name)
 	if err == nil {
 		// Skip error if environment already exists in workspace
@@ -761,6 +793,9 @@ func (o *initEnvOpts) deployEnv(ctx context.Context, app *config.Application) er
 	}
 
 	if err := o.cleanUpDanglingRoles(o.appName, o.name); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := o.envDeployer.CreateAndRenderEnvironment(stack.NewBootstrapEnvStackConfig(deployEnvInput), artifactBucketARN); err != nil {
@@ -949,7 +984,7 @@ func buildEnvInitCmd() *cobra.Command {
   /code --override-public-cidrs 10.1.0.0/24,10.1.1.0/24 \
   /code --override-private-cidrs 10.1.2.0/24,10.1.3.0/24`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newInitEnvOpts(vars)
+			opts, err := newInitEnvOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

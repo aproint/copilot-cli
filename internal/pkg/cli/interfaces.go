@@ -461,6 +461,11 @@ type domainHostedZoneGetter interface {
 	ValidateDomainOwnership(domainName string) error
 }
 
+type contextDomainHostedZoneGetter interface {
+	PublicDomainHostedZoneIDContext(ctx context.Context, domainName string) (string, error)
+	ValidateDomainOwnershipContext(ctx context.Context, domainName string) error
+}
+
 type dockerfileParser interface {
 	GetExposedPorts() ([]dockerfile.Port, error)
 	GetHealthCheck() (*dockerfile.HealthCheck, error)
@@ -584,7 +589,7 @@ type ec2Selector interface {
 }
 
 type credsSelector interface {
-	Creds(prompt, help string) (awsv2.Config, error)
+	Creds(ctx context.Context, prompt, help string) (awsv2.Config, error)
 }
 
 type ec2Client interface {
@@ -616,6 +621,10 @@ type policyLister interface {
 	ListPolicyNames() ([]string, error)
 }
 
+type contextPolicyLister interface {
+	ListPolicyNamesContext(context.Context) ([]string, error)
+}
+
 type serviceDescriber interface {
 	DescribeService(app, env, svc string) (*ecs.ServiceDesc, error)
 }
@@ -645,6 +654,10 @@ type serviceLinkedRoleCreator interface {
 
 type roleTagsLister interface {
 	ListRoleTags(string) (map[string]string, error)
+}
+
+type contextRoleTagsLister interface {
+	ListRoleTagsContext(context.Context, string) (map[string]string, error)
 }
 
 type roleManager interface {

@@ -83,21 +83,24 @@ type initJobOpts struct {
 
 	initParser          func(path string) dockerfileParser
 	initEnvDescriber    func(ctx context.Context, appName, envName string) (envDescriber, error)
-	newAppVersionGetter func(appName string) (versionGetter, error)
+	newAppVersionGetter func(ctx context.Context, appName string) (versionGetter, error)
 
 	// Overridden in tests.
 	templateVersion string
 }
 
-func newInitJobOpts(vars initJobVars) (*initJobOpts, error) {
+func newInitJobOpts(ctx context.Context, vars initJobVars) (*initJobOpts, error) {
+	return newInitJobOptsWithSessionProvider(ctx, vars, sessions.ImmutableProvider(sessions.UserAgentExtras("job init")))
+}
+
+func newInitJobOptsWithSessionProvider(ctx context.Context, vars initJobVars, p sessionProvider) (*initJobOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
 		return nil, err
 	}
 
-	p := sessions.ImmutableProvider(sessions.UserAgentExtras("job init"))
-	defaultConfig, err := p.DefaultConfig(context.Background())
+	defaultConfig, err := p.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +142,8 @@ func newInitJobOpts(vars initJobVars) (*initJobOpts, error) {
 			}
 			return envDescriber, nil
 		},
-		newAppVersionGetter: func(appName string) (versionGetter, error) {
-			return describe.NewAppDescriber(appName)
+		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
+			return describe.NewAppDescriberWithContext(ctx, appName)
 		},
 		wsAppName:       tryReadingAppName(),
 		templateVersion: version.LatestTemplateVersion(),
@@ -151,7 +154,7 @@ func newInitJobOpts(vars initJobVars) (*initJobOpts, error) {
 func (o *initJobOpts) Validate() error {
 	// If this app is pending creation, we'll skip validation.
 	if !o.wsPendingCreation {
-		if err := validateWorkspaceApp(o.wsAppName, o.appName, o.store); err != nil {
+		if err := validateWorkspaceAppInput(o.wsAppName, o.appName); err != nil {
 			return err
 		}
 		o.appName = o.wsAppName
@@ -177,6 +180,11 @@ func (o *initJobOpts) Validate() error {
 
 // Ask prompts for fields that are required but not passed in.
 func (o *initJobOpts) Ask(ctx context.Context) error {
+	if !o.wsPendingCreation && o.wsAppName != "" {
+		if err := validateInitWorkspaceApp(ctx, o.appName, o.store); err != nil {
+			return err
+		}
+	}
 	if o.wkldType != "" {
 		if err := validateJobType(o.wkldType); err != nil {
 			return err
@@ -268,7 +276,7 @@ func envsWithPrivateSubnetsOnly(ctx context.Context, store store, initEnvDescrib
 // Execute writes the job's manifest file, creates an ECR repo, and stores the name in SSM.
 func (o *initJobOpts) Execute(ctx context.Context) error {
 	if !o.allowAppDowngrade {
-		appVersionGetter, err := o.newAppVersionGetter(o.appName)
+		appVersionGetter, err := o.newAppVersionGetter(ctx, o.appName)
 		if err != nil {
 			return err
 		}
@@ -473,7 +481,7 @@ func buildJobInitCmd() *cobra.Command {
   Create a "report-generator" scheduled task with retries.
   /code $ copilot job init --name report-generator --schedule "@monthly" --retries 3 --timeout 900s`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newInitJobOpts(vars)
+			opts, err := newInitJobOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

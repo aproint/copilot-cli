@@ -4,6 +4,7 @@
 package selector
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/selector/mocks"
@@ -14,6 +15,8 @@ import (
 )
 
 func TestCredsSelect_Creds(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "credential-selector")
 	testCases := map[string]struct {
 		inMsg  string
 		inHelp string
@@ -36,7 +39,7 @@ func TestCredsSelect_Creds(t *testing.T) {
 				}, gomock.Any()).Return("[profile prod]", nil)
 
 				provider := mocks.NewMockSessionProvider(ctrl)
-				provider.EXPECT().ConfigFromProfile(gomock.Any(), "prod").Return(aws.Config{}, nil)
+				provider.EXPECT().ConfigFromProfile(callerCtx, "prod").Return(aws.Config{}, nil)
 
 				return &CredsSelect{
 					Prompt:  prompter,
@@ -87,7 +90,7 @@ func TestCredsSelect_Creds(t *testing.T) {
 			defer ctrl.Finish()
 			sel := tc.given(ctrl)
 
-			_, err := sel.Creds(tc.inMsg, tc.inHelp)
+			_, err := sel.Creds(callerCtx, tc.inMsg, tc.inHelp)
 
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -96,4 +99,26 @@ func TestCredsSelect_Creds(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCredsSelect_Creds_CanceledContextPreventsSessionLoading(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	prompter := mocks.NewMockPrompter(ctrl)
+	prompter.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	provider := mocks.NewMockSessionProvider(ctrl)
+	provider.EXPECT().DefaultConfig(gomock.Any()).Times(0)
+	provider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Times(0)
+	selector := &CredsSelect{
+		Prompt:  prompter,
+		Profile: mocks.NewMockNames(ctrl),
+		Session: provider,
+	}
+
+	_, err := selector.Creds(ctx, "message", "help")
+
+	require.ErrorIs(t, err, context.Canceled)
 }

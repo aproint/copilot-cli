@@ -4,14 +4,36 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/describe/mocks"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+type appSessionProviderStub struct {
+	wantCtx context.Context
+}
+
+func (s appSessionProviderStub) DefaultConfig(ctx context.Context) (aws.Config, error) {
+	if ctx != s.wantCtx {
+		return aws.Config{}, errors.New("unexpected context")
+	}
+	return aws.Config{}, nil
+}
+
+func TestNewAppDescriberWithSessionProvider_UsesCallerContext(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "app-describer")
+
+	_, err := newAppDescriber(callerCtx, "phonetool", appSessionProviderStub{wantCtx: callerCtx})
+
+	require.NoError(t, err)
+}
 
 func TestAppDescriber_Version(t *testing.T) {
 	testCases := map[string]struct {

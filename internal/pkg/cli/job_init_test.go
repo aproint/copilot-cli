@@ -17,6 +17,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/manifest/manifestinfo"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/workspace"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/initialize"
@@ -33,6 +34,72 @@ type initJobMocks struct {
 	mockStore         *mocks.Mockstore
 	mockDockerfileSel *mocks.MockdockerfileSelector
 	mockScheduleSel   *mocks.MockscheduleSelector
+}
+
+func TestNewInitJobOpts_UsesCallerContextForSessionLoading(t *testing.T) {
+	t.Chdir(t.TempDir())
+	_, err := workspace.Create("test", afero.NewOsFs())
+	require.NoError(t, err)
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "job-init-constructor")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	provider := mocks.NewMocksessionProvider(ctrl)
+	provider.EXPECT().DefaultConfig(callerCtx).Return(aws.Config{Region: "us-west-2"}, nil)
+
+	_, _ = newInitJobOptsWithSessionProvider(callerCtx, initJobVars{}, provider)
+}
+
+func TestInitJobOpts_ValidateDoesNotCallRemoteServices(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mocks.NewMockstore(ctrl)
+	store.EXPECT().GetApplication(gomock.Any(), gomock.Any()).Times(0)
+	opts := &initJobOpts{
+		initJobVars: initJobVars{initWkldVars: initWkldVars{appName: "phonetool"}},
+		store:       store,
+		fs:          &afero.Afero{Fs: afero.NewMemMapFs()},
+		wsAppName:   "phonetool",
+	}
+
+	require.NoError(t, opts.Validate())
+}
+
+func TestInitJobOpts_Ask_UsesCallerContextForWorkspaceValidation(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "job-workspace-validation")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mocks.NewMockstore(ctrl)
+	wantErr := errors.New("stop after workspace validation")
+	store.EXPECT().GetApplication(callerCtx, "phonetool").Return(nil, wantErr)
+	opts := &initJobOpts{
+		initJobVars: initJobVars{initWkldVars: initWkldVars{appName: "phonetool"}},
+		store:       store,
+		wsAppName:   "phonetool",
+	}
+
+	err := opts.Ask(callerCtx)
+
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestInitJobOpts_Execute_UsesCallerContextForAppVersionSession(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "job-version-validation")
+	wantErr := errors.New("stop after app version construction")
+	opts := &initJobOpts{
+		newAppVersionGetter: func(gotCtx context.Context, appName string) (versionGetter, error) {
+			require.Same(t, callerCtx, gotCtx)
+			require.Equal(t, "phonetool", appName)
+			return nil, wantErr
+		},
+		initJobVars: initJobVars{initWkldVars: initWkldVars{appName: "phonetool"}},
+	}
+
+	err := opts.Execute(callerCtx)
+
+	require.ErrorIs(t, err, wantErr)
 }
 
 func TestJobInitOpts_Validate(t *testing.T) {
@@ -160,7 +227,13 @@ func TestJobInitOpts_Validate(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Validate()
+			err := validateWorkspaceAppInput(opts.wsAppName, opts.appName)
+			if err == nil {
+				err = validateInitWorkspaceApp(ctx, opts.wsAppName, opts.store)
+			}
+			if err == nil {
+				err = opts.Validate()
+			}
 			// THEN
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())

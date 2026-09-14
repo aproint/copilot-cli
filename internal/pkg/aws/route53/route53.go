@@ -51,12 +51,17 @@ func New(cfg awsv2.Config) *Route53 {
 
 // PublicDomainHostedZoneID returns the public Hosted Zone ID of a domain.
 func (r53 *Route53) PublicDomainHostedZoneID(domainName string) (string, error) {
+	return r53.PublicDomainHostedZoneIDContext(context.Background(), domainName)
+}
+
+// PublicDomainHostedZoneIDContext returns the public hosted zone ID using ctx.
+func (r53 *Route53) PublicDomainHostedZoneIDContext(ctx context.Context, domainName string) (string, error) {
 	if id, ok := r53.hostedZoneIDFor[domainName]; ok {
 		return id, nil
 	}
 
 	in := &route53.ListHostedZonesByNameInput{DNSName: awsv2.String(domainName)}
-	resp, err := r53.client.ListHostedZonesByName(context.Background(), in)
+	resp, err := r53.client.ListHostedZonesByName(ctx, in)
 	if err != nil {
 		return "", fmt.Errorf("list hosted zone for %s: %w", domainName, err)
 	}
@@ -74,7 +79,7 @@ func (r53 *Route53) PublicDomainHostedZoneID(domainName string) (string, error) 
 			}
 		}
 		in = &route53.ListHostedZonesByNameInput{DNSName: resp.NextDNSName, HostedZoneId: resp.NextHostedZoneId}
-		resp, err = r53.client.ListHostedZonesByName(context.Background(), in)
+		resp, err = r53.client.ListHostedZonesByName(ctx, in)
 		if err != nil {
 			return "", fmt.Errorf("list hosted zone for %s: %w", domainName, err)
 		}
@@ -85,17 +90,22 @@ func (r53 *Route53) PublicDomainHostedZoneID(domainName string) (string, error) 
 // route53 hosted zone for the domain.
 // If there are missing NS records returns ErrUnmatchedNSRecords.
 func (r53 *Route53) ValidateDomainOwnership(domainName string) error {
-	hzID, err := r53.PublicDomainHostedZoneID(domainName)
+	return r53.ValidateDomainOwnershipContext(context.Background(), domainName)
+}
+
+// ValidateDomainOwnershipContext validates ownership using ctx.
+func (r53 *Route53) ValidateDomainOwnershipContext(ctx context.Context, domainName string) error {
+	hzID, err := r53.PublicDomainHostedZoneIDContext(ctx, domainName)
 	if err != nil {
 		return err
 	}
 
-	wanted, err := r53.listHostedZoneNSRecords(domainName, hzID)
+	wanted, err := r53.listHostedZoneNSRecords(ctx, domainName, hzID)
 	if err != nil {
 		return err
 	}
 
-	actual, err := r53.lookupNSRecords(domainName)
+	actual, err := r53.lookupNSRecords(ctx, domainName)
 	if err != nil {
 		return err
 	}
@@ -111,8 +121,8 @@ func (r53 *Route53) ValidateDomainOwnership(domainName string) error {
 	return nil
 }
 
-func (r53 *Route53) listHostedZoneNSRecords(domainName, hostedZoneID string) ([]string, error) {
-	out, err := r53.client.ListResourceRecordSets(context.Background(), &route53.ListResourceRecordSetsInput{
+func (r53 *Route53) listHostedZoneNSRecords(ctx context.Context, domainName, hostedZoneID string) ([]string, error) {
+	out, err := r53.client.ListResourceRecordSets(ctx, &route53.ListResourceRecordSetsInput{
 		HostedZoneId: awsv2.String(hostedZoneID),
 	})
 	if err != nil {
@@ -133,8 +143,8 @@ func (r53 *Route53) listHostedZoneNSRecords(domainName, hostedZoneID string) ([]
 	return records, nil
 }
 
-func (r53 *Route53) lookupNSRecords(domainName string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+func (r53 *Route53) lookupNSRecords(ctx context.Context, domainName string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	nameservers, err := r53.dns.LookupNS(ctx, domainName)
 	if err != nil {

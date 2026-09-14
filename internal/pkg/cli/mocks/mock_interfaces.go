@@ -5111,6 +5111,58 @@ func (mr *MockdomainHostedZoneGetterMockRecorder) ValidateDomainOwnership(domain
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDomainOwnership", reflect.TypeOf((*MockdomainHostedZoneGetter)(nil).ValidateDomainOwnership), domainName)
 }
 
+// MockcontextDomainHostedZoneGetter is a mock of contextDomainHostedZoneGetter interface.
+type MockcontextDomainHostedZoneGetter struct {
+	ctrl     *gomock.Controller
+	recorder *MockcontextDomainHostedZoneGetterMockRecorder
+}
+
+// MockcontextDomainHostedZoneGetterMockRecorder is the mock recorder for MockcontextDomainHostedZoneGetter.
+type MockcontextDomainHostedZoneGetterMockRecorder struct {
+	mock *MockcontextDomainHostedZoneGetter
+}
+
+// NewMockcontextDomainHostedZoneGetter creates a new mock instance.
+func NewMockcontextDomainHostedZoneGetter(ctrl *gomock.Controller) *MockcontextDomainHostedZoneGetter {
+	mock := &MockcontextDomainHostedZoneGetter{ctrl: ctrl}
+	mock.recorder = &MockcontextDomainHostedZoneGetterMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcontextDomainHostedZoneGetter) EXPECT() *MockcontextDomainHostedZoneGetterMockRecorder {
+	return m.recorder
+}
+
+// PublicDomainHostedZoneIDContext mocks base method.
+func (m *MockcontextDomainHostedZoneGetter) PublicDomainHostedZoneIDContext(ctx context.Context, domainName string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PublicDomainHostedZoneIDContext", ctx, domainName)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PublicDomainHostedZoneIDContext indicates an expected call of PublicDomainHostedZoneIDContext.
+func (mr *MockcontextDomainHostedZoneGetterMockRecorder) PublicDomainHostedZoneIDContext(ctx, domainName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublicDomainHostedZoneIDContext", reflect.TypeOf((*MockcontextDomainHostedZoneGetter)(nil).PublicDomainHostedZoneIDContext), ctx, domainName)
+}
+
+// ValidateDomainOwnershipContext mocks base method.
+func (m *MockcontextDomainHostedZoneGetter) ValidateDomainOwnershipContext(ctx context.Context, domainName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateDomainOwnershipContext", ctx, domainName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateDomainOwnershipContext indicates an expected call of ValidateDomainOwnershipContext.
+func (mr *MockcontextDomainHostedZoneGetterMockRecorder) ValidateDomainOwnershipContext(ctx, domainName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDomainOwnershipContext", reflect.TypeOf((*MockcontextDomainHostedZoneGetter)(nil).ValidateDomainOwnershipContext), ctx, domainName)
+}
+
 // MockdockerfileParser is a mock of dockerfileParser interface.
 type MockdockerfileParser struct {
 	ctrl     *gomock.Controller
@@ -6483,18 +6535,18 @@ func (m *MockcredsSelector) EXPECT() *MockcredsSelectorMockRecorder {
 }
 
 // Creds mocks base method.
-func (m *MockcredsSelector) Creds(prompt, help string) (aws.Config, error) {
+func (m *MockcredsSelector) Creds(ctx context.Context, prompt, help string) (aws.Config, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Creds", prompt, help)
+	ret := m.ctrl.Call(m, "Creds", ctx, prompt, help)
 	ret0, _ := ret[0].(aws.Config)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Creds indicates an expected call of Creds.
-func (mr *MockcredsSelectorMockRecorder) Creds(prompt, help interface{}) *gomock.Call {
+func (mr *MockcredsSelectorMockRecorder) Creds(ctx, prompt, help interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Creds", reflect.TypeOf((*MockcredsSelector)(nil).Creds), prompt, help)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Creds", reflect.TypeOf((*MockcredsSelector)(nil).Creds), ctx, prompt, help)
 }
 
 // Mockec2Client is a mock of ec2Client interface.
@@ -6773,6 +6825,44 @@ func (m *MockpolicyLister) ListPolicyNames() ([]string, error) {
 func (mr *MockpolicyListerMockRecorder) ListPolicyNames() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPolicyNames", reflect.TypeOf((*MockpolicyLister)(nil).ListPolicyNames))
+}
+
+// MockcontextPolicyLister is a mock of contextPolicyLister interface.
+type MockcontextPolicyLister struct {
+	ctrl     *gomock.Controller
+	recorder *MockcontextPolicyListerMockRecorder
+}
+
+// MockcontextPolicyListerMockRecorder is the mock recorder for MockcontextPolicyLister.
+type MockcontextPolicyListerMockRecorder struct {
+	mock *MockcontextPolicyLister
+}
+
+// NewMockcontextPolicyLister creates a new mock instance.
+func NewMockcontextPolicyLister(ctrl *gomock.Controller) *MockcontextPolicyLister {
+	mock := &MockcontextPolicyLister{ctrl: ctrl}
+	mock.recorder = &MockcontextPolicyListerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcontextPolicyLister) EXPECT() *MockcontextPolicyListerMockRecorder {
+	return m.recorder
+}
+
+// ListPolicyNamesContext mocks base method.
+func (m *MockcontextPolicyLister) ListPolicyNamesContext(arg0 context.Context) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPolicyNamesContext", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPolicyNamesContext indicates an expected call of ListPolicyNamesContext.
+func (mr *MockcontextPolicyListerMockRecorder) ListPolicyNamesContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPolicyNamesContext", reflect.TypeOf((*MockcontextPolicyLister)(nil).ListPolicyNamesContext), arg0)
 }
 
 // MockserviceDescriber is a mock of serviceDescriber interface.
@@ -7077,6 +7167,44 @@ func (m *MockroleTagsLister) ListRoleTags(arg0 string) (map[string]string, error
 func (mr *MockroleTagsListerMockRecorder) ListRoleTags(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRoleTags", reflect.TypeOf((*MockroleTagsLister)(nil).ListRoleTags), arg0)
+}
+
+// MockcontextRoleTagsLister is a mock of contextRoleTagsLister interface.
+type MockcontextRoleTagsLister struct {
+	ctrl     *gomock.Controller
+	recorder *MockcontextRoleTagsListerMockRecorder
+}
+
+// MockcontextRoleTagsListerMockRecorder is the mock recorder for MockcontextRoleTagsLister.
+type MockcontextRoleTagsListerMockRecorder struct {
+	mock *MockcontextRoleTagsLister
+}
+
+// NewMockcontextRoleTagsLister creates a new mock instance.
+func NewMockcontextRoleTagsLister(ctrl *gomock.Controller) *MockcontextRoleTagsLister {
+	mock := &MockcontextRoleTagsLister{ctrl: ctrl}
+	mock.recorder = &MockcontextRoleTagsListerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcontextRoleTagsLister) EXPECT() *MockcontextRoleTagsListerMockRecorder {
+	return m.recorder
+}
+
+// ListRoleTagsContext mocks base method.
+func (m *MockcontextRoleTagsLister) ListRoleTagsContext(arg0 context.Context, arg1 string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRoleTagsContext", arg0, arg1)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListRoleTagsContext indicates an expected call of ListRoleTagsContext.
+func (mr *MockcontextRoleTagsListerMockRecorder) ListRoleTagsContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRoleTagsContext", reflect.TypeOf((*MockcontextRoleTagsLister)(nil).ListRoleTagsContext), arg0, arg1)
 }
 
 // MockroleManager is a mock of roleManager interface.

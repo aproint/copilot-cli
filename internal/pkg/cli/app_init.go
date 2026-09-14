@@ -52,13 +52,13 @@ type initAppOpts struct {
 
 	identity             identityService
 	store                applicationStore
-	route53              domainHostedZoneGetter
+	route53              contextDomainHostedZoneGetter
 	cfn                  appDeployer
 	prompt               prompter
 	prog                 progress
-	iam                  policyLister
-	iamRoleManager       roleManager
-	isSessionFromEnvVars func() (bool, error)
+	iam                  contextPolicyLister
+	iamRoleManager       contextRoleTagsLister
+	isSessionFromEnvVars func(context.Context) (bool, error)
 
 	existingWorkspace func() (wsAppManager, error)
 	newWorkspace      func(appName string) (wsAppManager, error)
@@ -67,8 +67,12 @@ type initAppOpts struct {
 	cachedHostedZoneID string
 }
 
-func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
-	cfg, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app init")).DefaultConfig(context.Background())
+func newInitAppOpts(ctx context.Context, vars initAppVars) (*initAppOpts, error) {
+	return newInitAppOptsWithSessionProvider(ctx, vars, sessions.ImmutableProvider(sessions.UserAgentExtras("app init")))
+}
+
+func newInitAppOptsWithSessionProvider(ctx context.Context, vars initAppVars, sessProvider defaultSessionProvider) (*initAppOpts, error) {
+	cfg, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -85,8 +89,8 @@ func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
 		prog:           termprogress.NewSpinner(log.DiagnosticWriter),
 		iam:            iamClient,
 		iamRoleManager: iamClient,
-		isSessionFromEnvVars: func() (bool, error) {
-			return sessions.AreV2CredsFromEnvVars(context.Background(), cfg)
+		isSessionFromEnvVars: func(ctx context.Context) (bool, error) {
+			return sessions.AreV2CredsFromEnvVars(ctx, cfg)
 		},
 		existingWorkspace: func() (wsAppManager, error) {
 			return workspace.Use(fs)
@@ -100,7 +104,7 @@ func newInitAppOpts(vars initAppVars) (*initAppOpts, error) {
 // Validate returns an error if the user's input is invalid.
 func (o *initAppOpts) Validate() error {
 	if o.name != "" {
-		if err := o.validateAppName(o.name); err != nil {
+		if err := validateAppNameString(o.name); err != nil {
 			return err
 		}
 	}
@@ -114,29 +118,18 @@ func (o *initAppOpts) Validate() error {
 			}
 			o.permissionsBoundary = strings.TrimPrefix(parsed.Resource, "policy/")
 		}
-		if err := o.validatePermBound(o.permissionsBoundary); err != nil {
-			return err
-		}
 	}
 	if o.domainName != "" {
-		o.prog.Start(fmt.Sprintf("Validating ownership of %q", o.domainName))
-		defer o.prog.Stop("")
 		if err := validateDomainName(o.domainName); err != nil {
 			return fmt.Errorf("domain name %s is invalid: %w", o.domainName, err)
 		}
-		o.warnIfDomainIsNotOwned()
-		id, err := o.domainHostedZoneID(o.domainName)
-		if err != nil {
-			return err
-		}
-		o.cachedHostedZoneID = id
 	}
 	return nil
 }
 
 // Ask prompts the user for any required arguments that they didn't provide.
 func (o *initAppOpts) Ask(ctx context.Context) error {
-	ok, err := o.isSessionFromEnvVars()
+	ok, err := o.isSessionFromEnvVars(ctx)
 	if err != nil {
 		return err
 	}
@@ -149,6 +142,13 @@ https://aproint.github.io/copilot-cli/docs/credentials/`)
 		log.Infoln()
 	}
 
+	if err := o.askForAppName(ctx); err != nil {
+		return err
+	}
+	return o.validateRemote(ctx)
+}
+
+func (o *initAppOpts) askForAppName(ctx context.Context) error {
 	ws, err := o.existingWorkspace()
 	if err == nil {
 		// When there's a local application.
@@ -158,9 +158,6 @@ https://aproint.github.io/copilot-cli/docs/credentials/`)
 				log.Infoln(fmt.Sprintf(
 					"Your workspace is registered to application %s.",
 					color.HighlightUserInput(summary.Application)))
-				if err := o.validateAppName(summary.Application); err != nil {
-					return err
-				}
 				o.name = summary.Application
 				return nil
 			}
@@ -212,6 +209,42 @@ If you'd like to delete the application and all of its resources, run %s.
 	return o.askAppName(fmtAppInitNewNamePrompt)
 }
 
+func (o *initAppOpts) validateRemote(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if o.name != "" {
+		if err := o.validateAppName(ctx, o.name); err != nil {
+			return err
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if o.permissionsBoundary != "" {
+		if err := o.validatePermBound(ctx, o.permissionsBoundary); err != nil {
+			return err
+		}
+	}
+	if o.domainName != "" {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		o.prog.Start(fmt.Sprintf("Validating ownership of %q", o.domainName))
+		defer o.prog.Stop("")
+		o.warnIfDomainIsNotOwned(ctx)
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		id, err := o.domainHostedZoneID(ctx, o.domainName)
+		if err != nil {
+			return err
+		}
+		o.cachedHostedZoneID = id
+	}
+	return nil
+}
+
 // Execute creates a new managed empty application.
 func (o *initAppOpts) Execute(ctx context.Context) error {
 	caller, err := o.identity.Get(ctx)
@@ -225,7 +258,7 @@ func (o *initAppOpts) Execute(ctx context.Context) error {
 	}
 	var hostedZoneID string
 	if o.domainName != "" {
-		hostedZoneID, err = o.domainHostedZoneID(o.domainName)
+		hostedZoneID, err = o.domainHostedZoneID(ctx, o.domainName)
 		if err != nil {
 			return err
 		}
@@ -246,31 +279,30 @@ func (o *initAppOpts) Execute(ctx context.Context) error {
 		return err
 	}
 
-	if ctx.Err() != nil {
-		log.Warningln(metadata.CommitAfterCancellationWarning)
-	}
-	commitCtx, cancel := metadata.CommitContext(ctx)
-	defer cancel()
-	if err := o.store.CreateApplication(commitCtx, &config.Application{
-		AccountID:           caller.Account,
-		Name:                o.name,
-		Domain:              o.domainName,
-		DomainHostedZoneID:  hostedZoneID,
-		PermissionsBoundary: o.permissionsBoundary,
-		Tags:                o.resourceTags,
+	if err := metadata.Commit(ctx, "application infrastructure deployment", func(message string) {
+		log.Warningln(message)
+	}, func(commitCtx context.Context) error {
+		return o.store.CreateApplication(commitCtx, &config.Application{
+			AccountID:           caller.Account,
+			Name:                o.name,
+			Domain:              o.domainName,
+			DomainHostedZoneID:  hostedZoneID,
+			PermissionsBoundary: o.permissionsBoundary,
+			Tags:                o.resourceTags,
+		})
 	}); err != nil {
-		return metadata.NewCommitError("application infrastructure deployment", err)
+		return err
 	}
 	log.Successf("The directory %s will hold service manifests for application %s.\n", color.HighlightResource(workspace.CopilotDirName), color.HighlightUserInput(o.name))
 	log.Infoln()
 	return nil
 }
 
-func (o *initAppOpts) validateAppName(name string) error {
+func (o *initAppOpts) validateAppName(ctx context.Context, name string) error {
 	if err := validateAppNameString(name); err != nil {
 		return err
 	}
-	app, err := o.store.GetApplication(context.Background(), name)
+	app, err := o.store.GetApplication(ctx, name)
 	if err == nil {
 		if o.domainName != "" && app.Domain != o.domainName {
 			return fmt.Errorf("application named %s already exists with a different domain name %s", name, app.Domain)
@@ -279,13 +311,19 @@ func (o *initAppOpts) validateAppName(name string) error {
 	}
 	var noSuchAppErr *config.ErrNoSuchApplication
 	if errors.As(err, &noSuchAppErr) {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		roleName := fmt.Sprintf("%s-adminrole", name)
-		tags, err := o.iamRoleManager.ListRoleTags(roleName)
+		tags, err := o.iamRoleManager.ListRoleTagsContext(ctx, roleName)
 		// NOTE: This is a best-effort attempt to check if the app exists in other regions.
 		// The error either indicates that the role does not exist, or not.
 		// In the first case, it means that this is a valid app name, hence we don't error out.
 		// In the second case, since this is a best-effort, we don't need to surface the error either.
 		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			return nil
 		}
 		if _, hasTag := tags[deploy.AppTagKey]; hasTag {
@@ -299,8 +337,8 @@ func (o *initAppOpts) validateAppName(name string) error {
 	return fmt.Errorf("get application %s: %w", name, err)
 }
 
-func (o *initAppOpts) validatePermBound(policyName string) error {
-	IAMPolicies, err := o.iam.ListPolicyNames()
+func (o *initAppOpts) validatePermBound(ctx context.Context, policyName string) error {
+	IAMPolicies, err := o.iam.ListPolicyNamesContext(ctx)
 	if err != nil {
 		return fmt.Errorf("list permissions boundary policies: %w", err)
 	}
@@ -312,8 +350,8 @@ func (o *initAppOpts) validatePermBound(policyName string) error {
 	return fmt.Errorf("IAM policy %q not found in this account", policyName)
 }
 
-func (o *initAppOpts) warnIfDomainIsNotOwned() {
-	err := o.route53.ValidateDomainOwnership(o.domainName)
+func (o *initAppOpts) warnIfDomainIsNotOwned(ctx context.Context) {
+	err := o.route53.ValidateDomainOwnershipContext(ctx, o.domainName)
 	if err == nil {
 		return
 	}
@@ -324,11 +362,11 @@ func (o *initAppOpts) warnIfDomainIsNotOwned() {
 	}
 }
 
-func (o *initAppOpts) domainHostedZoneID(domainName string) (string, error) {
+func (o *initAppOpts) domainHostedZoneID(ctx context.Context, domainName string) (string, error) {
 	if o.cachedHostedZoneID != "" {
 		return o.cachedHostedZoneID, nil
 	}
-	hostedZoneID, err := o.route53.PublicDomainHostedZoneID(domainName)
+	hostedZoneID, err := o.route53.PublicDomainHostedZoneIDContext(ctx, domainName)
 	if err != nil {
 		return "", fmt.Errorf("get public hosted zone ID for domain %s: %w", domainName, err)
 	}
@@ -351,9 +389,6 @@ func (o *initAppOpts) askAppName(formatMsg string) error {
 		prompt.WithFinalMessage("Application name:"))
 	if err != nil {
 		return fmt.Errorf("prompt get application name: %w", err)
-	}
-	if err := o.validateAppName(appName); err != nil {
-		return err
 	}
 	o.name = appName
 	return nil
@@ -423,7 +458,7 @@ An application is a collection of containerized services that operate together.`
   /code $ copilot app init --resource-tags department=MyDept,team=MyTeam`,
 		Args: reservedArgs,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newInitAppOpts(vars)
+			opts, err := newInitAppOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

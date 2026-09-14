@@ -21,6 +21,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewInitOpts_UsesCallerContextForSessionLoading(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "init-constructor")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	provider := climocks.NewMocksessionProvider(ctrl)
+	provider.EXPECT().DefaultConfig(callerCtx).Return(aws.Config{Region: "us-west-2"}, nil)
+
+	cfg, err := loadInitDefaultConfig(callerCtx, provider)
+
+	require.NoError(t, err)
+	require.Equal(t, "us-west-2", cfg.Region)
+}
+
 func TestInitOpts_Run(t *testing.T) {
 	mockSchedule := "@hourly"
 	var mockPort uint16 = 80

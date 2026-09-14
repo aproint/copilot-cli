@@ -7,6 +7,7 @@ package metadata
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -15,19 +16,52 @@ const (
 	// infrastructure mutation has already succeeded.
 	CommitTimeout = 30 * time.Second
 
-	// CommitAfterCancellationWarning is shown when a required metadata commit is
-	// started after the caller context has already been canceled.
-	CommitAfterCancellationWarning = "Command was canceled; finishing required Copilot metadata write with a 30s timeout."
+	// CommitAfterCancellationWarning is shown when a required metadata commit
+	// continues after the caller context is canceled.
+	CommitAfterCancellationWarning = "Command canceled; finishing required metadata write (30s timeout)."
 )
 
-// CommitContext returns a short, detached context for required metadata writes
-// after a durable infrastructure mutation has already succeeded.
-//
-// Use this only for short metadata commits that preserve Copilot consistency
-// after infrastructure has been durably changed. Pre-mutation reads, validation,
-// and normal command-scoped work should continue to use the caller context.
-func CommitContext(parent context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.WithoutCancel(parent), CommitTimeout)
+// Commit performs a required metadata write after a durable infrastructure
+// mutation. The write is detached from caller cancellation, bounded by
+// CommitTimeout, and wrapped as a partial-success error if it fails.
+func Commit(parent context.Context, mutation string, warn func(string), write func(context.Context) error) error {
+	return commitWithTimeout(parent, mutation, CommitTimeout, warn, write)
+}
+
+func commitWithTimeout(parent context.Context, mutation string, timeout time.Duration, warn func(string), write func(context.Context) error) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), timeout)
+	defer cancel()
+
+	var warnOnce sync.Once
+	reportCancellation := func() {
+		warnOnce.Do(func() {
+			warn(CommitAfterCancellationWarning)
+		})
+	}
+	if parent.Err() != nil {
+		reportCancellation()
+	}
+
+	writeDone := make(chan struct{})
+	watcherDone := make(chan struct{})
+	go func() {
+		defer close(watcherDone)
+		select {
+		case <-parent.Done():
+			select {
+			case <-writeDone:
+				return
+			default:
+				reportCancellation()
+			}
+		case <-writeDone:
+		}
+	}()
+
+	err := write(ctx)
+	close(writeDone)
+	<-watcherDone
+	return NewCommitError(mutation, err)
 }
 
 // CommitError reports that a durable mutation succeeded but the required Copilot

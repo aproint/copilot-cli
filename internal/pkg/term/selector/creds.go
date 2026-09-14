@@ -40,7 +40,10 @@ type CredsSelect struct {
 }
 
 // Creds prompts users to choose either use temporary credentials or choose from one of their existing AWS named profiles.
-func (s *CredsSelect) Creds(msg, help string) (aws.Config, error) {
+func (s *CredsSelect) Creds(ctx context.Context, msg, help string) (aws.Config, error) {
+	if err := ctx.Err(); err != nil {
+		return aws.Config{}, err
+	}
 	profileFrom := make(map[string]string)
 	options := []string{tempCredsOption}
 	for _, name := range s.Profile.Names() {
@@ -57,19 +60,28 @@ func (s *CredsSelect) Creds(msg, help string) (aws.Config, error) {
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("select credential source: %w", err)
 	}
+	if err := ctx.Err(); err != nil {
+		return aws.Config{}, err
+	}
 
 	if selected == tempCredsOption {
-		return s.askTempCreds()
+		return s.askTempCreds(ctx)
 	}
-	cfg, err := s.Session.ConfigFromProfile(context.Background(), profileFrom[selected])
+	cfg, err := s.Session.ConfigFromProfile(ctx, profileFrom[selected])
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("create config from profile %s: %w", profileFrom[selected], err)
 	}
 	return cfg, nil
 }
 
-func (s *CredsSelect) askTempCreds() (aws.Config, error) {
-	defaultAccessKey, defaultSecretAccessKey, defaultSessToken := defaultCreds(s.Session)
+func (s *CredsSelect) askTempCreds(ctx context.Context) (aws.Config, error) {
+	if err := ctx.Err(); err != nil {
+		return aws.Config{}, err
+	}
+	defaultAccessKey, defaultSecretAccessKey, defaultSessToken := defaultCreds(ctx, s.Session)
+	if err := ctx.Err(); err != nil {
+		return aws.Config{}, err
+	}
 
 	accessKeyID, err := s.askWithMaskedDefault(accessKeyIDPrompt, defaultAccessKey, prompt.RequireNonEmpty, prompt.WithFinalMessage("AWS Access Key ID:"))
 	if err != nil {
@@ -82,6 +94,9 @@ func (s *CredsSelect) askTempCreds() (aws.Config, error) {
 	sessionToken, err := s.askWithMaskedDefault(sessionTokenPrompt, defaultSessToken, nil, prompt.WithFinalMessage("AWS Session Token:"))
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("get session token: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return aws.Config{}, err
 	}
 
 	cfg, err := s.Session.ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken)
@@ -105,13 +120,13 @@ func (s *CredsSelect) askWithMaskedDefault(msg, defaultValue string, f prompt.Va
 
 // defaultCreds returns the credential values from the default session.
 // If an error occurs, returns empty strings.
-func defaultCreds(session SessionProvider) (accessKeyID, secretAccessKey, sessionToken string) {
+func defaultCreds(ctx context.Context, session SessionProvider) (accessKeyID, secretAccessKey, sessionToken string) {
 	// If we cannot retrieve default creds, return empty credentials as default instead of an error.
-	defaultConfig, err := session.DefaultConfig(context.Background())
+	defaultConfig, err := session.DefaultConfig(ctx)
 	if err != nil {
 		return
 	}
-	v, err := sessions.V2Creds(context.Background(), defaultConfig)
+	v, err := sessions.V2Creds(ctx, defaultConfig)
 	if err != nil {
 		return
 	}

@@ -40,6 +40,72 @@ type initSvcMocks struct {
 	mockCachedWSRoot string
 }
 
+func TestNewInitSvcOpts_UsesCallerContextForSessionLoading(t *testing.T) {
+	t.Chdir(t.TempDir())
+	_, err := workspace.Create("test", afero.NewOsFs())
+	require.NoError(t, err)
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "svc-init-constructor")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	provider := mocks.NewMocksessionProvider(ctrl)
+	provider.EXPECT().DefaultConfig(callerCtx).Return(aws.Config{Region: "us-west-2"}, nil)
+
+	_, _ = newInitSvcOptsWithSessionProvider(callerCtx, initSvcVars{}, provider)
+}
+
+func TestInitSvcOpts_ValidateDoesNotCallRemoteServices(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mocks.NewMockstore(ctrl)
+	store.EXPECT().GetApplication(gomock.Any(), gomock.Any()).Times(0)
+	opts := &initSvcOpts{
+		initSvcVars: initSvcVars{initWkldVars: initWkldVars{appName: "phonetool"}},
+		store:       store,
+		fs:          &afero.Afero{Fs: afero.NewMemMapFs()},
+		wsAppName:   "phonetool",
+	}
+
+	require.NoError(t, opts.Validate())
+}
+
+func TestInitSvcOpts_Ask_UsesCallerContextForWorkspaceValidation(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "svc-workspace-validation")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	store := mocks.NewMockstore(ctrl)
+	wantErr := errors.New("stop after workspace validation")
+	store.EXPECT().GetApplication(callerCtx, "phonetool").Return(nil, wantErr)
+	opts := &initSvcOpts{
+		initSvcVars: initSvcVars{initWkldVars: initWkldVars{appName: "phonetool"}},
+		store:       store,
+		wsAppName:   "phonetool",
+	}
+
+	err := opts.Ask(callerCtx)
+
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestInitSvcOpts_Execute_UsesCallerContextForAppVersionSession(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "svc-version-validation")
+	wantErr := errors.New("stop after app version construction")
+	opts := &initSvcOpts{
+		newAppVersionGetter: func(gotCtx context.Context, appName string) (versionGetter, error) {
+			require.Same(t, callerCtx, gotCtx)
+			require.Equal(t, "phonetool", appName)
+			return nil, wantErr
+		},
+		initSvcVars: initSvcVars{initWkldVars: initWkldVars{appName: "phonetool"}},
+	}
+
+	err := opts.Execute(callerCtx)
+
+	require.ErrorIs(t, err, wantErr)
+}
+
 func TestSvcInitOpts_Validate(t *testing.T) {
 	testCases := map[string]struct {
 		inSvcType        string
@@ -258,7 +324,13 @@ func TestSvcInitOpts_Validate(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Validate()
+			err := validateWorkspaceAppInput(opts.wsAppName, opts.appName)
+			if err == nil {
+				err = validateInitWorkspaceApp(ctx, opts.wsAppName, opts.store)
+			}
+			if err == nil {
+				err = opts.Validate()
+			}
 
 			// THEN
 			if tc.wantedErr != nil {

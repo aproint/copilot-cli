@@ -94,6 +94,22 @@ func TestIAM_ListRoleTags(t *testing.T) {
 	}
 }
 
+func TestIAM_ContextMethodsUseCallerContext(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "app-init")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mocks.NewMockapi(ctrl)
+	client.EXPECT().ListRoleTags(callerCtx, gomock.Any()).Return(&iam.ListRoleTagsOutput{}, nil)
+	client.EXPECT().ListPolicies(callerCtx, gomock.Any()).Return(&iam.ListPoliciesOutput{}, nil)
+	service := &IAM{client: client}
+
+	_, err := service.ListRoleTagsContext(callerCtx, "role")
+	require.NoError(t, err)
+	_, err = service.ListPolicyNamesContext(callerCtx)
+	require.NoError(t, err)
+}
+
 func TestIAM_DeleteRole(t *testing.T) {
 	testCases := map[string]struct {
 		inRoleNameOrARN string

@@ -101,10 +101,10 @@ type initOpts struct {
 	useExistingWorkspaceForCMDs func(*initOpts) error
 }
 
-func newInitOpts(vars initVars) (*initOpts, error) {
+func newInitOpts(ctx context.Context, vars initVars) (*initOpts, error) {
 	fs := afero.NewOsFs()
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("init"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := loadInitDefaultConfig(ctx, sessProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +129,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		identity: id,
 		cfn:      deployer,
 		prog:     spin,
-		isSessionFromEnvVars: func() (bool, error) {
-			return sessions.AreV2CredsFromEnvVars(context.Background(), defaultConfig)
+		isSessionFromEnvVars: func(ctx context.Context) (bool, error) {
+			return sessions.AreV2CredsFromEnvVars(ctx, defaultConfig)
 		},
 		existingWorkspace: func() (wsAppManager, error) {
 			return workspace.Use(fs)
@@ -147,8 +147,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		prog:        spin,
 		prompt:      prompt,
 		identity:    id,
-		newAppVersionGetter: func(appName string) (versionGetter, error) {
-			return describe.NewAppDescriber(appName)
+		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
+			return describe.NewAppDescriberWithContext(ctx, appName)
 		},
 		appCFN:          cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		cfg:             defaultConfig,
@@ -280,8 +280,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 					dockerfileSel:    dfSel,
 					scheduleSelector: selector.NewStaticSelector(prompt),
 					prompt:           prompt,
-					newAppVersionGetter: func(appName string) (versionGetter, error) {
-						return describe.NewAppDescriber(appName)
+					newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
+						return describe.NewAppDescriberWithContext(ctx, appName)
 					},
 					dockerEngine:      dockerengine.New(cmd),
 					wsPendingCreation: true,
@@ -323,8 +323,8 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 					store:    configStore,
 					topicSel: snsSel,
 					prompt:   prompt,
-					newAppVersionGetter: func(appName string) (versionGetter, error) {
-						return describe.NewAppDescriber(appName)
+					newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
+						return describe.NewAppDescriberWithContext(ctx, appName)
 					},
 					dockerEngine:      dockerengine.New(cmd),
 					wsPendingCreation: true,
@@ -370,6 +370,10 @@ func newInitOpts(vars initVars) (*initOpts, error) {
 		},
 		useExistingWorkspaceForCMDs: useExistingWorkspaceClient,
 	}, nil
+}
+
+func loadInitDefaultConfig(ctx context.Context, sessProvider defaultSessionProvider) (aws.Config, error) {
+	return sessProvider.DefaultConfig(ctx)
 }
 
 // Run executes "app init", "env init", "svc init" and "svc deploy".
@@ -624,7 +628,7 @@ func BuildInitCmd() *cobra.Command {
 		Short: "Create a new ECS or App Runner application.",
 		Long:  "Create a new ECS or App Runner application.",
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newInitOpts(vars)
+			opts, err := newInitOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

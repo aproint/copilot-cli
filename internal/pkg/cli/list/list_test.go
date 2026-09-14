@@ -5,6 +5,7 @@ package list
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -43,11 +44,11 @@ farmer              Scheduled Job
 `,
 			mocking: func() {
 				mockStore.EXPECT().
-					GetApplication(gomock.Eq("barnyard")).
+					GetApplication(context.Background(), gomock.Eq("barnyard")).
 					Return(&config.Application{}, nil)
 				mockStore.
 					EXPECT().
-					ListJobs(gomock.Eq("barnyard")).
+					ListJobs(context.Background(), gomock.Eq("barnyard")).
 					Return([]*config.Workload{
 						{Name: "badgoose", Type: "Scheduled Job"},
 						{Name: "farmer", Type: "Scheduled Job"},
@@ -62,11 +63,11 @@ farmer              Scheduled Job
 `,
 			mocking: func() {
 				mockStore.EXPECT().
-					GetApplication(gomock.Eq("barnyard")).
+					GetApplication(context.Background(), gomock.Eq("barnyard")).
 					Return(&config.Application{}, nil)
 				mockStore.
 					EXPECT().
-					ListJobs(gomock.Eq("barnyard")).
+					ListJobs(context.Background(), gomock.Eq("barnyard")).
 					Return([]*config.Workload{
 						{Name: "badgoose", Type: "Scheduled Job"},
 						{Name: "farmer", Type: "Scheduled Job"},
@@ -80,11 +81,11 @@ farmer              Scheduled Job
 
 			mocking: func() {
 				mockStore.EXPECT().
-					GetApplication(gomock.Eq("barnyard")).
+					GetApplication(context.Background(), gomock.Eq("barnyard")).
 					Return(nil, mockError)
 				mockStore.
 					EXPECT().
-					ListJobs(gomock.Eq("barnyard")).
+					ListJobs(context.Background(), gomock.Eq("barnyard")).
 					Times(0)
 			},
 		},
@@ -95,9 +96,9 @@ farmer              Scheduled Job
 			wantedContent: "Name                Type\n----                ----\nbadgoose            Scheduled Job\n",
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListJobs("barnyard").
+				mockStore.EXPECT().ListJobs(context.Background(), "barnyard").
 					Return([]*config.Workload{
 						{Name: "badgoose", Type: "Scheduled Job"},
 						{Name: "farmer", Type: "Scheduled Job"},
@@ -111,9 +112,9 @@ farmer              Scheduled Job
 			wantedError: fmt.Errorf("get job names: error"),
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListJobs("barnyard").
+				mockStore.EXPECT().ListJobs(context.Background(), "barnyard").
 					Return(nil, mockError)
 			},
 		},
@@ -124,9 +125,9 @@ farmer              Scheduled Job
 			wantedContent: "Name                Type\n----                ----\n",
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListJobs("barnyard").
+				mockStore.EXPECT().ListJobs(context.Background(), "barnyard").
 					Return([]*config.Workload{
 						{Name: "badgoose", Type: "Scheduled Job"},
 						{Name: "farmer", Type: "Scheduled Job"},
@@ -142,9 +143,9 @@ farmer              Scheduled Job
 			wantedContent: "{\"jobs\":null}\n",
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListJobs("barnyard").
+				mockStore.EXPECT().ListJobs(context.Background(), "barnyard").
 					Return([]*config.Workload{
 						{Name: "badgoose", Type: "Scheduled Job"},
 						{Name: "farmer", Type: "Scheduled Job"},
@@ -168,7 +169,7 @@ farmer              Scheduled Job
 			}
 
 			// WHEN
-			err := list.Write(tc.inputAppName)
+			err := list.Write(context.Background(), tc.inputAppName)
 
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
@@ -204,11 +205,11 @@ func TestList_SvcListWriter(t *testing.T) {
 			wantedContent: "Name                Type\n----                ----\ntrough              Backend Service\ngaggle              Load Balanced Web Service\n",
 			mocking: func() {
 				mockStore.EXPECT().
-					GetApplication(gomock.Eq("barnyard")).
+					GetApplication(context.Background(), gomock.Eq("barnyard")).
 					Return(&config.Application{}, nil)
 				mockStore.
 					EXPECT().
-					ListServices(gomock.Eq("barnyard")).
+					ListServices(context.Background(), gomock.Eq("barnyard")).
 					Return([]*config.Workload{
 						{Name: "trough", Type: "Backend Service"},
 						{Name: "gaggle", Type: "Load Balanced Web Service"},
@@ -223,11 +224,11 @@ func TestList_SvcListWriter(t *testing.T) {
 `,
 			mocking: func() {
 				mockStore.EXPECT().
-					GetApplication(gomock.Eq("barnyard")).
+					GetApplication(context.Background(), gomock.Eq("barnyard")).
 					Return(&config.Application{}, nil)
 				mockStore.
 					EXPECT().
-					ListServices(gomock.Eq("barnyard")).
+					ListServices(context.Background(), gomock.Eq("barnyard")).
 					Return([]*config.Workload{
 						{Name: "trough", Type: "Backend Service"},
 						{Name: "gaggle", Type: "Load Balanced Web Service"},
@@ -241,11 +242,11 @@ func TestList_SvcListWriter(t *testing.T) {
 
 			mocking: func() {
 				mockStore.EXPECT().
-					GetApplication(gomock.Eq("barnyard")).
+					GetApplication(context.Background(), gomock.Eq("barnyard")).
 					Return(nil, mockError)
 				mockStore.
 					EXPECT().
-					ListServices(gomock.Eq("barnyard")).
+					ListServices(context.Background(), gomock.Eq("barnyard")).
 					Times(0)
 			},
 		},
@@ -256,9 +257,9 @@ func TestList_SvcListWriter(t *testing.T) {
 			wantedContent: "Name                Type\n----                ----\ntrough              Backend Service\n",
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListServices("barnyard").
+				mockStore.EXPECT().ListServices(context.Background(), "barnyard").
 					Return([]*config.Workload{
 						{Name: "trough", Type: "Backend Service"},
 						{Name: "gaggle", Type: "Load Balanced Web Service"},
@@ -272,9 +273,9 @@ func TestList_SvcListWriter(t *testing.T) {
 			wantedError: fmt.Errorf("get service names: error"),
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListServices("barnyard").
+				mockStore.EXPECT().ListServices(context.Background(), "barnyard").
 					Return(nil, mockError)
 			},
 		},
@@ -285,9 +286,9 @@ func TestList_SvcListWriter(t *testing.T) {
 			wantedContent: "Name                Type\n----                ----\n",
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListServices("barnyard").
+				mockStore.EXPECT().ListServices(context.Background(), "barnyard").
 					Return([]*config.Workload{
 						{Name: "trough", Type: "Backend Service"},
 						{Name: "gaggle", Type: "Load Balanced Web Service"},
@@ -303,9 +304,9 @@ func TestList_SvcListWriter(t *testing.T) {
 			wantedContent: "{\"services\":null}\n",
 
 			mocking: func() {
-				mockStore.EXPECT().GetApplication("barnyard").
+				mockStore.EXPECT().GetApplication(context.Background(), "barnyard").
 					Return(&config.Application{}, nil)
-				mockStore.EXPECT().ListServices("barnyard").
+				mockStore.EXPECT().ListServices(context.Background(), "barnyard").
 					Return([]*config.Workload{
 						{Name: "trough", Type: "Backend Service"},
 						{Name: "gaggle", Type: "Load Balanced Web Service"},
@@ -329,7 +330,7 @@ func TestList_SvcListWriter(t *testing.T) {
 			}
 
 			// WHEN
-			err := list.Write(tc.inputAppName)
+			err := list.Write(context.Background(), tc.inputAppName)
 
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())

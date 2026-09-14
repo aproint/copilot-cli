@@ -4,6 +4,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -68,8 +69,8 @@ type Telemetry struct {
 
 // CreateEnvironment instantiates a new environment within an existing App. Skip if
 // the environment already exists in the App.
-func (s *Store) CreateEnvironment(environment *Environment) error {
-	if _, err := s.GetApplication(environment.App); err != nil {
+func (s *Store) CreateEnvironment(ctx context.Context, environment *Environment) error {
+	if _, err := s.GetApplication(ctx, environment.App); err != nil {
 		return err
 	}
 
@@ -79,7 +80,7 @@ func (s *Store) CreateEnvironment(environment *Environment) error {
 		return fmt.Errorf("serializing environment %s: %w", environment.Name, err)
 	}
 
-	_, err = s.ssm.PutParameter(&ssm.PutParameterInput{
+	_, err = s.ssm.PutParameter(ctx, &ssm.PutParameterInput{
 		Name:        aws.String(environmentPath),
 		Description: aws.String(fmt.Sprintf("The %s deployment stage", environment.Name)),
 		Type:        types.ParameterTypeString,
@@ -107,9 +108,9 @@ func (s *Store) CreateEnvironment(environment *Environment) error {
 
 // GetEnvironment gets an environment belonging to a particular application by name. If no environment is found
 // it returns ErrNoSuchEnvironment.
-func (s *Store) GetEnvironment(appName string, environmentName string) (*Environment, error) {
+func (s *Store) GetEnvironment(ctx context.Context, appName string, environmentName string) (*Environment, error) {
 	environmentPath := fmt.Sprintf(fmtEnvParamPath, appName, environmentName)
-	environmentParam, err := s.ssm.GetParameter(&ssm.GetParameterInput{
+	environmentParam, err := s.ssm.GetParameter(ctx, &ssm.GetParameterInput{
 		Name: aws.String(environmentPath),
 	})
 
@@ -133,11 +134,11 @@ func (s *Store) GetEnvironment(appName string, environmentName string) (*Environ
 }
 
 // ListEnvironments returns all environments belonging to a particular application.
-func (s *Store) ListEnvironments(appName string) ([]*Environment, error) {
+func (s *Store) ListEnvironments(ctx context.Context, appName string) ([]*Environment, error) {
 	var environments []*Environment
 
 	environmentsPath := fmt.Sprintf(rootEnvParamPath, appName)
-	serializedEnvs, err := s.listParams(environmentsPath)
+	serializedEnvs, err := s.listParams(ctx, environmentsPath)
 	if err != nil {
 		return nil, fmt.Errorf("list environments for application %s: %w", appName, err)
 	}
@@ -155,9 +156,9 @@ func (s *Store) ListEnvironments(appName string) ([]*Environment, error) {
 
 // DeleteEnvironment removes an environment from SSM.
 // If the environment does not exist in the store or is successfully deleted then returns nil. Otherwise, returns an error.
-func (s *Store) DeleteEnvironment(appName, environmentName string) error {
+func (s *Store) DeleteEnvironment(ctx context.Context, appName, environmentName string) error {
 	paramName := fmt.Sprintf(fmtEnvParamPath, appName, environmentName)
-	_, err := s.ssm.DeleteParameter(&ssm.DeleteParameterInput{
+	_, err := s.ssm.DeleteParameter(ctx, &ssm.DeleteParameterInput{
 		Name: aws.String(paramName),
 	})
 

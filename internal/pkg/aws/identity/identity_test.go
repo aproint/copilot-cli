@@ -4,6 +4,7 @@
 package identity
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestIdentity_Get(t *testing.T) {
+	ctx := context.WithValue(context.Background(), "test-key", "test-value")
 	mockError := errors.New("error")
 	mockBadARN := "mockArn"
 	mockARN := "arn:aws:iam::1111:role/phonetool-test-CFNExecutionRole"
@@ -31,13 +33,13 @@ func TestIdentity_Get(t *testing.T) {
 	}{
 		"should return wrapped error given error from STS GetCallerIdentity": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(nil, mockError)
+				m.EXPECT().GetCallerIdentity(ctx, gomock.Any()).Return(nil, mockError)
 			},
 			wantErr: fmt.Errorf("get caller identity: %w", mockError),
 		},
 		"should return wrapped error if cannot parse the account arn": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+				m.EXPECT().GetCallerIdentity(ctx, gomock.Any()).Return(&sts.GetCallerIdentityOutput{
 					Account: awsv2.String(mockAccount),
 					Arn:     awsv2.String(mockBadARN),
 					UserId:  awsv2.String(mockUserID),
@@ -47,7 +49,7 @@ func TestIdentity_Get(t *testing.T) {
 		},
 		"should return Identity": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+				m.EXPECT().GetCallerIdentity(ctx, gomock.Any()).Return(&sts.GetCallerIdentityOutput{
 					Account: awsv2.String(mockAccount),
 					Arn:     awsv2.String(mockARN),
 					UserId:  awsv2.String(mockUserID),
@@ -61,7 +63,7 @@ func TestIdentity_Get(t *testing.T) {
 		},
 		"should return Identity in non standard partition": {
 			callMock: func(m *mocks.Mockapi) {
-				m.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+				m.EXPECT().GetCallerIdentity(ctx, gomock.Any()).Return(&sts.GetCallerIdentityOutput{
 					Account: awsv2.String(mockAccount),
 					Arn:     awsv2.String(mockChinaARN),
 					UserId:  awsv2.String(mockUserID),
@@ -88,7 +90,7 @@ func TestIdentity_Get(t *testing.T) {
 
 			tc.callMock(mockClient)
 
-			gotIdentity, gotErr := sts.Get()
+			gotIdentity, gotErr := sts.Get(ctx)
 
 			if tc.wantErr != nil {
 				require.EqualError(t, gotErr, tc.wantErr.Error())

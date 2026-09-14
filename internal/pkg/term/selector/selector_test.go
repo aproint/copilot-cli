@@ -4,6 +4,7 @@
 package selector
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -21,6 +22,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+var ctx = context.Background()
 
 type deploySelectMocks struct {
 	deploySvc *mocks.MockdeployedWorkloadsRetriever
@@ -44,24 +47,24 @@ func TestDeploySelect_Topics(t *testing.T) {
 	}{
 		"return error if fail to retrieve topics from deploy": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListEnvironments(testApp).Return(
+				m.configSvc.EXPECT().ListEnvironments(ctx, testApp).Return(
 					[]*config.Environment{{Name: testEnv}}, nil,
 				)
 				m.deploySvc.
 					EXPECT().
-					ListSNSTopics(testApp, testEnv).
+					ListSNSTopics(ctx, testApp, testEnv).
 					Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("list SNS topics: some error"),
 		},
 		"return error if fail to select topics": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListEnvironments(testApp).Return(
+				m.configSvc.EXPECT().ListEnvironments(ctx, testApp).Return(
 					[]*config.Environment{{Name: testEnv}}, nil,
 				)
 				m.deploySvc.
 					EXPECT().
-					ListSNSTopics(testApp, testEnv).
+					ListSNSTopics(ctx, testApp, testEnv).
 					Return([]deploy.Topic{*mockTopic}, nil)
 				m.prompt.
 					EXPECT().
@@ -72,16 +75,16 @@ func TestDeploySelect_Topics(t *testing.T) {
 		},
 		"success": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListEnvironments(testApp).Return(
+				m.configSvc.EXPECT().ListEnvironments(ctx, testApp).Return(
 					[]*config.Environment{{Name: testEnv}, {Name: prodEnv}}, nil,
 				)
 				m.deploySvc.
 					EXPECT().
-					ListSNSTopics(testApp, testEnv).
+					ListSNSTopics(ctx, testApp, testEnv).
 					Return([]deploy.Topic{*mockTopic, *mockTopic2}, nil)
 				m.deploySvc.
 					EXPECT().
-					ListSNSTopics(testApp, prodEnv).
+					ListSNSTopics(ctx, testApp, prodEnv).
 					Return([]deploy.Topic{*mockTopic}, nil)
 				m.prompt.
 					EXPECT().
@@ -117,7 +120,7 @@ func TestDeploySelect_Topics(t *testing.T) {
 				},
 				deployStoreSvc: mockdeploySvc,
 			}
-			topics, err := sel.Topics("Select a deployed topic", "Help text", testApp)
+			topics, err := sel.Topics(ctx, "Select a deployed topic", "Help text", testApp)
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -214,10 +217,10 @@ func TestDeploySelect_Service(t *testing.T) {
 	}{
 		"return error if fail to retrieve environment": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return(nil, errors.New("some error"))
 
 			},
@@ -225,10 +228,10 @@ func TestDeploySelect_Service(t *testing.T) {
 		},
 		"return error if fail to list deployed services": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -237,17 +240,17 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test").
+					ListDeployedServices(ctx, testApp, "test").
 					Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("list deployed services for environment test: some error"),
 		},
 		"return error if no deployed services found": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -256,17 +259,17 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test").
+					ListDeployedServices(ctx, testApp, "test").
 					Return([]string{}, nil)
 			},
 			wantErr: fmt.Errorf("no deployed services found in application %s", testApp),
 		},
 		"return error if fail to select": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -275,7 +278,7 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test").
+					ListDeployedServices(ctx, testApp, "test").
 					Return([]string{"mockSvc1", "mockSvc2"}, nil)
 
 				m.prompt.
@@ -287,7 +290,7 @@ func TestDeploySelect_Service(t *testing.T) {
 		},
 		"success": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{
 					{
 						App:  testApp,
 						Name: "mockSvc1",
@@ -301,7 +304,7 @@ func TestDeploySelect_Service(t *testing.T) {
 				}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -310,7 +313,7 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test").
+					ListDeployedServices(ctx, testApp, "test").
 					Return([]string{"mockSvc1", "mockSvc2"}, nil)
 
 				m.prompt.
@@ -324,7 +327,7 @@ func TestDeploySelect_Service(t *testing.T) {
 		},
 		"skip with only one deployed service": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{
 					{
 						App:  testApp,
 						Name: "mockSvc",
@@ -333,7 +336,7 @@ func TestDeploySelect_Service(t *testing.T) {
 				}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -342,7 +345,7 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test").
+					ListDeployedServices(ctx, testApp, "test").
 					Return([]string{"mockSvc"}, nil)
 			},
 			wantEnv:     "test",
@@ -353,10 +356,10 @@ func TestDeploySelect_Service(t *testing.T) {
 			env: "test",
 			svc: "mockSvc",
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.deploySvc.
 					EXPECT().
-					IsServiceDeployed(testApp, "test", "mockSvc").
+					IsServiceDeployed(ctx, testApp, "test", "mockSvc").
 					Return(false, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("check if service mockSvc is deployed in environment test: some error"),
@@ -365,10 +368,10 @@ func TestDeploySelect_Service(t *testing.T) {
 			env: "test",
 			svc: "mockSvc",
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.deploySvc.
 					EXPECT().
-					IsServiceDeployed(testApp, "test", "mockSvc").
+					IsServiceDeployed(ctx, testApp, "test", "mockSvc").
 					Return(true, nil)
 			},
 			wantEnv: "test",
@@ -384,7 +387,7 @@ func TestDeploySelect_Service(t *testing.T) {
 			setupMocks: func(m deploySelectMocks) {
 				m.configSvc.
 					EXPECT().
-					ListWorkloads(testApp).
+					ListWorkloads(ctx, testApp).
 					Return([]*config.Workload{
 						{
 							App:  testApp,
@@ -410,7 +413,7 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{Name: "test1"},
 						{Name: "test2"},
@@ -418,12 +421,12 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test1").
+					ListDeployedServices(ctx, testApp, "test1").
 					Return([]string{"mockSvc1", "mockSvc2", "mockSvc3"}, nil)
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test2").
+					ListDeployedServices(ctx, testApp, "test2").
 					Return([]string{"mockSvc1", "mockSvc2", "mockSvc3"}, nil)
 
 				m.prompt.
@@ -444,7 +447,7 @@ func TestDeploySelect_Service(t *testing.T) {
 			setupMocks: func(m deploySelectMocks) {
 				m.configSvc.
 					EXPECT().
-					ListWorkloads(testApp).
+					ListWorkloads(ctx, testApp).
 					Return([]*config.Workload{
 						{
 							App:  testApp,
@@ -465,7 +468,7 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{Name: "test1"},
 						{Name: "test2"},
@@ -473,12 +476,12 @@ func TestDeploySelect_Service(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test1").
+					ListDeployedServices(ctx, testApp, "test1").
 					Return([]string{"mockSvc1", "mockSvc2", "mockSvc3"}, nil)
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedServices(testApp, "test2").
+					ListDeployedServices(ctx, testApp, "test2").
 					Return([]string{"mockSvc1", "mockSvc2", "mockSvc3"}, nil)
 			},
 			wantErr: fmt.Errorf("filter error"),
@@ -512,7 +515,7 @@ func TestDeploySelect_Service(t *testing.T) {
 			}
 			opts := append([]GetDeployedWorkloadOpts{WithEnv(tc.env), WithName(tc.svc)}, tc.opts...)
 
-			gotDeployed, err := sel.DeployedService("Select a deployed service", "Help text", testApp, opts...)
+			gotDeployed, err := sel.DeployedService(ctx, "Select a deployed service", "Help text", testApp, opts...)
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -538,10 +541,10 @@ func TestDeploySelect_Job(t *testing.T) {
 	}{
 		"return error if fail to retrieve environment": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return(nil, errors.New("some error"))
 
 			},
@@ -549,10 +552,10 @@ func TestDeploySelect_Job(t *testing.T) {
 		},
 		"return error if fail to list deployed job": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -561,17 +564,17 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test").
+					ListDeployedJobs(ctx, testApp, "test").
 					Return(nil, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("list deployed jobs for environment test: some error"),
 		},
 		"return error if no deployed jobs found": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -580,17 +583,17 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test").
+					ListDeployedJobs(ctx, testApp, "test").
 					Return([]string{}, nil)
 			},
 			wantErr: fmt.Errorf("no deployed jobs found in application %s", testApp),
 		},
 		"return error if fail to select": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -599,7 +602,7 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test").
+					ListDeployedJobs(ctx, testApp, "test").
 					Return([]string{"mockJob1", "mockJob2"}, nil)
 
 				m.prompt.
@@ -611,10 +614,10 @@ func TestDeploySelect_Job(t *testing.T) {
 		},
 		"success": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -623,7 +626,7 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test").
+					ListDeployedJobs(ctx, testApp, "test").
 					Return([]string{"mockJob1", "mockJob2"}, nil)
 
 				m.prompt.
@@ -636,10 +639,10 @@ func TestDeploySelect_Job(t *testing.T) {
 		},
 		"skip with only one deployed job": {
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{
 							Name: "test",
@@ -648,7 +651,7 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test").
+					ListDeployedJobs(ctx, testApp, "test").
 					Return([]string{"mockJob"}, nil)
 			},
 			wantEnv: "test",
@@ -658,10 +661,10 @@ func TestDeploySelect_Job(t *testing.T) {
 			env: "test",
 			job: "mockJob",
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.deploySvc.
 					EXPECT().
-					IsJobDeployed(testApp, "test", "mockJob").
+					IsJobDeployed(ctx, testApp, "test", "mockJob").
 					Return(false, errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("check if job mockJob is deployed in environment test: some error"),
@@ -670,10 +673,10 @@ func TestDeploySelect_Job(t *testing.T) {
 			env: "test",
 			job: "mockJob",
 			setupMocks: func(m deploySelectMocks) {
-				m.configSvc.EXPECT().ListWorkloads(testApp).Return([]*config.Workload{}, nil)
+				m.configSvc.EXPECT().ListWorkloads(ctx, testApp).Return([]*config.Workload{}, nil)
 				m.deploySvc.
 					EXPECT().
-					IsJobDeployed(testApp, "test", "mockJob").
+					IsJobDeployed(ctx, testApp, "test", "mockJob").
 					Return(true, nil)
 			},
 			wantEnv: "test",
@@ -689,7 +692,7 @@ func TestDeploySelect_Job(t *testing.T) {
 			setupMocks: func(m deploySelectMocks) {
 				m.configSvc.
 					EXPECT().
-					ListWorkloads(testApp).
+					ListWorkloads(ctx, testApp).
 					Return([]*config.Workload{
 						{
 							App:  testApp,
@@ -715,7 +718,7 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{Name: "test1"},
 						{Name: "test2"},
@@ -723,12 +726,12 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test1").
+					ListDeployedJobs(ctx, testApp, "test1").
 					Return([]string{"mockJob1"}, nil)
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test2").
+					ListDeployedJobs(ctx, testApp, "test2").
 					Return([]string{"mockJob1", "mockJob2"}, nil)
 
 				m.prompt.
@@ -748,7 +751,7 @@ func TestDeploySelect_Job(t *testing.T) {
 			setupMocks: func(m deploySelectMocks) {
 				m.configSvc.
 					EXPECT().
-					ListWorkloads(testApp).
+					ListWorkloads(ctx, testApp).
 					Return([]*config.Workload{
 						{
 							App:  testApp,
@@ -769,7 +772,7 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.configSvc.
 					EXPECT().
-					ListEnvironments(testApp).
+					ListEnvironments(ctx, testApp).
 					Return([]*config.Environment{
 						{Name: "test1"},
 						{Name: "test2"},
@@ -777,12 +780,12 @@ func TestDeploySelect_Job(t *testing.T) {
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test1").
+					ListDeployedJobs(ctx, testApp, "test1").
 					Return([]string{"mockJob1", "mockJob2"}, nil)
 
 				m.deploySvc.
 					EXPECT().
-					ListDeployedJobs(testApp, "test2").
+					ListDeployedJobs(ctx, testApp, "test2").
 					Return([]string{"mockJob1", "mockJob2"}, nil)
 			},
 			wantErr: fmt.Errorf("filter error"),
@@ -816,7 +819,7 @@ func TestDeploySelect_Job(t *testing.T) {
 			}
 			opts := append([]GetDeployedWorkloadOpts{WithEnv(tc.env), WithName(tc.job)}, tc.opts...)
 
-			gotDeployed, err := sel.DeployedJob("Select a deployed job", "Help text", testApp, opts...)
+			gotDeployed, err := sel.DeployedJob(ctx, "Select a deployed job", "Help text", testApp, opts...)
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -848,7 +851,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{}, nil).Times(1)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -866,7 +869,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{}, nil).Times(1)
 			},
 			wantErr: fmt.Errorf("no services found"),
@@ -880,7 +883,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -901,7 +904,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -927,7 +930,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -951,7 +954,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -988,7 +991,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -1041,7 +1044,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					nil, errors.New("some error"))
 			},
 			wantErr: errors.New("retrieve services from store: some error"),
@@ -1059,7 +1062,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListServices("app-name").Return(
+				m.configLister.EXPECT().ListServices(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -1108,7 +1111,7 @@ func TestWorkspaceSelect_Service(t *testing.T) {
 				ws:                       mockwsRetriever,
 				onlyInitializedWorkloads: true,
 			}
-			got, err := sel.Service("Select a service", "Help text")
+			got, err := sel.Service(ctx, "Select a service", "Help text")
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -1133,7 +1136,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					[]*config.Workload{}, nil).Times(1)
 				m.prompt.
 					EXPECT().
@@ -1153,7 +1156,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					[]*config.Workload{}, nil).Times(1)
 				m.prompt.
 					EXPECT().
@@ -1171,7 +1174,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -1198,7 +1201,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -1225,7 +1228,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -1249,7 +1252,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -1287,7 +1290,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					}, nil)
 				m.configLister.
 					EXPECT().
-					ListJobs("app-name").
+					ListJobs(ctx, "app-name").
 					Return(
 						[]*config.Workload{
 							{
@@ -1342,7 +1345,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					nil, errors.New("some error"))
 			},
 			wantErr: errors.New("retrieve jobs from store: some error"),
@@ -1358,7 +1361,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 					&workspace.Summary{
 						Application: "app-name",
 					}, nil)
-				m.configLister.EXPECT().ListJobs("app-name").Return(
+				m.configLister.EXPECT().ListJobs(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							App:  "app-name",
@@ -1409,7 +1412,7 @@ func TestWorkspaceSelect_Job(t *testing.T) {
 				ws:                       mockwsRetriever,
 				onlyInitializedWorkloads: true,
 			}
-			got, err := sel.Job("Select a job", "Help text")
+			got, err := sel.Job(ctx, "Select a job", "Help text")
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -1431,7 +1434,7 @@ func TestWorkspaceSelect_Workloads(t *testing.T) {
 					Application: "app",
 				}, nil)
 				m.ws.EXPECT().ListWorkloads().Return([]string{"fe", "be", "worker"}, nil)
-				m.configLister.EXPECT().ListWorkloads("app").Return([]*config.Workload{
+				m.configLister.EXPECT().ListWorkloads(ctx, "app").Return([]*config.Workload{
 					{
 						App:  "app",
 						Name: "fe",
@@ -1481,7 +1484,7 @@ func TestWorkspaceSelect_Workloads(t *testing.T) {
 				ws:                       mockwsRetriever,
 				onlyInitializedWorkloads: false,
 			}
-			got, err := sel.Workloads("Select a workload", "Help text")
+			got, err := sel.Workloads(ctx, "Select a workload", "Help text")
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -1520,7 +1523,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv1", "mockEnv2"}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return(nil, errors.New("some error"))
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return(nil, errors.New("some error"))
 			},
 			wantErr: errors.New("retrieve environments from store: some error"),
 		},
@@ -1531,7 +1534,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv1", "mockEnv2"}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{
 					{
 						App:  "mockApp",
 						Name: "mockEnv1",
@@ -1554,7 +1557,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{}, nil)
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantErr: fmt.Errorf("no environments found"),
@@ -1566,7 +1569,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv"}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{}, nil)
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantErr: fmt.Errorf("no environments found"),
@@ -1578,7 +1581,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{
 					{
 						App:  "mockApp",
 						Name: "mockEnv",
@@ -1595,7 +1598,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv"}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{
 					{
 						App:  "mockApp",
 						Name: "mockEnv",
@@ -1612,7 +1615,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv1", "mockEnv2"}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{
 					{
 						App:  "mockApp",
 						Name: "mockEnv1",
@@ -1629,7 +1632,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv1"}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{
 					{
 						App:  "mockApp",
 						Name: "mockEnv1",
@@ -1650,7 +1653,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 						Application: "mockApp",
 					}, nil)
 				m.ws.EXPECT().ListEnvironments().Return([]string{"mockEnv1", "mockEnv2", "mockEnv3"}, nil).Times(1)
-				m.configLister.EXPECT().ListEnvironments("mockApp").Return([]*config.Environment{
+				m.configLister.EXPECT().ListEnvironments(ctx, "mockApp").Return([]*config.Environment{
 					{
 						App:  "mockApp",
 						Name: "mockEnv1",
@@ -1691,7 +1694,7 @@ func TestWorkspaceSelect_EnvironmentsInWorkspace(t *testing.T) {
 				},
 				ws: m.ws,
 			}
-			got, err := sel.LocalEnvironment("Select an environment", "Help text")
+			got, err := sel.LocalEnvironment(ctx, "Select an environment", "Help text")
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -1719,7 +1722,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 					}, nil).Times(1)
 				m.ws.EXPECT().ListWorkloads().Return(
 					[]string{}, nil).Times(1)
-				m.configLister.EXPECT().ListWorkloads("app-name").Return(
+				m.configLister.EXPECT().ListWorkloads(ctx, "app-name").Return(
 					[]*config.Workload{}, nil).Times(1)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1738,7 +1741,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 						"service1",
 					}, nil).
 					Times(1)
-				m.configLister.EXPECT().ListWorkloads("app-name").Return(
+				m.configLister.EXPECT().ListWorkloads(ctx, "app-name").Return(
 					[]*config.Workload{}, nil).Times(1)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
@@ -1755,7 +1758,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 						"service1",
 					}, nil).
 					Times(1)
-				m.configLister.EXPECT().ListWorkloads("app-name").Return(
+				m.configLister.EXPECT().ListWorkloads(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							Name: "service1",
@@ -1779,7 +1782,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 						"worker",
 					}, nil).
 					Times(1)
-				m.configLister.EXPECT().ListWorkloads("app-name").Return(
+				m.configLister.EXPECT().ListWorkloads(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							Name: "service1",
@@ -1804,7 +1807,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 				m.ws.EXPECT().Summary().Return(
 					nil, errors.New("some error")).Times(1)
 				m.ws.EXPECT().ListWorkloads().Times(0)
-				m.configLister.EXPECT().ListWorkloads(gomock.Any()).Times(0)
+				m.configLister.EXPECT().ListWorkloads(ctx, gomock.Any()).Times(0)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
@@ -1815,7 +1818,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 				m.ws.EXPECT().Summary().Return(
 					&workspace.Summary{Application: "my-app"}, nil).Times(1)
 				m.ws.EXPECT().ListWorkloads().Return(nil, errors.New("some error")).Times(1)
-				m.configLister.EXPECT().ListWorkloads(gomock.Any()).Times(0)
+				m.configLister.EXPECT().ListWorkloads(ctx, gomock.Any()).Times(0)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
@@ -1826,7 +1829,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 				m.ws.EXPECT().Summary().Return(
 					&workspace.Summary{Application: "my-app"}, nil).Times(1)
 				m.ws.EXPECT().ListWorkloads().Return([]string{"wkld"}, nil).Times(1)
-				m.configLister.EXPECT().ListWorkloads(gomock.Any()).Return(nil, errors.New("some error")).
+				m.configLister.EXPECT().ListWorkloads(ctx, gomock.Any()).Return(nil, errors.New("some error")).
 					Times(1)
 				m.prompt.EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1847,7 +1850,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 						"worker",
 					}, nil).
 					Times(1)
-				m.configLister.EXPECT().ListWorkloads("app-name").Return(
+				m.configLister.EXPECT().ListWorkloads(ctx, "app-name").Return(
 					[]*config.Workload{
 						{
 							Name: "service1",
@@ -1894,7 +1897,7 @@ func TestWorkspaceSelect_Workload(t *testing.T) {
 				ws:                       mockwsRetriever,
 				onlyInitializedWorkloads: tc.inOnlyInitializedWorkloads,
 			}
-			got, err := sel.Workload("Select a workload", "Help text")
+			got, err := sel.Workload(ctx, "Select a workload", "Help text")
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -1942,7 +1945,7 @@ func TestConfigSelect_Service(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListServices(gomock.Eq(appName)).
+					ListServices(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{}, nil).
 					Times(1)
 				m.prompt.
@@ -1957,7 +1960,7 @@ func TestConfigSelect_Service(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListServices(gomock.Eq(appName)).
+					ListServices(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{
 						{
 							App:  appName,
@@ -1978,7 +1981,7 @@ func TestConfigSelect_Service(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListServices(gomock.Eq(appName)).
+					ListServices(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{
 						{
 							App:  appName,
@@ -2008,7 +2011,7 @@ func TestConfigSelect_Service(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListServices(gomock.Eq(appName)).
+					ListServices(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{
 						{
 							App:  appName,
@@ -2052,7 +2055,7 @@ func TestConfigSelect_Service(t *testing.T) {
 				workloadLister: mockconfigLister,
 			}
 
-			got, err := sel.Service("Select a service", "Help text", appName)
+			got, err := sel.Service(ctx, "Select a service", "Help text", appName)
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -2073,7 +2076,7 @@ func TestConfigSelect_Job(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListJobs(gomock.Eq(appName)).
+					ListJobs(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{}, nil).
 					Times(1)
 				m.prompt.
@@ -2088,7 +2091,7 @@ func TestConfigSelect_Job(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListJobs(gomock.Eq(appName)).
+					ListJobs(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{
 						{
 							App:  appName,
@@ -2109,7 +2112,7 @@ func TestConfigSelect_Job(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListJobs(gomock.Eq(appName)).
+					ListJobs(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{
 						{
 							App:  appName,
@@ -2139,7 +2142,7 @@ func TestConfigSelect_Job(t *testing.T) {
 			setupMocks: func(m configSelectMocks) {
 				m.workloadLister.
 					EXPECT().
-					ListJobs(gomock.Eq(appName)).
+					ListJobs(ctx, gomock.Eq(appName)).
 					Return([]*config.Workload{
 						{
 							App:  appName,
@@ -2183,7 +2186,7 @@ func TestConfigSelect_Job(t *testing.T) {
 				workloadLister: mockconfigLister,
 			}
 
-			got, err := sel.Job("Select a job", "Help text", appName)
+			got, err := sel.Job(ctx, "Select a job", "Help text", appName)
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -2202,29 +2205,29 @@ func TestConfigSelect_Workload(t *testing.T) {
 	}{
 		"with no workloads": {
 			setupMocks: func(m configSelectMocks) {
-				m.workloadLister.EXPECT().ListServices(gomock.Eq(appName)).Return([]*config.Workload{}, nil)
-				m.workloadLister.EXPECT().ListJobs(gomock.Eq(appName)).Return([]*config.Workload{}, nil)
+				m.workloadLister.EXPECT().ListServices(ctx, gomock.Eq(appName)).Return([]*config.Workload{}, nil)
+				m.workloadLister.EXPECT().ListJobs(ctx, gomock.Eq(appName)).Return([]*config.Workload{}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			wantErr: fmt.Errorf("no workloads found in app myapp"),
 		},
 		"with only one service (skips prompting)": {
 			setupMocks: func(m configSelectMocks) {
-				m.workloadLister.EXPECT().ListServices(gomock.Eq(appName)).Return([]*config.Workload{
+				m.workloadLister.EXPECT().ListServices(ctx, gomock.Eq(appName)).Return([]*config.Workload{
 					{
 						App:  appName,
 						Name: "service1",
 						Type: "load balanced web service",
 					},
 				}, nil)
-				m.workloadLister.EXPECT().ListJobs(gomock.Eq(appName)).Return([]*config.Workload{}, nil)
+				m.workloadLister.EXPECT().ListJobs(ctx, gomock.Eq(appName)).Return([]*config.Workload{}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 			want: "service1",
 		},
 		"with multiple workloads": {
 			setupMocks: func(m configSelectMocks) {
-				m.workloadLister.EXPECT().ListServices(gomock.Eq(appName)).Return([]*config.Workload{
+				m.workloadLister.EXPECT().ListServices(ctx, gomock.Eq(appName)).Return([]*config.Workload{
 					{
 						App:  appName,
 						Name: "service1",
@@ -2236,7 +2239,7 @@ func TestConfigSelect_Workload(t *testing.T) {
 						Type: "backend service",
 					},
 				}, nil)
-				m.workloadLister.EXPECT().ListJobs(gomock.Eq(appName)).Return([]*config.Workload{
+				m.workloadLister.EXPECT().ListJobs(ctx, gomock.Eq(appName)).Return([]*config.Workload{
 					{
 						App:  appName,
 						Name: "job1",
@@ -2249,7 +2252,7 @@ func TestConfigSelect_Workload(t *testing.T) {
 		},
 		"with error selecting services": {
 			setupMocks: func(m configSelectMocks) {
-				m.workloadLister.EXPECT().ListServices(gomock.Eq(appName)).Return([]*config.Workload{
+				m.workloadLister.EXPECT().ListServices(ctx, gomock.Eq(appName)).Return([]*config.Workload{
 					{
 						App:  appName,
 						Name: "service1",
@@ -2261,7 +2264,7 @@ func TestConfigSelect_Workload(t *testing.T) {
 						Type: "backend service",
 					},
 				}, nil)
-				m.workloadLister.EXPECT().ListJobs(gomock.Eq(appName)).Return([]*config.Workload{
+				m.workloadLister.EXPECT().ListJobs(ctx, gomock.Eq(appName)).Return([]*config.Workload{
 					{
 						App:  appName,
 						Name: "job1",
@@ -2294,7 +2297,7 @@ func TestConfigSelect_Workload(t *testing.T) {
 				workloadLister: mockconfigLister,
 			}
 
-			got, err := sel.Workload("Select a service", "Help text", appName)
+			got, err := sel.Workload(ctx, "Select a service", "Help text", appName)
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -2324,7 +2327,7 @@ func TestSelect_Environment(t *testing.T) {
 			setupMocks: func(m environmentMocks) {
 				m.envLister.
 					EXPECT().
-					ListEnvironments(gomock.Eq(appName)).
+					ListEnvironments(ctx, gomock.Eq(appName)).
 					Return([]*config.Environment{}, nil).
 					Times(1)
 				m.prompt.
@@ -2339,7 +2342,7 @@ func TestSelect_Environment(t *testing.T) {
 			setupMocks: func(m environmentMocks) {
 				m.envLister.
 					EXPECT().
-					ListEnvironments(gomock.Eq(appName)).
+					ListEnvironments(ctx, gomock.Eq(appName)).
 					Return([]*config.Environment{
 						{
 							App:  appName,
@@ -2359,7 +2362,7 @@ func TestSelect_Environment(t *testing.T) {
 			setupMocks: func(m environmentMocks) {
 				m.envLister.
 					EXPECT().
-					ListEnvironments(gomock.Eq(appName)).
+					ListEnvironments(ctx, gomock.Eq(appName)).
 					Return([]*config.Environment{
 						{
 							App:  appName,
@@ -2387,7 +2390,7 @@ func TestSelect_Environment(t *testing.T) {
 			setupMocks: func(m environmentMocks) {
 				m.envLister.
 					EXPECT().
-					ListEnvironments(gomock.Eq(appName)).
+					ListEnvironments(ctx, gomock.Eq(appName)).
 					Return([]*config.Environment{
 						{
 							App:  appName,
@@ -2412,7 +2415,7 @@ func TestSelect_Environment(t *testing.T) {
 			setupMocks: func(m environmentMocks) {
 				m.envLister.
 					EXPECT().
-					ListEnvironments(gomock.Eq(appName)).
+					ListEnvironments(ctx, gomock.Eq(appName)).
 					Return([]*config.Environment{}, nil).
 					Times(1)
 				m.prompt.
@@ -2428,7 +2431,7 @@ func TestSelect_Environment(t *testing.T) {
 			setupMocks: func(m environmentMocks) {
 				m.envLister.
 					EXPECT().
-					ListEnvironments(gomock.Eq(appName)).
+					ListEnvironments(ctx, gomock.Eq(appName)).
 					Return([]*config.Environment{}, nil).
 					Times(1)
 				m.prompt.
@@ -2460,7 +2463,7 @@ func TestSelect_Environment(t *testing.T) {
 				appEnvLister: mockenvLister,
 			}
 
-			got, err := sel.Environment("Select an environment", "Help text", appName, tc.inAdditionalOpts...)
+			got, err := sel.Environment(ctx, "Select an environment", "Help text", appName, tc.inAdditionalOpts...)
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {
@@ -2484,7 +2487,7 @@ func TestSelect_Environments(t *testing.T) {
 				gomock.InOrder(
 					m.envLister.
 						EXPECT().
-						ListEnvironments(gomock.Eq(appName)).
+						ListEnvironments(ctx, gomock.Eq(appName)).
 						Return([]*config.Environment{}, nil).
 						Times(1),
 					m.prompt.
@@ -2500,7 +2503,7 @@ func TestSelect_Environments(t *testing.T) {
 				gomock.InOrder(
 					m.envLister.
 						EXPECT().
-						ListEnvironments(gomock.Eq(appName)).
+						ListEnvironments(ctx, gomock.Eq(appName)).
 						Return([]*config.Environment{
 							{
 								App:  appName,
@@ -2522,7 +2525,7 @@ func TestSelect_Environments(t *testing.T) {
 				gomock.InOrder(
 					m.envLister.
 						EXPECT().
-						ListEnvironments(gomock.Eq(appName)).
+						ListEnvironments(ctx, gomock.Eq(appName)).
 						Return([]*config.Environment{
 							{
 								App:  appName,
@@ -2574,7 +2577,7 @@ func TestSelect_Environments(t *testing.T) {
 				gomock.InOrder(
 					m.envLister.
 						EXPECT().
-						ListEnvironments(gomock.Eq(appName)).
+						ListEnvironments(ctx, gomock.Eq(appName)).
 						Return([]*config.Environment{
 							{
 								App:  appName,
@@ -2626,7 +2629,7 @@ func TestSelect_Environments(t *testing.T) {
 				gomock.InOrder(
 					m.envLister.
 						EXPECT().
-						ListEnvironments(gomock.Eq(appName)).
+						ListEnvironments(ctx, gomock.Eq(appName)).
 						Return([]*config.Environment{
 							{
 								App:  appName,
@@ -2667,7 +2670,7 @@ func TestSelect_Environments(t *testing.T) {
 				appEnvLister: mockenvLister,
 			}
 
-			got, err := sel.Environments("Select an environment", "Help text", appName, func(order int) prompt.PromptConfig {
+			got, err := sel.Environments(ctx, "Select an environment", "Help text", appName, func(order int) prompt.PromptConfig {
 				return prompt.WithFinalMessage(fmt.Sprintf("%s stage:", humanize.Ordinal(order)))
 			})
 			if tc.wantErr != nil {
@@ -2694,7 +2697,7 @@ func TestSelect_Application(t *testing.T) {
 			setupMocks: func(m applicationMocks) {
 				m.appLister.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return([]*config.Application{}, nil).
 					Times(1)
 				m.prompt.
@@ -2709,7 +2712,7 @@ func TestSelect_Application(t *testing.T) {
 			setupMocks: func(m applicationMocks) {
 				m.appLister.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return([]*config.Application{
 						{
 							Name: "app1",
@@ -2728,7 +2731,7 @@ func TestSelect_Application(t *testing.T) {
 			setupMocks: func(m applicationMocks) {
 				m.appLister.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return([]*config.Application{
 						{
 							Name: "app1",
@@ -2754,7 +2757,7 @@ func TestSelect_Application(t *testing.T) {
 			setupMocks: func(m applicationMocks) {
 				m.appLister.
 					EXPECT().
-					ListApplications().
+					ListApplications(ctx).
 					Return([]*config.Application{
 						{
 							Name: "app1",
@@ -2792,7 +2795,7 @@ func TestSelect_Application(t *testing.T) {
 				appEnvLister: mockappLister,
 			}
 
-			got, err := sel.Application("Select an app", "Help text")
+			got, err := sel.Application(ctx, "Select an app", "Help text")
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {

@@ -67,7 +67,7 @@ type deploySvcOpts struct {
 	newInterpolator      func(app, env string) interpolator
 	cmd                  execRunner
 	sessProvider         *sessions.Provider
-	newSvcDeployer       func() (workloadDeployer, error)
+	newSvcDeployer       func(context.Context) (workloadDeployer, error)
 	svcVersionGetter     versionGetter
 	envFeaturesDescriber versionCompatibilityChecker
 	diffWriter           io.Writer
@@ -122,15 +122,15 @@ func newSvcDeployOpts(vars deployWkldVars) (*deploySvcOpts, error) {
 		diffWriter:      os.Stdout,
 		templateVersion: version.LatestTemplateVersion(),
 	}
-	opts.newSvcDeployer = func() (workloadDeployer, error) {
+	opts.newSvcDeployer = func(ctx context.Context) (workloadDeployer, error) {
 		// NOTE: Defined as a struct member to facilitate unit testing.
-		return newSvcDeployer(opts)
+		return newSvcDeployer(ctx, opts)
 	}
 	return opts, err
 }
 
-func newSvcDeployer(o *deploySvcOpts) (workloadDeployer, error) {
-	targetApp, err := o.getTargetApp()
+func newSvcDeployer(ctx context.Context, o *deploySvcOpts) (workloadDeployer, error) {
+	targetApp, err := o.getTargetApp(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +142,7 @@ func newSvcDeployer(o *deploySvcOpts) (workloadDeployer, error) {
 	content := o.appliedDynamicMft.Manifest()
 	var deployer workloadDeployer
 	in := clideploy.WorkloadDeployerInput{
+		Ctx:             ctx,
 		SessionProvider: o.sessProvider,
 		Name:            o.name,
 		App:             targetApp,
@@ -185,9 +186,9 @@ func (o *deploySvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *deploySvcOpts) Ask() error {
+func (o *deploySvcOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
-		if _, err := o.getTargetApp(); err != nil {
+		if _, err := o.getTargetApp(ctx); err != nil {
 			return err
 		}
 	} else {
@@ -195,20 +196,20 @@ func (o *deploySvcOpts) Ask() error {
 		return errNoAppInWorkspace
 	}
 
-	if err := o.validateOrAskSvcName(); err != nil {
+	if err := o.validateOrAskSvcName(ctx); err != nil {
 		return err
 	}
 
-	if err := o.validateOrAskEnvName(); err != nil {
+	if err := o.validateOrAskEnvName(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Execute builds and pushes the container image for the service,
-func (o *deploySvcOpts) Execute() error {
+func (o *deploySvcOpts) Execute(ctx context.Context) error {
 	if !o.clientConfigured {
-		if err := o.configureClients(); err != nil {
+		if err := o.configureClients(ctx); err != nil {
 			return err
 		}
 	}
@@ -237,7 +238,7 @@ func (o *deploySvcOpts) Execute() error {
 	if err := validateWorkloadManifestCompatibilityWithEnv(o.ws, o.envFeaturesDescriber, mft, o.envName); err != nil {
 		return err
 	}
-	deployer, err := o.newSvcDeployer()
+	deployer, err := o.newSvcDeployer(ctx)
 	if err != nil {
 		return err
 	}
@@ -253,7 +254,7 @@ func (o *deploySvcOpts) Execute() error {
 	if err != nil {
 		return fmt.Errorf("upload deploy resources for service %s: %w", o.name, err)
 	}
-	targetApp, err := o.getTargetApp()
+	targetApp, err := o.getTargetApp(ctx)
 	if err != nil {
 		return err
 	}
@@ -379,7 +380,7 @@ func (o *deploySvcOpts) RecommendActions() error {
 	return nil
 }
 
-func (o *deploySvcOpts) validateSvcName() error {
+func (o *deploySvcOpts) validateSvcName(ctx context.Context) error {
 	names, err := o.ws.ListServices()
 	if err != nil {
 		return fmt.Errorf("list services in the workspace: %w", err)
@@ -392,26 +393,26 @@ func (o *deploySvcOpts) validateSvcName() error {
 	return fmt.Errorf("service %s not found in the workspace", color.HighlightUserInput(o.name))
 }
 
-func (o *deploySvcOpts) validateEnvName() error {
-	if _, err := o.store.GetEnvironment(o.appName, o.envName); err != nil {
+func (o *deploySvcOpts) validateEnvName(ctx context.Context) error {
+	if _, err := o.store.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 		return fmt.Errorf("get environment %s configuration: %w", o.envName, err)
 	}
 	return nil
 }
 
-func (o *deploySvcOpts) validateOrAskSvcName() error {
+func (o *deploySvcOpts) validateOrAskSvcName(ctx context.Context) error {
 	if o.name != "" {
-		if err := o.validateSvcName(); err != nil {
+		if err := o.validateSvcName(ctx); err != nil {
 			return err
 		}
 	} else {
-		name, err := o.sel.Service("Select a service in your workspace", "")
+		name, err := o.sel.Service(ctx, "Select a service in your workspace", "")
 		if err != nil {
 			return fmt.Errorf("select service: %w", err)
 		}
 		o.name = name
 	}
-	svc, err := o.store.GetService(o.appName, o.name)
+	svc, err := o.store.GetService(ctx, o.appName, o.name)
 	if err != nil {
 		return fmt.Errorf("get service %s configuration: %w", o.name, err)
 	}
@@ -419,12 +420,12 @@ func (o *deploySvcOpts) validateOrAskSvcName() error {
 	return nil
 }
 
-func (o *deploySvcOpts) validateOrAskEnvName() error {
+func (o *deploySvcOpts) validateOrAskEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		return o.validateEnvName()
+		return o.validateEnvName(ctx)
 	}
 
-	name, err := o.sel.Environment("Select an environment", "", o.appName)
+	name, err := o.sel.Environment(ctx, "Select an environment", "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select environment: %w", err)
 	}
@@ -432,9 +433,9 @@ func (o *deploySvcOpts) validateOrAskEnvName() error {
 	return nil
 }
 
-func (o *deploySvcOpts) configureClients() error {
+func (o *deploySvcOpts) configureClients(ctx context.Context) error {
 	o.gitShortCommit = imageTagFromGit(o.cmd) // Best effort assign git tag.
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return fmt.Errorf("get environment %s configuration: %w", o.envName, err)
 	}
@@ -452,13 +453,13 @@ func (o *deploySvcOpts) configureClients() error {
 	o.envConfig = envConfig
 
 	// client to retrieve caller identity.
-	caller, err := identity.New(defaultConfig).Get()
+	caller, err := identity.New(defaultConfig).Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
 	o.rootUserARN = caller.RootUserARN
 
-	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 		App:         o.appName,
 		Env:         o.envName,
 		ConfigStore: o.store,
@@ -468,7 +469,7 @@ func (o *deploySvcOpts) configureClients() error {
 	}
 	o.envFeaturesDescriber = envDescriber
 
-	wkldDescriber, err := describe.NewWorkloadStackDescriber(describe.NewWorkloadConfig{
+	wkldDescriber, err := describe.NewWorkloadStackDescriber(ctx, describe.NewWorkloadConfig{
 		App:         o.appName,
 		Env:         o.envName,
 		Name:        o.name,
@@ -575,7 +576,7 @@ func validateWkldVersion(vg versionGetter, name, templateVersion string) error {
 }
 
 func (o *deploySvcOpts) uriRecommendedActions() ([]string, error) {
-	describer, err := describe.NewReachableService(o.appName, o.name, o.store)
+	describer, err := describe.NewReachableService(context.Background(), o.appName, o.name, o.store)
 	if err != nil {
 		var errNotAccessible *describe.ErrNonAccessibleServiceType
 		if errors.As(err, &errNotAccessible) {
@@ -625,11 +626,11 @@ func (o *deploySvcOpts) publishRecommendedActions() []string {
 	}
 }
 
-func (o *deploySvcOpts) getTargetApp() (*config.Application, error) {
+func (o *deploySvcOpts) getTargetApp(ctx context.Context) (*config.Application, error) {
 	if o.targetApp != nil {
 		return o.targetApp, nil
 	}
-	app, err := o.store.GetApplication(o.appName)
+	app, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return nil, fmt.Errorf("get application %s configuration: %w", o.appName, err)
 	}
@@ -716,7 +717,7 @@ func buildSvcDeployCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

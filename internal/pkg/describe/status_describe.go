@@ -92,8 +92,8 @@ type NewServiceStatusConfig struct {
 }
 
 // NewECSStatusDescriber instantiates a new ecsStatusDescriber struct.
-func NewECSStatusDescriber(opt *NewServiceStatusConfig) (*ecsStatusDescriber, error) {
-	env, err := opt.ConfigStore.GetEnvironment(opt.App, opt.Env)
+func NewECSStatusDescriber(ctx context.Context, opt *NewServiceStatusConfig) (*ecsStatusDescriber, error) {
+	env, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, opt.Env)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s: %w", opt.Env, err)
 	}
@@ -114,8 +114,8 @@ func NewECSStatusDescriber(opt *NewServiceStatusConfig) (*ecsStatusDescriber, er
 }
 
 // NewAppRunnerStatusDescriber instantiates a new appRunnerStatusDescriber struct.
-func NewAppRunnerStatusDescriber(opt *NewServiceStatusConfig) (*appRunnerStatusDescriber, error) {
-	appRunnerSvcDescriber, err := newAppRunnerServiceDescriber(NewServiceConfig{
+func NewAppRunnerStatusDescriber(ctx context.Context, opt *NewServiceStatusConfig) (*appRunnerStatusDescriber, error) {
+	appRunnerSvcDescriber, err := newAppRunnerServiceDescriber(ctx, NewServiceConfig{
 		App:         opt.App,
 		Env:         opt.Env,
 		Svc:         opt.Svc,
@@ -135,14 +135,14 @@ func NewAppRunnerStatusDescriber(opt *NewServiceStatusConfig) (*appRunnerStatusD
 }
 
 // NewStaticSiteStatusDescriber instantiates a new staticSiteStatusDescriber struct.
-func NewStaticSiteStatusDescriber(opt *NewServiceStatusConfig) (*staticSiteStatusDescriber, error) {
+func NewStaticSiteStatusDescriber(ctx context.Context, opt *NewServiceStatusConfig) (*staticSiteStatusDescriber, error) {
 	describer := &staticSiteStatusDescriber{
 		app: opt.App,
 		env: opt.Env,
 		svc: opt.Svc,
 	}
 	describer.initS3Client = func(env string) (bucketDataGetter, bucketNameGetter, error) {
-		environment, err := opt.ConfigStore.GetEnvironment(opt.App, env)
+		environment, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, env)
 		if err != nil {
 			return nil, nil, fmt.Errorf("get environment %s: %w", env, err)
 		}

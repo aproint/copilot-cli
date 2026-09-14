@@ -40,40 +40,15 @@ const (
 
 // IAMIdentityGetter is the interface to get information about the IAM user or role whose credentials are used to make AWS requests.
 type IAMIdentityGetter interface {
-	Get() (identity.Caller, error)
+	Get(ctx context.Context) (identity.Caller, error)
 }
 
 // SSM is the interface for the AWS SSM client.
 type SSM interface {
-	PutParameter(in *ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
-	GetParametersByPath(in *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
-	GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
-	DeleteParameter(in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error)
-}
-
-type ssmClient struct {
-	client *ssm.Client
-}
-
-// NewSSMClient adapts the SDK v2 SSM client to Store's narrow SSM interface.
-func NewSSMClient(cfg aws.Config) SSM {
-	return &ssmClient{client: ssm.NewFromConfig(cfg)}
-}
-
-func (c *ssmClient) PutParameter(in *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
-	return c.client.PutParameter(context.Background(), in)
-}
-
-func (c *ssmClient) GetParametersByPath(in *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error) {
-	return c.client.GetParametersByPath(context.Background(), in)
-}
-
-func (c *ssmClient) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
-	return c.client.GetParameter(context.Background(), in)
-}
-
-func (c *ssmClient) DeleteParameter(in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
-	return c.client.DeleteParameter(context.Background(), in)
+	PutParameter(context.Context, *ssm.PutParameterInput, ...func(*ssm.Options)) (*ssm.PutParameterOutput, error)
+	GetParametersByPath(context.Context, *ssm.GetParametersByPathInput, ...func(*ssm.Options)) (*ssm.GetParametersByPathOutput, error)
+	GetParameter(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+	DeleteParameter(context.Context, *ssm.DeleteParameterInput, ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error)
 }
 
 // Store is in charge of fetching and creating applications, environment, services and other workloads, and pipeline configuration in SSM.
@@ -92,12 +67,12 @@ func NewSSMStore(sts IAMIdentityGetter, ssm SSM, appRegion string) *Store {
 	}
 }
 
-func (s *Store) listParams(path string) ([]*string, error) {
+func (s *Store) listParams(ctx context.Context, path string) ([]*string, error) {
 	var serializedParams []*string
 
 	var nextToken *string
 	for {
-		params, err := s.ssm.GetParametersByPath(&ssm.GetParametersByPathInput{
+		params, err := s.ssm.GetParametersByPath(ctx, &ssm.GetParametersByPathInput{
 			Path:      aws.String(path),
 			Recursive: aws.Bool(false),
 			NextToken: nextToken,
@@ -121,8 +96,8 @@ func (s *Store) listParams(path string) ([]*string, error) {
 
 // Retrieves the caller's Account ID with a best effort. If it fails to fetch the Account ID,
 // this returns "unknown".
-func (s *Store) getCallerAccountAndRegion() (string, string) {
-	identity, err := s.sts.Get()
+func (s *Store) getCallerAccountAndRegion(ctx context.Context) (string, string) {
+	identity, err := s.sts.Get(ctx)
 	region := s.appRegion
 	if err != nil {
 		log.Printf("Failed to get caller's Account ID %v", err)

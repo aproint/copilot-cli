@@ -479,3 +479,23 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestRoute53_PublicDomainHostedZoneIDContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "app-init")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mocks.NewMockapi(ctrl)
+	client.EXPECT().ListHostedZonesByName(callerCtx, gomock.Any()).Return(&route53.ListHostedZonesByNameOutput{
+		HostedZones: []types.HostedZone{{
+			Name: aws.String("example.com"),
+			Id:   aws.String("/hostedzone/ZONE"),
+		}},
+	}, nil)
+	service := &Route53{client: client, hostedZoneIDFor: make(map[string]string)}
+
+	id, err := service.PublicDomainHostedZoneIDContext(callerCtx, "example.com")
+
+	require.NoError(t, err)
+	require.Equal(t, "ZONE", id)
+}

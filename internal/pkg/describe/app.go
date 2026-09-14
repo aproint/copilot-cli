@@ -18,6 +18,7 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/describe/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	"github.com/aproint/copilot-cli/internal/pkg/version"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 )
@@ -107,9 +108,22 @@ type AppDescriber struct {
 	stackSetDescriber stackDescriber
 }
 
+type appSessionProvider interface {
+	DefaultConfig(context.Context) (aws.Config, error)
+}
+
 // NewAppDescriber instantiates an application describer.
 func NewAppDescriber(appName string) (*AppDescriber, error) {
-	cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
+	return NewAppDescriberWithContext(context.Background(), appName)
+}
+
+// NewAppDescriberWithContext instantiates an application describer using the caller context.
+func NewAppDescriberWithContext(ctx context.Context, appName string) (*AppDescriber, error) {
+	return newAppDescriber(ctx, appName, sessions.ImmutableProvider())
+}
+
+func newAppDescriber(ctx context.Context, appName string, sessProvider appSessionProvider) (*AppDescriber, error) {
+	cfg, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("assume default role for app %s: %w", appName, err)
 	}

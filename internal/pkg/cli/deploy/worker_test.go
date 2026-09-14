@@ -99,7 +99,7 @@ func TestSvcDeployOpts_stackConfiguration_worker(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockSNSTopicsLister.EXPECT().ListSNSTopics(mockAppName, mockEnvName).Return(nil, mockError)
+				m.mockSNSTopicsLister.EXPECT().ListSNSTopics(ctx, mockAppName, mockEnvName).Return(nil, mockError)
 			},
 			wantErr: fmt.Errorf("get SNS topics for app mockApp and environment mockEnv: %w", mockError),
 		},
@@ -115,7 +115,7 @@ func TestSvcDeployOpts_stackConfiguration_worker(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockEnv.mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockSNSTopicsLister.EXPECT().ListSNSTopics(mockAppName, mockEnvName).Return([]deploy.Topic{
+				m.mockSNSTopicsLister.EXPECT().ListSNSTopics(ctx, mockAppName, mockEnvName).Return([]deploy.Topic{
 					*topic,
 				}, nil)
 			},

@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -103,7 +104,7 @@ func TestEnvDescriber_Describe(t *testing.T) {
 		"error if fail to list all services": {
 			setupMocks: func(m envDescriberMocks) {
 				gomock.InOrder(
-					m.configStoreSvc.EXPECT().ListServices(testApp).Return(nil, mockError),
+					m.configStoreSvc.EXPECT().ListServices(context.Background(), testApp).Return(nil, mockError),
 				)
 			},
 			wantedError: fmt.Errorf("list services for app testApp: some error"),
@@ -111,10 +112,10 @@ func TestEnvDescriber_Describe(t *testing.T) {
 		"error if fail to list deployed services": {
 			setupMocks: func(m envDescriberMocks) {
 				gomock.InOrder(
-					m.configStoreSvc.EXPECT().ListServices(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListServices(context.Background(), testApp).Return([]*config.Workload{
 						testSvc1, testSvc2, testSvc3,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedServices(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedServices(ctx, testApp, testEnv.Name).
 						Return(nil, mockError),
 				)
 			},
@@ -123,15 +124,15 @@ func TestEnvDescriber_Describe(t *testing.T) {
 		"error if fail to get env tags": {
 			setupMocks: func(m envDescriberMocks) {
 				gomock.InOrder(
-					m.configStoreSvc.EXPECT().ListServices(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListServices(context.Background(), testApp).Return([]*config.Workload{
 						testSvc1, testSvc2, testSvc3,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedServices(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedServices(ctx, testApp, testEnv.Name).
 						Return([]string{"testSvc1", "testSvc2"}, nil),
-					m.configStoreSvc.EXPECT().ListJobs(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListJobs(context.Background(), testApp).Return([]*config.Workload{
 						testJob1, testJob2,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedJobs(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
 					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{}, mockError),
 				)
@@ -142,15 +143,15 @@ func TestEnvDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m envDescriberMocks) {
 				gomock.InOrder(
-					m.configStoreSvc.EXPECT().ListServices(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListServices(context.Background(), testApp).Return([]*config.Workload{
 						testSvc1, testSvc2, testSvc3,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedServices(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedServices(ctx, testApp, testEnv.Name).
 						Return([]string{"testSvc1", "testSvc2"}, nil),
-					m.configStoreSvc.EXPECT().ListJobs(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListJobs(context.Background(), testApp).Return([]*config.Workload{
 						testJob1, testJob2,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedJobs(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
 					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
 						Tags:    stackTags,
@@ -165,15 +166,15 @@ func TestEnvDescriber_Describe(t *testing.T) {
 			shouldOutputResources: false,
 			setupMocks: func(m envDescriberMocks) {
 				gomock.InOrder(
-					m.configStoreSvc.EXPECT().ListServices(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListServices(context.Background(), testApp).Return([]*config.Workload{
 						testSvc1, testSvc2, testSvc3,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedServices(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedServices(ctx, testApp, testEnv.Name).
 						Return([]string{"testSvc1", "testSvc2"}, nil),
-					m.configStoreSvc.EXPECT().ListJobs(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListJobs(context.Background(), testApp).Return([]*config.Workload{
 						testJob1, testJob2,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedJobs(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
 					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
 						Tags:    stackTags,
@@ -197,15 +198,15 @@ func TestEnvDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m envDescriberMocks) {
 				gomock.InOrder(
-					m.configStoreSvc.EXPECT().ListServices(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListServices(context.Background(), testApp).Return([]*config.Workload{
 						testSvc1, testSvc2, testSvc3,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedServices(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedServices(ctx, testApp, testEnv.Name).
 						Return([]string{"testSvc1", "testSvc2"}, nil),
-					m.configStoreSvc.EXPECT().ListJobs(testApp).Return([]*config.Workload{
+					m.configStoreSvc.EXPECT().ListJobs(context.Background(), testApp).Return([]*config.Workload{
 						testJob1, testJob2,
 					}, nil),
-					m.deployStoreSvc.EXPECT().ListDeployedJobs(testApp, testEnv.Name).
+					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
 					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
 						Tags:    stackTags,
@@ -249,6 +250,7 @@ func TestEnvDescriber_Describe(t *testing.T) {
 			tc.setupMocks(mocks)
 
 			d := &EnvDescriber{
+				ctx:             context.Background(),
 				env:             testEnv,
 				app:             testApp,
 				enableResources: tc.shouldOutputResources,
@@ -284,6 +286,7 @@ func TestEnvDescriber_Manifest(t *testing.T) {
 				m := mocks.NewMockstackDescriber(ctrl)
 				m.EXPECT().StackMetadata().Return("", errors.New("some error"))
 				return &EnvDescriber{
+					ctx: context.Background(),
 					cfn: m,
 				}
 			},
@@ -297,6 +300,7 @@ Metadata:
   Version: 1.9.0
 `, nil)
 				return &EnvDescriber{
+					ctx: context.Background(),
 					env: &config.Environment{
 						Name: "test",
 					},
@@ -311,6 +315,7 @@ type: Environment`),
 				m := mocks.NewMockstackDescriber(ctrl)
 				m.EXPECT().StackMetadata().Return(`{"Version":"1.9.0","Manifest":"\nname: prod\ntype: Environment"}`, nil)
 				return &EnvDescriber{
+					ctx: context.Background(),
 					env: &config.Environment{
 						Name: "test",
 					},
@@ -355,6 +360,7 @@ func TestEnvDescriber_Version(t *testing.T) {
 				m := mocks.NewMockstackDescriber(ctrl)
 				m.EXPECT().StackMetadata().Return("", nil)
 				return &EnvDescriber{
+					ctx: context.Background(),
 					app: "phonetool",
 					env: &config.Environment{Name: "test"},
 					cfn: m,
@@ -367,6 +373,7 @@ func TestEnvDescriber_Version(t *testing.T) {
 				m := mocks.NewMockstackDescriber(ctrl)
 				m.EXPECT().StackMetadata().Return(`{"Version":"1.0.0"}`, nil)
 				return &EnvDescriber{
+					ctx: context.Background(),
 					app: "phonetool",
 					env: &config.Environment{Name: "test"},
 					cfn: m,
@@ -410,6 +417,7 @@ func TestEnvDescriber_ServiceDiscoveryEndpoint(t *testing.T) {
 				m := mocks.NewMockstackDescriber(ctrl)
 				m.EXPECT().Describe().Return(stack.StackDescription{Parameters: map[string]string{}}, nil)
 				return &EnvDescriber{
+					ctx: context.Background(),
 					app: "phonetool",
 					env: &config.Environment{Name: "test"},
 					cfn: m,
@@ -425,6 +433,7 @@ func TestEnvDescriber_ServiceDiscoveryEndpoint(t *testing.T) {
 						cfnstack.EnvParamServiceDiscoveryEndpoint: "test.phonetool.local",
 					}}, nil)
 				return &EnvDescriber{
+					ctx: context.Background(),
 					app: "phonetool",
 					env: &config.Environment{Name: "test"},
 					cfn: m,
@@ -440,6 +449,7 @@ func TestEnvDescriber_ServiceDiscoveryEndpoint(t *testing.T) {
 						cfnstack.EnvParamServiceDiscoveryEndpoint: "",
 					}}, nil)
 				return &EnvDescriber{
+					ctx: context.Background(),
 					app: "phonetool",
 					env: &config.Environment{Name: "test"},
 					cfn: m,
@@ -529,6 +539,7 @@ func TestEnvDescriber_Features(t *testing.T) {
 			}
 			tc.setupMock(m)
 			d := &EnvDescriber{
+				ctx: context.Background(),
 				cfn: m.stackDescriber,
 			}
 
@@ -672,6 +683,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 			}
 			tc.setupMock(m)
 			d := &EnvDescriber{
+				ctx:         context.Background(),
 				app:         mockAppName,
 				env:         &mockEnvConfig,
 				cfn:         m.stackDescriber,

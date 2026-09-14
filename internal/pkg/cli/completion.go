@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -43,7 +44,7 @@ func (opts *completionOpts) Validate() error {
 
 // Execute writes the completion code to the writer.
 // This method assumes that Validate() was called prior to invocation.
-func (opts *completionOpts) Execute() error {
+func (opts *completionOpts) Execute(_ context.Context) error {
 	if opts.Shell == "bash" {
 		return opts.completer.GenBashCompletion(opts.w)
 	}
@@ -94,7 +95,7 @@ The code must be evaluated to provide interactive completion of commands.`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
 			opts.w = os.Stdout
 			opts.completer = rootCmd
-			return opts.Execute()
+			return opts.Execute(cmd.Context())
 		}),
 	}
 	cmd.SetUsageTemplate(template.Usage)

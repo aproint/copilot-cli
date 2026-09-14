@@ -47,7 +47,7 @@ type svcPauseOpts struct {
 	prompt       prompter
 	sel          deploySelector
 	client       servicePauser
-	initSvcPause func() error
+	initSvcPause func(ctx context.Context) error
 	svcARN       string
 	prog         progress
 
@@ -75,12 +75,12 @@ func newSvcPauseOpts(vars svcPauseVars) (*svcPauseOpts, error) {
 		sel:          selector.NewDeploySelect(prompt.New(), configStore, deployStore),
 		prog:         termprogress.NewSpinner(log.DiagnosticWriter),
 	}
-	opts.initSvcPause = func() error {
-		env, err := opts.getTargetEnv()
+	opts.initSvcPause = func(ctx context.Context) error {
+		env, err := opts.getTargetEnv(ctx)
 		if err != nil {
 			return err
 		}
-		wl, err := configStore.GetWorkload(opts.appName, opts.svcName)
+		wl, err := configStore.GetWorkload(ctx, opts.appName, opts.svcName)
 		if err != nil {
 			return fmt.Errorf("get workload: %w", err)
 		}
@@ -92,7 +92,7 @@ func newSvcPauseOpts(vars svcPauseVars) (*svcPauseOpts, error) {
 			return err
 		}
 		opts.client = apprunner.New(cfg)
-		d, err := describe.NewRDWebServiceDescriber(describe.NewServiceConfig{
+		d, err := describe.NewRDWebServiceDescriber(ctx, describe.NewServiceConfig{
 			App:         opts.appName,
 			Svc:         opts.svcName,
 			ConfigStore: opts.store,
@@ -115,11 +115,11 @@ func (o *svcPauseOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *svcPauseOpts) Ask() error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *svcPauseOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	if err := o.validateAndAskSvcEnvName(); err != nil {
+	if err := o.validateAndAskSvcEnvName(ctx); err != nil {
 		return err
 	}
 
@@ -137,12 +137,12 @@ func (o *svcPauseOpts) Ask() error {
 	return nil
 }
 
-func (o *svcPauseOpts) validateOrAskApp() error {
+func (o *svcPauseOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.store.GetApplication(o.appName)
+		_, err := o.store.GetApplication(ctx, o.appName)
 		return err
 	}
-	app, err := o.sel.Application(svcPauseAppNamePrompt, wkldAppNameHelpPrompt)
+	app, err := o.sel.Application(ctx, svcPauseAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -150,22 +150,22 @@ func (o *svcPauseOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *svcPauseOpts) validateAndAskSvcEnvName() error {
+func (o *svcPauseOpts) validateAndAskSvcEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		if _, err := o.getTargetEnv(); err != nil {
+		if _, err := o.getTargetEnv(ctx); err != nil {
 			return err
 		}
 	}
 
 	if o.svcName != "" {
-		if _, err := o.store.GetService(o.appName, o.svcName); err != nil {
+		if _, err := o.store.GetService(ctx, o.appName, o.svcName); err != nil {
 			return err
 		}
 	}
 
 	// Note: we let prompter handle the case when there is only option for user to choose from.
 	// This is naturally the case when `o.envName != "" && o.svcName != ""`.
-	deployedService, err := o.sel.DeployedService(
+	deployedService, err := o.sel.DeployedService(ctx,
 		fmt.Sprintf(svcPauseNamePrompt, color.HighlightUserInput(o.appName)),
 		svcPauseSvcNameHelpPrompt,
 		o.appName,
@@ -182,8 +182,8 @@ func (o *svcPauseOpts) validateAndAskSvcEnvName() error {
 }
 
 // Execute pause the running App Runner service.
-func (o *svcPauseOpts) Execute() error {
-	if err := o.initSvcPause(); err != nil {
+func (o *svcPauseOpts) Execute(ctx context.Context) error {
+	if err := o.initSvcPause(ctx); err != nil {
 		return err
 	}
 
@@ -199,11 +199,11 @@ func (o *svcPauseOpts) Execute() error {
 	return nil
 }
 
-func (o *svcPauseOpts) getTargetEnv() (*config.Environment, error) {
+func (o *svcPauseOpts) getTargetEnv(ctx context.Context) (*config.Environment, error) {
 	if o.targetEnv != nil {
 		return o.targetEnv, nil
 	}
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return nil, fmt.Errorf("get environment: %w", err)
 	}
@@ -235,7 +235,7 @@ func buildSvcPauseCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.svcName, nameFlag, nameFlagShort, "", svcFlagDescription)

@@ -28,6 +28,7 @@ const (
 
 // StaticSiteDescriber retrieves information about a static site service.
 type StaticSiteDescriber struct {
+	ctx context.Context
 	app string
 	svc string
 
@@ -39,8 +40,9 @@ type StaticSiteDescriber struct {
 }
 
 // NewStaticSiteDescriber instantiates a static site service describer.
-func NewStaticSiteDescriber(opt NewServiceConfig) (*StaticSiteDescriber, error) {
+func NewStaticSiteDescriber(ctx context.Context, opt NewServiceConfig) (*StaticSiteDescriber, error) {
 	describer := &StaticSiteDescriber{
+		ctx:             ctx,
 		app:             opt.App,
 		svc:             opt.Svc,
 		enableResources: opt.EnableResources,
@@ -51,7 +53,7 @@ func NewStaticSiteDescriber(opt NewServiceConfig) (*StaticSiteDescriber, error) 
 		if describer, ok := describer.wkldDescribers[env]; ok {
 			return describer, nil
 		}
-		svcDescr, err := NewWorkloadStackDescriber(NewWorkloadConfig{
+		svcDescr, err := NewWorkloadStackDescriber(ctx, NewWorkloadConfig{
 			App:         opt.App,
 			Env:         env,
 			Name:        opt.Svc,
@@ -64,7 +66,7 @@ func NewStaticSiteDescriber(opt NewServiceConfig) (*StaticSiteDescriber, error) 
 		return svcDescr, nil
 	}
 	describer.initS3Client = func(env string) (bucketDescriber, bucketNameGetter, error) {
-		environment, err := opt.ConfigStore.GetEnvironment(opt.App, env)
+		environment, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, env)
 		if err != nil {
 			return nil, nil, fmt.Errorf("get environment %s: %w", env, err)
 		}
@@ -102,7 +104,11 @@ func (d *StaticSiteDescriber) URI(envName string) (URI, error) {
 
 // Describe returns info of a static site.
 func (d *StaticSiteDescriber) Describe() (HumanJSONStringer, error) {
-	environments, err := d.store.ListEnvironmentsDeployedTo(d.app, d.svc)
+	ctx := d.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for service %q: %w", d.svc, err)
 	}

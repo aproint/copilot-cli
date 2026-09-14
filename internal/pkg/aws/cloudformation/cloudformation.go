@@ -190,7 +190,13 @@ func (c *CloudFormation) DeleteAndWaitWithRoleARN(stackName, roleARN string) err
 // Describe returns a description of an existing stack.
 // If the stack does not exist, returns ErrStackNotFound.
 func (c *CloudFormation) Describe(name string) (*StackDescription, error) {
-	out, err := c.client.DescribeStacks(context.Background(), &cloudformation.DescribeStacksInput{
+	return c.DescribeWithContext(context.Background(), name)
+}
+
+// DescribeWithContext returns a description of an existing stack using ctx.
+// If the stack does not exist, returns ErrStackNotFound.
+func (c *CloudFormation) DescribeWithContext(ctx context.Context, name string) (*StackDescription, error) {
+	out, err := c.client.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
 		StackName: awsv2.String(name),
 	})
 	if err != nil {

@@ -4,6 +4,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,7 +26,7 @@ type Application struct {
 }
 
 // CreateApplication instantiates a new application, validates its uniqueness and stores it in SSM.
-func (s *Store) CreateApplication(application *Application) error {
+func (s *Store) CreateApplication(ctx context.Context, application *Application) error {
 	applicationPath := fmt.Sprintf(fmtApplicationPath, application.Name)
 	application.Version = schemaVersion
 
@@ -34,7 +35,7 @@ func (s *Store) CreateApplication(application *Application) error {
 		return fmt.Errorf("serializing application %s: %w", application.Name, err)
 	}
 
-	_, err = s.ssm.PutParameter(&ssm.PutParameterInput{
+	_, err = s.ssm.PutParameter(ctx, &ssm.PutParameterInput{
 		Name:        aws.String(applicationPath),
 		Description: aws.String("Copilot Application"),
 		Type:        types.ParameterTypeString,
@@ -58,7 +59,7 @@ func (s *Store) CreateApplication(application *Application) error {
 }
 
 // UpdateApplication updates the data in SSM about an application.
-func (s *Store) UpdateApplication(application *Application) error {
+func (s *Store) UpdateApplication(ctx context.Context, application *Application) error {
 	applicationPath := fmt.Sprintf(fmtApplicationPath, application.Name)
 	application.Version = schemaVersion
 
@@ -67,7 +68,7 @@ func (s *Store) UpdateApplication(application *Application) error {
 		return fmt.Errorf("serializing application %s: %w", application.Name, err)
 	}
 
-	if _, err = s.ssm.PutParameter(&ssm.PutParameterInput{
+	if _, err = s.ssm.PutParameter(ctx, &ssm.PutParameterInput{
 		Name:        aws.String(applicationPath),
 		Description: aws.String("Copilot Application"),
 		Type:        types.ParameterTypeString,
@@ -80,16 +81,16 @@ func (s *Store) UpdateApplication(application *Application) error {
 }
 
 // GetApplication fetches an application by name. If it can't be found, return a ErrNoSuchApplication
-func (s *Store) GetApplication(applicationName string) (*Application, error) {
+func (s *Store) GetApplication(ctx context.Context, applicationName string) (*Application, error) {
 	applicationPath := fmt.Sprintf(fmtApplicationPath, applicationName)
-	applicationParam, err := s.ssm.GetParameter(&ssm.GetParameterInput{
+	applicationParam, err := s.ssm.GetParameter(ctx, &ssm.GetParameterInput{
 		Name: aws.String(applicationPath),
 	})
 
 	if err != nil {
 		var notFoundErr *types.ParameterNotFound
 		if errors.As(err, &notFoundErr) {
-			account, region := s.getCallerAccountAndRegion()
+			account, region := s.getCallerAccountAndRegion(ctx)
 			return nil, &ErrNoSuchApplication{
 				ApplicationName: applicationName,
 				AccountID:       account,
@@ -107,9 +108,9 @@ func (s *Store) GetApplication(applicationName string) (*Application, error) {
 }
 
 // ListApplications returns the list of existing applications in the customer's account and region.
-func (s *Store) ListApplications() ([]*Application, error) {
+func (s *Store) ListApplications(ctx context.Context) ([]*Application, error) {
 	var applications []*Application
-	serializedApplications, err := s.listParams(rootApplicationPath)
+	serializedApplications, err := s.listParams(ctx, rootApplicationPath)
 	if err != nil {
 		return nil, fmt.Errorf("list applications: %w", err)
 	}
@@ -125,10 +126,10 @@ func (s *Store) ListApplications() ([]*Application, error) {
 }
 
 // DeleteApplication deletes the SSM parameter related to the application.
-func (s *Store) DeleteApplication(name string) error {
+func (s *Store) DeleteApplication(ctx context.Context, name string) error {
 	paramName := fmt.Sprintf(fmtApplicationPath, name)
 
-	_, err := s.ssm.DeleteParameter(&ssm.DeleteParameterInput{
+	_, err := s.ssm.DeleteParameter(ctx, &ssm.DeleteParameterInput{
 		Name: aws.String(paramName),
 	})
 

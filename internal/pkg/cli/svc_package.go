@@ -66,7 +66,7 @@ type packageSvcOpts struct {
 	sel                  wsSelector
 	unmarshal            func([]byte) (manifest.DynamicWorkload, error)
 	newInterpolator      func(app, env string) interpolator
-	newStackGenerator    func(*packageSvcOpts) (workloadStackGenerator, error)
+	newStackGenerator    func(context.Context, *packageSvcOpts) (workloadStackGenerator, error)
 	envFeaturesDescriber versionCompatibilityChecker
 	gitShortCommit       string
 
@@ -117,12 +117,12 @@ func newPackageSvcOpts(vars packageSvcVars) (*packageSvcOpts, error) {
 	return opts, nil
 }
 
-func newWorkloadStackGenerator(o *packageSvcOpts) (workloadStackGenerator, error) {
-	targetApp, err := o.getTargetApp()
+func newWorkloadStackGenerator(ctx context.Context, o *packageSvcOpts) (workloadStackGenerator, error) {
+	targetApp, err := o.getTargetApp(ctx)
 	if err != nil {
 		return nil, err
 	}
-	targetEnv, err := o.getTargetEnv()
+	targetEnv, err := o.getTargetEnv(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +134,7 @@ func newWorkloadStackGenerator(o *packageSvcOpts) (workloadStackGenerator, error
 	content := o.appliedDynamicMft.Manifest()
 	var deployer workloadStackGenerator
 	in := clideploy.WorkloadDeployerInput{
+		Ctx:             ctx,
 		SessionProvider: o.sessProvider,
 		Name:            o.name,
 		App:             targetApp,
@@ -175,28 +176,28 @@ func (o *packageSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *packageSvcOpts) Ask() error {
+func (o *packageSvcOpts) Ask(ctx context.Context) error {
 	if o.appName != "" {
-		if _, err := o.getTargetApp(); err != nil {
+		if _, err := o.getTargetApp(ctx); err != nil {
 			return err
 		}
 	} else {
 		// NOTE: This command is required to be executed under a workspace. We don't prompt for it.
 		return errNoAppInWorkspace
 	}
-	if err := o.validateOrAskSvcName(); err != nil {
+	if err := o.validateOrAskSvcName(ctx); err != nil {
 		return err
 	}
-	if err := o.validateOrAskEnvName(); err != nil {
+	if err := o.validateOrAskEnvName(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Execute prints the CloudFormation template of the application for the environment.
-func (o *packageSvcOpts) Execute() error {
+func (o *packageSvcOpts) Execute(ctx context.Context) error {
 	if !o.clientConfigured {
-		if err := o.configureClients(); err != nil {
+		if err := o.configureClients(ctx); err != nil {
 			return err
 		}
 	}
@@ -210,15 +211,15 @@ func (o *packageSvcOpts) Execute() error {
 			return err
 		}
 	}
-	targetEnv, err := o.getTargetEnv()
+	targetEnv, err := o.getTargetEnv(ctx)
 	if err != nil {
 		return nil
 	}
-	gen, err := o.getStackGenerator(targetEnv)
+	gen, err := o.getStackGenerator(ctx, targetEnv)
 	if err != nil {
 		return err
 	}
-	stack, err := o.getWorkloadStack(gen)
+	stack, err := o.getWorkloadStack(ctx, gen)
 	if err != nil {
 		return err
 	}
@@ -256,7 +257,7 @@ func (o *packageSvcOpts) Execute() error {
 	return o.writeAndClose(o.addonsWriter, addonsTemplate)
 }
 
-func (o *packageSvcOpts) validateOrAskSvcName() error {
+func (o *packageSvcOpts) validateOrAskSvcName(ctx context.Context) error {
 	if o.name != "" {
 		names, err := o.ws.ListServices()
 		if err != nil {
@@ -268,7 +269,7 @@ func (o *packageSvcOpts) validateOrAskSvcName() error {
 		return nil
 	}
 
-	name, err := o.sel.Service(svcPackageSvcNamePrompt, "")
+	name, err := o.sel.Service(ctx, svcPackageSvcNamePrompt, "")
 	if err != nil {
 		return fmt.Errorf("select service: %w", err)
 	}
@@ -276,13 +277,13 @@ func (o *packageSvcOpts) validateOrAskSvcName() error {
 	return nil
 }
 
-func (o *packageSvcOpts) validateOrAskEnvName() error {
+func (o *packageSvcOpts) validateOrAskEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		_, err := o.getTargetEnv()
+		_, err := o.getTargetEnv(ctx)
 		return err
 	}
 
-	name, err := o.sel.Environment(svcPackageEnvNamePrompt, "", o.appName)
+	name, err := o.sel.Environment(ctx, svcPackageEnvNamePrompt, "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select environment: %w", err)
 	}
@@ -290,14 +291,14 @@ func (o *packageSvcOpts) validateOrAskEnvName() error {
 	return nil
 }
 
-func (o *packageSvcOpts) configureClients() error {
+func (o *packageSvcOpts) configureClients(ctx context.Context) error {
 	o.gitShortCommit = imageTagFromGit(o.runner) // Best effort assign git tag.
 	// client to retrieve an application's resources created with CloudFormation.
 	defaultConfig, err := o.sessProvider.DefaultConfig(context.Background())
 	if err != nil {
 		return fmt.Errorf("create default config: %w", err)
 	}
-	targetEnv, err := o.getTargetEnv()
+	targetEnv, err := o.getTargetEnv(ctx)
 	if err != nil {
 		return err
 	}
@@ -307,13 +308,13 @@ func (o *packageSvcOpts) configureClients() error {
 	}
 	o.envConfig = envConfig
 	// client to retrieve caller identity.
-	caller, err := identity.New(defaultConfig).Get()
+	caller, err := identity.New(defaultConfig).Get(ctx)
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
 	}
 	o.rootUserARN = caller.RootUserARN
 
-	envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+	envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 		App:         o.appName,
 		Env:         o.envName,
 		ConfigStore: o.store,
@@ -323,7 +324,7 @@ func (o *packageSvcOpts) configureClients() error {
 	}
 	o.envFeaturesDescriber = envDescriber
 
-	wkldDescriber, err := describe.NewWorkloadStackDescriber(describe.NewWorkloadConfig{
+	wkldDescriber, err := describe.NewWorkloadStackDescriber(ctx, describe.NewWorkloadConfig{
 		App:         o.appName,
 		Env:         o.envName,
 		Name:        o.name,
@@ -341,7 +342,7 @@ type cfnStackConfig struct {
 	parameters string
 }
 
-func (o *packageSvcOpts) getStackGenerator(env *config.Environment) (workloadStackGenerator, error) {
+func (o *packageSvcOpts) getStackGenerator(ctx context.Context, env *config.Environment) (workloadStackGenerator, error) {
 	mft, interpolated, err := workloadManifest(&workloadManifestInput{
 		name:         o.name,
 		appName:      o.appName,
@@ -359,12 +360,12 @@ func (o *packageSvcOpts) getStackGenerator(env *config.Environment) (workloadSta
 	if err := validateWorkloadManifestCompatibilityWithEnv(o.ws, o.envFeaturesDescriber, o.appliedDynamicMft, o.envName); err != nil {
 		return nil, err
 	}
-	return o.newStackGenerator(o)
+	return o.newStackGenerator(ctx, o)
 }
 
 // getWorkloadStack returns the CloudFormation stack's template and its parameters for the service.
-func (o *packageSvcOpts) getWorkloadStack(generator workloadStackGenerator) (*cfnStackConfig, error) {
-	targetApp, err := o.getTargetApp()
+func (o *packageSvcOpts) getWorkloadStack(ctx context.Context, generator workloadStackGenerator) (*cfnStackConfig, error) {
+	targetApp, err := o.getTargetApp(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -433,11 +434,11 @@ func (o *packageSvcOpts) setAddonsFileWriter() error {
 	return nil
 }
 
-func (o *packageSvcOpts) getTargetApp() (*config.Application, error) {
+func (o *packageSvcOpts) getTargetApp(ctx context.Context) (*config.Application, error) {
 	if o.targetApp != nil {
 		return o.targetApp, nil
 	}
-	app, err := o.store.GetApplication(o.appName)
+	app, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return nil, fmt.Errorf("get application %s configuration: %w", o.appName, err)
 	}
@@ -445,11 +446,11 @@ func (o *packageSvcOpts) getTargetApp() (*config.Application, error) {
 	return o.targetApp, nil
 }
 
-func (o *packageSvcOpts) getTargetEnv() (*config.Environment, error) {
+func (o *packageSvcOpts) getTargetEnv(ctx context.Context) (*config.Environment, error) {
 	if o.targetEnv != nil {
 		return o.targetEnv, nil
 	}
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
@@ -509,7 +510,7 @@ func buildSvcPackageCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", svcFlagDescription)

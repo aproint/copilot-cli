@@ -4,6 +4,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,8 +24,8 @@ type Workload struct {
 
 // CreateService instantiates a new service within an existing application. Skip if
 // the service already exists in the application.
-func (s *Store) CreateService(svc *Workload) error {
-	if err := s.createWorkload(svc); err != nil {
+func (s *Store) CreateService(ctx context.Context, svc *Workload) error {
+	if err := s.createWorkload(ctx, svc); err != nil {
 		return fmt.Errorf("create service %s in application %s: %w", svc.Name, svc.App, err)
 	}
 	return nil
@@ -32,15 +33,15 @@ func (s *Store) CreateService(svc *Workload) error {
 
 // CreateJob instantiates a new job within an existing application. Skip if the job already
 // exists in the application.
-func (s *Store) CreateJob(job *Workload) error {
-	if err := s.createWorkload(job); err != nil {
+func (s *Store) CreateJob(ctx context.Context, job *Workload) error {
+	if err := s.createWorkload(ctx, job); err != nil {
 		return fmt.Errorf("create job %s in application %s: %w", job.Name, job.App, err)
 	}
 	return nil
 }
 
-func (s *Store) createWorkload(wkld *Workload) error {
-	if _, err := s.GetApplication(wkld.App); err != nil {
+func (s *Store) createWorkload(ctx context.Context, wkld *Workload) error {
+	if _, err := s.GetApplication(ctx, wkld.App); err != nil {
 		return err
 	}
 
@@ -50,7 +51,7 @@ func (s *Store) createWorkload(wkld *Workload) error {
 		return fmt.Errorf("serialize data: %w", err)
 	}
 
-	_, err = s.ssm.PutParameter(&ssm.PutParameterInput{
+	_, err = s.ssm.PutParameter(ctx, &ssm.PutParameterInput{
 		Name:        aws.String(wkldPath),
 		Description: aws.String(fmt.Sprintf("Copilot %s %s", wkld.Type, wkld.Name)),
 		Type:        types.ParameterTypeString,
@@ -78,8 +79,8 @@ func (s *Store) createWorkload(wkld *Workload) error {
 
 // GetService gets a service belonging to a particular application by name. If no job or svc is found
 // it returns ErrNoSuchService.
-func (s *Store) GetService(appName, svcName string) (*Workload, error) {
-	param, err := s.getWorkloadParam(appName, svcName)
+func (s *Store) GetService(ctx context.Context, appName, svcName string) (*Workload, error) {
+	param, err := s.getWorkloadParam(ctx, appName, svcName)
 	if err != nil {
 		var errNoSuchWkld *errNoSuchWorkload
 		if errors.As(err, &errNoSuchWkld) {
@@ -107,8 +108,8 @@ func (s *Store) GetService(appName, svcName string) (*Workload, error) {
 
 // GetJob gets a job belonging to a particular application by name. If no job by that name is found,
 // it returns ErrNoSuchJob.
-func (s *Store) GetJob(appName, jobName string) (*Workload, error) {
-	param, err := s.getWorkloadParam(appName, jobName)
+func (s *Store) GetJob(ctx context.Context, appName, jobName string) (*Workload, error) {
+	param, err := s.getWorkloadParam(ctx, appName, jobName)
 	if err != nil {
 		var errNoSuchWkld *errNoSuchWorkload
 		if errors.As(err, &errNoSuchWkld) {
@@ -135,8 +136,8 @@ func (s *Store) GetJob(appName, jobName string) (*Workload, error) {
 }
 
 // GetWorkload gets a workload belonging to an application by name.
-func (s *Store) GetWorkload(appName, name string) (*Workload, error) {
-	param, err := s.getWorkloadParam(appName, name)
+func (s *Store) GetWorkload(ctx context.Context, appName, name string) (*Workload, error) {
+	param, err := s.getWorkloadParam(ctx, appName, name)
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +149,9 @@ func (s *Store) GetWorkload(appName, name string) (*Workload, error) {
 	return &wl, nil
 }
 
-func (s *Store) getWorkloadParam(appName, name string) ([]byte, error) {
+func (s *Store) getWorkloadParam(ctx context.Context, appName, name string) ([]byte, error) {
 	wlPath := fmt.Sprintf(fmtWkldParamPath, appName, name)
-	wlParam, err := s.ssm.GetParameter(&ssm.GetParameterInput{
+	wlParam, err := s.ssm.GetParameter(ctx, &ssm.GetParameterInput{
 		Name: aws.String(wlPath),
 	})
 	if err != nil {
@@ -167,8 +168,8 @@ func (s *Store) getWorkloadParam(appName, name string) ([]byte, error) {
 }
 
 // ListServices returns all services belonging to a particular application.
-func (s *Store) ListServices(appName string) ([]*Workload, error) {
-	wklds, err := s.listWorkloads(appName)
+func (s *Store) ListServices(ctx context.Context, appName string) ([]*Workload, error) {
+	wklds, err := s.listWorkloads(ctx, appName)
 	if err != nil {
 		return nil, fmt.Errorf("read service configuration for application %s: %w", appName, err)
 	}
@@ -184,8 +185,8 @@ func (s *Store) ListServices(appName string) ([]*Workload, error) {
 }
 
 // ListJobs returns all jobs belonging to a particular application.
-func (s *Store) ListJobs(appName string) ([]*Workload, error) {
-	wklds, err := s.listWorkloads(appName)
+func (s *Store) ListJobs(ctx context.Context, appName string) ([]*Workload, error) {
+	wklds, err := s.listWorkloads(ctx, appName)
 	if err != nil {
 		return nil, fmt.Errorf("read job configuration for application %s: %w", appName, err)
 	}
@@ -201,8 +202,8 @@ func (s *Store) ListJobs(appName string) ([]*Workload, error) {
 }
 
 // ListWorkloads returns all workloads belonging to a particular application.
-func (s *Store) ListWorkloads(appName string) ([]*Workload, error) {
-	wklds, err := s.listWorkloads(appName)
+func (s *Store) ListWorkloads(ctx context.Context, appName string) ([]*Workload, error) {
+	wklds, err := s.listWorkloads(ctx, appName)
 	if err != nil {
 		return nil, fmt.Errorf("read workload configuration for application %s: %w", appName, err)
 	}
@@ -210,11 +211,11 @@ func (s *Store) ListWorkloads(appName string) ([]*Workload, error) {
 	return wklds, nil
 }
 
-func (s *Store) listWorkloads(appName string) ([]*Workload, error) {
+func (s *Store) listWorkloads(ctx context.Context, appName string) ([]*Workload, error) {
 	var workloads []*Workload
 
 	workloadsPath := fmt.Sprintf(rootWkldParamPath, appName)
-	serializedWklds, err := s.listParams(workloadsPath)
+	serializedWklds, err := s.listParams(ctx, workloadsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -231,8 +232,8 @@ func (s *Store) listWorkloads(appName string) ([]*Workload, error) {
 
 // DeleteService removes a service from SSM.
 // If the service does not exist in the store or is successfully deleted then returns nil. Otherwise, returns an error.
-func (s *Store) DeleteService(appName, svcName string) error {
-	if err := s.deleteWorkload(appName, svcName); err != nil {
+func (s *Store) DeleteService(ctx context.Context, appName, svcName string) error {
+	if err := s.deleteWorkload(ctx, appName, svcName); err != nil {
 		return fmt.Errorf("delete service %s from application %s: %w", svcName, appName, err)
 	}
 	return nil
@@ -240,16 +241,16 @@ func (s *Store) DeleteService(appName, svcName string) error {
 
 // DeleteJob removes a job from SSM.
 // If the job does not exist in the store or is successfully deleted then returns nil. Otherwise, returns an error.
-func (s *Store) DeleteJob(appName, jobName string) error {
-	if err := s.deleteWorkload(appName, jobName); err != nil {
+func (s *Store) DeleteJob(ctx context.Context, appName, jobName string) error {
+	if err := s.deleteWorkload(ctx, appName, jobName); err != nil {
 		return fmt.Errorf("delete job %s from application %s: %w", jobName, appName, err)
 	}
 	return nil
 }
 
-func (s *Store) deleteWorkload(appName, wkldName string) error {
+func (s *Store) deleteWorkload(ctx context.Context, appName, wkldName string) error {
 	paramName := fmt.Sprintf(fmtWkldParamPath, appName, wkldName)
-	_, err := s.ssm.DeleteParameter(&ssm.DeleteParameterInput{
+	_, err := s.ssm.DeleteParameter(ctx, &ssm.DeleteParameterInput{
 		Name: aws.String(paramName),
 	})
 

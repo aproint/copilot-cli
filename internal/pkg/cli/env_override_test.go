@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -32,7 +33,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				appName: "demo",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, errors.New("some error"))
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, errors.New("some error"))
 					cmd.cfgStore = mockSSM
 				},
 				wanted: errors.New(`get application "demo" configuration: some error`),
@@ -76,7 +77,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 			"skip validating if environment name is empty": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 				},
 			},
@@ -84,7 +85,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				name: "test",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					mockWS := mocks.NewMockwsEnvironmentReader(ctrl)
 					mockWS.EXPECT().ListEnvironments().Return(nil, errors.New("some error"))
 					cmd.cfgStore = mockSSM
@@ -96,7 +97,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				name: "test",
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					mockWS := mocks.NewMockwsEnvironmentReader(ctrl)
 					mockWS.EXPECT().ListEnvironments().Return([]string{"prod"}, nil)
 					cmd.cfgStore = mockSSM
@@ -152,7 +153,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				defer ctrl.Finish()
 				mockSSM := mocks.NewMockstore(ctrl)
-				mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, nil)
+				mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, nil)
 
 				vars := overrideVars{appName: "demo", cdkLang: tc.lang}
 				cmd := &overrideEnvOpts{
@@ -191,7 +192,7 @@ func TestOverrideEnv_Ask(t *testing.T) {
 				cfgStore:     mocks.NewMockstore(ctrl),
 				packageCmd: func(_ stringWriteCloser) (executor, error) {
 					mockCmd := mocks.NewMockexecutor(ctrl)
-					mockCmd.EXPECT().Execute().AnyTimes()
+					mockCmd.EXPECT().Execute(gomock.Any()).AnyTimes()
 					return mockCmd, nil
 				},
 			},
@@ -199,7 +200,7 @@ func TestOverrideEnv_Ask(t *testing.T) {
 		}
 
 		// WHEN
-		err := cmd.Ask()
+		err := cmd.Ask(context.Background())
 
 		// THEN
 		require.NoError(t, err)
@@ -244,7 +245,7 @@ func TestOverrideEnv_Ask(t *testing.T) {
 						cfnPrompt:    mockCfnPrompt,
 						packageCmd: func(_ stringWriteCloser) (executor, error) {
 							mockCmd := mocks.NewMockexecutor(ctrl)
-							mockCmd.EXPECT().Execute().AnyTimes()
+							mockCmd.EXPECT().Execute(gomock.Any()).AnyTimes()
 							return mockCmd, nil
 						},
 						spinner: &spinnerTestDouble{},
@@ -255,7 +256,7 @@ func TestOverrideEnv_Ask(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -291,7 +292,7 @@ func TestOverrideEnv_Ask(t *testing.T) {
 			"should return a wrapped error if package command fails to execute": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockPkgCmd := mocks.NewMockexecutor(ctrl)
-					mockPkgCmd.EXPECT().Execute().Return(errors.New("some error"))
+					mockPkgCmd.EXPECT().Execute(gomock.Any()).Return(errors.New("some error"))
 					cmd.packageCmd = func(_ stringWriteCloser) (executor, error) {
 						return mockPkgCmd, nil
 					}
@@ -301,7 +302,7 @@ func TestOverrideEnv_Ask(t *testing.T) {
 			"should prompt for CloudFormation resources in a template": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overrideEnvOpts) {
 					mockPkgCmd := mocks.NewMockexecutor(ctrl)
-					mockPkgCmd.EXPECT().Execute().Return(nil)
+					mockPkgCmd.EXPECT().Execute(gomock.Any()).Return(nil)
 					mockPrompt := mocks.NewMockcfnSelector(ctrl)
 					template := `
 	Resources:
@@ -337,7 +338,7 @@ func TestOverrideEnv_Ask(t *testing.T) {
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -411,7 +412,7 @@ func TestOverrideEnv_Execute(t *testing.T) {
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Execute()
+				err := cmd.Execute(context.Background())
 
 				// THEN
 				if tc.wanted != nil {

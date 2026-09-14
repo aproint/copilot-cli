@@ -43,10 +43,15 @@ func New(cfg awsv2.Config) *IAM {
 
 // ListRoleTags gathers all the tags associated with an IAM role.
 func (c *IAM) ListRoleTags(roleName string) (map[string]string, error) {
+	return c.ListRoleTagsContext(context.Background(), roleName)
+}
+
+// ListRoleTagsContext gathers all tags associated with an IAM role using ctx.
+func (c *IAM) ListRoleTagsContext(ctx context.Context, roleName string) (map[string]string, error) {
 	tags := make(map[string]string)
 	var marker *string
 	for {
-		out, err := c.client.ListRoleTags(context.Background(), &iam.ListRoleTagsInput{
+		out, err := c.client.ListRoleTags(ctx, &iam.ListRoleTagsInput{
 			RoleName: awsv2.String(roleName),
 			Marker:   marker,
 		})
@@ -102,10 +107,15 @@ func (c *IAM) CreateECSServiceLinkedRole() error {
 
 // ListPolicyNames returns a list of local policy names.
 func (c *IAM) ListPolicyNames() ([]string, error) {
+	return c.ListPolicyNamesContext(context.Background())
+}
+
+// ListPolicyNamesContext returns local policy names using ctx.
+func (c *IAM) ListPolicyNamesContext(ctx context.Context) ([]string, error) {
 	var policies []types.Policy
 	var marker *string
 	for {
-		output, err := c.client.ListPolicies(context.Background(), &iam.ListPoliciesInput{
+		output, err := c.client.ListPolicies(ctx, &iam.ListPoliciesInput{
 			Marker:            marker,
 			Scope:             types.PolicyScopeTypeLocal,
 			PolicyUsageFilter: types.PolicyUsageTypePermissionsBoundary,

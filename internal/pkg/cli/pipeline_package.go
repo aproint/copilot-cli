@@ -117,7 +117,7 @@ func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, err
 	return opts, nil
 }
 
-func (o *packagePipelineOpts) Execute() error {
+func (o *packagePipelineOpts) Execute(ctx context.Context) error {
 	pipelines, err := o.ws.ListPipelines()
 	if err != nil {
 		return fmt.Errorf("list all pipelines in the workspace: %w", err)
@@ -158,12 +158,12 @@ func (o *packagePipelineOpts) Execute() error {
 		return fmt.Errorf("convert manifest path to relative path: %w", err)
 	}
 
-	stages, err := o.convertStages(pipelineMft.Stages)
+	stages, err := o.convertStages(ctx, pipelineMft.Stages)
 	if err != nil {
 		return fmt.Errorf("convert environments to deployment stage: %w", err)
 	}
 
-	appConfig, err := o.store.GetApplication(o.appName)
+	appConfig, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %s configuration: %w", o.appName, err)
 	}
@@ -245,14 +245,14 @@ func (o *packagePipelineOpts) isLegacy(inputName string) (bool, error) {
 	return false, nil
 }
 
-func (o *packagePipelineOpts) convertStages(manifestStages []manifest.PipelineStage) ([]deploy.PipelineStage, error) {
+func (o *packagePipelineOpts) convertStages(ctx context.Context, manifestStages []manifest.PipelineStage) ([]deploy.PipelineStage, error) {
 	var stages []deploy.PipelineStage
-	workloads, err := o.getLocalWorkloads()
+	workloads, err := o.getLocalWorkloads(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, stage := range manifestStages {
-		env, err := o.store.GetEnvironment(o.appName, stage.Name)
+		env, err := o.store.GetEnvironment(ctx, o.appName, stage.Name)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s in application %s: %w", stage.Name, o.appName, err)
 		}
@@ -264,12 +264,12 @@ func (o *packagePipelineOpts) convertStages(manifestStages []manifest.PipelineSt
 	return stages, nil
 }
 
-func (o packagePipelineOpts) getLocalWorkloads() ([]string, error) {
+func (o packagePipelineOpts) getLocalWorkloads(ctx context.Context) ([]string, error) {
 	var localWklds []string
-	if err := o.newSvcListCmd(o.svcBuffer, o.appName).Execute(); err != nil {
+	if err := o.newSvcListCmd(o.svcBuffer, o.appName).Execute(ctx); err != nil {
 		return nil, fmt.Errorf("get local services: %w", err)
 	}
-	if err := o.newJobListCmd(o.jobBuffer, o.appName).Execute(); err != nil {
+	if err := o.newJobListCmd(o.jobBuffer, o.appName).Execute(ctx); err != nil {
 		return nil, fmt.Errorf("get local jobs: %w", err)
 	}
 	svcOutput, jobOutput := &list.ServiceJSONOutput{}, &list.JobJSONOutput{}

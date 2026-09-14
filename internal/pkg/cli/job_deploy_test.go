@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -59,7 +60,7 @@ func TestJobDeployOpts_Validate(t *testing.T) {
 			inEnvName: "test",
 			mockWs:    func(m *mocks.MockwsWlDirReader) {},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("phonetool", "test").
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").
 					Return(nil, errors.New("unknown env"))
 			},
 
@@ -73,7 +74,7 @@ func TestJobDeployOpts_Validate(t *testing.T) {
 				m.EXPECT().ListJobs().Return([]string{"resizer"}, nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetEnvironment("phonetool", "test").
+				m.EXPECT().GetEnvironment(ctx, "phonetool", "test").
 					Return(&config.Environment{Name: "test"}, nil)
 			},
 		},
@@ -130,8 +131,8 @@ func TestJobDeployOpts_Ask(t *testing.T) {
 			inAppName:  "phonetool",
 			inImageTag: "latest",
 			wantedCalls: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Job("Select a job from your workspace", "").Return("resizer", nil)
-				m.EXPECT().Environment("Select an environment", "", "phonetool").Return("prod-iad", nil)
+				m.EXPECT().Job(ctx, "Select a job from your workspace", "").Return("resizer", nil)
+				m.EXPECT().Environment(ctx, "Select an environment", "", "phonetool").Return("prod-iad", nil)
 			},
 
 			wantedJobName:  "resizer",
@@ -144,8 +145,8 @@ func TestJobDeployOpts_Ask(t *testing.T) {
 			inJobName:  "resizer",
 			inImageTag: "latest",
 			wantedCalls: func(m *mocks.MockwsSelector) {
-				m.EXPECT().Job(gomock.Any(), gomock.Any()).Times(0)
-				m.EXPECT().Environment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Job(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().Environment(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
 
 			wantedJobName:  "resizer",
@@ -173,7 +174,7 @@ func TestJobDeployOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError == nil {
@@ -470,7 +471,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 					clientConfigured: true,
 				},
 				ws: m.mockWsReader,
-				newJobDeployer: func() (workloadDeployer, error) {
+				newJobDeployer: func(_ context.Context) (workloadDeployer, error) {
 					return m.mockDeployer, nil
 				},
 				newInterpolator: func(app, env string) interpolator {
@@ -490,7 +491,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError == nil {

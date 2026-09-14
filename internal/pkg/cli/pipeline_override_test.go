@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -32,7 +33,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				appName: "demo",
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).Return(nil, errors.New("some error"))
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, errors.New("some error"))
 					cmd.cfgStore = mockSSM
 				},
 				wanted: errors.New(`get application "demo" configuration: some error`),
@@ -76,7 +77,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 			"skip validating if pipeline name is empty": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 				},
 			},
@@ -84,7 +85,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				name: "pipeline-testing",
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 					mockWS := mocks.NewMockwsPipelineReader(ctrl)
 					mockWS.EXPECT().ListPipelines().Return(nil, errors.New("some error"))
@@ -97,7 +98,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				name: "pipeline-testing",
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockSSM := mocks.NewMockstore(ctrl)
-					mockSSM.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+					mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 					cmd.cfgStore = mockSSM
 					mockWS := mocks.NewMockwsPipelineReader(ctrl)
 					mockWS.EXPECT().ListPipelines().Return([]workspace.PipelineManifest{{Name: "pipeline-production", Path: "path"}}, nil)
@@ -152,7 +153,7 @@ func TestOverridePipeline_Ask(t *testing.T) {
 				cfgStore:     mocks.NewMockstore(ctrl),
 				packageCmd: func(_ stringWriteCloser) (executor, error) {
 					mockCmd := mocks.NewMockexecutor(ctrl)
-					mockCmd.EXPECT().Execute().AnyTimes()
+					mockCmd.EXPECT().Execute(gomock.Any()).AnyTimes()
 					return mockCmd, nil
 				},
 			},
@@ -160,7 +161,7 @@ func TestOverridePipeline_Ask(t *testing.T) {
 		}
 
 		// WHEN
-		err := cmd.Ask()
+		err := cmd.Ask(context.Background())
 
 		// THEN
 		require.NoError(t, err)
@@ -205,7 +206,7 @@ func TestOverridePipeline_Ask(t *testing.T) {
 						cfnPrompt:    mockCfnPrompt,
 						packageCmd: func(_ stringWriteCloser) (executor, error) {
 							mockCmd := mocks.NewMockexecutor(ctrl)
-							mockCmd.EXPECT().Execute().AnyTimes()
+							mockCmd.EXPECT().Execute(gomock.Any()).AnyTimes()
 							return mockCmd, nil
 						},
 						spinner: &spinnerTestDouble{},
@@ -216,7 +217,7 @@ func TestOverridePipeline_Ask(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -252,7 +253,7 @@ func TestOverridePipeline_Ask(t *testing.T) {
 			"should return a wrapped error if package command fails to execute": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockPkgCmd := mocks.NewMockexecutor(ctrl)
-					mockPkgCmd.EXPECT().Execute().Return(errors.New("some error"))
+					mockPkgCmd.EXPECT().Execute(gomock.Any()).Return(errors.New("some error"))
 					cmd.packageCmd = func(_ stringWriteCloser) (executor, error) {
 						return mockPkgCmd, nil
 					}
@@ -262,7 +263,7 @@ func TestOverridePipeline_Ask(t *testing.T) {
 			"should prompt for CloudFormation resources in a template": {
 				initMocks: func(ctrl *gomock.Controller, cmd *overridePipelineOpts) {
 					mockPkgCmd := mocks.NewMockexecutor(ctrl)
-					mockPkgCmd.EXPECT().Execute().Return(nil)
+					mockPkgCmd.EXPECT().Execute(gomock.Any()).Return(nil)
 					mockPrompt := mocks.NewMockcfnSelector(ctrl)
 					template := `
 	Resources:
@@ -298,7 +299,7 @@ func TestOverridePipeline_Ask(t *testing.T) {
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Ask()
+				err := cmd.Ask(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -372,7 +373,7 @@ func TestOverridePipeline_Execute(t *testing.T) {
 				tc.initMocks(ctrl, cmd)
 
 				// WHEN
-				err := cmd.Execute()
+				err := cmd.Execute(context.Background())
 
 				// THEN
 				if tc.wanted != nil {

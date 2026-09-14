@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -55,7 +56,7 @@ func TestJobLogs_Validate(t *testing.T) {
 			inputApp: "my-app",
 
 			mockstore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication("my-app").Return(nil, errors.New("some error"))
+				m.EXPECT().GetApplication(ctx, "my-app").Return(nil, errors.New("some error"))
 			},
 
 			wantedError: fmt.Errorf("some error"),
@@ -64,8 +65,8 @@ func TestJobLogs_Validate(t *testing.T) {
 			inputApp:     "my-app",
 			inputEnvName: "test",
 			mockstore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication("my-app").Return(&config.Application{}, nil)
-				m.EXPECT().GetEnvironment("my-app", "test").Return(nil, errors.New("some error"))
+				m.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{}, nil)
+				m.EXPECT().GetEnvironment(ctx, "my-app", "test").Return(nil, errors.New("some error"))
 			},
 
 			wantedError: fmt.Errorf("some error"),
@@ -75,8 +76,8 @@ func TestJobLogs_Validate(t *testing.T) {
 			inputSvc: "frontend",
 
 			mockstore: func(m *mocks.Mockstore) {
-				m.EXPECT().GetApplication("my-app").Return(&config.Application{}, nil)
-				m.EXPECT().GetJob("my-app", "frontend").Return(nil, errors.New("some error"))
+				m.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{}, nil)
+				m.EXPECT().GetJob(ctx, "my-app", "frontend").Return(nil, errors.New("some error"))
 			},
 
 			wantedError: fmt.Errorf("some error"),
@@ -199,10 +200,10 @@ func TestJobLogs_Ask(t *testing.T) {
 			inputEnvName: inputEnv,
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.configStore.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil),
-					m.configStore.EXPECT().GetEnvironment("my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
-					m.configStore.EXPECT().GetJob("my-app", "my-job").Return(&config.Workload{}, nil),
-					m.sel.EXPECT().DeployedJob(jobLogNamePrompt, jobLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+					m.configStore.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil),
+					m.configStore.EXPECT().GetEnvironment(ctx, "my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil),
+					m.configStore.EXPECT().GetJob(ctx, "my-app", "my-job").Return(&config.Workload{}, nil),
+					m.sel.EXPECT().DeployedJob(ctx, jobLogNamePrompt, jobLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 						Return(&selector.DeployedJob{
 							Env:  "my-env",
 							Name: "my-job",
@@ -217,11 +218,11 @@ func TestJobLogs_Ask(t *testing.T) {
 			inputJob:     inputJob,
 			inputEnvName: inputEnv,
 			setupMocks: func(m wkldLogsMock) {
-				m.sel.EXPECT().Application(jobAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
-				m.configStore.EXPECT().GetApplication(gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetJob(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedJob(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedJob{
+				m.sel.EXPECT().Application(ctx, jobAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetJob(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedJob(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedJob{
 					Env:  "my-env",
 					Name: "my-job",
 				}, nil).AnyTimes()
@@ -233,7 +234,7 @@ func TestJobLogs_Ask(t *testing.T) {
 		"returns error if fail to select app": {
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.sel.EXPECT().Application(jobAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error")),
+					m.sel.EXPECT().Application(ctx, jobAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error")),
 				)
 			},
 			wantedError: fmt.Errorf("select application: some error"),
@@ -241,10 +242,10 @@ func TestJobLogs_Ask(t *testing.T) {
 		"prompt for job and env": {
 			inputApp: "my-app",
 			setupMocks: func(m wkldLogsMock) {
-				m.configStore.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetJob(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedJob(jobLogNamePrompt, jobLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetJob(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedJob(ctx, jobLogNamePrompt, jobLogNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedJob{
 						Env:  "my-env",
 						Name: "my-job",
@@ -257,10 +258,10 @@ func TestJobLogs_Ask(t *testing.T) {
 		"return error if fail to select deployed job": {
 			inputApp: inputApp,
 			setupMocks: func(m wkldLogsMock) {
-				m.configStore.EXPECT().GetApplication(gomock.Any()).AnyTimes()
-				m.configStore.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.configStore.EXPECT().GetJob(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedJob(jobLogNamePrompt, jobLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
+				m.configStore.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
+				m.configStore.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.configStore.EXPECT().GetJob(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedJob(ctx, jobLogNamePrompt, jobLogNameHelpPrompt, inputApp, gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select deployed jobs for application my-app: some error"),
@@ -297,7 +298,7 @@ func TestJobLogs_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := jobLogs.Ask()
+			err := jobLogs.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -427,13 +428,13 @@ func TestJobLogs_Execute(t *testing.T) {
 				wkldLogOpts: wkldLogOpts{
 					startTime:          &tc.startTime,
 					endTime:            &tc.endTime,
-					initRuntimeClients: func() error { return nil },
+					initRuntimeClients: func(_ context.Context) error { return nil },
 					logsSvc:            tc.mocklogsSvc(ctrl),
 				},
 			}
 
 			// WHEN
-			err := svcLogs.Execute()
+			err := svcLogs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

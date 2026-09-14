@@ -400,6 +400,21 @@ func (mr *MockcfnClientMockRecorder) DescribeStackEvents(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackEvents", reflect.TypeOf((*MockcfnClient)(nil).DescribeStackEvents), arg0)
 }
 
+// DescribeWithContext mocks base method.
+func (m *MockcfnClient) DescribeWithContext(ctx context.Context, stackName string) (*cloudformation.StackDescription, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeWithContext", ctx, stackName)
+	ret0, _ := ret[0].(*cloudformation.StackDescription)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeWithContext indicates an expected call of DescribeWithContext.
+func (mr *MockcfnClientMockRecorder) DescribeWithContext(ctx, stackName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWithContext", reflect.TypeOf((*MockcfnClient)(nil).DescribeWithContext), ctx, stackName)
+}
+
 // ErrorEvents mocks base method.
 func (m *MockcfnClient) ErrorEvents(stackName string) ([]cloudformation.StackEvent, error) {
 	m.ctrl.T.Helper()

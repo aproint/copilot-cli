@@ -5,6 +5,7 @@ package deploy
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -108,7 +109,7 @@ type mockTopicLister struct {
 }
 
 // ListSNSTopics implements the snsTopicsLister interface.
-func (m *mockTopicLister) ListSNSTopics(_, _ string) ([]deploy.Topic, error) {
+func (m *mockTopicLister) ListSNSTopics(context.Context, string, string) ([]deploy.Topic, error) {
 	return m.topics, m.err
 }
 

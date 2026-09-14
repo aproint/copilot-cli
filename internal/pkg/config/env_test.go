@@ -4,6 +4,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -35,13 +36,13 @@ func TestStore_ListEnvironments(t *testing.T) {
 	lastPageInPaginatedResp := false
 
 	testCases := map[string]struct {
-		mockGetParametersByPath func(t *testing.T, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
+		mockGetParametersByPath func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (*ssm.GetParametersByPathOutput, error)
 
 		wantedEnvironments []Environment
 		wantedErr          error
 	}{
 		"with multiple existing environments": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, environmentPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -61,7 +62,7 @@ func TestStore_ListEnvironments(t *testing.T) {
 			wantedErr:          nil,
 		},
 		"with malformed json": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, environmentPath, *param.Path)
 				return &ssm.GetParametersByPathOutput{
 					Parameters: []types.Parameter{
@@ -75,14 +76,14 @@ func TestStore_ListEnvironments(t *testing.T) {
 			wantedErr: fmt.Errorf("read environment configuration for application chicken: invalid character 'o' looking for beginning of value"),
 		},
 		"with SSM error": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, environmentPath, *param.Path)
 				return nil, fmt.Errorf("broken")
 			},
 			wantedErr: fmt.Errorf("list environments for application chicken: broken"),
 		},
 		"with paginated response": {
-			mockGetParametersByPath: func(t *testing.T, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
+			mockGetParametersByPath: func(t *testing.T, _ context.Context, param *ssm.GetParametersByPathInput) (output *ssm.GetParametersByPathOutput, e error) {
 				require.Equal(t, environmentPath, *param.Path)
 
 				if !lastPageInPaginatedResp {
@@ -129,7 +130,7 @@ func TestStore_ListEnvironments(t *testing.T) {
 			}
 
 			// WHEN
-			envPointers, err := store.ListEnvironments("chicken")
+			envPointers, err := store.ListEnvironments(context.Background(), "chicken")
 			// THEN
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
@@ -151,12 +152,12 @@ func TestStore_GetEnvironment(t *testing.T) {
 	require.NoError(t, err, "Marshal environment should not fail")
 
 	testCases := map[string]struct {
-		mockGetParameter  func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+		mockGetParameter  func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 		wantedEnvironment Environment
 		wantedErr         error
 	}{
 		"with existing environment": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -169,7 +170,7 @@ func TestStore_GetEnvironment(t *testing.T) {
 			wantedErr:         nil,
 		},
 		"with no existing environment": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				return nil, &types.ParameterNotFound{}
 			},
@@ -179,7 +180,7 @@ func TestStore_GetEnvironment(t *testing.T) {
 			},
 		},
 		"with malformed json": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -191,7 +192,7 @@ func TestStore_GetEnvironment(t *testing.T) {
 			wantedErr: fmt.Errorf("read configuration for environment test in application chicken: invalid character 'o' looking for beginning of value"),
 		},
 		"with SSM error": {
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				return nil, fmt.Errorf("broken")
 			},
 			wantedErr: fmt.Errorf("get environment test in application chicken: broken"),
@@ -209,7 +210,7 @@ func TestStore_GetEnvironment(t *testing.T) {
 			}
 
 			// WHEN
-			env, err := store.GetEnvironment("chicken", "test")
+			env, err := store.GetEnvironment(context.Background(), "chicken", "test")
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -256,12 +257,12 @@ func TestStore_CreateEnvironment(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		mockGetParameter func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
-		mockPutParameter func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
+		mockGetParameter func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+		mockPutParameter func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
 		wantedErr        error
 	}{
 		"with no existing environment": {
-			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+			mockPutParameter: func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				require.Equal(t, testEnvironmentString, *param.Value)
 				require.Equal(t, tagsForEnvParam, param.Tags)
@@ -269,7 +270,7 @@ func TestStore_CreateEnvironment(t *testing.T) {
 					Version: 1,
 				}, nil
 			},
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -282,12 +283,12 @@ func TestStore_CreateEnvironment(t *testing.T) {
 			wantedErr: nil,
 		},
 		"with existing environment": {
-			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+			mockPutParameter: func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, testEnvironmentPath, *param.Name)
 				require.Equal(t, tagsForEnvParam, param.Tags)
 				return nil, &types.ParameterAlreadyExists{}
 			},
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -299,11 +300,11 @@ func TestStore_CreateEnvironment(t *testing.T) {
 			wantedErr: nil,
 		},
 		"with SSM error": {
-			mockPutParameter: func(t *testing.T, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+			mockPutParameter: func(t *testing.T, _ context.Context, param *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 				require.Equal(t, tagsForEnvParam, param.Tags)
 				return nil, fmt.Errorf("broken")
 			},
-			mockGetParameter: func(t *testing.T, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+			mockGetParameter: func(t *testing.T, _ context.Context, param *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 				require.Equal(t, testApplicationPath, *param.Name)
 				return &ssm.GetParameterOutput{
 					Parameter: &types.Parameter{
@@ -328,7 +329,7 @@ func TestStore_CreateEnvironment(t *testing.T) {
 			}
 
 			// WHEN
-			err := store.CreateEnvironment(&Environment{
+			err := store.CreateEnvironment(context.Background(), &Environment{
 				Name:         testEnvironment.Name,
 				App:          testEnvironment.App,
 				AccountID:    testEnvironment.AccountID,
@@ -348,21 +349,21 @@ func TestStore_DeleteEnvironment(t *testing.T) {
 	testCases := map[string]struct {
 		inApplicationName string
 		inEnvName         string
-		mockDeleteParam   func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error)
+		mockDeleteParam   func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error)
 
 		wantedError error
 	}{
 		"parameter is already deleted": {
 			inApplicationName: "phonetool",
 			inEnvName:         "test",
-			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+			mockDeleteParam: func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
 				return nil, &types.ParameterNotFound{}
 			},
 		},
 		"unexpected error": {
 			inApplicationName: "phonetool",
 			inEnvName:         "test",
-			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+			mockDeleteParam: func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
 				return nil, errors.New("some error")
 			},
 			wantedError: errors.New("delete environment test from application phonetool: some error"),
@@ -370,7 +371,7 @@ func TestStore_DeleteEnvironment(t *testing.T) {
 		"successfully deleted param": {
 			inApplicationName: "phonetool",
 			inEnvName:         "test",
-			mockDeleteParam: func(t *testing.T, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+			mockDeleteParam: func(t *testing.T, _ context.Context, in *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
 				wantedPath := fmt.Sprintf(fmtEnvParamPath, "phonetool", "test")
 				require.Equal(t, wantedPath, *in.Name)
 				return nil, nil
@@ -389,7 +390,7 @@ func TestStore_DeleteEnvironment(t *testing.T) {
 			}
 
 			// WHEN
-			err := store.DeleteEnvironment(tc.inApplicationName, tc.inEnvName)
+			err := store.DeleteEnvironment(context.Background(), tc.inApplicationName, tc.inEnvName)
 
 			// THEN
 			if tc.wantedError != nil {

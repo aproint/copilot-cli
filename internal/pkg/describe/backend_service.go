@@ -32,6 +32,7 @@ const (
 
 // BackendServiceDescriber retrieves information about a backend service.
 type BackendServiceDescriber struct {
+	ctx             context.Context
 	app             string
 	svc             string
 	enableResources bool
@@ -47,8 +48,9 @@ type BackendServiceDescriber struct {
 }
 
 // NewBackendServiceDescriber instantiates a backend service describer.
-func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber, error) {
+func NewBackendServiceDescriber(ctx context.Context, opt NewServiceConfig) (*BackendServiceDescriber, error) {
 	describer := &BackendServiceDescriber{
+		ctx:                  ctx,
 		app:                  opt.App,
 		svc:                  opt.Svc,
 		enableResources:      opt.EnableResources,
@@ -57,7 +59,7 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		envStackDescriber:    make(map[string]envDescriber),
 	}
 	describer.initLBDescriber = func(envName string) (lbDescriber, error) {
-		env, err := opt.ConfigStore.GetEnvironment(opt.App, envName)
+		env, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, envName)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
@@ -71,7 +73,7 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		if describer, ok := describer.ecsServiceDescribers[env]; ok {
 			return describer, nil
 		}
-		svcDescr, err := newECSServiceDescriber(NewServiceConfig{
+		svcDescr, err := newECSServiceDescriber(ctx, NewServiceConfig{
 			App:         opt.App,
 			Env:         env,
 			Svc:         opt.Svc,
@@ -87,7 +89,7 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		if describer, ok := describer.cwAlarmDescribers[envName]; ok {
 			return describer, nil
 		}
-		env, err := opt.ConfigStore.GetEnvironment(opt.App, envName)
+		env, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, envName)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
@@ -101,7 +103,7 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 		if describer, ok := describer.envStackDescriber[env]; ok {
 			return describer, nil
 		}
-		envDescr, err := NewEnvDescriber(NewEnvDescriberConfig{
+		envDescr, err := NewEnvDescriber(ctx, NewEnvDescriberConfig{
 			App:         opt.App,
 			Env:         env,
 			ConfigStore: opt.ConfigStore,
@@ -117,7 +119,11 @@ func NewBackendServiceDescriber(opt NewServiceConfig) (*BackendServiceDescriber,
 
 // Describe returns info of a backend service.
 func (d *BackendServiceDescriber) Describe() (HumanJSONStringer, error) {
-	environments, err := d.store.ListEnvironmentsDeployedTo(d.app, d.svc)
+	ctx := d.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for application %s: %w", d.app, err)
 	}

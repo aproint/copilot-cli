@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -46,8 +47,8 @@ type ReachableService interface {
 }
 
 // NewReachableService returns a ReachableService based on the type of the service.
-func NewReachableService(app, svc string, store ConfigStoreSvc) (ReachableService, error) {
-	cfg, err := store.GetWorkload(app, svc)
+func NewReachableService(ctx context.Context, app, svc string, store ConfigStoreSvc) (ReachableService, error) {
+	cfg, err := store.GetWorkload(ctx, app, svc)
 	if err != nil {
 		return nil, err
 	}
@@ -58,13 +59,13 @@ func NewReachableService(app, svc string, store ConfigStoreSvc) (ReachableServic
 	}
 	switch cfg.Type {
 	case manifestinfo.LoadBalancedWebServiceType:
-		return NewLBWebServiceDescriber(in)
+		return NewLBWebServiceDescriber(ctx, in)
 	case manifestinfo.RequestDrivenWebServiceType:
-		return NewRDWebServiceDescriber(in)
+		return NewRDWebServiceDescriber(ctx, in)
 	case manifestinfo.BackendServiceType:
-		return NewBackendServiceDescriber(in)
+		return NewBackendServiceDescriber(ctx, in)
 	case manifestinfo.StaticSiteType:
-		return NewStaticSiteDescriber(in)
+		return NewStaticSiteDescriber(ctx, in)
 	default:
 		return nil, &ErrNonAccessibleServiceType{
 			name:    svc,

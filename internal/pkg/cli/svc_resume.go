@@ -36,7 +36,7 @@ type resumeSvcVars struct {
 	envName string
 }
 
-type resumeSvcInitClients func() error
+type resumeSvcInitClients func(ctx context.Context) error
 type resumeSvcOpts struct {
 	resumeSvcVars
 
@@ -54,19 +54,19 @@ func (o *resumeSvcOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *resumeSvcOpts) Ask() error {
-	if err := o.validateOrAskApp(); err != nil {
+func (o *resumeSvcOpts) Ask(ctx context.Context) error {
+	if err := o.validateOrAskApp(ctx); err != nil {
 		return err
 	}
-	return o.validateAndAskSvcEnvName()
+	return o.validateAndAskSvcEnvName(ctx)
 }
 
 // Execute resumes the service through the prompt.
-func (o *resumeSvcOpts) Execute() error {
+func (o *resumeSvcOpts) Execute(ctx context.Context) error {
 	if o.svcName == "" {
 		return nil
 	}
-	if err := o.initClients(); err != nil {
+	if err := o.initClients(ctx); err != nil {
 		return err
 	}
 	svcARN, err := o.apprunnerDescriber.ServiceARN(o.envName)
@@ -83,12 +83,12 @@ func (o *resumeSvcOpts) Execute() error {
 	return nil
 }
 
-func (o *resumeSvcOpts) validateOrAskApp() error {
+func (o *resumeSvcOpts) validateOrAskApp(ctx context.Context) error {
 	if o.appName != "" {
-		_, err := o.store.GetApplication(o.appName)
+		_, err := o.store.GetApplication(ctx, o.appName)
 		return err
 	}
-	appName, err := o.sel.Application(svcAppNamePrompt, wkldAppNameHelpPrompt)
+	appName, err := o.sel.Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt)
 	if err != nil {
 		return fmt.Errorf("select application: %w", err)
 	}
@@ -97,21 +97,21 @@ func (o *resumeSvcOpts) validateOrAskApp() error {
 	return nil
 }
 
-func (o *resumeSvcOpts) validateAndAskSvcEnvName() error {
+func (o *resumeSvcOpts) validateAndAskSvcEnvName(ctx context.Context) error {
 	if o.envName != "" {
-		if _, err := o.store.GetEnvironment(o.appName, o.envName); err != nil {
+		if _, err := o.store.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 			return err
 		}
 	}
 
 	if o.svcName != "" {
-		if _, err := o.store.GetService(o.appName, o.svcName); err != nil {
+		if _, err := o.store.GetService(ctx, o.appName, o.svcName); err != nil {
 			return err
 		}
 	}
 	// Note: we let prompter handle the case when there is only option for user to choose from.
 	// This is naturally the case when `o.envName != "" && o.svcName != ""`.
-	deployedService, err := o.sel.DeployedService(
+	deployedService, err := o.sel.DeployedService(ctx,
 		fmt.Sprintf(svcResumeSvcNamePrompt, color.HighlightUserInput(o.appName)),
 		svcResumeSvcNameHelpPrompt,
 		o.appName,
@@ -146,14 +146,14 @@ func newResumeSvcOpts(vars resumeSvcVars) (*resumeSvcOpts, error) {
 		sel:           selector.NewDeploySelect(prompt.New(), configStore, deployStore),
 		spinner:       termprogress.NewSpinner(log.DiagnosticWriter),
 	}
-	opts.initClients = func() error {
+	opts.initClients = func(ctx context.Context) error {
 		var a *apprunner.AppRunner
 		var d *describe.RDWebServiceDescriber
-		env, err := configStore.GetEnvironment(opts.appName, opts.envName)
+		env, err := configStore.GetEnvironment(ctx, opts.appName, opts.envName)
 		if err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
-		svc, err := opts.store.GetService(opts.appName, opts.svcName)
+		svc, err := opts.store.GetService(ctx, opts.appName, opts.svcName)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func newResumeSvcOpts(vars resumeSvcVars) (*resumeSvcOpts, error) {
 				return err
 			}
 			a = apprunner.New(cfg)
-			d, err = describe.NewRDWebServiceDescriber(describe.NewServiceConfig{
+			d, err = describe.NewRDWebServiceDescriber(ctx, describe.NewServiceConfig{
 				App:         opts.appName,
 				Svc:         opts.svcName,
 				ConfigStore: configStore,
@@ -201,7 +201,7 @@ func buildSvcResumeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

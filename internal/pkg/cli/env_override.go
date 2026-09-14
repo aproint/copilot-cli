@@ -65,20 +65,20 @@ func (o *overrideEnvOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *overrideEnvOpts) Ask() error {
+func (o *overrideEnvOpts) Ask(ctx context.Context) error {
 	if err := o.assignEnvName(); err != nil {
 		return err
 	}
-	return o.overrideOpts.Ask()
+	return o.overrideOpts.Ask(ctx)
 }
 
 // Execute writes IaC override files to the local workspace.
 // This method assumes that the IaC tool chosen by the user is valid.
-func (o *overrideEnvOpts) Execute() error {
+func (o *overrideEnvOpts) Execute(ctx context.Context) error {
 	o.overrideOpts.dir = func() string {
 		return o.ws.EnvOverridesPath()
 	}
-	return o.overrideOpts.Execute()
+	return o.overrideOpts.Execute(ctx)
 }
 
 func (o *overrideEnvOpts) validateName() error {
@@ -140,7 +140,7 @@ or add new resources to an environment's template.`,
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", overrideEnvFlagDescription)

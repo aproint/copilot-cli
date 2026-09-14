@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -88,14 +89,14 @@ func isStackSetNotExistsErr(err error) bool {
 	return isStackSetNotExistsErr(errors.Unwrap(err))
 }
 
-func run(cmd cmd) error {
+func run(ctx context.Context, cmd cmd) error {
 	if err := cmd.Validate(); err != nil {
 		return err
 	}
-	if err := cmd.Ask(); err != nil {
+	if err := cmd.Ask(ctx); err != nil {
 		return err
 	}
-	if err := cmd.Execute(); err != nil {
+	if err := cmd.Execute(ctx); err != nil {
 		return err
 	}
 	if actionCmd, ok := cmd.(actionCommand); ok {

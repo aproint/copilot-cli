@@ -102,22 +102,22 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 // Validate returns an error if the user inputs are invalid.
 func (o *deleteJobOpts) Validate() error {
 	if o.name != "" {
-		if _, err := o.store.GetJob(o.appName, o.name); err != nil {
+		if _, err := o.store.GetJob(context.Background(), o.appName, o.name); err != nil {
 			return err
 		}
 	}
 	if o.envName != "" {
-		return o.validateEnvName()
+		return o.validateEnvName(context.Background())
 	}
 	return nil
 }
 
 // Ask prompts the user for any required flags.
-func (o *deleteJobOpts) Ask() error {
-	if err := o.askAppName(); err != nil {
+func (o *deleteJobOpts) Ask(ctx context.Context) error {
+	if err := o.askAppName(ctx); err != nil {
 		return err
 	}
-	if err := o.askJobName(); err != nil {
+	if err := o.askJobName(ctx); err != nil {
 		return err
 	}
 
@@ -154,8 +154,8 @@ func (o *deleteJobOpts) Ask() error {
 // Execute deletes the job's CloudFormation stack.
 // If the job is being removed from the application, Execute will
 // also delete the ECR repository and the SSM parameter.
-func (o *deleteJobOpts) Execute() error {
-	envs, err := o.appEnvironments()
+func (o *deleteJobOpts) Execute(ctx context.Context) error {
+	envs, err := o.appEnvironments(ctx)
 	if err != nil {
 		return err
 	}
@@ -173,10 +173,10 @@ func (o *deleteJobOpts) Execute() error {
 	if err := o.emptyECRRepos(envs); err != nil {
 		return err
 	}
-	if err := o.removeJobFromApp(); err != nil {
+	if err := o.removeJobFromApp(ctx); err != nil {
 		return err
 	}
-	if err := o.deleteSSMParam(); err != nil {
+	if err := o.deleteSSMParam(ctx); err != nil {
 		return err
 	}
 
@@ -185,27 +185,27 @@ func (o *deleteJobOpts) Execute() error {
 	return nil
 }
 
-func (o *deleteJobOpts) validateEnvName() error {
-	if _, err := o.targetEnv(); err != nil {
+func (o *deleteJobOpts) validateEnvName(ctx context.Context) error {
+	if _, err := o.targetEnv(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o *deleteJobOpts) targetEnv() (*config.Environment, error) {
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+func (o *deleteJobOpts) targetEnv(ctx context.Context) (*config.Environment, error) {
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s from config store: %w", o.envName, err)
 	}
 	return env, nil
 }
 
-func (o *deleteJobOpts) askAppName() error {
+func (o *deleteJobOpts) askAppName(ctx context.Context) error {
 	if o.appName != "" {
 		return nil
 	}
 
-	name, err := o.sel.Application(jobDeleteAppNamePrompt, "")
+	name, err := o.sel.Application(ctx, jobDeleteAppNamePrompt, "")
 	if err != nil {
 		return fmt.Errorf("select application name: %w", err)
 	}
@@ -213,12 +213,12 @@ func (o *deleteJobOpts) askAppName() error {
 	return nil
 }
 
-func (o *deleteJobOpts) askJobName() error {
+func (o *deleteJobOpts) askJobName(ctx context.Context) error {
 	if o.name != "" {
 		return nil
 	}
 
-	name, err := o.sel.Job(jobDeleteJobNamePrompt, "", o.appName)
+	name, err := o.sel.Job(ctx, jobDeleteJobNamePrompt, "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select job: %w", err)
 	}
@@ -226,17 +226,17 @@ func (o *deleteJobOpts) askJobName() error {
 	return nil
 }
 
-func (o *deleteJobOpts) appEnvironments() ([]*config.Environment, error) {
+func (o *deleteJobOpts) appEnvironments(ctx context.Context) ([]*config.Environment, error) {
 	var envs []*config.Environment
 	var err error
 	if o.envName != "" {
-		env, err := o.targetEnv()
+		env, err := o.targetEnv(ctx)
 		if err != nil {
 			return nil, err
 		}
 		envs = append(envs, env)
 	} else {
-		envs, err = o.store.ListEnvironments(o.appName)
+		envs, err = o.store.ListEnvironments(ctx, o.appName)
 		if err != nil {
 			return nil, fmt.Errorf("list environments: %w", err)
 		}
@@ -316,8 +316,8 @@ func (o *deleteJobOpts) emptyECRRepos(envs []*config.Environment) error {
 	return nil
 }
 
-func (o *deleteJobOpts) removeJobFromApp() error {
-	proj, err := o.store.GetApplication(o.appName)
+func (o *deleteJobOpts) removeJobFromApp(ctx context.Context) error {
+	proj, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return err
 	}
@@ -330,8 +330,8 @@ func (o *deleteJobOpts) removeJobFromApp() error {
 	return nil
 }
 
-func (o *deleteJobOpts) deleteSSMParam() error {
-	if err := o.store.DeleteJob(o.appName, o.name); err != nil {
+func (o *deleteJobOpts) deleteSSMParam(ctx context.Context) error {
+	if err := o.store.DeleteJob(ctx, o.appName, o.name); err != nil {
 		return fmt.Errorf("delete job %s in application %s from config store: %w", o.name, o.appName, err)
 	}
 
@@ -370,7 +370,7 @@ func buildJobDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 

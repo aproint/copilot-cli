@@ -67,21 +67,21 @@ func (o *overridePipelineOpts) Validate() error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *overridePipelineOpts) Ask() error {
+func (o *overridePipelineOpts) Ask(ctx context.Context) error {
 	if o.name == "" {
 		if err := o.askPipelineName(); err != nil {
 			return err
 		}
 	}
-	return o.overrideOpts.Ask()
+	return o.overrideOpts.Ask(ctx)
 }
 
 // Execute writes IaC override files to the local workspace.
-func (o *overridePipelineOpts) Execute() error {
+func (o *overridePipelineOpts) Execute(ctx context.Context) error {
 	o.overrideOpts.dir = func() string {
 		return o.ws.PipelineOverridesPath(o.name)
 	}
-	return o.overrideOpts.Execute()
+	return o.overrideOpts.Execute(ctx)
 
 }
 
@@ -141,7 +141,7 @@ or add new resources to the Pipeline's AWS CloudFormation template.`,
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.name, nameFlag, nameFlagShort, "", pipelineFlagDescription)

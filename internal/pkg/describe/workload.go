@@ -40,8 +40,8 @@ type NewWorkloadConfig struct {
 }
 
 // NewWorkloadStackDescriber instantiates the core elements of a new workload.
-func NewWorkloadStackDescriber(opt NewWorkloadConfig) (*WorkloadStackDescriber, error) {
-	environment, err := opt.ConfigStore.GetEnvironment(opt.App, opt.Env)
+func NewWorkloadStackDescriber(ctx context.Context, opt NewWorkloadConfig) (*WorkloadStackDescriber, error) {
+	environment, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, opt.Env)
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s: %w", opt.Env, err)
 	}

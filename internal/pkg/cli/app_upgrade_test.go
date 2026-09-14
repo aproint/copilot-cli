@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -42,7 +43,7 @@ func TestAppUpgradeOpts_Validate(t *testing.T) {
 			inAppName: "my-app",
 
 			setupMocks: func(m appUpgradeMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{
 					Name: "my-app",
 				}, nil)
 			},
@@ -52,7 +53,7 @@ func TestAppUpgradeOpts_Validate(t *testing.T) {
 			inAppName: "my-app",
 
 			setupMocks: func(m appUpgradeMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(nil, testError)
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(nil, testError)
 			},
 
 			wantedError: fmt.Errorf("get application %s: %w", "my-app", testError),
@@ -113,7 +114,7 @@ func TestAppUpgradeOpts_Ask(t *testing.T) {
 			inApp: "",
 
 			setupMocks: func(m appUpgradeMocks) {
-				m.sel.EXPECT().Application(appUpgradeNamePrompt, appUpgradeNameHelpPrompt).Return("my-app", nil)
+				m.sel.EXPECT().Application(ctx, appUpgradeNamePrompt, appUpgradeNameHelpPrompt).Return("my-app", nil)
 			},
 			wantedApp:   "my-app",
 			wantedError: nil,
@@ -122,7 +123,7 @@ func TestAppUpgradeOpts_Ask(t *testing.T) {
 			inApp: "",
 
 			setupMocks: func(m appUpgradeMocks) {
-				m.sel.EXPECT().Application(gomock.Any(), gomock.Any()).Return("", testError)
+				m.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Return("", testError)
 			},
 
 			wantedError: fmt.Errorf("select application: %w", testError),
@@ -147,7 +148,7 @@ func TestAppUpgradeOpts_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -211,7 +212,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 		"should return error if fail to get application": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
 				mockStore := mocks.NewMockstore(ctrl)
-				mockStore.EXPECT().GetApplication("phonetool").Return(nil, errors.New("some error"))
+				mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(nil, errors.New("some error"))
 
 				return &appUpgradeOpts{
 					appUpgradeVars: appUpgradeVars{
@@ -226,10 +227,10 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 		"should return error if fail to get identity": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
 				mockIdentity := mocks.NewMockidentityService(ctrl)
-				mockIdentity.EXPECT().Get().Return(identity.Caller{}, errors.New("some error"))
+				mockIdentity.EXPECT().Get(ctx).Return(identity.Caller{}, errors.New("some error"))
 
 				mockStore := mocks.NewMockstore(ctrl)
-				mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+				mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 
 				return &appUpgradeOpts{
 					appUpgradeVars: appUpgradeVars{
@@ -245,10 +246,10 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 		"should return error if fail to get hostedzone id": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
 				mockIdentity := mocks.NewMockidentityService(ctrl)
-				mockIdentity.EXPECT().Get().Return(identity.Caller{Account: "1234"}, nil)
+				mockIdentity.EXPECT().Get(ctx).Return(identity.Caller{Account: "1234"}, nil)
 
 				mockStore := mocks.NewMockstore(ctrl)
-				mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{
+				mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{
 					Name:   "phonetool",
 					Domain: "foobar.com",
 				}, nil)
@@ -271,11 +272,11 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 		"should return error if fail to upgrade application": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
 				mockIdentity := mocks.NewMockidentityService(ctrl)
-				mockIdentity.EXPECT().Get().Return(identity.Caller{Account: "1234"}, nil)
+				mockIdentity.EXPECT().Get(ctx).Return(identity.Caller{Account: "1234"}, nil)
 
 				mockStore := mocks.NewMockstore(ctrl)
-				mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{Name: "phonetool"}, nil)
-				mockStore.EXPECT().UpdateApplication(&config.Application{Name: "phonetool"}).Return(nil)
+				mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
+				mockStore.EXPECT().UpdateApplication(ctx, &config.Application{Name: "phonetool"}).Return(nil)
 
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
 				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any()).Return(errors.New("some error"))
@@ -295,14 +296,14 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 		"success": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
 				mockIdentity := mocks.NewMockidentityService(ctrl)
-				mockIdentity.EXPECT().Get().Return(identity.Caller{Account: "1234"}, nil)
+				mockIdentity.EXPECT().Get(ctx).Return(identity.Caller{Account: "1234"}, nil)
 
 				mockStore := mocks.NewMockstore(ctrl)
-				mockStore.EXPECT().GetApplication("phonetool").Return(&config.Application{
+				mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{
 					Name:   "phonetool",
 					Domain: "hello.com",
 				}, nil)
-				mockStore.EXPECT().UpdateApplication(&config.Application{
+				mockStore.EXPECT().UpdateApplication(ctx, &config.Application{
 					Name:               "phonetool",
 					Domain:             "hello.com",
 					DomainHostedZoneID: "2klfqok3",
@@ -341,7 +342,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 			opts := tc.given(ctrl)
 			opts.templateVersion = mockTemplateVersion
 
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())

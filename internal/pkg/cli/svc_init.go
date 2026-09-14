@@ -175,21 +175,24 @@ type initSvcOpts struct {
 	wsRoot              string
 
 	dockerfile          func(path string) dockerfileParser
-	initEnvDescriber    func(appName, envName string) (envDescriber, error)
-	newAppVersionGetter func(appName string) (versionGetter, error)
+	initEnvDescriber    func(ctx context.Context, appName, envName string) (envDescriber, error)
+	newAppVersionGetter func(ctx context.Context, appName string) (versionGetter, error)
 
 	// Overridden in tests.
 	templateVersion string
 }
 
-func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
+func newInitSvcOpts(ctx context.Context, vars initSvcVars) (*initSvcOpts, error) {
+	return newInitSvcOptsWithSessionProvider(ctx, vars, sessions.ImmutableProvider(sessions.UserAgentExtras("svc init")))
+}
+
+func newInitSvcOptsWithSessionProvider(ctx context.Context, vars initSvcVars, sessProvider sessionProvider) (*initSvcOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
 		return nil, err
 	}
-	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc init"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -226,11 +229,11 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 		sourceSel:   sourceSel,
 		mftReader:   ws,
 		svcLister:   ws,
-		newAppVersionGetter: func(appName string) (versionGetter, error) {
-			return describe.NewAppDescriber(appName)
+		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
+			return describe.NewAppDescriberWithContext(ctx, appName)
 		},
-		initEnvDescriber: func(appName string, envName string) (envDescriber, error) {
-			envDescriber, err := describe.NewEnvDescriber(describe.NewEnvDescriberConfig{
+		initEnvDescriber: func(ctx context.Context, appName string, envName string) (envDescriber, error) {
+			envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
 				App:         appName,
 				Env:         envName,
 				ConfigStore: store,
@@ -259,7 +262,7 @@ func newInitSvcOpts(vars initSvcVars) (*initSvcOpts, error) {
 func (o *initSvcOpts) Validate() error {
 	// If this app is pending creation, we'll skip validation.
 	if !o.wsPendingCreation {
-		if err := validateWorkspaceApp(o.wsAppName, o.appName, o.store); err != nil {
+		if err := validateWorkspaceAppInput(o.wsAppName, o.appName); err != nil {
 			return err
 		}
 		o.appName = o.wsAppName
@@ -321,13 +324,18 @@ func (o *initSvcOpts) validateSourcePaths(sources []string) error {
 }
 
 // Ask prompts for and validates any required flags.
-func (o *initSvcOpts) Ask() error {
+func (o *initSvcOpts) Ask(ctx context.Context) error {
+	if !o.wsPendingCreation && o.wsAppName != "" {
+		if err := validateInitWorkspaceApp(ctx, o.appName, o.store); err != nil {
+			return err
+		}
+	}
 	// NOTE: we optimize the case where `name` is given as a flag while `wkldType` is not.
 	// In this case, we can try reading the manifest, and set `wkldType` to the value found in the manifest
 	// without having to validate it. We can then short circuit the rest of the prompts for an optimal UX.
 	if o.name != "" && o.wkldType == "" {
 		// Best effort to validate the service name without type.
-		if err := o.validateSvc(); err != nil {
+		if err := o.validateSvc(ctx); err != nil {
 			return err
 		}
 		shouldSkipAsking, err := o.manifestAlreadyExists()
@@ -352,7 +360,7 @@ func (o *initSvcOpts) Ask() error {
 			return err
 		}
 	}
-	if err := o.validateSvc(); err != nil {
+	if err := o.validateSvc(ctx); err != nil {
 		return err
 	}
 	if err := o.askIngressType(); err != nil {
@@ -365,13 +373,13 @@ func (o *initSvcOpts) Ask() error {
 	if shouldSkipAsking {
 		return nil
 	}
-	return o.askSvcDetails()
+	return o.askSvcDetails(ctx)
 }
 
 // Execute writes the service's manifest file and stores the service in SSM.
-func (o *initSvcOpts) Execute() error {
+func (o *initSvcOpts) Execute(ctx context.Context) error {
 	if !o.allowAppDowngrade {
-		appVersionGetter, err := o.newAppVersionGetter(o.appName)
+		appVersionGetter, err := o.newAppVersionGetter(ctx, o.appName)
 		if err != nil {
 			return err
 		}
@@ -399,12 +407,12 @@ func (o *initSvcOpts) Execute() error {
 		}
 	}
 	// Environments that are deployed and have​ only private subnets.
-	envs, err := envsWithPrivateSubnetsOnly(o.store, o.initEnvDescriber, o.appName)
+	envs, err := envsWithPrivateSubnetsOnly(ctx, o.store, o.initEnvDescriber, o.appName)
 	if err != nil {
 		return err
 	}
 
-	o.manifestPath, err = o.init.Service(&initialize.ServiceProps{
+	o.manifestPath, err = o.init.Service(ctx, &initialize.ServiceProps{
 		WorkloadProps: initialize.WorkloadProps{
 			App:            o.appName,
 			Name:           o.name,
@@ -451,7 +459,7 @@ You can specify multiple paths where your service will receive traffic by settin
 	return nil
 }
 
-func (o *initSvcOpts) askSvcDetails() error {
+func (o *initSvcOpts) askSvcDetails(ctx context.Context) error {
 	if o.wkldType == manifestinfo.StaticSiteType {
 		return o.askStaticSite()
 	}
@@ -467,7 +475,7 @@ func (o *initSvcOpts) askSvcDetails() error {
 	if err := o.askSvcPort(); err != nil {
 		return err
 	}
-	return o.askSvcPublishers()
+	return o.askSvcPublishers(ctx)
 }
 
 func (o *initSvcOpts) askSvcType() error {
@@ -484,15 +492,15 @@ func (o *initSvcOpts) askSvcType() error {
 	return nil
 }
 
-func (o *initSvcOpts) validateSvc() error {
+func (o *initSvcOpts) validateSvc(ctx context.Context) error {
 	if err := validateSvcName(o.name, o.wkldType); err != nil {
 		return err
 	}
-	return o.validateDuplicateSvc()
+	return o.validateDuplicateSvc(ctx)
 }
 
-func (o *initSvcOpts) validateDuplicateSvc() error {
-	_, err := o.store.GetService(o.appName, o.name)
+func (o *initSvcOpts) validateDuplicateSvc(ctx context.Context) error {
+	_, err := o.store.GetService(ctx, o.appName, o.name)
 	if err == nil {
 		// Skip error if service already exists in workspace
 		if !o.wsPendingCreation {
@@ -800,7 +808,7 @@ func legitimizePlatform(engine dockerEngine, wkldType string) (manifest.Platform
 	return manifest.PlatformString(redirectedPlatform), nil
 }
 
-func (o *initSvcOpts) askSvcPublishers() (err error) {
+func (o *initSvcOpts) askSvcPublishers(ctx context.Context) (err error) {
 	if o.wkldType != manifestinfo.WorkerServiceType {
 		return nil
 	}
@@ -823,7 +831,7 @@ func (o *initSvcOpts) askSvcPublishers() (err error) {
 		return nil
 	}
 
-	topics, err := o.topicSel.Topics(svcInitPublisherPrompt, svcInitPublisherHelpPrompt, o.appName)
+	topics, err := o.topicSel.Topics(ctx, svcInitPublisherPrompt, svcInitPublisherHelpPrompt, o.appName)
 	if err != nil {
 		return fmt.Errorf("select publisher: %w", err)
 	}
@@ -841,6 +849,16 @@ func (o *initSvcOpts) askSvcPublishers() (err error) {
 }
 
 func validateWorkspaceApp(wsApp, inputApp string, store store) error {
+	if err := validateWorkspaceAppInput(wsApp, inputApp); err != nil {
+		return err
+	}
+	if _, err := store.GetApplication(context.Background(), wsApp); err != nil {
+		return fmt.Errorf("get application %s configuration: %w", wsApp, err)
+	}
+	return nil
+}
+
+func validateWorkspaceAppInput(wsApp, inputApp string) error {
 	if wsApp == "" {
 		// NOTE: This command is required to be executed under a workspace. We don't prompt for it.
 		return errNoAppInWorkspace
@@ -849,8 +867,15 @@ func validateWorkspaceApp(wsApp, inputApp string, store store) error {
 	if inputApp != "" && inputApp != wsApp {
 		return fmt.Errorf("cannot specify app %s because the workspace is already registered with app %s", inputApp, wsApp)
 	}
-	if _, err := store.GetApplication(wsApp); err != nil {
-		return fmt.Errorf("get application %s configuration: %w", wsApp, err)
+	return nil
+}
+
+func validateInitWorkspaceApp(ctx context.Context, appName string, store store) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if _, err := store.GetApplication(ctx, appName); err != nil {
+		return fmt.Errorf("get application %s configuration: %w", appName, err)
 	}
 	return nil
 }
@@ -932,7 +957,7 @@ This command is also run as part of "copilot init".`,
   Create a "subscribers" backend service.
   /code $ copilot svc init --name subscribers --svc-type "Backend Service"`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newInitSvcOpts(vars)
+			opts, err := newInitSvcOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}
@@ -940,10 +965,10 @@ This command is also run as part of "copilot init".`,
 				return err
 			}
 			log.Warningln("It's best to run this command in the root of your workspace.")
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
-			if err := opts.Execute(); err != nil {
+			if err := opts.Execute(cmd.Context()); err != nil {
 				return err
 			}
 			if err := opts.RecommendActions(); err != nil {

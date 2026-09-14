@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -234,7 +235,7 @@ func TestStorageInitOpts_Ask(t *testing.T) {
 			inStorageType: s3StorageType,
 			inLifecycle:   lifecycleWorkloadLevel,
 			mock: func(m *mockStorageInitAsk) {
-				m.sel.EXPECT().Workload(gomock.Eq(storageInitSvcPrompt), gomock.Any()).Return(wantedSvcName, nil)
+				m.sel.EXPECT().Workload(ctx, gomock.Eq(storageInitSvcPrompt), gomock.Any()).Return(wantedSvcName, nil)
 				m.ws.EXPECT().WorkloadExists(wantedSvcName).Return(true, nil)
 			},
 			wantedVars: &initStorageVars{
@@ -249,7 +250,7 @@ func TestStorageInitOpts_Ask(t *testing.T) {
 			inStorageType: s3StorageType,
 			inLifecycle:   lifecycleEnvironmentLevel,
 			mock: func(m *mockStorageInitAsk) {
-				m.configSel.EXPECT().Workload(gomock.Eq(storageInitSvcPrompt), gomock.Any(), wantedAppName).Return(wantedSvcName, nil)
+				m.configSel.EXPECT().Workload(ctx, gomock.Eq(storageInitSvcPrompt), gomock.Any(), wantedAppName).Return(wantedSvcName, nil)
 				m.ws.EXPECT().HasEnvironments().Return(true, nil)
 			},
 			wantedVars: &initStorageVars{
@@ -264,7 +265,7 @@ func TestStorageInitOpts_Ask(t *testing.T) {
 			inStorageType: s3StorageType,
 			inLifecycle:   lifecycleWorkloadLevel,
 			mock: func(m *mockStorageInitAsk) {
-				m.sel.EXPECT().Workload(gomock.Eq(storageInitSvcPrompt), gomock.Any()).Return("", errors.New("some error"))
+				m.sel.EXPECT().Workload(ctx, gomock.Eq(storageInitSvcPrompt), gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedErr: fmt.Errorf("retrieve local workload names: some error"),
 		},
@@ -272,7 +273,7 @@ func TestStorageInitOpts_Ask(t *testing.T) {
 			inStorageName: wantedBucketName,
 			inStorageType: s3StorageType,
 			mock: func(m *mockStorageInitAsk) {
-				m.configSel.EXPECT().Workload(gomock.Eq(storageInitSvcPrompt), gomock.Any(), wantedAppName).Return("", errors.New("some error"))
+				m.configSel.EXPECT().Workload(ctx, gomock.Eq(storageInitSvcPrompt), gomock.Any(), wantedAppName).Return("", errors.New("some error"))
 			},
 			wantedErr: fmt.Errorf("select a workload from app %s: some error", wantedAppName),
 		},
@@ -509,7 +510,7 @@ func TestStorageInitOpts_Ask(t *testing.T) {
 			}
 			tc.mock(&m)
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -928,7 +929,7 @@ func TestStorageInitOpts_AskDDB(t *testing.T) {
 				ws:      m.ws,
 			}
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -1144,7 +1145,7 @@ func TestStorageInitOpts_AskRDS(t *testing.T) {
 			}
 			tc.mock(&m)
 			// WHEN
-			err := opts.Ask()
+			err := opts.Ask(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -1249,7 +1250,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 				m.EXPECT().Write(gomock.Any(), "mockPath").Return("/frontend/addons/mycluster.yml", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments(gomock.Any()).Times(1)
+				m.EXPECT().ListEnvironments(ctx, gomock.Any()).Times(1)
 			},
 		},
 		"happy calls for wkld RDS with a RDWS": {
@@ -1269,7 +1270,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 				m.EXPECT().Write(gomock.Any(), "mockParamsPath").Return("/frontend/addons/addons.parameters.yml", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments(gomock.Any()).Times(1)
+				m.EXPECT().ListEnvironments(ctx, gomock.Any()).Times(1)
 			},
 		},
 		"happy calls for env S3": {
@@ -1339,7 +1340,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 				m.EXPECT().Write(gomock.Any(), "mockEnvParametersPath").Return("mockEnvParametersPath", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments(gomock.Any()).Times(1)
+				m.EXPECT().ListEnvironments(ctx, gomock.Any()).Times(1)
 			},
 		},
 		"happy calls for env RDS with RDWS": {
@@ -1364,7 +1365,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 				m.EXPECT().Write(gomock.Any(), "mockWkldParamsPath").Return("mockWkldParamsPath", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments(gomock.Any()).Times(1)
+				m.EXPECT().ListEnvironments(ctx, gomock.Any()).Times(1)
 			},
 		},
 		"add ingress for env DDB": {
@@ -1431,7 +1432,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 				m.EXPECT().Write(gomock.Any(), gomock.Not(gomock.Eq("mockWkldPath"))).Return("mockEnvTemplatePath", nil).Times(2)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments(gomock.Any()).Times(1)
+				m.EXPECT().ListEnvironments(ctx, gomock.Any()).Times(1)
 			},
 		},
 		"do not error out if addon exists": {
@@ -1446,7 +1447,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 				m.EXPECT().Write(gomock.Any(), "mockPath").Return("/frontend/addons/my-bucket.yml", nil).Return("", fileExistsError)
 			},
 			mockStore: func(m *mocks.Mockstore) {
-				m.EXPECT().ListEnvironments(gomock.Any()).AnyTimes()
+				m.EXPECT().ListEnvironments(ctx, gomock.Any()).AnyTimes()
 			},
 		},
 		"unexpected read workload manifest error handled": {
@@ -1513,7 +1514,7 @@ func TestStorageInitOpts_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Execute()
+			err := opts.Execute(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {

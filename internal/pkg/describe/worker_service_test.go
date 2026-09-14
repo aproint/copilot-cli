@@ -48,7 +48,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to list environment": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return(nil, mockErr),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return(nil, mockErr),
 				)
 			},
 			wantedError: fmt.Errorf("list deployed environments for application phonetool: some error"),
@@ -56,7 +56,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve service deployment configuration": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(nil, mockErr),
 				)
 			},
@@ -65,7 +65,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve platform": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTaskCountParamKey:  "1",
 						cfnstack.WorkloadTaskCPUParamKey:    "256",
@@ -79,7 +79,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve rollback alarm names": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTaskCountParamKey:  "1",
 						cfnstack.WorkloadTaskCPUParamKey:    "256",
@@ -97,7 +97,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve alarm descriptions": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTaskCountParamKey:  "1",
 						cfnstack.WorkloadTaskCPUParamKey:    "256",
@@ -116,7 +116,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve environment variables": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTaskCountParamKey:  "1",
 						cfnstack.WorkloadTaskMemoryParamKey: "512",
@@ -135,7 +135,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"return error if fail to retrieve secrets": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTaskCountParamKey:  "1",
@@ -162,7 +162,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 		"should not fetch descriptions if no ROLLBACK alarms present": {
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv}, nil),
 
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTaskCountParamKey:  "1",
@@ -202,7 +202,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 			shouldOutputResources: true,
 			setupMocks: func(m workerSvcDescriberMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(testApp, testSvc).Return([]string{testEnv, prodEnv, mockEnv}, nil),
+					m.storeSvc.EXPECT().ListEnvironmentsDeployedTo(ctx, testApp, testSvc).Return([]string{testEnv, prodEnv, mockEnv}, nil),
 
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						cfnstack.WorkloadTaskCountParamKey:  "1",

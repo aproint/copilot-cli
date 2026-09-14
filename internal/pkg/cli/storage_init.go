@@ -275,14 +275,14 @@ func (o *initStorageOpts) validateServerlessVersion() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *initStorageOpts) Ask() error {
+func (o *initStorageOpts) Ask(ctx context.Context) error {
 	if o.addIngressFrom != "" {
 		return nil
 	}
 	if err := o.validateOrAskStorageType(); err != nil {
 		return err
 	}
-	if err := o.askWorkload(); err != nil {
+	if err := o.askWorkload(ctx); err != nil {
 		return err
 	}
 	// Storage name needs to be asked after workload because for Aurora the default storage name uses the workload name.
@@ -436,14 +436,14 @@ func (o *initStorageOpts) askStorageNameWithDefault(friendlyText, defaultName st
 	return nil
 }
 
-func (o *initStorageOpts) askWorkload() error {
+func (o *initStorageOpts) askWorkload(ctx context.Context) error {
 	if o.workloadName != "" {
 		return nil
 	}
 	if o.lifecycle == lifecycleWorkloadLevel {
-		return o.askLocalWorkload()
+		return o.askLocalWorkload(ctx)
 	}
-	workload, err := o.configSel.Workload(storageInitSvcPrompt, "", o.appName)
+	workload, err := o.configSel.Workload(ctx, storageInitSvcPrompt, "", o.appName)
 	if err != nil {
 		return fmt.Errorf("select a workload from app %s: %w", o.appName, err)
 	}
@@ -451,8 +451,8 @@ func (o *initStorageOpts) askWorkload() error {
 	return nil
 }
 
-func (o *initStorageOpts) askLocalWorkload() error {
-	workload, err := o.sel.Workload(storageInitSvcPrompt, "")
+func (o *initStorageOpts) askLocalWorkload(ctx context.Context) error {
+	workload, err := o.sel.Workload(ctx, storageInitSvcPrompt, "")
 	if err != nil {
 		return fmt.Errorf("retrieve local workload names: %w", err)
 	}
@@ -738,7 +738,7 @@ func (o *initStorageOpts) validateOrAskAuroraInitialDBName() error {
 }
 
 // Execute deploys a new environment with CloudFormation and adds it to SSM.
-func (o *initStorageOpts) Execute() error {
+func (o *initStorageOpts) Execute(ctx context.Context) error {
 	o.consumeFlags()
 	if err := o.checkWorkloadExists(); err != nil {
 		return err
@@ -746,7 +746,7 @@ func (o *initStorageOpts) Execute() error {
 	if err := o.readWorkloadType(); err != nil {
 		return err
 	}
-	addonBlobs, err := o.addonBlobs()
+	addonBlobs, err := o.addonBlobs(ctx)
 	if err != nil {
 		return err
 	}
@@ -825,7 +825,7 @@ func (b *addonBlob) recommendedAction() string {
 	return fmt.Sprintf("Check that %s has the following snippet:\n%s", displayPath(b.path), color.HighlightCodeBlock(string(data)))
 }
 
-func (o *initStorageOpts) addonBlobs() ([]addonBlob, error) {
+func (o *initStorageOpts) addonBlobs(ctx context.Context) ([]addonBlob, error) {
 	type option struct {
 		lifecycle   string
 		storageType string
@@ -837,13 +837,13 @@ func (o *initStorageOpts) addonBlobs() ([]addonBlob, error) {
 	case option{lifecycleWorkloadLevel, dynamoDBStorageType}:
 		return o.wkldDDBAddonBlobs()
 	case option{lifecycleWorkloadLevel, rdsStorageType}:
-		return o.wkldRDSAddonBlobs()
+		return o.wkldRDSAddonBlobs(ctx)
 	case option{lifecycleEnvironmentLevel, s3StorageType}:
 		return o.envS3AddonBlobs()
 	case option{lifecycleEnvironmentLevel, dynamoDBStorageType}:
 		return o.envDDBAddonBlobs()
 	case option{lifecycleEnvironmentLevel, rdsStorageType}:
-		return o.envRDSAddonBlobs()
+		return o.envRDSAddonBlobs(ctx)
 	}
 	return nil, fmt.Errorf("storage type %s is not supported yet", o.storageType)
 }
@@ -953,8 +953,8 @@ func (o *initStorageOpts) s3Props() *addon.S3Props {
 	}
 }
 
-func (o *initStorageOpts) wkldRDSAddonBlobs() ([]addonBlob, error) {
-	props, err := o.rdsProps()
+func (o *initStorageOpts) wkldRDSAddonBlobs(ctx context.Context) ([]addonBlob, error) {
+	props, err := o.rdsProps(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -986,14 +986,14 @@ func (o *initStorageOpts) wkldRDSAddonBlobs() ([]addonBlob, error) {
 	}), nil
 }
 
-func (o *initStorageOpts) envRDSAddonBlobs() ([]addonBlob, error) {
+func (o *initStorageOpts) envRDSAddonBlobs(ctx context.Context) ([]addonBlob, error) {
 	if o.workloadType == manifestinfo.RequestDrivenWebServiceType {
-		return o.envRDSForRDWSAddonBlobs()
+		return o.envRDSForRDWSAddonBlobs(ctx)
 	}
 	if o.addIngressFrom != "" {
 		return nil, nil
 	}
-	props, err := o.rdsProps()
+	props, err := o.rdsProps(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1010,7 +1010,7 @@ func (o *initStorageOpts) envRDSAddonBlobs() ([]addonBlob, error) {
 	return []addonBlob{tmplBlob, paramBlob}, nil
 }
 
-func (o *initStorageOpts) envRDSForRDWSAddonBlobs() ([]addonBlob, error) {
+func (o *initStorageOpts) envRDSForRDWSAddonBlobs(ctx context.Context) ([]addonBlob, error) {
 	rdwsIngressTmplBlob := addonBlob{
 		path:        o.ws.WorkloadAddonFilePath(o.workloadName, fmt.Sprintf("%s-ingress.yml", o.storageName)),
 		description: blobDescriptionTemplate,
@@ -1027,7 +1027,7 @@ func (o *initStorageOpts) envRDSForRDWSAddonBlobs() ([]addonBlob, error) {
 	if o.addIngressFrom != "" {
 		return []addonBlob{rdwsIngressTmplBlob, rdwsIngressParamBlob}, nil
 	}
-	props, err := o.rdsProps()
+	props, err := o.rdsProps(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1047,8 +1047,8 @@ func (o *initStorageOpts) envRDSForRDWSAddonBlobs() ([]addonBlob, error) {
 	return []addonBlob{tmplBlob, paramBlob}, nil
 }
 
-func (o *initStorageOpts) rdsProps() (addon.RDSProps, error) {
-	envs, err := o.environmentNames()
+func (o *initStorageOpts) rdsProps(ctx context.Context) (addon.RDSProps, error) {
+	envs, err := o.environmentNames(ctx)
 	if err != nil {
 		return addon.RDSProps{}, err
 	}
@@ -1061,9 +1061,9 @@ func (o *initStorageOpts) rdsProps() (addon.RDSProps, error) {
 	}, nil
 }
 
-func (o *initStorageOpts) environmentNames() ([]string, error) {
+func (o *initStorageOpts) environmentNames(ctx context.Context) ([]string, error) {
 	var envNames []string
-	envs, err := o.store.ListEnvironments(o.appName)
+	envs, err := o.store.ListEnvironments(ctx, o.appName)
 	if err != nil {
 		return nil, fmt.Errorf("list environments: %w", err)
 	}
@@ -1225,7 +1225,7 @@ Storage resources are addons, either for a workload or the environments.`,
 			if err != nil {
 				return err
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.storageName, nameFlag, nameFlagShort, "", storageFlagDescription)

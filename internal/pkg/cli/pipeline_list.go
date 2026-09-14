@@ -89,17 +89,17 @@ func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
 }
 
 // Ask asks for and validates fields that are required but not passed in.
-func (o *listPipelineOpts) Ask() error {
+func (o *listPipelineOpts) Ask(ctx context.Context) error {
 	if o.shouldShowLocalPipelines {
 		return validateWorkspaceApp(o.wsAppName, o.appName, o.store)
 	}
 
 	if o.appName != "" {
-		if _, err := o.store.GetApplication(o.appName); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 			return fmt.Errorf("validate application: %w", err)
 		}
 	} else {
-		app, err := o.sel.Application(pipelineListAppNamePrompt, pipelineListAppNameHelper)
+		app, err := o.sel.Application(ctx, pipelineListAppNamePrompt, pipelineListAppNameHelper)
 		if err != nil {
 			return fmt.Errorf("select application: %w", err)
 		}
@@ -110,7 +110,7 @@ func (o *listPipelineOpts) Ask() error {
 }
 
 // Execute writes the pipelines.
-func (o *listPipelineOpts) Execute() error {
+func (o *listPipelineOpts) Execute(_ context.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), pipelineListTimeout)
 	defer cancel()
 
@@ -287,10 +287,10 @@ func buildPipelineListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := opts.Ask(); err != nil {
+			if err := opts.Ask(cmd.Context()); err != nil {
 				return err
 			}
-			return opts.Execute()
+			return opts.Execute(cmd.Context())
 		}),
 	}
 

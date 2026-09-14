@@ -5,8 +5,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/aproint/copilot-cli/cmd/copilot/template"
 	"github.com/aproint/copilot-cli/internal/pkg/cli"
@@ -30,8 +34,11 @@ func init() {
 }
 
 func main() {
+	ctx, stop := rootContext()
+	defer stop()
+
 	cmd := buildRootCmd()
-	if err := cmd.Execute(); err != nil {
+	if err := cmd.ExecuteContext(ctx); err != nil {
 		var ac actionRecommender
 		var exitCodeErr exitCodeError
 
@@ -44,6 +51,63 @@ func main() {
 		}
 		log.Errorln(err.Error())
 		os.Exit(1)
+	}
+}
+
+func rootContext() (context.Context, func()) {
+	return rootContextWithSignals(signal.Notify, signal.Stop, os.Exit)
+}
+
+func rootContextWithSignals(
+	notify func(chan<- os.Signal, ...os.Signal),
+	stopSignals func(chan<- os.Signal),
+	exit func(int),
+) (context.Context, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 2)
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+	var once sync.Once
+
+	notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		handleRootSignals(sigCh, done, cancel, exit)
+	}()
+
+	shutdown := func() {
+		once.Do(func() {
+			stopSignals(sigCh)
+			close(done)
+			cancel()
+			wg.Wait()
+		})
+	}
+	return ctx, shutdown
+}
+
+func handleRootSignals(signals <-chan os.Signal, done <-chan struct{}, cancel context.CancelFunc, exit func(int)) {
+	seenSignal := false
+	for {
+		select {
+		case <-done:
+			return
+		default:
+		}
+
+		select {
+		case <-done:
+			return
+		case sig := <-signals:
+			if !seenSignal {
+				seenSignal = true
+				cancel()
+				continue
+			}
+			exit(128 + int(sig.(syscall.Signal)))
+			return
+		}
 	}
 }
 

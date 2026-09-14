@@ -112,6 +112,7 @@ type cfnClient interface {
 	DeleteAndWait(stackName string) error
 	DeleteAndWaitWithRoleARN(stackName, roleARN string) error
 	Describe(stackName string) (*cloudformation.StackDescription, error)
+	DescribeWithContext(ctx context.Context, stackName string) (*cloudformation.StackDescription, error)
 	DescribeChangeSet(changeSetID, stackName string) (*cloudformation.ChangeSetDescription, error)
 	TemplateBody(stackName string) (string, error)
 	TemplateBodyFromChangeSet(changeSetID, stackName string) (string, error)

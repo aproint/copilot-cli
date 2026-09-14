@@ -90,14 +90,14 @@ func (cf CloudFormation) DeleteEnvironment(appName, envName, cfnExecRoleARN stri
 }
 
 // GetEnvironment returns the Environment metadata from the CloudFormation stack.
-func (cf CloudFormation) GetEnvironment(appName, envName string) (*config.Environment, error) {
+func (cf CloudFormation) GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error) {
 	conf := stack.NewBootstrapEnvStackConfig(&stack.EnvConfig{
 		App: deploy.AppInformation{
 			Name: appName,
 		},
 		Name: envName,
 	})
-	descr, err := cf.cfnClient.Describe(conf.StackName())
+	descr, err := cf.cfnClient.DescribeWithContext(ctx, conf.StackName())
 	if err != nil {
 		return nil, err
 	}

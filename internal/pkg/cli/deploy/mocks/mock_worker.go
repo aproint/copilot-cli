@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	deploy "github.com/aproint/copilot-cli/internal/pkg/deploy"
@@ -35,16 +36,16 @@ func (m *MocksnsTopicsLister) EXPECT() *MocksnsTopicsListerMockRecorder {
 }
 
 // ListSNSTopics mocks base method.
-func (m *MocksnsTopicsLister) ListSNSTopics(appName, envName string) ([]deploy.Topic, error) {
+func (m *MocksnsTopicsLister) ListSNSTopics(ctx context.Context, appName, envName string) ([]deploy.Topic, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSNSTopics", appName, envName)
+	ret := m.ctrl.Call(m, "ListSNSTopics", ctx, appName, envName)
 	ret0, _ := ret[0].([]deploy.Topic)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListSNSTopics indicates an expected call of ListSNSTopics.
-func (mr *MocksnsTopicsListerMockRecorder) ListSNSTopics(appName, envName interface{}) *gomock.Call {
+func (mr *MocksnsTopicsListerMockRecorder) ListSNSTopics(ctx, appName, envName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSNSTopics", reflect.TypeOf((*MocksnsTopicsLister)(nil).ListSNSTopics), appName, envName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSNSTopics", reflect.TypeOf((*MocksnsTopicsLister)(nil).ListSNSTopics), ctx, appName, envName)
 }

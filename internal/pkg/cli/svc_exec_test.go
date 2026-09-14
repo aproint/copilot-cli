@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -272,10 +273,10 @@ func TestSvcExec_Ask(t *testing.T) {
 			inputEnv: inputEnv,
 			inputSvc: inputSvc,
 			setupMocks: func(m execSvcMocks) {
-				m.storeSvc.EXPECT().GetApplication("my-app").Return(&config.Application{Name: "my-app"}, nil)
-				m.storeSvc.EXPECT().GetEnvironment("my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil)
-				m.storeSvc.EXPECT().GetService("my-app", "my-svc").Return(&config.Workload{}, nil)
-				m.sel.EXPECT().DeployedService(svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+				m.storeSvc.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
+				m.storeSvc.EXPECT().GetEnvironment(ctx, "my-app", "my-env").Return(&config.Environment{Name: "my-env"}, nil)
+				m.storeSvc.EXPECT().GetService(ctx, "my-app", "my-svc").Return(&config.Workload{}, nil)
+				m.sel.EXPECT().DeployedService(ctx, svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
@@ -289,12 +290,12 @@ func TestSvcExec_Ask(t *testing.T) {
 			inputEnv: inputEnv,
 			inputSvc: inputSvc,
 			setupMocks: func(m execSvcMocks) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
-				m.storeSvc.EXPECT().GetApplication(gomock.Any()).Times(0)
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil)
+				m.storeSvc.EXPECT().GetApplication(ctx, gomock.Any()).Times(0)
 				// Don't care about the other calls.
-				m.storeSvc.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).AnyTimes()
-				m.storeSvc.EXPECT().GetService(gomock.Any(), gomock.Any()).AnyTimes()
-				m.sel.EXPECT().DeployedService(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedService{
+				m.storeSvc.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.storeSvc.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).AnyTimes()
+				m.sel.EXPECT().DeployedService(ctx, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&selector.DeployedService{
 					Env:  "my-env",
 					Name: "my-svc",
 				}, nil).AnyTimes()
@@ -305,22 +306,22 @@ func TestSvcExec_Ask(t *testing.T) {
 		},
 		"returns error when fail to select apps": {
 			setupMocks: func(m execSvcMocks) {
-				m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
+				m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("", errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("select application: some error"),
 		},
 		"prompt for svc and env": {
 			inputApp: inputApp,
 			setupMocks: func(m execSvcMocks) {
-				m.storeSvc.EXPECT().GetEnvironment(gomock.Any(), gomock.Any()).Times(0)
-				m.storeSvc.EXPECT().GetService(gomock.Any(), gomock.Any()).Times(0)
-				m.sel.EXPECT().DeployedService(svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+				m.storeSvc.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.storeSvc.EXPECT().GetService(ctx, gomock.Any(), gomock.Any()).Times(0)
+				m.sel.EXPECT().DeployedService(ctx, svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 					Return(&selector.DeployedService{
 						Env:  "my-env",
 						Name: "my-svc",
 					}, nil)
 				// Don't care about the other calls.
-				m.storeSvc.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.storeSvc.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 			wantedApp: inputApp,
 			wantedEnv: inputEnv,
@@ -329,10 +330,10 @@ func TestSvcExec_Ask(t *testing.T) {
 		"returns error when fail to select services": {
 			inputApp: inputApp,
 			setupMocks: func(m execSvcMocks) {
-				m.sel.EXPECT().DeployedService(svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+				m.sel.EXPECT().DeployedService(ctx, svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 					Return(nil, fmt.Errorf("some error"))
 				// Don't care about the other calls.
-				m.storeSvc.EXPECT().GetApplication(gomock.Any()).AnyTimes()
+				m.storeSvc.EXPECT().GetApplication(ctx, gomock.Any()).AnyTimes()
 			},
 
 			wantedError: fmt.Errorf("select deployed service for application my-app: some error"),
@@ -340,8 +341,8 @@ func TestSvcExec_Ask(t *testing.T) {
 		"success": {
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.sel.EXPECT().Application(svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil),
-					m.sel.EXPECT().DeployedService(svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
+					m.sel.EXPECT().Application(ctx, svcAppNamePrompt, wkldAppNameHelpPrompt).Return("my-app", nil),
+					m.sel.EXPECT().DeployedService(ctx, svcExecNamePrompt, svcExecNameHelpPrompt, "my-app", gomock.Any(), gomock.Any()).
 						Return(&selector.DeployedService{
 							Env:  "my-env",
 							Name: "my-svc",
@@ -380,7 +381,7 @@ func TestSvcExec_Ask(t *testing.T) {
 			}
 
 			// WHEN
-			err := execSvcs.Ask()
+			err := execSvcs.Ask(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -421,7 +422,7 @@ func TestSvcExec_Execute(t *testing.T) {
 		"return error if fail to get workload": {
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(nil, mockError),
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(nil, mockError),
 				)
 			},
 			wantedError: fmt.Errorf("get workload: some error"),
@@ -429,7 +430,7 @@ func TestSvcExec_Execute(t *testing.T) {
 		"return error if service type is Request-Driven Web Service": {
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(&mockRDWSWl, nil),
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(&mockRDWSWl, nil),
 				)
 			},
 			wantedError: fmt.Errorf("executing a command in a running container part of a service is not supported for services with type: 'Request-Driven Web Service'"),
@@ -437,8 +438,8 @@ func TestSvcExec_Execute(t *testing.T) {
 		"return error if fail to get environment": {
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(&mockWl, nil),
-					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(nil, mockError),
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(&mockWl, nil),
+					m.storeSvc.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(nil, mockError),
 				)
 			},
 			wantedError: fmt.Errorf("get environment mockEnv: some error"),
@@ -446,8 +447,8 @@ func TestSvcExec_Execute(t *testing.T) {
 		"return error if fail to describe service": {
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(&mockWl, nil),
-					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(&mockWl, nil),
+					m.storeSvc.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
@@ -459,8 +460,8 @@ func TestSvcExec_Execute(t *testing.T) {
 		"return error if no running task found": {
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(&mockWl, nil),
-					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(&mockWl, nil),
+					m.storeSvc.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
@@ -475,8 +476,8 @@ func TestSvcExec_Execute(t *testing.T) {
 			taskID: "mockTaskID1",
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(&mockWl, nil),
-					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(&mockWl, nil),
+					m.storeSvc.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
@@ -496,8 +497,8 @@ func TestSvcExec_Execute(t *testing.T) {
 			containerName: "hello",
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(&mockWl, nil),
-					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(&mockWl, nil),
+					m.storeSvc.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
@@ -523,8 +524,8 @@ func TestSvcExec_Execute(t *testing.T) {
 		"success": {
 			setupMocks: func(m execSvcMocks) {
 				gomock.InOrder(
-					m.storeSvc.EXPECT().GetWorkload("mockApp", "mockSvc").Return(&mockWl, nil),
-					m.storeSvc.EXPECT().GetEnvironment("mockApp", "mockEnv").Return(&config.Environment{
+					m.storeSvc.EXPECT().GetWorkload(ctx, "mockApp", "mockSvc").Return(&mockWl, nil),
+					m.storeSvc.EXPECT().GetEnvironment(ctx, "mockApp", "mockEnv").Return(&config.Environment{
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
@@ -594,7 +595,7 @@ func TestSvcExec_Execute(t *testing.T) {
 			}
 
 			// WHEN
-			err := execSvcs.Execute()
+			err := execSvcs.Execute(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

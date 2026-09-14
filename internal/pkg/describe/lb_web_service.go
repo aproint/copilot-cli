@@ -56,6 +56,7 @@ type lbDescriber interface {
 
 // LBWebServiceDescriber retrieves information about a load balanced web service.
 type LBWebServiceDescriber struct {
+	ctx             context.Context
 	app             string
 	svc             string
 	enableResources bool
@@ -71,8 +72,9 @@ type LBWebServiceDescriber struct {
 }
 
 // NewLBWebServiceDescriber instantiates a load balanced service describer.
-func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, error) {
+func NewLBWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*LBWebServiceDescriber, error) {
 	describer := &LBWebServiceDescriber{
+		ctx:                  ctx,
 		app:                  opt.App,
 		svc:                  opt.Svc,
 		enableResources:      opt.EnableResources,
@@ -81,7 +83,7 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 		envDescriber:         make(map[string]envDescriber),
 	}
 	describer.initLBDescriber = func(envName string) (lbDescriber, error) {
-		env, err := opt.ConfigStore.GetEnvironment(opt.App, envName)
+		env, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, envName)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
@@ -95,7 +97,7 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 		if describer, ok := describer.ecsServiceDescribers[env]; ok {
 			return describer, nil
 		}
-		svcDescr, err := newECSServiceDescriber(NewServiceConfig{
+		svcDescr, err := newECSServiceDescriber(ctx, NewServiceConfig{
 			App:         opt.App,
 			Env:         env,
 			Svc:         opt.Svc,
@@ -111,7 +113,7 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 		if describer, ok := describer.envDescriber[env]; ok {
 			return describer, nil
 		}
-		envDescr, err := NewEnvDescriber(NewEnvDescriberConfig{
+		envDescr, err := NewEnvDescriber(ctx, NewEnvDescriberConfig{
 			App:         opt.App,
 			Env:         env,
 			ConfigStore: opt.ConfigStore,
@@ -126,7 +128,7 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 		if describer, ok := describer.cwAlarmDescribers[envName]; ok {
 			return describer, nil
 		}
-		env, err := opt.ConfigStore.GetEnvironment(opt.App, envName)
+		env, err := opt.ConfigStore.GetEnvironment(ctx, opt.App, envName)
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
@@ -141,7 +143,11 @@ func NewLBWebServiceDescriber(opt NewServiceConfig) (*LBWebServiceDescriber, err
 
 // Describe returns info of a web service.
 func (d *LBWebServiceDescriber) Describe() (HumanJSONStringer, error) {
-	environments, err := d.store.ListEnvironmentsDeployedTo(d.app, d.svc)
+	ctx := d.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for application %s: %w", d.app, err)
 	}

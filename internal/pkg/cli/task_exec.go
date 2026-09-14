@@ -80,15 +80,16 @@ func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
 
 // Validate returns an error if the values provided by the user are invalid.
 func (o *taskExecOpts) Validate() error {
+	ctx := context.Background()
 	if o.useDefault && (o.appName != tryReadingAppName() || o.envName != "") {
 		return fmt.Errorf("cannot specify both default flag and app or env flags")
 	}
 	if o.appName != "" {
-		if _, err := o.store.GetApplication(o.appName); err != nil {
+		if _, err := o.store.GetApplication(ctx, o.appName); err != nil {
 			return err
 		}
 		if o.envName != "" {
-			if _, err := o.store.GetEnvironment(o.appName, o.envName); err != nil {
+			if _, err := o.store.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 				return err
 			}
 		}
@@ -97,12 +98,12 @@ func (o *taskExecOpts) Validate() error {
 }
 
 // Ask asks for fields that are required but not passed in.
-func (o *taskExecOpts) Ask() error {
+func (o *taskExecOpts) Ask(ctx context.Context) error {
 	if o.useDefault {
 		return o.selectTaskInDefaultCluster()
 	}
 	if o.appName == "" {
-		appName, err := o.configSel.Application(taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption)
+		appName, err := o.configSel.Application(ctx, taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption)
 		if err != nil {
 			return fmt.Errorf("select application: %w", err)
 		}
@@ -113,7 +114,7 @@ func (o *taskExecOpts) Ask() error {
 		o.appName = appName
 	}
 	if o.envName == "" {
-		envName, err := o.configSel.Environment(taskExecEnvNamePrompt, taskExecEnvNameHelpPrompt, o.appName, prompt.Option{Value: useDefaultClusterOption})
+		envName, err := o.configSel.Environment(ctx, taskExecEnvNamePrompt, taskExecEnvNameHelpPrompt, o.appName, prompt.Option{Value: useDefaultClusterOption})
 		if err != nil {
 			return fmt.Errorf("select environment: %w", err)
 		}
@@ -123,12 +124,12 @@ func (o *taskExecOpts) Ask() error {
 		}
 		o.envName = envName
 	}
-	return o.selectTaskInAppEnvCluster()
+	return o.selectTaskInAppEnvCluster(ctx)
 }
 
 // Execute executes a command in a running container.
-func (o *taskExecOpts) Execute() error {
-	cfg, err := o.config()
+func (o *taskExecOpts) Execute(ctx context.Context) error {
+	cfg, err := o.config(ctx)
 	if err != nil {
 		return err
 	}
@@ -164,8 +165,8 @@ func (o *taskExecOpts) selectTaskInDefaultCluster() error {
 	return nil
 }
 
-func (o *taskExecOpts) selectTaskInAppEnvCluster() error {
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+func (o *taskExecOpts) selectTaskInAppEnvCluster(ctx context.Context) error {
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
@@ -182,11 +183,11 @@ func (o *taskExecOpts) selectTaskInAppEnvCluster() error {
 	return nil
 }
 
-func (o *taskExecOpts) config() (aws.Config, error) {
+func (o *taskExecOpts) config(ctx context.Context) (aws.Config, error) {
 	if o.useDefault {
 		return o.provider.DefaultConfig(context.Background())
 	}
-	env, err := o.store.GetEnvironment(o.appName, o.envName)
+	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
@@ -218,7 +219,7 @@ func buildTaskExecCmd() *cobra.Command {
 					opts.skipConfirmation = aws.Bool(true)
 				}
 			}
-			return run(opts)
+			return run(cmd.Context(), opts)
 		}),
 	}
 	cmd.Flags().StringVarP(&vars.appName, appFlag, appFlagShort, tryReadingAppName(), appFlagDescription)

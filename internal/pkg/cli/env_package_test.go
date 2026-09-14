@@ -135,9 +135,10 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 	testCases := map[string]struct {
 		mockedCmd func(controller *gomock.Controller) *packageEnvOpts
 
-		wantedDiff string
-		wantedFS   func(t *testing.T, fs afero.Fs)
-		wantedErr  error
+		wantedDiff  string
+		wantedFS    func(t *testing.T, fs afero.Fs)
+		wantedErr   error
+		wantedCause error
 	}{
 		"should return a wrapped error when reading env manifest fails": {
 			mockedCmd: func(ctrl *gomock.Controller) *packageEnvOpts {
@@ -257,7 +258,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 			},
 			wantedErr: errors.New(`upload assets for environment "test": some error`),
 		},
-		"should return a wrapped error when generating CloudFormation templates fails": {
+		"should preserve cancellation when generating CloudFormation templates": {
 			mockedCmd: func(ctrl *gomock.Controller) *packageEnvOpts {
 				ws := mocks.NewMockwsEnvironmentReader(ctrl)
 				ws.EXPECT().ReadEnvironmentManifest(gomock.Any()).Return([]byte("name: test\ntype: Environment\n"), nil)
@@ -267,7 +268,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(nil, context.Canceled)
 
 				return &packageEnvOpts{
 					packageEnvVars: packageEnvVars{
@@ -285,7 +286,8 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 					appCfg: &config.Application{},
 				}
 			},
-			wantedErr: errors.New(`generate CloudFormation template from environment "test" manifest: some error`),
+			wantedErr:   errors.New(`generate CloudFormation template from environment "test" manifest: context canceled`),
+			wantedCause: context.Canceled,
 		},
 		"should return an error if fail to get the diff": {
 			mockedCmd: func(ctrl *gomock.Controller) *packageEnvOpts {
@@ -593,6 +595,9 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				require.NoError(t, actual)
 			} else {
 				require.EqualError(t, actual, tc.wantedErr.Error())
+			}
+			if tc.wantedCause != nil {
+				require.ErrorIs(t, actual, tc.wantedCause)
 			}
 
 			if tc.wantedFS != nil {

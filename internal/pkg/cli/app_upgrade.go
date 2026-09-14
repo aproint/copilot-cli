@@ -179,7 +179,7 @@ func (o *appUpgradeOpts) upgradeApplication(ctx context.Context, app *config.App
 		DomainHostedZoneID: app.DomainHostedZoneID,
 		Version:            toVersion,
 	}); err != nil {
-		return fmt.Errorf("upgrade application %s from version %s to version %s: %v", app.Name, fromVersion, toVersion, err)
+		return fmt.Errorf("upgrade application %s from version %s to version %s: %w", app.Name, fromVersion, toVersion, err)
 	}
 	return nil
 }

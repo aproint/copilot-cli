@@ -211,7 +211,7 @@ func (o *packageEnvOpts) Execute(ctx context.Context) error {
 		Version:             o.templateVersion,
 	})
 	if err != nil {
-		return fmt.Errorf("generate CloudFormation template from environment %q manifest: %v", o.name, err)
+		return fmt.Errorf("generate CloudFormation template from environment %q manifest: %w", o.name, err)
 	}
 	if o.showDiff {
 		if err := diff(packager, res.Template, o.diffWriter); err != nil {

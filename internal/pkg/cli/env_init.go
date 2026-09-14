@@ -792,7 +792,7 @@ func (o *initEnvOpts) deployEnv(ctx context.Context, app *config.Application) er
 		PermissionsBoundary:  app.PermissionsBoundary,
 	}
 
-	if err := o.cleanUpDanglingRoles(o.appName, o.name); err != nil {
+	if err := o.cleanUpDanglingRoles(ctx, o.appName, o.name); err != nil {
 		return err
 	}
 	if err := ctx.Err(); err != nil {
@@ -806,7 +806,9 @@ func (o *initEnvOpts) deployEnv(ctx context.Context, app *config.Application) er
 		}
 		// The stack failed to create due to an unexpect reason.
 		// Delete the retained roles created part of the stack.
-		o.tryDeletingEnvRoles(o.appName, o.name)
+		// Stack creation may have partially created these roles before failing. Keep
+		// this existing failure cleanup detached from command cancellation.
+		_ = o.deleteEnvRoles(context.Background(), o.appName, o.name)
 		return err
 	}
 	return nil
@@ -871,7 +873,7 @@ func (o *initEnvOpts) validateInternalALBSubnets() error {
 
 // cleanUpDanglingRoles deletes any IAM roles created for the same app and env that were left over from a previous
 // environment creation.
-func (o *initEnvOpts) cleanUpDanglingRoles(app, env string) error {
+func (o *initEnvOpts) cleanUpDanglingRoles(ctx context.Context, app, env string) error {
 	exists, err := o.cfn.Exists(stack.NameForEnv(app, env))
 	if err != nil {
 		return fmt.Errorf("check if stack %s exists: %w", stack.NameForEnv(app, env), err)
@@ -883,19 +885,21 @@ func (o *initEnvOpts) cleanUpDanglingRoles(app, env string) error {
 	// first time running this command.
 	// We should clean up any IAM roles that were *not* deleted during "env delete"
 	// before re-creating the stack otherwise the deployment will fail.
-	o.tryDeletingEnvRoles(app, env)
-	return nil
+	return o.deleteEnvRoles(ctx, app, env)
 }
 
-// tryDeletingEnvRoles attempts a best effort deletion of IAM roles created from an environment.
+// deleteEnvRoles attempts a best effort deletion of IAM roles created from an environment.
 // To ensure that the roles being deleted were created by Copilot, we check if the copilot-environment tag
 // is applied to the role.
-func (o *initEnvOpts) tryDeletingEnvRoles(app, env string) {
+func (o *initEnvOpts) deleteEnvRoles(ctx context.Context, app, env string) error {
 	roleNames := []string{
 		fmt.Sprintf("%s-CFNExecutionRole", stack.NameForEnv(app, env)),
 		fmt.Sprintf("%s-EnvManagerRole", stack.NameForEnv(app, env)),
 	}
 	for _, roleName := range roleNames {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		tags, err := o.iam.ListRoleTags(roleName)
 		if err != nil {
 			continue
@@ -903,8 +907,12 @@ func (o *initEnvOpts) tryDeletingEnvRoles(app, env string) {
 		if _, hasTag := tags[deploy.EnvTagKey]; !hasTag {
 			continue
 		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		_ = o.iam.DeleteRole(roleName)
 	}
+	return nil
 }
 
 func (o *initEnvOpts) writeManifest() (string, error) {

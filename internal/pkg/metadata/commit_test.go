@@ -73,6 +73,21 @@ func TestCommit(t *testing.T) {
 		require.Equal(t, []string{CommitAfterCancellationWarning}, warnings)
 	})
 
+	t.Run("cancellation immediately before write returns still warns", func(t *testing.T) {
+		parent, cancel := context.WithCancel(context.Background())
+		var warnings []string
+
+		err := Commit(parent, "environment deployment", func(message string) {
+			warnings = append(warnings, message)
+		}, func(context.Context) error {
+			cancel()
+			return nil
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, []string{CommitAfterCancellationWarning}, warnings)
+	})
+
 	t.Run("timeout cancels a stuck write", func(t *testing.T) {
 		err := commitWithTimeout(context.Background(), "application deployment", time.Millisecond,
 			func(string) {},

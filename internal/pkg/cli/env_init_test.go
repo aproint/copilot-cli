@@ -1507,14 +1507,17 @@ func TestInitEnvOpts_DeployEnv_CancellationDuringCleanupPreventsStackCreation(t 
 	appCFN := mocks.NewMockappResourcesGetter(ctrl)
 	identityService := mocks.NewMockidentityService(ctrl)
 	cfn := mocks.NewMockstackExistChecker(ctrl)
+	iam := mocks.NewMockroleManager(ctrl)
 
 	app := &config.Application{Name: "phonetool"}
 	appCFN.EXPECT().GetAppResourcesByRegion(app, "us-west-2").Return(&stack.AppRegionalResources{S3Bucket: "mockBucket"}, nil)
 	identityService.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "some arn"}, nil)
 	cfn.EXPECT().Exists("phonetool-test").DoAndReturn(func(string) (bool, error) {
 		cancel()
-		return true, nil
+		return false, nil
 	})
+	iam.EXPECT().ListRoleTags(gomock.Any()).Times(0)
+	iam.EXPECT().DeleteRole(gomock.Any()).Times(0)
 	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Times(0)
 
 	opts := &initEnvOpts{
@@ -1524,6 +1527,44 @@ func TestInitEnvOpts_DeployEnv_CancellationDuringCleanupPreventsStackCreation(t 
 		appCFN:      appCFN,
 		identity:    identityService,
 		cfn:         cfn,
+		iam:         iam,
+	}
+
+	err := opts.deployEnv(parent, app)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestInitEnvOpts_DeployEnv_CancellationAfterRoleLookupPreventsRoleDeletion(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	parent, cancel := context.WithCancel(context.Background())
+	deployer := mocks.NewMockdeployer(ctrl)
+	appCFN := mocks.NewMockappResourcesGetter(ctrl)
+	identityService := mocks.NewMockidentityService(ctrl)
+	cfn := mocks.NewMockstackExistChecker(ctrl)
+	iam := mocks.NewMockroleManager(ctrl)
+
+	app := &config.Application{Name: "phonetool"}
+	appCFN.EXPECT().GetAppResourcesByRegion(app, "us-west-2").Return(&stack.AppRegionalResources{S3Bucket: "mockBucket"}, nil)
+	identityService.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "some arn"}, nil)
+	cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
+	iam.EXPECT().ListRoleTags("phonetool-test-CFNExecutionRole").DoAndReturn(func(string) (map[string]string, error) {
+		cancel()
+		return map[string]string{deploy.EnvTagKey: "test"}, nil
+	})
+	iam.EXPECT().DeleteRole(gomock.Any()).Times(0)
+	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any()).Times(0)
+
+	opts := &initEnvOpts{
+		initEnvVars: initEnvVars{appName: "phonetool", name: "test"},
+		cfg:         aws.Config{Region: "us-west-2"},
+		envDeployer: deployer,
+		appCFN:      appCFN,
+		identity:    identityService,
+		cfn:         cfn,
+		iam:         iam,
 	}
 
 	err := opts.deployEnv(parent, app)

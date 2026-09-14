@@ -715,6 +715,35 @@ func TestInitAppOpts_Ask_CanceledContextPreventsRemoteValidation(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+func TestInitAppOpts_Ask_CancellationWhileListingApplicationsPreventsPrompt(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	callerCtx, cancel := context.WithCancel(context.Background())
+
+	store := mocks.NewMockstore(ctrl)
+	prompt := mocks.NewMockprompter(ctrl)
+	store.EXPECT().ListApplications(callerCtx).DoAndReturn(func(context.Context) ([]*config.Application, error) {
+		cancel()
+		return nil, context.Canceled
+	})
+	prompt.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	options := &initAppOpts{
+		store:  store,
+		prompt: prompt,
+		isSessionFromEnvVars: func(context.Context) (bool, error) {
+			return false, nil
+		},
+		existingWorkspace: func() (wsAppManager, error) {
+			return nil, &workspace.ErrWorkspaceNotFound{}
+		},
+	}
+
+	err := options.Ask(callerCtx)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
 type initAppExecuteMocks struct {
 	store           *mocks.Mockstore
 	ws              *mocks.MockwsAppManager

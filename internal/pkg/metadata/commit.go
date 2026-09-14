@@ -38,28 +38,31 @@ func commitWithTimeout(parent context.Context, mutation string, timeout time.Dur
 			warn(CommitAfterCancellationWarning)
 		})
 	}
+	var completionMu sync.Mutex
+	writeComplete := false
+	watcherDone := make(chan struct{})
+	// Serialize cancellation observation with the completion transition. The
+	// parent may be canceled before its AfterFunc callback gets scheduled, so the
+	// completion path also samples parent.Err while holding the same lock.
+	stopWatcher := context.AfterFunc(parent, func() {
+		defer close(watcherDone)
+		completionMu.Lock()
+		defer completionMu.Unlock()
+		if !writeComplete {
+			reportCancellation()
+		}
+	})
+
+	err := write(ctx)
+	completionMu.Lock()
 	if parent.Err() != nil {
 		reportCancellation()
 	}
-
-	writeDone := make(chan struct{})
-	watcherDone := make(chan struct{})
-	go func() {
-		defer close(watcherDone)
-		select {
-		case <-parent.Done():
-			select {
-			case <-writeDone:
-				return
-			default:
-				reportCancellation()
-			}
-		case <-writeDone:
-		}
-	}()
-
-	err := write(ctx)
-	close(writeDone)
+	writeComplete = true
+	completionMu.Unlock()
+	if stopWatcher() {
+		close(watcherDone)
+	}
 	<-watcherDone
 	return NewCommitError(mutation, err)
 }

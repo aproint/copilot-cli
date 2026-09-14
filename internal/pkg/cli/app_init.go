@@ -194,6 +194,9 @@ If you'd like to delete the application and all of its resources, run %s.
 	}
 
 	existingApps, _ := o.store.ListApplications(ctx)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if len(existingApps) == 0 {
 		return o.askAppName(fmtAppInitNamePrompt)
 	}

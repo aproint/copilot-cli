@@ -259,7 +259,7 @@ func (o *deploySvcOpts) Execute(ctx context.Context) error {
 		return err
 	}
 	if o.showDiff {
-		output, err := deployer.GenerateCloudFormationTemplate(&clideploy.GenerateCloudFormationTemplateInput{
+		output, err := deployer.GenerateCloudFormationTemplate(ctx, &clideploy.GenerateCloudFormationTemplateInput{
 			StackRuntimeConfiguration: clideploy.StackRuntimeConfiguration{
 				RootUserARN:               o.rootUserARN,
 				Tags:                      targetApp.Tags,
@@ -292,7 +292,7 @@ func (o *deploySvcOpts) Execute(ctx context.Context) error {
 			return nil
 		}
 	}
-	deployRecs, err := deployer.DeployWorkload(&clideploy.DeployWorkloadInput{
+	deployRecs, err := deployer.DeployWorkload(ctx, &clideploy.DeployWorkloadInput{
 		StackRuntimeConfiguration: clideploy.StackRuntimeConfiguration{
 			ImageDigests:              uploadOut.ImageDigests,
 			EnvFileARNs:               uploadOut.EnvFileARNs,

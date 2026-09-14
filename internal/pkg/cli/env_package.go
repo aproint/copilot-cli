@@ -200,7 +200,7 @@ func (o *packageEnvOpts) Execute(ctx context.Context) error {
 		}
 		uploadArtifactsOut = *out
 	}
-	res, err := packager.GenerateCloudFormationTemplate(&deploy.DeployEnvironmentInput{
+	res, err := packager.GenerateCloudFormationTemplate(ctx, &deploy.DeployEnvironmentInput{
 		RootUserARN:         principal.RootUserARN,
 		AddonsURL:           uploadArtifactsOut.AddonsURL,
 		CustomResourcesURLs: uploadArtifactsOut.CustomResourceURLs,

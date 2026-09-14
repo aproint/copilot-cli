@@ -377,7 +377,7 @@ func (o *packageSvcOpts) getWorkloadStack(ctx context.Context, generator workloa
 		}
 		uploadOut = *out
 	}
-	output, err := generator.GenerateCloudFormationTemplate(&clideploy.GenerateCloudFormationTemplateInput{
+	output, err := generator.GenerateCloudFormationTemplate(ctx, &clideploy.GenerateCloudFormationTemplateInput{
 		StackRuntimeConfiguration: clideploy.StackRuntimeConfiguration{
 			RootUserARN:               o.rootUserARN,
 			Tags:                      targetApp.Tags,

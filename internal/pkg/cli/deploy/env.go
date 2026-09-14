@@ -52,9 +52,9 @@ type appResourcesGetter interface {
 }
 
 type environmentDeployer interface {
-	UpdateAndRenderEnvironment(conf deploycfn.StackConfiguration, bucketARN string, detach bool, opts ...cloudformation.StackOption) error
-	DeployedEnvironmentParameters(app, env string) ([]awscfn.Parameter, error)
-	ForceUpdateOutputID(app, env string) (string, error)
+	UpdateAndRenderEnvironment(context.Context, deploycfn.StackConfiguration, string, bool, ...cloudformation.StackOption) error
+	DeployedEnvironmentParametersWithContext(context.Context, string, string) ([]awscfn.Parameter, error)
+	ForceUpdateOutputIDWithContext(context.Context, string, string) (string, error)
 }
 
 type patcher interface {
@@ -278,16 +278,16 @@ type DeployEnvironmentInput struct {
 }
 
 // GenerateCloudFormationTemplate returns the environment stack's template and parameter configuration.
-func (d *envDeployer) GenerateCloudFormationTemplate(in *DeployEnvironmentInput) (*GenerateCloudFormationTemplateOutput, error) {
+func (d *envDeployer) GenerateCloudFormationTemplate(ctx context.Context, in *DeployEnvironmentInput) (*GenerateCloudFormationTemplateOutput, error) {
 	stackInput, err := d.buildStackInput(in)
 	if err != nil {
 		return nil, err
 	}
-	oldParams, err := d.envDeployer.DeployedEnvironmentParameters(d.app.Name, d.env.Name)
+	oldParams, err := d.envDeployer.DeployedEnvironmentParametersWithContext(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("describe environment stack parameters: %w", err)
 	}
-	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputID(d.app.Name, d.env.Name)
+	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputIDWithContext(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve environment stack force update ID: %w", err)
 	}
@@ -310,16 +310,16 @@ func (d *envDeployer) GenerateCloudFormationTemplate(in *DeployEnvironmentInput)
 }
 
 // DeployEnvironment deploys an environment using CloudFormation.
-func (d *envDeployer) DeployEnvironment(in *DeployEnvironmentInput) error {
+func (d *envDeployer) DeployEnvironment(ctx context.Context, in *DeployEnvironmentInput) error {
 	stackInput, err := d.buildStackInput(in)
 	if err != nil {
 		return err
 	}
-	oldParams, err := d.envDeployer.DeployedEnvironmentParameters(d.app.Name, d.env.Name)
+	oldParams, err := d.envDeployer.DeployedEnvironmentParametersWithContext(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return fmt.Errorf("describe environment stack parameters: %w", err)
 	}
-	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputID(d.app.Name, d.env.Name)
+	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputIDWithContext(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return fmt.Errorf("retrieve environment stack force update ID: %w", err)
 	}
@@ -333,7 +333,7 @@ func (d *envDeployer) DeployEnvironment(in *DeployEnvironmentInput) error {
 	if err != nil {
 		return err
 	}
-	return d.envDeployer.UpdateAndRenderEnvironment(stack, stackInput.ArtifactBucketARN, in.Detach, opts...)
+	return d.envDeployer.UpdateAndRenderEnvironment(ctx, stack, stackInput.ArtifactBucketARN, in.Detach, opts...)
 }
 
 func (d *envDeployer) getAppRegionalResources() (*cfnstack.AppRegionalResources, error) {

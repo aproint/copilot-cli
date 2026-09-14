@@ -30,7 +30,7 @@ func TestLbWebSvcDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		lbws := mockLoadBalancedWebServiceDeployer()
 
 		// WHEN
-		out, err := lbws.GenerateCloudFormationTemplate(&GenerateCloudFormationTemplateInput{})
+		out, err := lbws.GenerateCloudFormationTemplate(t.Context(), &GenerateCloudFormationTemplateInput{})
 
 		// THEN
 		require.NoError(t, err)

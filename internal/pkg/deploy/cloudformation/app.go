@@ -38,14 +38,14 @@ func (e *errNoRegionalResources) Error() string {
 // environment, such as ECR Repos, CodePipeline KMS keys & S3 buckets.
 // We deploy application resources through StackSets - that way we can have one
 // template that we update and all regional stacks are updated.
-func (cf CloudFormation) DeployApp(in *deploy.CreateAppInput) error {
+func (cf CloudFormation) DeployApp(ctx context.Context, in *deploy.CreateAppInput) error {
 	appConfig := stack.NewAppStackConfig(in)
 	s, err := toStack(appConfig)
 	if err != nil {
 		return err
 	}
 
-	if err := cf.executeAndRenderChangeSet(cf.newCreateChangeSetInput(cf.console, s)); err != nil {
+	if err := cf.executeAndRenderChangeSet(ctx, cf.newCreateChangeSetInput(cf.console, s)); err != nil {
 		var alreadyExists *cloudformation.ErrStackAlreadyExists
 		if !errors.As(err, &alreadyExists) {
 			return err
@@ -62,7 +62,7 @@ func (cf CloudFormation) DeployApp(in *deploy.CreateAppInput) error {
 	if err != nil {
 		return fmt.Errorf("get stack set administrator role arn: %w", err)
 	}
-	return cf.appStackSet.Create(appConfig.StackSetName(), blankAppTemplate,
+	return cf.appStackSet.CreateWithContext(ctx, appConfig.StackSetName(), blankAppTemplate,
 		stackset.WithDescription(appConfig.StackSetDescription()),
 		stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
 		stackset.WithAdministrationRoleARN(stackSetAdminRoleARN),
@@ -70,36 +70,36 @@ func (cf CloudFormation) DeployApp(in *deploy.CreateAppInput) error {
 }
 
 // UpgradeApplication upgrades the application stack to the latest version.
-func (cf CloudFormation) UpgradeApplication(in *deploy.CreateAppInput) error {
+func (cf CloudFormation) UpgradeApplication(ctx context.Context, in *deploy.CreateAppInput) error {
 	appConfig := stack.NewAppStackConfig(in)
-	appStack, err := cf.cfnClient.Describe(appConfig.StackName())
+	appStack, err := cf.cfnClient.DescribeWithContext(ctx, appConfig.StackName())
 	if err != nil {
 		return fmt.Errorf("get existing application infrastructure stack: %w", err)
 	}
 	in.DNSDelegationAccounts = stack.DNSDelegatedAccountsForStack(appStack.SDK())
 	in.AdditionalTags = toMap(appStack.Tags)
 	appConfig = stack.NewAppStackConfig(in)
-	if err := cf.upgradeAppStack(appConfig); err != nil {
+	if err := cf.upgradeAppStack(ctx, appConfig); err != nil {
 		var empty *cloudformation.ErrChangeSetEmpty
 		if !errors.As(err, &empty) {
 			return fmt.Errorf("upgrade stack %q: %w", appConfig.StackName(), err)
 		}
 	}
-	return cf.upgradeAppStackSet(appConfig)
+	return cf.upgradeAppStackSet(ctx, appConfig)
 }
 
-func (cf CloudFormation) upgradeAppStackSet(config *stack.AppStackConfig) error {
+func (cf CloudFormation) upgradeAppStackSet(ctx context.Context, config *stack.AppStackConfig) error {
 	for {
 		ssName := config.StackSetName()
-		if err := cf.appStackSet.WaitForStackSetLastOperationComplete(ssName); err != nil {
+		if err := cf.appStackSet.WaitForStackSetLastOperationCompleteWithContext(ctx, ssName); err != nil {
 			return fmt.Errorf("wait for stack set %s last operation complete: %w", ssName, err)
 		}
-		previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(config)
+		previouslyDeployedConfig, err := cf.getLastDeployedAppConfigWithContext(ctx, config)
 		if err != nil {
 			return err
 		}
 		previouslyDeployedConfig.Version += 1
-		err = cf.deployAppConfig(config, previouslyDeployedConfig, true /* updating template resources should update all instances*/)
+		err = cf.deployAppConfigWithContext(ctx, config, previouslyDeployedConfig, true /* updating template resources should update all instances*/)
 		if err == nil {
 			return nil
 		}
@@ -111,7 +111,7 @@ func (cf CloudFormation) upgradeAppStackSet(config *stack.AppStackConfig) error 
 	}
 }
 
-func (cf CloudFormation) upgradeAppStack(conf *stack.AppStackConfig) error {
+func (cf CloudFormation) upgradeAppStack(ctx context.Context, conf *stack.AppStackConfig) error {
 	s, err := toStack(conf)
 	if err != nil {
 		return err
@@ -120,20 +120,20 @@ func (cf CloudFormation) upgradeAppStack(conf *stack.AppStackConfig) error {
 		stackName:        s.Name,
 		stackDescription: fmt.Sprintf("Creating the infrastructure for the %s app.", s.Name),
 	}
-	in.createChangeSet = func() (changeSetID string, err error) {
+	in.createChangeSet = func(ctx context.Context) (changeSetID string, err error) {
 		spinner := progress.NewSpinner(cf.console)
 		label := fmt.Sprintf("Proposing infrastructure changes for %s.", s.Name)
 		spinner.Start(label)
 		defer stopSpinner(spinner, err, label)
 
-		changeSetID, err = cf.cfnClient.Update(s)
+		changeSetID, err = cf.cfnClient.UpdateWithContext(ctx, s)
 		if err != nil {
 			return "", err
 		}
 		return changeSetID, nil
 	}
 
-	return cf.executeAndRenderChangeSet(in)
+	return cf.executeAndRenderChangeSet(ctx, in)
 }
 
 // removeDNSDelegationAndCrossAccountAccess removes the provided account ID from the list of accounts that can write to the
@@ -599,6 +599,32 @@ func (cf CloudFormation) deployAppConfig(appConfig *stack.AppStackConfig, resour
 	if err != nil {
 		return err
 	}
+	stackSetAdminRoleARN, err := appConfig.StackSetAdminRoleARN(cf.region)
+	if err != nil {
+		return fmt.Errorf("get stack set administrator role arn: %w", err)
+	}
+	renderInput := renderStackSetInput{
+		name:               appConfig.StackSetName(),
+		template:           newTemplateToDeploy,
+		hasInstanceUpdates: hasInstanceUpdates,
+		createOpFn: func(context.Context) (string, error) {
+			return cf.appStackSet.Update(appConfig.StackSetName(), newTemplateToDeploy,
+				stackset.WithOperationID(fmt.Sprintf("%d", resources.Version)),
+				stackset.WithDescription(appConfig.StackSetDescription()),
+				stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
+				stackset.WithAdministrationRoleARN(stackSetAdminRoleARN),
+				stackset.WithTags(toMapPtr(appConfig.Tags())))
+		},
+		now: time.Now,
+	}
+	return cf.renderStackSet(context.Background(), renderInput)
+}
+
+func (cf CloudFormation) deployAppConfigWithContext(ctx context.Context, appConfig *stack.AppStackConfig, resources *stack.AppResourcesConfig, hasInstanceUpdates bool) error {
+	newTemplateToDeploy, err := appConfig.ResourceTemplate(resources)
+	if err != nil {
+		return err
+	}
 	// Every time we deploy the StackSet, we include a version field in the stack metadata.
 	// When we go to update the StackSet, we include that version + 1 as the "Operation ID".
 	// This ensures that we don't overwrite any changes that may have been applied between
@@ -618,8 +644,8 @@ func (cf CloudFormation) deployAppConfig(appConfig *stack.AppStackConfig, resour
 		name:               appConfig.StackSetName(),
 		template:           newTemplateToDeploy,
 		hasInstanceUpdates: hasInstanceUpdates,
-		createOpFn: func() (string, error) {
-			return cf.appStackSet.Update(appConfig.StackSetName(), newTemplateToDeploy,
+		createOpFn: func(ctx context.Context) (string, error) {
+			return cf.appStackSet.UpdateWithContext(ctx, appConfig.StackSetName(), newTemplateToDeploy,
 				stackset.WithOperationID(fmt.Sprintf("%d", resources.Version)),
 				stackset.WithDescription(appConfig.StackSetDescription()),
 				stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
@@ -628,7 +654,7 @@ func (cf CloudFormation) deployAppConfig(appConfig *stack.AppStackConfig, resour
 		},
 		now: time.Now,
 	}
-	return cf.renderStackSet(renderInput)
+	return cf.renderStackSet(ctx, renderInput)
 }
 
 // addNewAppStackInstances takes an environment and determines if we need to create a new
@@ -662,18 +688,31 @@ func (cf CloudFormation) addNewAppStackInstances(appConfig *stack.AppStackConfig
 		name:               appConfig.StackSetName(),
 		template:           template,
 		hasInstanceUpdates: shouldDeployNewStackInstance,
-		createOpFn: func() (string, error) {
+		createOpFn: func(context.Context) (string, error) {
 			return cf.appStackSet.CreateInstances(appConfig.StackSetName(), []string{appConfig.AccountID}, []string{region})
 		},
 		now: time.Now,
 	}
-	return cf.renderStackSet(renderInput)
+	return cf.renderStackSet(context.Background(), renderInput)
 }
 
 func (cf CloudFormation) getLastDeployedAppConfig(appConfig *stack.AppStackConfig) (*stack.AppResourcesConfig, error) {
+	descr, err := cf.appStackSet.Describe(appConfig.StackSetName())
+	if err != nil {
+		return nil, err
+	}
+	previouslyDeployedConfig, err := stack.AppConfigFrom(&descr.Template)
+	if err != nil {
+		return nil, fmt.Errorf("parse previous deployed stackset %w", err)
+	}
+	previouslyDeployedConfig.App = appConfig.Name
+	return previouslyDeployedConfig, nil
+}
+
+func (cf CloudFormation) getLastDeployedAppConfigWithContext(ctx context.Context, appConfig *stack.AppStackConfig) (*stack.AppResourcesConfig, error) {
 	// Check the existing deploy stack template. From that template, we'll parse out the list of services and accounts that
 	// are deployed in the stack.
-	descr, err := cf.appStackSet.Describe(appConfig.StackSetName())
+	descr, err := cf.appStackSet.DescribeWithContext(ctx, appConfig.StackSetName())
 	if err != nil {
 		return nil, err
 	}
@@ -705,7 +744,7 @@ func (cf CloudFormation) DeleteApp(appName string) error {
 	return cf.deleteAndRenderStack(deleteAndRenderInput{
 		stackName:   stackName,
 		description: description,
-		deleteFn: func() error {
+		deleteFn: func(context.Context) error {
 			return cf.cfnClient.DeleteAndWait(stackName)
 		},
 	})
@@ -734,14 +773,14 @@ func (cf CloudFormation) deleteStackSetInstance(name, account, region string) er
 }
 
 type renderStackSetInput struct {
-	name               string                 // Name of the stack set.
-	template           string                 // Template body for stack set instances.
-	hasInstanceUpdates bool                   // True when the stack set update will force instances to also be updated.
-	createOpFn         func() (string, error) // Function to create a stack set operation.
+	name               string                                // Name of the stack set.
+	template           string                                // Template body for stack set instances.
+	hasInstanceUpdates bool                                  // True when the stack set update will force instances to also be updated.
+	createOpFn         func(context.Context) (string, error) // Function to create a stack set operation.
 	now                func() time.Time
 }
 
-func (cf CloudFormation) renderStackSetImpl(in renderStackSetInput) error {
+func (cf CloudFormation) renderStackSetImpl(ctx context.Context, in renderStackSetInput) error {
 	titles, err := cloudformation.ParseTemplateDescriptions(in.template)
 	if err != nil {
 		return fmt.Errorf("parse resource descriptions from stack set template: %w", err)
@@ -749,19 +788,22 @@ func (cf CloudFormation) renderStackSetImpl(in renderStackSetInput) error {
 
 	// Start the operation.
 	timestamp := in.now()
-	opID, err := in.createOpFn()
+	opID, err := in.createOpFn(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Collect streamers.
-	setStreamer := stream.NewStackSetStreamer(cf.appStackSet, in.name, opID, timestamp)
+	setStreamer := stream.NewStackSetStreamerWithContext(ctx, cf.appStackSet, in.name, opID, timestamp)
 	var stackStreamers []*stream.StackStreamer
 	if in.hasInstanceUpdates {
 		stackStreamers, err = setStreamer.InstanceStreamers(func(region string) stream.StackEventsDescriber {
 			return cf.regionalClient(region)
 		})
 		if err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
 			return fmt.Errorf("retrieve stack instance streamers: %w", err)
 		}
 	}
@@ -774,7 +816,7 @@ func (cf CloudFormation) renderStackSetImpl(in renderStackSetInput) error {
 	renderers := stackSetRenderers(setStreamer, stackStreamers, titles)
 
 	// Render.
-	waitCtx, cancelWait := context.WithTimeout(context.Background(), waitForStackTimeout)
+	waitCtx, cancelWait := context.WithTimeout(ctx, waitForStackTimeout)
 	defer cancelWait()
 	g, ctx := errgroup.WithContext(waitCtx)
 
@@ -789,6 +831,9 @@ func (cf CloudFormation) renderStackSetImpl(in renderStackSetInput) error {
 		return err
 	})
 	if err := g.Wait(); err != nil {
+		if ctxErr := waitCtx.Err(); ctxErr != nil {
+			return ctxErr
+		}
 		return fmt.Errorf("render progress of stack set %q: %w", in.name, err)
 	}
 	return nil

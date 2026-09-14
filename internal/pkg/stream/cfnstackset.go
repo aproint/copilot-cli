@@ -4,6 +4,7 @@
 package stream
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -18,6 +19,11 @@ type StackSetDescriber interface {
 	DescribeOperation(name, opID string) (stackset.Operation, error)
 }
 
+type contextualStackSetDescriber interface {
+	InstanceSummariesWithContext(context.Context, string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
+	DescribeOperationWithContext(context.Context, string, string) (stackset.Operation, error)
+}
+
 // StackSetOpEvent represents a stack set operation status update message.
 type StackSetOpEvent struct {
 	Name      string // The name of the stack set.
@@ -26,6 +32,8 @@ type StackSetOpEvent struct {
 
 // StackSetStreamer is a [Streamer] emitting [StackSetOpEvent] messages for instances under modification.
 type StackSetStreamer struct {
+	ctx         context.Context
+	useContext  bool
 	stackset    StackSetDescriber
 	ssName      string
 	opID        string
@@ -46,7 +54,18 @@ type StackSetStreamer struct {
 
 // NewStackSetStreamer creates a StackSetStreamer for the given stack set name and operation.
 func NewStackSetStreamer(cfn StackSetDescriber, ssName, opID string, opStartTime time.Time) *StackSetStreamer {
+	return newStackSetStreamer(context.Background(), false, cfn, ssName, opID, opStartTime)
+}
+
+// NewStackSetStreamerWithContext creates a StackSetStreamer that uses ctx for fetches.
+func NewStackSetStreamerWithContext(ctx context.Context, cfn StackSetDescriber, ssName, opID string, opStartTime time.Time) *StackSetStreamer {
+	return newStackSetStreamer(ctx, true, cfn, ssName, opID, opStartTime)
+}
+
+func newStackSetStreamer(ctx context.Context, useContext bool, cfn StackSetDescriber, ssName, opID string, opStartTime time.Time) *StackSetStreamer {
 	return &StackSetStreamer{
+		ctx:                       ctx,
+		useContext:                useContext,
 		stackset:                  cfn,
 		ssName:                    ssName,
 		opID:                      opID,
@@ -68,7 +87,7 @@ func (s *StackSetStreamer) Name() string {
 func (s *StackSetStreamer) InstanceStreamers(cfnClientFor func(region string) StackEventsDescriber) ([]*StackStreamer, error) {
 	var streamers []*StackStreamer
 	for {
-		instances, err := s.stackset.InstanceSummaries(s.ssName)
+		instances, err := s.instanceSummaries()
 		if err != nil {
 			return nil, fmt.Errorf("describe in progress stack instances for stack set %q: %w", s.ssName, err)
 		}
@@ -77,7 +96,11 @@ func (s *StackSetStreamer) InstanceStreamers(cfnClientFor func(region string) St
 			if !instance.Status.InProgress() || instance.StackID == "" /* new instances won't immediately have an ID */ {
 				continue
 			}
-			streamers = append(streamers, NewStackStreamer(cfnClientFor(instance.Region), instance.StackID, s.opStartTime))
+			if s.useContext {
+				streamers = append(streamers, NewStackStreamerWithContext(s.ctx, cfnClientFor(instance.Region), instance.StackID, s.opStartTime))
+			} else {
+				streamers = append(streamers, NewStackStreamer(cfnClientFor(instance.Region), instance.StackID, s.opStartTime))
+			}
 		}
 		if len(streamers) > 0 {
 			break
@@ -85,14 +108,18 @@ func (s *StackSetStreamer) InstanceStreamers(cfnClientFor func(region string) St
 
 		// It's possible that instance statuses aren't updated immediately after a stack set operation is started.
 		// If the operation is still ongoing, there must be at least one stack instance that's outdated.
-		op, err := s.stackset.DescribeOperation(s.ssName, s.opID)
+		op, err := s.describeOperation()
 		if err != nil {
 			return nil, fmt.Errorf("describe operation %q for stack set %q: %w", s.opID, s.ssName, err)
 		}
 		if !op.Status.InProgress() {
 			break
 		}
-		<-time.After(s.instanceSummariesInterval) // Empirically, instances appear within this timeframe.
+		select {
+		case <-s.ctx.Done():
+			return nil, s.ctx.Err()
+		case <-time.After(s.instanceSummariesInterval): // Empirically, instances appear within this timeframe.
+		}
 	}
 	return streamers, nil
 }
@@ -115,7 +142,7 @@ func (s *StackSetStreamer) Subscribe() <-chan StackSetOpEvent {
 // If an error occurs from describing stack set operation, returns a wrapped error.
 // Otherwise, returns the time the next Fetch should be attempted and whether or not there are more operations to fetch.
 func (s *StackSetStreamer) Fetch() (next time.Time, done bool, err error) {
-	op, err := s.stackset.DescribeOperation(s.ssName, s.opID)
+	op, err := s.describeOperation()
 	if err != nil {
 		// Check for throttles and wait to try again using the StackSetStreamer's interval.
 		if isThrottleError(err) {
@@ -130,6 +157,20 @@ func (s *StackSetStreamer) Fetch() (next time.Time, done bool, err error) {
 	s.retries = 0
 	s.curOp = op
 	return nextFetchDate(s.clock, s.rand, s.retries), done, nil
+}
+
+func (s *StackSetStreamer) instanceSummaries() ([]stackset.InstanceSummary, error) {
+	if client, ok := s.stackset.(contextualStackSetDescriber); s.useContext && ok {
+		return client.InstanceSummariesWithContext(s.ctx, s.ssName)
+	}
+	return s.stackset.InstanceSummaries(s.ssName)
+}
+
+func (s *StackSetStreamer) describeOperation() (stackset.Operation, error) {
+	if client, ok := s.stackset.(contextualStackSetDescriber); s.useContext && ok {
+		return client.DescribeOperationWithContext(s.ctx, s.ssName, s.opID)
+	}
+	return s.stackset.DescribeOperation(s.ssName, s.opID)
 }
 
 // Notify publishes the stack set's operation description to subscribers only

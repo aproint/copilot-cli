@@ -4,6 +4,7 @@
 package cloudformation
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 // DeployService deploys a service stack and renders progress updates to out until the deployment is done.
 // If the service stack doesn't exist, then it creates the stack.
 // If the service stack already exists, it updates the stack.
-func (cf CloudFormation) DeployService(conf StackConfiguration, bucketName string, detach bool, opts ...cloudformation.StackOption) error {
+func (cf CloudFormation) DeployService(ctx context.Context, conf StackConfiguration, bucketName string, detach bool, opts ...cloudformation.StackOption) error {
 	templateURL, err := cf.uploadStackTemplateToS3(bucketName, conf)
 	if err != nil {
 		return err
@@ -27,7 +28,7 @@ func (cf CloudFormation) DeployService(conf StackConfiguration, bucketName strin
 	for _, opt := range opts {
 		opt(stack)
 	}
-	return cf.executeAndRenderChangeSet(cf.newUpsertChangeSetInput(cf.console, stack, withEnableInterrupt(), withDetach(detach)))
+	return cf.executeAndRenderChangeSet(ctx, cf.newUpsertChangeSetInput(cf.console, stack, withEnableInterrupt(), withDetach(detach)))
 }
 
 type uploadableStack interface {
@@ -47,11 +48,11 @@ func (cf CloudFormation) uploadStackTemplateToS3(bucket string, stack uploadable
 	return url, nil
 }
 
-func (cf CloudFormation) handleStackError(stackName string, err error) error {
+func (cf CloudFormation) handleStackError(ctx context.Context, stackName string, err error) error {
 	if err == nil {
 		return nil
 	}
-	reasons, describeErr := cf.errorEvents(stackName)
+	reasons, describeErr := cf.errorEvents(ctx, stackName)
 	if describeErr != nil {
 		return fmt.Errorf("%w: describe stack: %v", err, describeErr)
 	}
@@ -68,7 +69,7 @@ func (cf CloudFormation) DeleteWorkload(in deploy.DeleteWorkloadInput) error {
 	return cf.deleteAndRenderStack(deleteAndRenderInput{
 		stackName:   stackName,
 		description: description,
-		deleteFn: func() error {
+		deleteFn: func(context.Context) error {
 			return cf.cfnClient.DeleteAndWaitWithRoleARN(stackName, in.ExecutionRoleARN)
 		},
 	})

@@ -115,7 +115,7 @@ func (d *workerSvcDeployOutput) RecommendedActions() []string {
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.
-func (d *workerSvcDeployer) GenerateCloudFormationTemplate(in *GenerateCloudFormationTemplateInput) (
+func (d *workerSvcDeployer) GenerateCloudFormationTemplate(_ context.Context, in *GenerateCloudFormationTemplateInput) (
 	*GenerateCloudFormationTemplateOutput, error) {
 	output, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
@@ -125,12 +125,12 @@ func (d *workerSvcDeployer) GenerateCloudFormationTemplate(in *GenerateCloudForm
 }
 
 // DeployWorkload deploys a worker service using CloudFormation.
-func (d *workerSvcDeployer) DeployWorkload(in *DeployWorkloadInput) (ActionRecommender, error) {
+func (d *workerSvcDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloadInput) (ActionRecommender, error) {
 	stackConfigOutput, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
-	if err := d.deploy(in.Options, stackConfigOutput.svcStackConfigurationOutput); err != nil {
+	if err := d.deploy(ctx, in.Options, stackConfigOutput.svcStackConfigurationOutput); err != nil {
 		return nil, err
 	}
 	return &workerSvcDeployOutput{

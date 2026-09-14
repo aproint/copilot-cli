@@ -172,7 +172,7 @@ func (o *appUpgradeOpts) upgradeApplication(ctx context.Context, app *config.App
 		return err
 	}
 	// Upgrade app CloudFormation resources.
-	if err := o.upgrader.UpgradeApplication(&deploy.CreateAppInput{
+	if err := o.upgrader.UpgradeApplication(ctx, &deploy.CreateAppInput{
 		Name:               o.name,
 		AccountID:          caller.Account,
 		DomainName:         app.Domain,

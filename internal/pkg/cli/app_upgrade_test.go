@@ -279,7 +279,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				mockStore.EXPECT().UpdateApplication(ctx, &config.Application{Name: "phonetool"}).Return(nil)
 
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
-				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any()).Return(errors.New("some error"))
+				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any(), gomock.Any()).Return(errors.New("some error"))
 
 				return &appUpgradeOpts{
 					appUpgradeVars: appUpgradeVars{
@@ -313,7 +313,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				mockRoute53.EXPECT().PublicDomainHostedZoneID("hello.com").Return("2klfqok3", nil)
 
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
-				mockUpgrader.EXPECT().UpgradeApplication(&deploy.CreateAppInput{
+				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any(), &deploy.CreateAppInput{
 					Name:               "phonetool",
 					AccountID:          "1234",
 					DomainName:         "hello.com",

@@ -25,7 +25,7 @@ func TestJobDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		job := mockJobDeployer()
 
 		// WHEN
-		out, err := job.GenerateCloudFormationTemplate(&GenerateCloudFormationTemplateInput{})
+		out, err := job.GenerateCloudFormationTemplate(t.Context(), &GenerateCloudFormationTemplateInput{})
 
 		// THEN
 		require.NoError(t, err)

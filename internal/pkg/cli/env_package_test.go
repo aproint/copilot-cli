@@ -267,7 +267,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(nil, errors.New("some error"))
+				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 
 				return &packageEnvOpts{
 					packageEnvVars: packageEnvVars{
@@ -297,7 +297,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				deployer.EXPECT().DeployDiff(gomock.Any()).Return("", errors.New("some error"))
 				return &packageEnvOpts{
 					packageEnvVars: packageEnvVars{
@@ -329,7 +329,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				packager := mocks.NewMockenvPackager(ctrl)
 				packager.EXPECT().Validate(gomock.Any()).Return(nil)
-				packager.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{
+				packager.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{
 					Template:   "template",
 					Parameters: "parameters",
 				}, nil)
@@ -368,7 +368,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 						"mockCustomResource": "mockURL",
 					},
 				}, nil)
-				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).DoAndReturn(func(in *deploy.DeployEnvironmentInput) (*deploy.GenerateCloudFormationTemplateOutput, error) {
+				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, in *deploy.DeployEnvironmentInput) (*deploy.GenerateCloudFormationTemplateOutput, error) {
 					require.Equal(t, in.AddonsURL, "mockAddonsURL")
 					require.Equal(t, in.CustomResourcesURLs, map[string]string{
 						"mockCustomResource": "mockURL",
@@ -415,7 +415,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
+				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				deployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				return &packageEnvOpts{
 					packageEnvVars: packageEnvVars{
@@ -448,7 +448,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().GenerateCloudFormationTemplate(&deploy.DeployEnvironmentInput{
+				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), &deploy.DeployEnvironmentInput{
 					RootUserARN:         "",
 					CustomResourcesURLs: nil,
 					Manifest: &manifest.Environment{
@@ -515,7 +515,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().GenerateCloudFormationTemplate(&deploy.DeployEnvironmentInput{
+				deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), &deploy.DeployEnvironmentInput{
 					RootUserARN:         "",
 					CustomResourcesURLs: nil,
 					Manifest: &manifest.Environment{

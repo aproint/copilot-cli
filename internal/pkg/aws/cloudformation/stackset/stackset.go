@@ -45,6 +45,11 @@ type CreateOrUpdateOption func(interface{})
 
 // Create creates a new stack set resource, if one already exists then do nothing.
 func (ss *StackSet) Create(name, template string, opts ...CreateOrUpdateOption) error {
+	return ss.CreateWithContext(context.Background(), name, template, opts...)
+}
+
+// CreateWithContext creates a new stack set resource using ctx.
+func (ss *StackSet) CreateWithContext(ctx context.Context, name, template string, opts ...CreateOrUpdateOption) error {
 	in := &cloudformation.CreateStackSetInput{
 		StackSetName: awsv2.String(name),
 		TemplateBody: awsv2.String(template),
@@ -52,7 +57,7 @@ func (ss *StackSet) Create(name, template string, opts ...CreateOrUpdateOption) 
 	for _, opt := range opts {
 		opt(in)
 	}
-	_, err := ss.client.CreateStackSet(context.Background(), in)
+	_, err := ss.client.CreateStackSet(ctx, in)
 	if err != nil {
 		if !isAlreadyExistingStackSet(err) {
 			return fmt.Errorf("create stack set %s: %w", name, err)
@@ -63,7 +68,12 @@ func (ss *StackSet) Create(name, template string, opts ...CreateOrUpdateOption) 
 
 // Describe returns a description of a created stack set.
 func (ss *StackSet) Describe(name string) (Description, error) {
-	resp, err := ss.client.DescribeStackSet(context.Background(), &cloudformation.DescribeStackSetInput{
+	return ss.DescribeWithContext(context.Background(), name)
+}
+
+// DescribeWithContext returns a description of a stack set using ctx.
+func (ss *StackSet) DescribeWithContext(ctx context.Context, name string) (Description, error) {
+	resp, err := ss.client.DescribeStackSet(ctx, &cloudformation.DescribeStackSetInput{
 		StackSetName: awsv2.String(name),
 	})
 	if err != nil {
@@ -85,7 +95,12 @@ type Operation struct {
 
 // DescribeOperation returns a description of the operation.
 func (ss *StackSet) DescribeOperation(name, opID string) (Operation, error) {
-	resp, err := ss.client.DescribeStackSetOperation(context.Background(), &cloudformation.DescribeStackSetOperationInput{
+	return ss.DescribeOperationWithContext(context.Background(), name, opID)
+}
+
+// DescribeOperationWithContext returns a stack set operation using ctx.
+func (ss *StackSet) DescribeOperationWithContext(ctx context.Context, name, opID string) (Operation, error) {
+	resp, err := ss.client.DescribeStackSetOperation(ctx, &cloudformation.DescribeStackSetOperationInput{
 		StackSetName: awsv2.String(name),
 		OperationId:  awsv2.String(opID),
 	})
@@ -101,12 +116,17 @@ func (ss *StackSet) DescribeOperation(name, opID string) (Operation, error) {
 
 // Update updates all the instances in a stack set with the new template and returns the operation ID.
 func (ss *StackSet) Update(name, template string, opts ...CreateOrUpdateOption) (string, error) {
-	return ss.update(name, template, opts...)
+	return ss.UpdateWithContext(context.Background(), name, template, opts...)
+}
+
+// UpdateWithContext updates a stack set using ctx.
+func (ss *StackSet) UpdateWithContext(ctx context.Context, name, template string, opts ...CreateOrUpdateOption) (string, error) {
+	return ss.update(ctx, name, template, opts...)
 }
 
 // UpdateAndWait updates a stack set with a new template, and waits until the operation completes.
 func (ss *StackSet) UpdateAndWait(name, template string, opts ...CreateOrUpdateOption) error {
-	id, err := ss.update(name, template, opts...)
+	id, err := ss.update(context.Background(), name, template, opts...)
 	if err != nil {
 		return err
 	}
@@ -206,12 +226,17 @@ func (ss *StackSet) Delete(name string) error {
 // CreateInstances creates new stack instances within the regions
 // of the specified AWS accounts and returns the operation ID.
 func (ss *StackSet) CreateInstances(name string, accounts, regions []string) (string, error) {
-	return ss.createInstances(name, accounts, regions)
+	return ss.CreateInstancesWithContext(context.Background(), name, accounts, regions)
+}
+
+// CreateInstancesWithContext creates stack instances using ctx.
+func (ss *StackSet) CreateInstancesWithContext(ctx context.Context, name string, accounts, regions []string) (string, error) {
+	return ss.createInstances(ctx, name, accounts, regions)
 }
 
 // CreateInstancesAndWait creates new stack instances in the regions of the specified AWS accounts, and waits until the operation completes.
 func (ss *StackSet) CreateInstancesAndWait(name string, accounts, regions []string) error {
-	id, err := ss.createInstances(name, accounts, regions)
+	id, err := ss.createInstances(context.Background(), name, accounts, regions)
 	if err != nil {
 		return err
 	}
@@ -231,6 +256,11 @@ type InstanceSummariesOption func(input *cloudformation.ListStackInstancesInput)
 
 // InstanceSummaries returns a list of unique identifiers for all the stack instances in a stack set.
 func (ss *StackSet) InstanceSummaries(name string, opts ...InstanceSummariesOption) ([]InstanceSummary, error) {
+	return ss.InstanceSummariesWithContext(context.Background(), name, opts...)
+}
+
+// InstanceSummariesWithContext returns stack instance summaries using ctx.
+func (ss *StackSet) InstanceSummariesWithContext(ctx context.Context, name string, opts ...InstanceSummariesOption) ([]InstanceSummary, error) {
 	in := &cloudformation.ListStackInstancesInput{
 		StackSetName: awsv2.String(name),
 	}
@@ -240,7 +270,7 @@ func (ss *StackSet) InstanceSummaries(name string, opts ...InstanceSummariesOpti
 
 	var summaries []InstanceSummary
 	for {
-		resp, err := ss.client.ListStackInstances(context.Background(), in)
+		resp, err := ss.client.ListStackInstances(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("list stack instances for stack set %s: %w", name, err)
 		}
@@ -263,7 +293,7 @@ func (ss *StackSet) InstanceSummaries(name string, opts ...InstanceSummariesOpti
 	return summaries, nil
 }
 
-func (ss *StackSet) update(name, template string, opts ...CreateOrUpdateOption) (string, error) {
+func (ss *StackSet) update(ctx context.Context, name, template string, opts ...CreateOrUpdateOption) (string, error) {
 	in := &cloudformation.UpdateStackSetInput{
 		StackSetName: awsv2.String(name),
 		TemplateBody: awsv2.String(template),
@@ -274,7 +304,7 @@ func (ss *StackSet) update(name, template string, opts ...CreateOrUpdateOption) 
 	for _, opt := range opts {
 		opt(in)
 	}
-	resp, err := ss.client.UpdateStackSet(context.Background(), in)
+	resp, err := ss.client.UpdateStackSet(ctx, in)
 	if err != nil {
 		if isOutdatedStackSet(err) {
 			return "", &ErrStackSetOutOfDate{
@@ -287,8 +317,8 @@ func (ss *StackSet) update(name, template string, opts ...CreateOrUpdateOption) 
 	return awsv2.ToString(resp.OperationId), nil
 }
 
-func (ss *StackSet) createInstances(name string, accounts, regions []string) (string, error) {
-	resp, err := ss.client.CreateStackInstances(context.Background(), &cloudformation.CreateStackInstancesInput{
+func (ss *StackSet) createInstances(ctx context.Context, name string, accounts, regions []string) (string, error) {
+	resp, err := ss.client.CreateStackInstances(ctx, &cloudformation.CreateStackInstancesInput{
 		StackSetName: awsv2.String(name),
 		Accounts:     accounts,
 		Regions:      regions,
@@ -302,8 +332,13 @@ func (ss *StackSet) createInstances(name string, accounts, regions []string) (st
 
 // WaitForStackSetLastOperationComplete waits until the stackset's last operation completes.
 func (ss *StackSet) WaitForStackSetLastOperationComplete(name string) error {
+	return ss.WaitForStackSetLastOperationCompleteWithContext(context.Background(), name)
+}
+
+// WaitForStackSetLastOperationCompleteWithContext waits using ctx.
+func (ss *StackSet) WaitForStackSetLastOperationCompleteWithContext(ctx context.Context, name string) error {
 	for {
-		resp, err := ss.client.ListStackSetOperations(context.Background(), &cloudformation.ListStackSetOperationsInput{
+		resp, err := ss.client.ListStackSetOperations(ctx, &cloudformation.ListStackSetOperationsInput{
 			StackSetName: awsv2.String(name),
 		})
 		if err != nil {
@@ -320,14 +355,23 @@ func (ss *StackSet) WaitForStackSetLastOperationComplete(name string) error {
 		default:
 			return nil
 		}
-		time.Sleep(3 * time.Second)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(3 * time.Second):
+		}
 	}
 }
 
 // WaitForOperation waits for the operation with opID to reaches a successful completion status.
 func (ss *StackSet) WaitForOperation(name, opID string) error {
+	return ss.WaitForOperationWithContext(context.Background(), name, opID)
+}
+
+// WaitForOperationWithContext waits for an operation using ctx.
+func (ss *StackSet) WaitForOperationWithContext(ctx context.Context, name, opID string) error {
 	for {
-		response, err := ss.client.DescribeStackSetOperation(context.Background(), &cloudformation.DescribeStackSetOperationInput{
+		response, err := ss.client.DescribeStackSetOperation(ctx, &cloudformation.DescribeStackSetOperationInput{
 			StackSetName: awsv2.String(name),
 			OperationId:  awsv2.String(opID),
 		})
@@ -343,7 +387,11 @@ func (ss *StackSet) WaitForOperation(name, opID string) error {
 		if OpStatus(response.StackSetOperation.Status) == opStatusFailed {
 			return fmt.Errorf("operation %s for stack set %s failed", opID, name)
 		}
-		time.Sleep(3 * time.Second)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(3 * time.Second):
+		}
 	}
 }
 

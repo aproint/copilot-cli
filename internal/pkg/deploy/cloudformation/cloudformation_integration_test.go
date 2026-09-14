@@ -122,7 +122,7 @@ func Test_App_Infrastructure(t *testing.T) {
 			})
 		}()
 
-		err = deployer.DeployApp(&deploy.CreateAppInput{
+		err = deployer.DeployApp(t.Context(), &deploy.CreateAppInput{
 			Name:      app.Name,
 			AccountID: app.AccountID,
 			Version:   version.LatestTemplateVersion(),
@@ -218,7 +218,7 @@ func Test_App_Infrastructure(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, len(roleStackOutput.Stacks) == 0, "Stack %s should not exist.", appRoleStackName)
 
-		err = deployer.DeployApp(&deploy.CreateAppInput{
+		err = deployer.DeployApp(t.Context(), &deploy.CreateAppInput{
 			Name:      app.Name,
 			AccountID: app.AccountID,
 			Version:   version.LatestTemplateVersion(),
@@ -375,7 +375,7 @@ func Test_App_Infrastructure(t *testing.T) {
 		require.Contains(t, apiErr.ErrorMessage(), "does not exist", "the returned error should indicate that the stack does not exist")
 
 		// create a stackset
-		err = deployer.DeployApp(&deploy.CreateAppInput{
+		err = deployer.DeployApp(t.Context(), &deploy.CreateAppInput{
 			Name:      app.Name,
 			AccountID: app.AccountID,
 			Version:   version.LatestTemplateVersion(),
@@ -489,7 +489,7 @@ func Test_Environment_Deployment_Integration(t *testing.T) {
 		environmentToDeploy.ArtifactBucketARN = bucketARN
 
 		// Deploy the environment and wait for it to be complete
-		require.NoError(t, deployer.CreateAndRenderEnvironment(stack.NewBootstrapEnvStackConfig(&environmentToDeploy), bucketARN))
+		require.NoError(t, deployer.CreateAndRenderEnvironment(t.Context(), stack.NewBootstrapEnvStackConfig(&environmentToDeploy), bucketARN))
 
 		// Ensure that the new stack exists
 		output, err := cfClient.DescribeStacks(&awsCF.DescribeStacksInput{

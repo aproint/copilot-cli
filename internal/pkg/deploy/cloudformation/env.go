@@ -23,28 +23,28 @@ import (
 )
 
 // CreateAndRenderEnvironment creates the CloudFormation stack for an environment, and render the stack creation to out.
-func (cf CloudFormation) CreateAndRenderEnvironment(conf StackConfiguration, bucketARN string) error {
+func (cf CloudFormation) CreateAndRenderEnvironment(ctx context.Context, conf StackConfiguration, bucketARN string) error {
 	cfnStack, err := cf.toUploadedStack(bucketARN, conf)
 	if err != nil {
 		return err
 	}
 	in := newRenderEnvironmentInput(cfnStack)
-	in.createChangeSet = func() (changeSetID string, err error) {
+	in.createChangeSet = func(ctx context.Context) (changeSetID string, err error) {
 		spinner := progress.NewSpinner(cf.console)
 		label := fmt.Sprintf("Proposing infrastructure changes for the %s environment.", cfnStack.Name)
 		spinner.Start(label)
 		defer stopSpinner(spinner, err, label)
-		changeSetID, err = cf.cfnClient.Create(cfnStack)
+		changeSetID, err = cf.cfnClient.CreateWithContext(ctx, cfnStack)
 		if err != nil {
 			return "", err
 		}
 		return changeSetID, nil
 	}
-	return cf.executeAndRenderChangeSet(in)
+	return cf.executeAndRenderChangeSet(ctx, in)
 }
 
 // UpdateAndRenderEnvironment updates the CloudFormation stack for an environment, and render the stack creation to out.
-func (cf CloudFormation) UpdateAndRenderEnvironment(conf StackConfiguration, bucketARN string, detach bool, opts ...cloudformation.StackOption) error {
+func (cf CloudFormation) UpdateAndRenderEnvironment(ctx context.Context, conf StackConfiguration, bucketARN string, detach bool, opts ...cloudformation.StackOption) error {
 	cfnStack, err := cf.toUploadedStack(bucketARN, conf)
 	if err != nil {
 		return err
@@ -53,12 +53,12 @@ func (cf CloudFormation) UpdateAndRenderEnvironment(conf StackConfiguration, buc
 		opt(cfnStack)
 	}
 	in := newRenderEnvironmentInput(cfnStack)
-	in.createChangeSet = func() (changeSetID string, err error) {
+	in.createChangeSet = func(ctx context.Context) (changeSetID string, err error) {
 		spinner := progress.NewSpinner(cf.console)
 		label := fmt.Sprintf("Proposing infrastructure changes for the %s environment.", cfnStack.Name)
 		spinner.Start(label)
 		defer stopSpinner(spinner, err, label)
-		changeSetID, err = cf.cfnClient.Update(cfnStack)
+		changeSetID, err = cf.cfnClient.UpdateWithContext(ctx, cfnStack)
 		if err != nil {
 			return "", err
 		}
@@ -66,7 +66,7 @@ func (cf CloudFormation) UpdateAndRenderEnvironment(conf StackConfiguration, buc
 	}
 	in.enableInterrupt = true
 	in.detach = detach
-	return cf.executeAndRenderChangeSet(in)
+	return cf.executeAndRenderChangeSet(ctx, in)
 }
 
 func newRenderEnvironmentInput(cfnStack *cloudformation.Stack) *executeAndRenderChangeSetInput {
@@ -83,7 +83,7 @@ func (cf CloudFormation) DeleteEnvironment(appName, envName, cfnExecRoleARN stri
 	return cf.deleteAndRenderStack(deleteAndRenderInput{
 		stackName:   stackName,
 		description: description,
-		deleteFn: func() error {
+		deleteFn: func(context.Context) error {
 			return cf.cfnClient.DeleteAndWaitWithRoleARN(stackName, cfnExecRoleARN)
 		},
 	})
@@ -118,6 +118,20 @@ func (cf CloudFormation) ForceUpdateOutputID(app, env string) (string, error) {
 	return "", nil
 }
 
+// ForceUpdateOutputIDWithContext returns the environment stack's force update ID using ctx.
+func (cf CloudFormation) ForceUpdateOutputIDWithContext(ctx context.Context, app, env string) (string, error) {
+	stackDescr, err := cf.cachedStackWithContext(ctx, stack.NameForEnv(app, env))
+	if err != nil {
+		return "", err
+	}
+	for _, output := range stackDescr.Outputs {
+		if aws.ToString(output.OutputKey) == template.LastForceDeployIDOutputName {
+			return aws.ToString(output.OutputValue), nil
+		}
+	}
+	return "", nil
+}
+
 // DeployedEnvironmentParameters returns the environment stack's parameters.
 func (cf CloudFormation) DeployedEnvironmentParameters(appName, envName string) ([]types.Parameter, error) {
 	isInitial, err := cf.isInitialDeployment(appName, envName)
@@ -128,6 +142,22 @@ func (cf CloudFormation) DeployedEnvironmentParameters(appName, envName string) 
 		return nil, nil
 	}
 	out, err := cf.cachedStack(stack.NameForEnv(appName, envName))
+	if err != nil {
+		return nil, err
+	}
+	return out.Parameters, nil
+}
+
+// DeployedEnvironmentParametersWithContext returns environment parameters using ctx.
+func (cf CloudFormation) DeployedEnvironmentParametersWithContext(ctx context.Context, appName, envName string) ([]types.Parameter, error) {
+	isInitial, err := cf.isInitialDeploymentWithContext(ctx, appName, envName)
+	if err != nil {
+		return nil, err
+	}
+	if isInitial {
+		return nil, nil
+	}
+	out, err := cf.cachedStackWithContext(ctx, stack.NameForEnv(appName, envName))
 	if err != nil {
 		return nil, err
 	}
@@ -165,12 +195,28 @@ func (cf CloudFormation) toUploadedStack(artifactBucketARN string, stackConfig S
 }
 
 func (cf CloudFormation) waitAndDescribeStack(stackName string) (*cloudformation.StackDescription, error) {
+	var stackDescription *cloudformation.StackDescription
+	for {
+		var err error
+		stackDescription, err = cf.cfnClient.Describe(stackName)
+		if err != nil {
+			return nil, fmt.Errorf("describe stack %s: %w", stackName, err)
+		}
+		if cloudformation.StackStatus(stackDescription.StackStatus).InProgress() {
+			_ = cf.cfnClient.WaitForUpdate(context.Background(), stackName)
+			continue
+		}
+		return stackDescription, nil
+	}
+}
+
+func (cf CloudFormation) waitAndDescribeStackWithContext(ctx context.Context, stackName string) (*cloudformation.StackDescription, error) {
 	var (
 		stackDescription *cloudformation.StackDescription
 		err              error
 	)
 	for {
-		stackDescription, err = cf.cfnClient.Describe(stackName)
+		stackDescription, err = cf.cfnClient.DescribeWithContext(ctx, stackName)
 		if err != nil {
 			return nil, fmt.Errorf("describe stack %s: %w", stackName, err)
 		}
@@ -178,7 +224,7 @@ func (cf CloudFormation) waitAndDescribeStack(stackName string) (*cloudformation
 		if cloudformation.StackStatus(stackDescription.StackStatus).InProgress() {
 			// There is already an update happening to the environment stack.
 			// Best-effort try to wait for the existing update to be over before retrying.
-			_ = cf.cfnClient.WaitForUpdate(context.Background(), stackName)
+			_ = cf.cfnClient.WaitForUpdate(ctx, stackName)
 			continue
 		}
 		break
@@ -198,9 +244,35 @@ func (cf CloudFormation) cachedStack(stackName string) (*cloudformation.StackDes
 	return cf.cachedDeployedStack, nil
 }
 
+func (cf CloudFormation) cachedStackWithContext(ctx context.Context, stackName string) (*cloudformation.StackDescription, error) {
+	if cf.cachedDeployedStack != nil {
+		return cf.cachedDeployedStack, nil
+	}
+	stackDescr, err := cf.waitAndDescribeStackWithContext(ctx, stackName)
+	if err != nil {
+		return nil, err
+	}
+	cf.cachedDeployedStack = stackDescr
+	return cf.cachedDeployedStack, nil
+}
+
 // isInitialDeployment returns whether this is the first deployment of the environment stack.
 func (cf CloudFormation) isInitialDeployment(appName, envName string) (bool, error) {
 	raw, err := cf.cfnClient.Metadata(cloudformation.MetadataWithStackName(stack.NameForEnv(appName, envName)))
+	if err != nil {
+		return false, fmt.Errorf("get metadata of stack %q: %w", stack.NameForEnv(appName, envName), err)
+	}
+	metadata := struct {
+		Version string `yaml:"Version"`
+	}{}
+	if err := yaml.Unmarshal([]byte(raw), &metadata); err != nil {
+		return false, fmt.Errorf("unmarshal Metadata property to read Version: %w", err)
+	}
+	return metadata.Version == version.EnvTemplateBootstrap, nil
+}
+
+func (cf CloudFormation) isInitialDeploymentWithContext(ctx context.Context, appName, envName string) (bool, error) {
+	raw, err := cf.cfnClient.MetadataWithContext(ctx, cloudformation.MetadataWithStackName(stack.NameForEnv(appName, envName)))
 	if err != nil {
 		return false, fmt.Errorf("get metadata of stack %q: %w", stack.NameForEnv(appName, envName), err)
 	}

@@ -4,6 +4,7 @@
 package cloudformation
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -40,8 +41,8 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 		"should return an error if infrastructure roles stack fails": {
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Create(gomock.Any()).Return("", errors.New("error creating stack"))
-				m.EXPECT().ErrorEvents(gomock.Any()).Return(nil, nil) // No additional error descriptions.
+				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", errors.New("error creating stack"))
+				m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil) // No additional error descriptions.
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
@@ -53,7 +54,7 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 			region: "bad-region",
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Create(gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
+				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
@@ -65,12 +66,12 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 			region: "us-west-2",
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Create(gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
+				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 				return m
 			},
@@ -79,14 +80,14 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 			region: "us-west-2",
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Create(gomock.Any()).Return("", nil)
+				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", nil)
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil).
-					Do(func(name, _ string, _ ...stackset.CreateOrUpdateOption) {
+					Do(func(_ context.Context, name, _ string, _ ...stackset.CreateOrUpdateOption) {
 						require.Equal(t, "testapp-infrastructure", name)
 					})
 				return m
@@ -107,7 +108,7 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 			}
 
 			// WHEN
-			got := cf.DeployApp(mockApp)
+			got := cf.DeployApp(t.Context(), mockApp)
 
 			// THEN
 			if tc.want != nil {
@@ -148,7 +149,7 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 							return "", fmt.Errorf("some error")
 						},
 					},
-					renderStackSet: func(input renderStackSetInput) error {
+					renderStackSet: func(_ context.Context, input renderStackSetInput) error {
 						return nil
 					},
 				}
@@ -198,7 +199,7 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 		"error if fail to wait until stack set last operation complete": {
 			mockDeployer: func(t *testing.T, ctrl *gomock.Controller) *CloudFormation {
 				mockAppStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete("phonetool-infrastructure").Return(errors.New("some error"))
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(errors.New("some error"))
 
 				return &CloudFormation{
 					console: mockFileWriter{Writer: &strings.Builder{}},
@@ -236,9 +237,9 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 		"success": {
 			mockDeployer: func(t *testing.T, ctrl *gomock.Controller) *CloudFormation {
 				mockAppStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete("phonetool-infrastructure").Return(nil)
-				mockAppStackSet.EXPECT().Describe("phonetool-infrastructure").Return(stackset.Description{}, nil)
-				mockAppStackSet.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(nil)
+				mockAppStackSet.EXPECT().DescribeWithContext(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
+				mockAppStackSet.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil)
 
 				return &CloudFormation{
@@ -270,8 +271,8 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 					},
 					appStackSet: mockAppStackSet,
 					region:      "us-west-2",
-					renderStackSet: func(input renderStackSetInput) error {
-						_, err := input.createOpFn()
+					renderStackSet: func(_ context.Context, input renderStackSetInput) error {
+						_, err := input.createOpFn(t.Context())
 						return err
 					},
 				}
@@ -280,13 +281,13 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 		"success with multiple tries and waitings": {
 			mockDeployer: func(t *testing.T, ctrl *gomock.Controller) *CloudFormation {
 				mockAppStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete("phonetool-infrastructure").Return(nil)
-				mockAppStackSet.EXPECT().Describe("phonetool-infrastructure").Return(stackset.Description{}, nil)
-				mockAppStackSet.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(nil)
+				mockAppStackSet.EXPECT().DescribeWithContext(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
+				mockAppStackSet.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", &stackset.ErrStackSetOutOfDate{})
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete("phonetool-infrastructure").Return(nil)
-				mockAppStackSet.EXPECT().Describe("phonetool-infrastructure").Return(stackset.Description{}, nil)
-				mockAppStackSet.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(nil)
+				mockAppStackSet.EXPECT().DescribeWithContext(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
+				mockAppStackSet.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil)
 
 				return &CloudFormation{
@@ -318,8 +319,8 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 					},
 					appStackSet: mockAppStackSet,
 					region:      "us-west-2",
-					renderStackSet: func(input renderStackSetInput) error {
-						_, err := input.createOpFn()
+					renderStackSet: func(_ context.Context, input renderStackSetInput) error {
+						_, err := input.createOpFn(t.Context())
 						return err
 					},
 				}
@@ -335,7 +336,7 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 			cf := tc.mockDeployer(t, ctrl)
 
 			// WHEN
-			err := cf.UpgradeApplication(&deploy.CreateAppInput{
+			err := cf.UpgradeApplication(t.Context(), &deploy.CreateAppInput{
 				Name: "phonetool",
 			})
 
@@ -453,8 +454,8 @@ func TestCloudFormation_AddEnvToApp(t *testing.T) {
 			cf := CloudFormation{
 				appStackSet: tc.mockStackSet(t, ctrl),
 				region:      "us-west-2",
-				renderStackSet: func(input renderStackSetInput) error {
-					_, err := input.createOpFn()
+				renderStackSet: func(_ context.Context, input renderStackSetInput) error {
+					_, err := input.createOpFn(t.Context())
 					return err
 				},
 			}
@@ -533,8 +534,8 @@ func TestCloudFormation_AddPipelineResourcesToApp(t *testing.T) {
 			defer ctrl.Finish()
 			cf := CloudFormation{
 				appStackSet: tc.mockStackSet(t, ctrl),
-				renderStackSet: func(input renderStackSetInput) error {
-					_, err := input.createOpFn()
+				renderStackSet: func(_ context.Context, input renderStackSetInput) error {
+					_, err := input.createOpFn(t.Context())
 					return err
 				},
 			}
@@ -666,8 +667,8 @@ func TestCloudFormation_AddServiceToApp(t *testing.T) {
 			cf := CloudFormation{
 				appStackSet: tc.mockStackSet(t, ctrl),
 				region:      "us-west-2",
-				renderStackSet: func(input renderStackSetInput) error {
-					_, err := input.createOpFn()
+				renderStackSet: func(_ context.Context, input renderStackSetInput) error {
+					_, err := input.createOpFn(t.Context())
 					return err
 				},
 			}
@@ -728,8 +729,8 @@ func TestCloudFormation_RemoveServiceFromApp(t *testing.T) {
 			cf := CloudFormation{
 				appStackSet: tc.mockStackSet(t, ctrl),
 				region:      "us-west-2",
-				renderStackSet: func(input renderStackSetInput) error {
-					_, err := input.createOpFn()
+				renderStackSet: func(_ context.Context, input renderStackSetInput) error {
+					_, err := input.createOpFn(t.Context())
 					return err
 				},
 			}
@@ -1136,7 +1137,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 		"should return the error if a stack set operation cannot be created": {
 			in: renderStackSetInput{
 				hasInstanceUpdates: true,
-				createOpFn: func() (string, error) {
+				createOpFn: func(context.Context) (string, error) {
 					return "", errors.New("some error")
 				},
 				now: func() time.Time {
@@ -1153,7 +1154,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			in: renderStackSetInput{
 				name:               "demo-infra",
 				hasInstanceUpdates: true,
-				createOpFn: func() (string, error) {
+				createOpFn: func(context.Context) (string, error) {
 					return "1", nil
 				},
 				now: func() time.Time {
@@ -1162,7 +1163,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			},
 			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().InstanceSummariesWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return CloudFormation{
 					appStackSet: m,
 				}
@@ -1174,7 +1175,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			in: renderStackSetInput{
 				name:               "demo-infra",
 				hasInstanceUpdates: true,
-				createOpFn: func() (string, error) {
+				createOpFn: func(context.Context) (string, error) {
 					return "1", nil
 				},
 				now: func() time.Time {
@@ -1183,7 +1184,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			},
 			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
 				mockStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockStackSet.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
+				mockStackSet.EXPECT().InstanceSummariesWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
 					{
 						StackID: "stackset-instance-demo-infra",
 						Account: "1111",
@@ -1191,12 +1192,12 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 						Status:  "RUNNING",
 					},
 				}, nil)
-				mockStackSet.EXPECT().DescribeOperation(gomock.Any(), gomock.Any()).Return(stackset.Operation{
+				mockStackSet.EXPECT().DescribeOperationWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(stackset.Operation{
 					Status: "RUNNING",
 				}, nil).AnyTimes()
 
 				mockStack := mocks.NewMockcfnClient(ctrl)
-				mockStack.EXPECT().DescribeStackEvents(gomock.Any()).
+				mockStack.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("some error")).AnyTimes()
 
 				return CloudFormation{
@@ -1223,7 +1224,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			client := tc.mock(t, ctrl)
 
 			// WHEN
-			err := client.renderStackSetImpl(tc.in)
+			err := client.renderStackSetImpl(t.Context(), tc.in)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -1233,6 +1234,47 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCloudFormation_RenderStackSetStopsOnCallerCancellation(t *testing.T) {
+	type contextKey string
+	const key contextKey = "sentinel"
+	ctx, cancel := context.WithCancel(context.WithValue(context.Background(), key, "stack-set-render"))
+	defer cancel()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockstackSetClient(ctrl)
+	started := make(chan struct{})
+	m.EXPECT().DescribeOperationWithContext(gomock.Any(), "demo-infra", "1").DoAndReturn(
+		func(gotCtx context.Context, _, _ string) (stackset.Operation, error) {
+			require.Equal(t, "stack-set-render", gotCtx.Value(key))
+			close(started)
+			<-gotCtx.Done()
+			return stackset.Operation{}, gotCtx.Err()
+		},
+	)
+	cf := CloudFormation{
+		appStackSet: m,
+		console:     mockFileWriter{Writer: new(strings.Builder)},
+	}
+	go func() {
+		<-started
+		cancel()
+	}()
+	startedAt := time.Now()
+
+	err := cf.renderStackSetImpl(ctx, renderStackSetInput{
+		name:     "demo-infra",
+		template: "{}",
+		createOpFn: func(gotCtx context.Context) (string, error) {
+			require.Same(t, ctx, gotCtx)
+			return "1", nil
+		},
+		now: time.Now,
+	})
+
+	require.ErrorIs(t, err, context.Canceled)
+	require.Less(t, time.Since(startedAt), time.Second)
 }
 
 func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
@@ -1288,8 +1330,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalS3Client: func(region string) s3Client {
@@ -1378,8 +1420,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalS3Client: func(region string) s3Client {
@@ -1448,8 +1490,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalS3Client: func(region string) s3Client { return s3 },
@@ -1530,8 +1572,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					s3Client: s3,
@@ -1599,8 +1641,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalClient: func(region string) cfnClient {
@@ -1687,8 +1729,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalClient: func(region string) cfnClient {
@@ -1759,8 +1801,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalClient: func(region string) cfnClient {
@@ -1822,8 +1864,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalClient: func(region string) cfnClient {
@@ -1883,8 +1925,8 @@ func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
 						return []string{"1234", "5678"}
 					},
-					renderStackSet: func(in renderStackSetInput) error {
-						_, err := in.createOpFn()
+					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
+						_, err := in.createOpFn(t.Context())
 						return err
 					},
 					regionalClient: func(region string) cfnClient {

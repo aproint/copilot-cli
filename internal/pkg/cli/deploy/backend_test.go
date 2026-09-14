@@ -30,7 +30,7 @@ func TestBackendSvcDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		backend := mockBackendServiceDeployer()
 
 		// WHEN
-		out, err := backend.GenerateCloudFormationTemplate(&GenerateCloudFormationTemplateInput{})
+		out, err := backend.GenerateCloudFormationTemplate(t.Context(), &GenerateCloudFormationTemplateInput{})
 
 		// THEN
 		require.NoError(t, err)

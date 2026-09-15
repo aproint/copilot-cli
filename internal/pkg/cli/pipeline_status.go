@@ -47,7 +47,7 @@ type pipelineStatusOpts struct {
 	describer              describer
 	sel                    codePipelineSelector
 	prompt                 prompter
-	initDescriber          func(opts *pipelineStatusOpts) error
+	initDescriber          func(context.Context, *pipelineStatusOpts) error
 	deployedPipelineLister deployedPipelineLister
 
 	// Cached variables.
@@ -55,12 +55,16 @@ type pipelineStatusOpts struct {
 }
 
 func newPipelineStatusOpts(vars pipelineStatusVars) (*pipelineStatusOpts, error) {
+	return newPipelineStatusOptsWithContext(context.Background(), vars)
+}
+
+func newPipelineStatusOptsWithContext(ctx context.Context, vars pipelineStatusVars) (*pipelineStatusOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
-	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline status")).DefaultConfig(context.Background())
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline status")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -77,12 +81,12 @@ func newPipelineStatusOpts(vars pipelineStatusVars) (*pipelineStatusOpts, error)
 		deployedPipelineLister: pipelineLister,
 		sel:                    selector.NewAppPipelineSelector(prompter, store, pipelineLister),
 		prompt:                 prompter,
-		initDescriber: func(o *pipelineStatusOpts) error {
-			pipeline, err := o.getTargetPipeline()
+		initDescriber: func(ctx context.Context, o *pipelineStatusOpts) error {
+			pipeline, err := o.getTargetPipeline(ctx)
 			if err != nil {
 				return err
 			}
-			d, err := describe.NewPipelineStatusDescriber(pipeline)
+			d, err := describe.NewPipelineStatusDescriberWithContext(ctx, pipeline)
 			if err != nil {
 				return fmt.Errorf("new pipeline status describer: %w", err)
 			}
@@ -109,12 +113,12 @@ func (o *pipelineStatusOpts) Ask(ctx context.Context) error {
 		}
 	}
 	if o.name != "" {
-		if _, err := o.getTargetPipeline(); err != nil {
+		if _, err := o.getTargetPipeline(ctx); err != nil {
 			return fmt.Errorf("validate pipeline name %s: %w", o.name, err)
 		}
 		return nil
 	}
-	pipeline, err := askDeployedPipelineName(o.sel, fmt.Sprintf(fmtpipelineStatusPrompt, color.HighlightUserInput(o.appName)), o.appName)
+	pipeline, err := askDeployedPipelineNameWithContext(ctx, o.sel, fmt.Sprintf(fmtpipelineStatusPrompt, color.HighlightUserInput(o.appName)), o.appName)
 	if err != nil {
 		return err
 	}
@@ -124,8 +128,8 @@ func (o *pipelineStatusOpts) Ask(ctx context.Context) error {
 }
 
 // Execute displays the status of the pipeline.
-func (o *pipelineStatusOpts) Execute(_ context.Context) error {
-	err := o.initDescriber(o)
+func (o *pipelineStatusOpts) Execute(ctx context.Context) error {
+	err := o.initDescriber(ctx, o)
 	if err != nil {
 		return fmt.Errorf("describe status of pipeline: %w", err)
 	}
@@ -147,11 +151,11 @@ func (o *pipelineStatusOpts) Execute(_ context.Context) error {
 	return nil
 }
 
-func (o *pipelineStatusOpts) getTargetPipeline() (deploy.Pipeline, error) {
+func (o *pipelineStatusOpts) getTargetPipeline(ctx context.Context) (deploy.Pipeline, error) {
 	if o.targetPipeline != nil {
 		return *o.targetPipeline, nil
 	}
-	pipeline, err := getDeployedPipelineInfo(o.deployedPipelineLister, o.appName, o.name)
+	pipeline, err := getDeployedPipelineInfoWithContext(ctx, o.deployedPipelineLister, o.appName, o.name)
 	if err != nil {
 		return deploy.Pipeline{}, err
 	}
@@ -180,7 +184,7 @@ func buildPipelineStatusCmd() *cobra.Command {
 Shows status of the pipeline "my-repo-my-branch".
 /code $ copilot pipeline status -n my-repo-my-branch`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPipelineStatusOpts(vars)
+			opts, err := newPipelineStatusOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

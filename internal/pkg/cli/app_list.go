@@ -44,7 +44,7 @@ func buildAppListCommand() *cobra.Command {
 			opts := listAppOpts{
 				w: os.Stdout,
 			}
-			defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app ls")).DefaultConfig(context.Background())
+			defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app ls")).DefaultConfig(cmd.Context())
 			if err != nil {
 				return fmt.Errorf("default config: %v", err)
 			}

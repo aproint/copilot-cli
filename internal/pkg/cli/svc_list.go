@@ -33,12 +33,16 @@ type listSvcOpts struct {
 }
 
 func newListSvcOpts(vars listWkldVars) (*listSvcOpts, error) {
+	return newListSvcOptsWithContext(context.Background(), vars)
+}
+
+func newListSvcOptsWithContext(ctx context.Context, vars listWkldVars) (*listSvcOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
-	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("svc ls")).DefaultConfig(context.Background())
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("svc ls")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -101,7 +105,7 @@ func buildSvcListCmd() *cobra.Command {
   Lists all the services for the "myapp" application.
   /code $ copilot svc ls --app myapp`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListSvcOpts(vars)
+			opts, err := newListSvcOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -496,10 +496,12 @@ type appUpgrader interface {
 
 type pipelineGetter interface {
 	GetPipeline(pipelineName string) (*codepipeline.Pipeline, error)
+	GetPipelineWithContext(ctx context.Context, pipelineName string) (*codepipeline.Pipeline, error)
 }
 
 type deployedPipelineLister interface {
 	ListDeployedPipelines(appName string) ([]deploy.Pipeline, error)
+	ListDeployedPipelinesWithContext(ctx context.Context, appName string) ([]deploy.Pipeline, error)
 }
 
 type executor interface {
@@ -553,6 +555,7 @@ type wsEnvironmentSelector interface {
 type codePipelineSelector interface {
 	appSelector
 	DeployedPipeline(prompt, help, app string) (deploy.Pipeline, error)
+	DeployedPipelineWithContext(ctx context.Context, prompt, help, app string) (deploy.Pipeline, error)
 }
 
 type wsSelector interface {

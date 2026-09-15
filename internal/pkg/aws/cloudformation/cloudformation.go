@@ -359,7 +359,12 @@ func (c *CloudFormation) Events(stackName string) ([]StackEvent, error) {
 
 // StackResources returns the list of resources created as part of a CloudFormation stack.
 func (c *CloudFormation) StackResources(name string) ([]*StackResource, error) {
-	out, err := c.DescribeStackResources(context.Background(), &cloudformation.DescribeStackResourcesInput{
+	return c.StackResourcesWithContext(context.Background(), name)
+}
+
+// StackResourcesWithContext returns the resources created as part of a CloudFormation stack using ctx.
+func (c *CloudFormation) StackResourcesWithContext(ctx context.Context, name string) ([]*StackResource, error) {
+	out, err := c.DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{
 		StackName: awsv2.String(name),
 	})
 	if err != nil {

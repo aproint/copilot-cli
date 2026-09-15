@@ -39,8 +39,16 @@ type listEnvOpts struct {
 }
 
 func newListEnvOpts(vars listEnvVars) (*listEnvOpts, error) {
+	return newListEnvOptsWithContext(context.Background(), vars)
+}
+
+func newListEnvOptsWithContext(ctx context.Context, vars listEnvVars) (*listEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env ls"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	return newListEnvOptsWithSessionProvider(ctx, vars, sessProvider)
+}
+
+func newListEnvOptsWithSessionProvider(ctx context.Context, vars listEnvVars, sessProvider defaultSessionProvider) (*listEnvOpts, error) {
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +132,7 @@ func buildEnvListCmd() *cobra.Command {
   Lists all the environments for the frontend application.
   /code $ copilot env ls -a frontend`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListEnvOpts(vars)
+			opts, err := newListEnvOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

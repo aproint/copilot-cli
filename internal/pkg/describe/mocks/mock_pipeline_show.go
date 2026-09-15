@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	codepipeline "github.com/aproint/copilot-cli/internal/pkg/aws/codepipeline"
@@ -47,4 +48,19 @@ func (m *MockpipelineGetter) GetPipeline(pipelineName string) (*codepipeline.Pip
 func (mr *MockpipelineGetterMockRecorder) GetPipeline(pipelineName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipeline", reflect.TypeOf((*MockpipelineGetter)(nil).GetPipeline), pipelineName)
+}
+
+// GetPipelineWithContext mocks base method.
+func (m *MockpipelineGetter) GetPipelineWithContext(ctx context.Context, pipelineName string) (*codepipeline.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineWithContext", ctx, pipelineName)
+	ret0, _ := ret[0].(*codepipeline.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineWithContext indicates an expected call of GetPipelineWithContext.
+func (mr *MockpipelineGetterMockRecorder) GetPipelineWithContext(ctx, pipelineName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineWithContext", reflect.TypeOf((*MockpipelineGetter)(nil).GetPipelineWithContext), ctx, pipelineName)
 }

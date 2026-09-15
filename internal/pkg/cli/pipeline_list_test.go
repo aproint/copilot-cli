@@ -130,6 +130,27 @@ func TestPipelineList_Ask(t *testing.T) {
 	}
 }
 
+func TestPipelineList_AskPropagatesCancellationForLocalValidation(t *testing.T) {
+	callerCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	ctrl := gomock.NewController(t)
+	store := mocks.NewMockstore(ctrl)
+	store.EXPECT().GetApplication(callerCtx, "my-app").Return(nil, callerCtx.Err())
+
+	opts := &listPipelineOpts{
+		listPipelineVars: listPipelineVars{
+			shouldShowLocalPipelines: true,
+		},
+		store:     store,
+		wsAppName: "my-app",
+	}
+
+	err := opts.Ask(callerCtx)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
 func TestPipelineList_Execute(t *testing.T) {
 	const (
 		mockAppName                    = "coolapp"
@@ -161,7 +182,7 @@ func TestPipelineList_Execute(t *testing.T) {
 		"with JSON output": {
 			shouldOutputJSON: true,
 			setupMocks: func(m pipelineListMocks) {
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.describer.EXPECT().Describe().Return(&describe.Pipeline{
 					Name: mockLegacyPipelineName,
 					Pipeline: codepipeline.Pipeline{
@@ -179,7 +200,7 @@ func TestPipelineList_Execute(t *testing.T) {
 		},
 		"with human output": {
 			setupMocks: func(m pipelineListMocks) {
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 			},
 			expectedContent: `bad-goose
 my-pipeline-repo
@@ -188,14 +209,14 @@ my-pipeline-repo
 		"with failed call to list pipelines": {
 			shouldOutputJSON: true,
 			setupMocks: func(m pipelineListMocks) {
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return(nil, mockError)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return(nil, mockError)
 			},
 			expectedErr: fmt.Errorf("list deployed pipelines: mock error"),
 		},
 		"with failed call to get pipeline info": {
 			shouldOutputJSON: true,
 			setupMocks: func(m pipelineListMocks) {
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.describer.EXPECT().Describe().Return(nil, mockError)
 			},
 			expectedErr: fmt.Errorf(`describe pipeline %q: mock error`, mockPipelineResourceName),
@@ -216,7 +237,7 @@ my-pipeline-repo
 				m.workspace.EXPECT().ListPipelines().Return([]workspace.PipelineManifest{
 					{Name: mockLegacyPipeline.Name, Path: "/copilot/pipeline.yml"},
 					{Name: mockPipeline.Name, Path: "/copilot/pipelines/my-pipeline-repo/manifest.yml"}}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.describer.EXPECT().Describe().Return(&describe.Pipeline{
 					Name: mockPipelineName,
 					Pipeline: codepipeline.Pipeline{
@@ -259,7 +280,7 @@ my-pipeline-repo
 				w:              b,
 				workspace:      mocks.workspace,
 				pipelineLister: mocks.pipelineLister,
-				newDescriber: func(pipeline deploy.Pipeline) (describer, error) {
+				newDescriber: func(context.Context, deploy.Pipeline) (describer, error) {
 					return mocks.describer, nil
 				},
 			}

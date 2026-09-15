@@ -41,18 +41,23 @@ type showAppVars struct {
 type showAppOpts struct {
 	showAppVars
 
+	ctx              context.Context
 	store            store
 	w                io.Writer
 	sel              appSelector
 	deployStore      deployedEnvironmentLister
 	codepipeline     pipelineGetter
 	pipelineLister   deployedPipelineLister
-	newVersionGetter func(string) (versionGetter, error)
+	newVersionGetter func(context.Context, string) (versionGetter, error)
 }
 
 func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
+	return newShowAppOptsWithContext(context.Background(), vars)
+}
+
+func newShowAppOptsWithContext(ctx context.Context, vars showAppVars) (*showAppOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("app show"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -63,14 +68,15 @@ func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 	}
 	return &showAppOpts{
 		showAppVars:    vars,
+		ctx:            ctx,
 		store:          store,
 		w:              log.OutputWriter,
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		deployStore:    deployStore,
 		codepipeline:   codepipeline.New(defaultConfig, defaultConfig),
 		pipelineLister: deploy.NewPipelineStore(rg.New(defaultConfig)),
-		newVersionGetter: func(s string) (versionGetter, error) {
-			d, err := describe.NewAppDescriber(s)
+		newVersionGetter: func(ctx context.Context, s string) (versionGetter, error) {
+			d, err := describe.NewAppDescriberWithContext(ctx, s)
 			if err != nil {
 				return d, fmt.Errorf("new app describer for application %s: %v", s, err)
 			}
@@ -82,7 +88,11 @@ func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
 // Validate returns an error if the values provided by the user are invalid.
 func (o *showAppOpts) Validate() error {
 	if o.name != "" {
-		_, err := o.store.GetApplication(context.Background(), o.name)
+		ctx := o.ctx
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		_, err := o.store.GetApplication(ctx, o.name)
 		if err != nil {
 			return fmt.Errorf("get application %s: %w", o.name, err)
 		}
@@ -149,17 +159,17 @@ func (o *showAppOpts) description(ctx context.Context) (*describe.App, error) {
 		return nil, fmt.Errorf("list jobs in application %s: %w", o.name, err)
 	}
 	wkldDeployedtoEnvs := make(map[string][]string)
-	ctx, cancelWait := context.WithTimeout(ctx, waitForStackTimeout)
+	waitCtx, cancelWait := context.WithTimeout(ctx, waitForStackTimeout)
 	defer cancelWait()
-	g, _ := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(waitCtx)
 	var mux sync.Mutex
 	for i := range envs {
 		env := envs[i]
 		g.Go(func() error {
-			return o.populateDeployedWorkloads(ctx, o.deployStore.ListDeployedJobs, wkldDeployedtoEnvs, env.Name, &mux)
+			return o.populateDeployedWorkloads(waitCtx, o.deployStore.ListDeployedJobs, wkldDeployedtoEnvs, env.Name, &mux)
 		})
 		g.Go(func() error {
-			return o.populateDeployedWorkloads(ctx, o.deployStore.ListDeployedServices, wkldDeployedtoEnvs, env.Name, &mux)
+			return o.populateDeployedWorkloads(waitCtx, o.deployStore.ListDeployedServices, wkldDeployedtoEnvs, env.Name, &mux)
 		})
 	}
 	if err := g.Wait(); err != nil {
@@ -170,13 +180,13 @@ func (o *showAppOpts) description(ctx context.Context) (*describe.App, error) {
 		sort.Strings(wkldDeployedtoEnvs[k])
 	}
 
-	pipelines, err := o.pipelineLister.ListDeployedPipelines(o.name)
+	pipelines, err := o.pipelineLister.ListDeployedPipelinesWithContext(ctx, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("list pipelines in application %s: %w", o.name, err)
 	}
 	var pipelineInfo []*codepipeline.Pipeline
 	for _, pipeline := range pipelines {
-		info, err := o.codepipeline.GetPipeline(pipeline.ResourceName)
+		info, err := o.codepipeline.GetPipelineWithContext(ctx, pipeline.ResourceName)
 		if err != nil {
 			return nil, fmt.Errorf("get info for pipeline %s: %w", pipeline.Name, err)
 		}
@@ -205,7 +215,7 @@ func (o *showAppOpts) description(ctx context.Context) (*describe.App, error) {
 			Type: job.Type,
 		})
 	}
-	versionGetter, err := o.newVersionGetter(o.name)
+	versionGetter, err := o.newVersionGetter(ctx, o.name)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +259,7 @@ func buildAppShowCmd() *cobra.Command {
   Shows info about the application "my-app"
   /code $ copilot app show -n my-app`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newShowAppOpts(vars)
+			opts, err := newShowAppOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

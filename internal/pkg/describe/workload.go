@@ -18,9 +18,11 @@ import (
 
 // WorkloadStackDescriber provides base functionality for retrieving info about a workload stack.
 type WorkloadStackDescriber struct {
-	app  string
-	name string
-	env  string
+	ctx            context.Context
+	contextEnabled bool
+	app            string
+	name           string
+	env            string
 
 	cfn stackDescriber
 	cfg aws.Config
@@ -45,14 +47,16 @@ func NewWorkloadStackDescriber(ctx context.Context, opt NewWorkloadConfig) (*Wor
 	if err != nil {
 		return nil, fmt.Errorf("get environment %s: %w", opt.Env, err)
 	}
-	cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), environment.ManagerRoleARN, environment.Region)
+	cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, environment.ManagerRoleARN, environment.Region)
 	if err != nil {
 		return nil, err
 	}
 	return &WorkloadStackDescriber{
-		app:  opt.App,
-		name: opt.Name,
-		env:  opt.Env,
+		ctx:            ctx,
+		contextEnabled: true,
+		app:            opt.App,
+		name:           opt.Name,
+		env:            opt.Env,
 
 		cfn: stack.NewStackDescriber(cfnstack.NameForWorkload(opt.App, opt.Env, opt.Name), cfg),
 		cfg: cfg,
@@ -64,11 +68,11 @@ func NewWorkloadStackDescriber(ctx context.Context, opt NewWorkloadConfig) (*Wor
 //
 // If the Version field does not exist, then it's a legacy template and it returns an version.LegacyWorkloadTemplate and nil error.
 func (d *WorkloadStackDescriber) Version() (string, error) {
-	return stackVersion(d.cfn, version.LegacyWorkloadTemplate)
+	return stackVersion(d.ctx, d.contextEnabled, d.cfn, version.LegacyWorkloadTemplate)
 }
 
-func stackVersion(descr stackDescriber, legacyVersion string) (string, error) {
-	raw, err := descr.StackMetadata()
+func stackVersion(ctx context.Context, contextEnabled bool, descr stackDescriber, legacyVersion string) (string, error) {
+	raw, err := loadStackMetadata(ctx, contextEnabled, descr)
 	if err != nil {
 		return "", err
 	}
@@ -89,7 +93,7 @@ func (d *WorkloadStackDescriber) Params() (map[string]string, error) {
 	if d.params != nil {
 		return d.params, nil
 	}
-	descr, err := d.cfn.Describe()
+	descr, err := loadStackDescription(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +106,7 @@ func (d *WorkloadStackDescriber) Outputs() (map[string]string, error) {
 	if d.outputs != nil {
 		return d.outputs, nil
 	}
-	descr, err := d.cfn.Describe()
+	descr, err := loadStackDescription(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +119,7 @@ func (d *WorkloadStackDescriber) StackResources() ([]*stack.Resource, error) {
 	if len(d.stackResources) != 0 {
 		return d.stackResources, nil
 	}
-	svcResources, err := d.cfn.Resources()
+	svcResources, err := loadStackResources(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +142,7 @@ func (d *WorkloadStackDescriber) StackResources() ([]*stack.Resource, error) {
 // Manifest returns the contents of the manifest used to deploy a workload stack.
 // If the Manifest metadata doesn't exist in the stack template, then returns ErrManifestNotFoundInTemplate.
 func (d *WorkloadStackDescriber) Manifest() ([]byte, error) {
-	tpl, err := d.cfn.StackMetadata()
+	tpl, err := loadStackMetadata(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve stack metadata for %s-%s-%s: %w", d.app, d.env, d.name, err)
 	}

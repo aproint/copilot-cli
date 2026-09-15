@@ -14,17 +14,26 @@ import (
 
 // PipelineStackDescriber retrieves information about a deployed pipeline stack.
 type PipelineStackDescriber struct {
-	cfn stackDescriber
+	ctx            context.Context
+	contextEnabled bool
+	cfn            stackDescriber
 }
 
 // NewPipelineStackDescriber instantiates a new pipeline stack describer
 func NewPipelineStackDescriber(appName, name string, isLegacy bool) (*PipelineStackDescriber, error) {
-	cfg, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
+	return NewPipelineStackDescriberWithContext(context.Background(), appName, name, isLegacy)
+}
+
+// NewPipelineStackDescriberWithContext instantiates a pipeline stack describer using ctx.
+func NewPipelineStackDescriberWithContext(ctx context.Context, appName, name string, isLegacy bool) (*PipelineStackDescriber, error) {
+	cfg, err := sessions.ImmutableProvider().DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &PipelineStackDescriber{
-		cfn: describestack.NewStackDescriber(stack.NameForPipeline(appName, name, isLegacy), cfg),
+		ctx:            ctx,
+		contextEnabled: true,
+		cfn:            describestack.NewStackDescriber(stack.NameForPipeline(appName, name, isLegacy), cfg),
 	}, nil
 }
 
@@ -33,5 +42,5 @@ func NewPipelineStackDescriber(appName, name string, isLegacy bool) (*PipelineSt
 //
 // If the Version field does not exist, then it's a legacy template and it returns an version.LegacyPipelineTemplate and nil error.
 func (d *PipelineStackDescriber) Version() (string, error) {
-	return stackVersion(d.cfn, version.LegacyPipelineTemplate)
+	return stackVersion(d.ctx, d.contextEnabled, d.cfn, version.LegacyPipelineTemplate)
 }

@@ -561,6 +561,21 @@ func (mr *MockcodePipelineListerMockRecorder) ListDeployedPipelines(appName inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeployedPipelines", reflect.TypeOf((*MockcodePipelineLister)(nil).ListDeployedPipelines), appName)
 }
 
+// ListDeployedPipelinesWithContext mocks base method.
+func (m *MockcodePipelineLister) ListDeployedPipelinesWithContext(ctx context.Context, appName string) ([]deploy.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDeployedPipelinesWithContext", ctx, appName)
+	ret0, _ := ret[0].([]deploy.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDeployedPipelinesWithContext indicates an expected call of ListDeployedPipelinesWithContext.
+func (mr *MockcodePipelineListerMockRecorder) ListDeployedPipelinesWithContext(ctx, appName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeployedPipelinesWithContext", reflect.TypeOf((*MockcodePipelineLister)(nil).ListDeployedPipelinesWithContext), ctx, appName)
+}
+
 // MockworkspaceRetriever is a mock of workspaceRetriever interface.
 type MockworkspaceRetriever struct {
 	ctrl     *gomock.Controller

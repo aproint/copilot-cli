@@ -64,11 +64,15 @@ func New(cfg awsv2.Config) *CloudWatchLogs {
 
 // logStreams returns all name of the log streams in a log group with optional limit and prefix filters.
 func (c *CloudWatchLogs) logStreams(logGroup string, logStreamLimit int, logStreamPrefixes ...string) ([]string, error) {
+	return c.logStreamsWithContext(context.Background(), logGroup, logStreamLimit, logStreamPrefixes...)
+}
+
+func (c *CloudWatchLogs) logStreamsWithContext(ctx context.Context, logGroup string, logStreamLimit int, logStreamPrefixes ...string) ([]string, error) {
 	var logStreamNames []string
 	logStreamsResp := &cloudwatchlogs.DescribeLogStreamsOutput{}
 	for {
 		var err error
-		logStreamsResp, err = c.client.DescribeLogStreams(context.Background(), &cloudwatchlogs.DescribeLogStreamsInput{
+		logStreamsResp, err = c.client.DescribeLogStreams(ctx, &cloudwatchlogs.DescribeLogStreamsInput{
 			LogGroupName: awsv2.String(logGroup),
 			Descending:   awsv2.Bool(true),
 			OrderBy:      types.OrderByLastEventTime,
@@ -107,10 +111,15 @@ func (c *CloudWatchLogs) logStreams(logGroup string, logStreamLimit int, logStre
 
 // LogEvents returns an array of Cloudwatch Logs events.
 func (c *CloudWatchLogs) LogEvents(opts LogEventsOpts) (*LogEventsOutput, error) {
+	return c.LogEventsWithContext(context.Background(), opts)
+}
+
+// LogEventsWithContext returns CloudWatch Logs events using ctx.
+func (c *CloudWatchLogs) LogEventsWithContext(ctx context.Context, opts LogEventsOpts) (*LogEventsOutput, error) {
 	var events []*Event
 	in := initGetLogEventsInput(opts)
 
-	logStreams, err := c.logStreams(opts.LogGroup, opts.LogStreamLimit, opts.LogStreamPrefixFilters...)
+	logStreams, err := c.logStreamsWithContext(ctx, opts.LogGroup, opts.LogStreamLimit, opts.LogStreamPrefixFilters...)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +136,7 @@ func (c *CloudWatchLogs) LogEvents(opts LogEventsOpts) (*LogEventsOutput, error)
 			in.StartTime = awsv2.Int64(streamLastEventTime[logStream] + 1)
 		}
 		// TODO: https://github.com/aproint/copilot-cli/pull/628#discussion_r374291068 and https://github.com/aproint/copilot-cli/pull/628#discussion_r374294362
-		resp, err := c.client.GetLogEvents(context.Background(), in)
+		resp, err := c.client.GetLogEvents(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("get log events of %s/%s: %w", opts.LogGroup, logStream, err)
 		}

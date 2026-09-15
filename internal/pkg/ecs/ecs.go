@@ -5,6 +5,7 @@
 package ecs
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -31,22 +32,29 @@ const (
 
 type resourceGetter interface {
 	GetResourcesByTags(resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
+	GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
 }
 
 type ecsClient interface {
 	DefaultCluster() (string, error)
 	Service(clusterName, serviceName string) (*ecs.Service, error)
+	ServiceWithContext(ctx context.Context, clusterName, serviceName string) (*ecs.Service, error)
 	NetworkConfiguration(cluster, serviceName string) (*ecs.NetworkConfiguration, error)
 	RunningTasks(cluster string) ([]*ecs.Task, error)
 	RunningTasksInFamily(cluster, family string) ([]*ecs.Task, error)
 	ServiceRunningTasks(clusterName, serviceName string) ([]*ecs.Task, error)
+	ServiceRunningTasksWithContext(ctx context.Context, clusterName, serviceName string) ([]*ecs.Task, error)
 	StoppedServiceTasks(cluster, service string) ([]*ecs.Task, error)
+	StoppedServiceTasksWithContext(ctx context.Context, cluster, service string) ([]*ecs.Task, error)
 	StopTasks(tasks []string, opts ...ecs.StopTasksOpts) error
 	TaskDefinition(taskDefName string) (*ecs.TaskDefinition, error)
+	TaskDefinitionWithContext(ctx context.Context, taskDefName string) (*ecs.TaskDefinition, error)
 	UpdateService(clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error
 	DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error)
 	ActiveClusters(arns ...string) ([]string, error)
+	ActiveClustersWithContext(ctx context.Context, arns ...string) ([]string, error)
 	ActiveServices(clusterName string, serviceARNs ...string) ([]string, error)
+	ActiveServicesWithContext(ctx context.Context, clusterName string, serviceARNs ...string) ([]string, error)
 	ListServicesByNamespace(namespace string) ([]string, error)
 	Services(cluster string, services ...string) ([]*ecs.Service, error)
 }
@@ -128,6 +136,29 @@ func (c Client) DescribeService(app, env, svc string) (*ServiceDesc, error) {
 	}, nil
 }
 
+// DescribeServiceWithContext returns the description of an ECS service using ctx.
+func (c Client) DescribeServiceWithContext(ctx context.Context, app, env, svc string) (*ServiceDesc, error) {
+	clusterName, serviceName, err := c.fetchAndParseServiceARNWithContext(ctx, app, env, svc)
+	if err != nil {
+		return nil, err
+	}
+	tasks, err := c.ecsClient.ServiceRunningTasksWithContext(ctx, clusterName, serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("get tasks for service %s: %w", serviceName, err)
+	}
+	stoppedTasks, err := c.ecsClient.StoppedServiceTasksWithContext(ctx, clusterName, serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("get stopped tasks for service %s: %w", serviceName, err)
+	}
+
+	return &ServiceDesc{
+		ClusterName:  clusterName,
+		Name:         serviceName,
+		Tasks:        tasks,
+		StoppedTasks: stoppedTasks,
+	}, nil
+}
+
 // Service returns an ECS service given Copilot service info.
 func (c Client) Service(app, env, svc string) (*ecs.Service, error) {
 	clusterName, serviceName, err := c.fetchAndParseServiceARN(app, env, svc)
@@ -135,6 +166,19 @@ func (c Client) Service(app, env, svc string) (*ecs.Service, error) {
 		return nil, err
 	}
 	service, err := c.ecsClient.Service(clusterName, serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("get ECS service %s: %w", serviceName, err)
+	}
+	return service, nil
+}
+
+// ServiceWithContext returns an ECS service using ctx.
+func (c Client) ServiceWithContext(ctx context.Context, app, env, svc string) (*ecs.Service, error) {
+	clusterName, serviceName, err := c.fetchAndParseServiceARNWithContext(ctx, app, env, svc)
+	if err != nil {
+		return nil, err
+	}
+	service, err := c.ecsClient.ServiceWithContext(ctx, clusterName, serviceName)
 	if err != nil {
 		return nil, fmt.Errorf("get ECS service %s: %w", serviceName, err)
 	}
@@ -278,6 +322,16 @@ func (c Client) StopDefaultClusterTasks(familyName string) error {
 func (c Client) TaskDefinition(app, env, svc string) (*ecs.TaskDefinition, error) {
 	taskDefName := fmt.Sprintf("%s-%s-%s", app, env, svc)
 	taskDefinition, err := c.ecsClient.TaskDefinition(taskDefName)
+	if err != nil {
+		return nil, fmt.Errorf("get task definition %s of service %s: %w", taskDefName, svc, err)
+	}
+	return taskDefinition, nil
+}
+
+// TaskDefinitionWithContext returns the task definition of the service using ctx.
+func (c Client) TaskDefinitionWithContext(ctx context.Context, app, env, svc string) (*ecs.TaskDefinition, error) {
+	taskDefName := fmt.Sprintf("%s-%s-%s", app, env, svc)
+	taskDefinition, err := c.ecsClient.TaskDefinitionWithContext(ctx, taskDefName)
 	if err != nil {
 		return nil, fmt.Errorf("get task definition %s of service %s: %w", taskDefName, svc, err)
 	}
@@ -455,8 +509,46 @@ func (c Client) clusterARN(app, env string) (string, error) {
 	return active[0], nil
 }
 
+func (c Client) clusterARNWithContext(ctx context.Context, app, env string) (string, error) {
+	tags := tags(map[string]string{
+		deploy.AppTagKey: app,
+		deploy.EnvTagKey: env,
+	})
+
+	clusters, err := c.rgGetter.GetResourcesByTagsWithContext(ctx, clusterResourceType, tags)
+	switch {
+	case err != nil:
+		return "", fmt.Errorf("get ECS cluster with tags %s: %w", tags.String(), err)
+	case len(clusters) == 0:
+		return "", fmt.Errorf("no ECS cluster found with tags %s", tags.String())
+	}
+
+	arns := make([]string, len(clusters))
+	for i := range clusters {
+		arns[i] = clusters[i].ARN
+	}
+
+	active, err := c.ecsClient.ActiveClustersWithContext(ctx, arns...)
+	switch {
+	case err != nil:
+		return "", fmt.Errorf("check if clusters are active: %w", err)
+	case len(active) > 1:
+		return "", fmt.Errorf("more than one active ECS cluster are found with tags %s", tags.String())
+	}
+
+	return active[0], nil
+}
+
 func (c Client) fetchAndParseServiceARN(app, env, svc string) (cluster, service string, err error) {
 	svcARN, err := c.serviceARN(app, env, svc)
+	if err != nil {
+		return "", "", err
+	}
+	return svcARN.ClusterName(), svcARN.ServiceName(), nil
+}
+
+func (c Client) fetchAndParseServiceARNWithContext(ctx context.Context, app, env, svc string) (cluster, service string, err error) {
+	svcARN, err := c.serviceARNWithContext(ctx, app, env, svc)
 	if err != nil {
 		return "", "", err
 	}
@@ -493,6 +585,44 @@ func (c Client) serviceARN(app, env, svc string) (*ecs.ServiceArn, error) {
 	}
 	if len(activeSvcs) == 0 {
 		return nil, fmt.Errorf("no active ECS service found")
+	}
+	serviceARN, err := ecs.ParseServiceArn(activeSvcs[0])
+	if err != nil {
+		return nil, fmt.Errorf("parse service arn: %w", err)
+	}
+	return serviceARN, nil
+}
+
+func (c Client) serviceARNWithContext(ctx context.Context, app, env, svc string) (*ecs.ServiceArn, error) {
+	tags := tags(map[string]string{
+		deploy.AppTagKey:     app,
+		deploy.EnvTagKey:     env,
+		deploy.ServiceTagKey: svc,
+	})
+	services, err := c.rgGetter.GetResourcesByTagsWithContext(ctx, serviceResourceType, tags)
+	if err != nil {
+		return nil, fmt.Errorf("get ECS service with tags %s: %w", tags.String(), err)
+	}
+	if len(services) == 0 {
+		return nil, fmt.Errorf("no ECS service found with tags %s", tags.String())
+	}
+	arns := make([]string, len(services))
+	for i := range services {
+		arns[i] = services[i].ARN
+	}
+	activeCluster, err := c.clusterARNWithContext(ctx, app, env)
+	if err != nil {
+		return nil, err
+	}
+	activeSvcs, err := c.ecsClient.ActiveServicesWithContext(ctx, activeCluster, arns...)
+	if err != nil {
+		return nil, fmt.Errorf("check if services are active in the cluster %s: %w", activeCluster, err)
+	}
+	if len(activeSvcs) == 0 {
+		return nil, fmt.Errorf("no active ECS service found")
+	}
+	if len(activeSvcs) > 1 {
+		return nil, fmt.Errorf("more than one ECS service with tags %s", tags.String())
 	}
 	serviceARN, err := ecs.ParseServiceArn(activeSvcs[0])
 	if err != nil {

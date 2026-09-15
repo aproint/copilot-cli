@@ -51,8 +51,12 @@ type showSvcOpts struct {
 }
 
 func newShowSvcOpts(vars showSvcVars) (*showSvcOpts, error) {
+	return newShowSvcOptsWithContext(context.Background(), vars)
+}
+
+func newShowSvcOptsWithContext(ctx context.Context, vars showSvcVars) (*showSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc show"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -217,7 +221,7 @@ func buildSvcShowCmd() *cobra.Command {
   Print manifest file used for deploying service "api" in the "prod" environment.
   /code $ copilot svc show -n api --manifest prod`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newShowSvcOpts(vars)
+			opts, err := newShowSvcOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

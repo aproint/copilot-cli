@@ -53,15 +53,19 @@ type listPipelineOpts struct {
 	wsAppName string
 }
 
-type newPipelineDescriberFunc func(pipeline deploy.Pipeline) (describer, error)
+type newPipelineDescriberFunc func(ctx context.Context, pipeline deploy.Pipeline) (describer, error)
 
 func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
+	return newListPipelinesOptsWithContext(context.Background(), vars)
+}
+
+func newListPipelinesOptsWithContext(ctx context.Context, vars listPipelineVars) (*listPipelineOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
-	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline ls")).DefaultConfig(context.Background())
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline ls")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -81,8 +85,8 @@ func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
 		store:            store,
 		w:                os.Stdout,
 		workspace:        ws,
-		newDescriber: func(pipeline deploy.Pipeline) (describer, error) {
-			return describe.NewPipelineDescriber(pipeline, false)
+		newDescriber: func(ctx context.Context, pipeline deploy.Pipeline) (describer, error) {
+			return describe.NewPipelineDescriberWithContext(ctx, pipeline, false)
 		},
 		wsAppName: wsAppName,
 	}, nil
@@ -91,7 +95,7 @@ func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
 // Ask asks for and validates fields that are required but not passed in.
 func (o *listPipelineOpts) Ask(ctx context.Context) error {
 	if o.shouldShowLocalPipelines {
-		return validateWorkspaceApp(o.wsAppName, o.appName, o.store)
+		return validateWorkspaceAppWithContext(ctx, o.wsAppName, o.appName, o.store)
 	}
 
 	if o.appName != "" {
@@ -110,8 +114,8 @@ func (o *listPipelineOpts) Ask(ctx context.Context) error {
 }
 
 // Execute writes the pipelines.
-func (o *listPipelineOpts) Execute(_ context.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), pipelineListTimeout)
+func (o *listPipelineOpts) Execute(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, pipelineListTimeout)
 	defer cancel()
 
 	switch {
@@ -123,7 +127,7 @@ func (o *listPipelineOpts) Execute(_ context.Context) error {
 		return o.jsonOutputDeployed(ctx)
 	}
 
-	return o.humanOutputDeployed()
+	return o.humanOutputDeployed(ctx)
 }
 
 // jsonOutputLocal prints data about all pipelines in the current workspace.
@@ -209,8 +213,8 @@ func (o *listPipelineOpts) jsonOutputDeployed(ctx context.Context) error {
 }
 
 // humanOutputDeployed prints the name of all pipelines in the given app that have been deployed.
-func (o *listPipelineOpts) humanOutputDeployed() error {
-	pipelines, err := o.pipelineLister.ListDeployedPipelines(o.appName)
+func (o *listPipelineOpts) humanOutputDeployed(ctx context.Context) error {
+	pipelines, err := o.pipelineLister.ListDeployedPipelinesWithContext(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("list deployed pipelines: %w", err)
 	}
@@ -227,7 +231,7 @@ func (o *listPipelineOpts) humanOutputDeployed() error {
 }
 
 func getDeployedPipelines(ctx context.Context, app string, lister deployedPipelineLister, newDescriber newPipelineDescriberFunc) ([]*describe.Pipeline, error) {
-	pipelines, err := lister.ListDeployedPipelines(app)
+	pipelines, err := lister.ListDeployedPipelinesWithContext(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed pipelines: %w", err)
 	}
@@ -240,7 +244,7 @@ func getDeployedPipelines(ctx context.Context, app string, lister deployedPipeli
 	for i := range pipelines {
 		pipeline := pipelines[i]
 		g.Go(func() error {
-			d, err := newDescriber(pipeline)
+			d, err := newDescriber(ctx, pipeline)
 			if err != nil {
 				return fmt.Errorf("create pipeline describer for %q: %w", pipeline.ResourceName, err)
 			}
@@ -283,7 +287,7 @@ func buildPipelineListCmd() *cobra.Command {
   Lists all the pipelines for the frontend application.
   /code $ copilot pipeline ls -a frontend`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListPipelinesOpts(vars)
+			opts, err := newListPipelinesOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

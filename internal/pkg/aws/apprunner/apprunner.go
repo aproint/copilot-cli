@@ -61,7 +61,12 @@ func New(cfg awsv2.Config) *AppRunner {
 
 // DescribeService returns a description of an AppRunner service given its ARN.
 func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
-	resp, err := a.client.DescribeService(context.Background(), &apprunner.DescribeServiceInput{
+	return a.DescribeServiceWithContext(context.Background(), svcARN)
+}
+
+// DescribeServiceWithContext returns a description of an AppRunner service using ctx.
+func (a *AppRunner) DescribeServiceWithContext(ctx context.Context, svcARN string) (*Service, error) {
+	resp, err := a.client.DescribeService(ctx, &apprunner.DescribeServiceInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
@@ -87,7 +92,7 @@ func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
 
 	var observabilityConfiguration ObservabilityConfiguration
 	if resp.Service.ObservabilityConfiguration != nil && resp.Service.ObservabilityConfiguration.ObservabilityEnabled {
-		if out, err := a.client.DescribeObservabilityConfiguration(context.Background(), &apprunner.DescribeObservabilityConfigurationInput{
+		if out, err := a.client.DescribeObservabilityConfiguration(ctx, &apprunner.DescribeObservabilityConfigurationInput{
 			ObservabilityConfigurationArn: resp.Service.ObservabilityConfiguration.ObservabilityConfigurationArn,
 		}); err == nil {
 			// NOTE: swallow the error otherwise, because observability is an optional description of the service.
@@ -228,7 +233,12 @@ func (a *AppRunner) WaitForOperation(operationId, svcARN string) error {
 
 // PrivateURL returns the url associated with a VPC Ingress Connection.
 func (a *AppRunner) PrivateURL(vicARN string) (string, error) {
-	resp, err := a.client.DescribeVpcIngressConnection(context.Background(), &apprunner.DescribeVpcIngressConnectionInput{
+	return a.PrivateURLWithContext(context.Background(), vicARN)
+}
+
+// PrivateURLWithContext returns the URL associated with a VPC Ingress Connection using ctx.
+func (a *AppRunner) PrivateURLWithContext(ctx context.Context, vicARN string) (string, error) {
+	resp, err := a.client.DescribeVpcIngressConnection(ctx, &apprunner.DescribeVpcIngressConnectionInput{
 		VpcIngressConnectionArn: awsv2.String(vicARN),
 	})
 	if err != nil {

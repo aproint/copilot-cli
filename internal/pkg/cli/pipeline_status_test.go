@@ -60,7 +60,7 @@ func TestPipelineStatus_Ask(t *testing.T) {
 			setupMocks: func(mocks pipelineStatusMocks) {
 				gomock.InOrder(
 					mocks.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Return(mockAppName, nil),
-					mocks.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
+					mocks.sel.EXPECT().DeployedPipelineWithContext(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
 						Name: mockPipelineName,
 					}, nil),
 				)
@@ -85,7 +85,7 @@ func TestPipelineStatus_Ask(t *testing.T) {
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 						Name: "dinder",
 					}, nil),
-					mocks.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
+					mocks.sel.EXPECT().DeployedPipelineWithContext(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
 						Name: mockPipelineName,
 					}, nil),
 				)
@@ -102,7 +102,7 @@ func TestPipelineStatus_Ask(t *testing.T) {
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 						Name: "dinder",
 					}, nil),
-					mocks.sel.EXPECT().DeployedPipeline(gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{}, mockError),
+					mocks.sel.EXPECT().DeployedPipelineWithContext(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{}, mockError),
 				)
 			},
 			expectedApp: mockAppName,
@@ -117,7 +117,7 @@ func TestPipelineStatus_Ask(t *testing.T) {
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 						Name: "dinder",
 					}, nil),
-					mocks.deployedPipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{
+					mocks.deployedPipelineLister.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{
 						{
 							Name: mockPipelineName,
 						},
@@ -238,7 +238,7 @@ func TestPipelineStatus_Execute(t *testing.T) {
 					name:             tc.pipelineName,
 				},
 				describer:     mockDescriber,
-				initDescriber: func(o *pipelineStatusOpts) error { return nil },
+				initDescriber: func(context.Context, *pipelineStatusOpts) error { return nil },
 				w:             b,
 			}
 

@@ -52,6 +52,21 @@ func (mr *MockResourceGetterMockRecorder) GetResourcesByTags(resourceType, tags 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcesByTags", reflect.TypeOf((*MockResourceGetter)(nil).GetResourcesByTags), resourceType, tags)
 }
 
+// GetResourcesByTagsWithContext mocks base method.
+func (m *MockResourceGetter) GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourcesByTagsWithContext", ctx, resourceType, tags)
+	ret0, _ := ret[0].([]*resourcegroups.Resource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResourcesByTagsWithContext indicates an expected call of GetResourcesByTagsWithContext.
+func (mr *MockResourceGetterMockRecorder) GetResourcesByTagsWithContext(ctx, resourceType, tags interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcesByTagsWithContext", reflect.TypeOf((*MockResourceGetter)(nil).GetResourcesByTagsWithContext), ctx, resourceType, tags)
+}
+
 // MockConfigStoreClient is a mock of ConfigStoreClient interface.
 type MockConfigStoreClient struct {
 	ctrl     *gomock.Controller

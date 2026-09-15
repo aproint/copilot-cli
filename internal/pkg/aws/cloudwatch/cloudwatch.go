@@ -34,6 +34,7 @@ type api interface {
 
 type resourceGetter interface {
 	GetResourcesByTags(resourceType string, tags map[string]string) ([]*rg.Resource, error)
+	GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*rg.Resource, error)
 }
 
 // CloudWatch wraps an Amazon CloudWatch client.
@@ -88,6 +89,26 @@ func (cw *CloudWatch) AlarmsWithTags(tags map[string]string) ([]AlarmStatus, err
 	return cw.AlarmStatuses(WithNames(alarmNames))
 }
 
+// AlarmsWithTagsWithContext returns alarm statuses matching resource tags using ctx.
+func (cw *CloudWatch) AlarmsWithTagsWithContext(ctx context.Context, tags map[string]string) ([]AlarmStatus, error) {
+	var alarmNames []string
+	resources, err := cw.rgClient.GetResourcesByTagsWithContext(ctx, cloudwatchResourceType, tags)
+	if err != nil {
+		return nil, err
+	}
+	for _, resource := range resources {
+		name, err := getAlarmName(resource.ARN)
+		if err != nil {
+			return nil, err
+		}
+		alarmNames = append(alarmNames, name)
+	}
+	if len(alarmNames) == 0 {
+		return nil, nil
+	}
+	return cw.AlarmStatusesWithContext(ctx, WithNames(alarmNames))
+}
+
 // DescribeAlarmOpts sets the optional parameter for DescribeAlarms
 type DescribeAlarmOpts func(input *cloudwatch.DescribeAlarmsInput)
 
@@ -109,6 +130,11 @@ func WithPrefix(prefix string) DescribeAlarmOpts {
 // If the optional parameter is passed in but is nil, the statuses of ALL alarms in the
 // account will be returned!
 func (cw *CloudWatch) AlarmStatuses(opts ...DescribeAlarmOpts) ([]AlarmStatus, error) {
+	return cw.AlarmStatusesWithContext(context.Background(), opts...)
+}
+
+// AlarmStatusesWithContext returns alarm statuses using ctx.
+func (cw *CloudWatch) AlarmStatusesWithContext(ctx context.Context, opts ...DescribeAlarmOpts) ([]AlarmStatus, error) {
 	var alarmStatuses []AlarmStatus
 	in := &cloudwatch.DescribeAlarmsInput{}
 	if len(opts) > 0 {
@@ -117,7 +143,7 @@ func (cw *CloudWatch) AlarmStatuses(opts ...DescribeAlarmOpts) ([]AlarmStatus, e
 		}
 	}
 	for {
-		alarmResp, err := cw.client.DescribeAlarms(context.Background(), in)
+		alarmResp, err := cw.client.DescribeAlarms(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("describe CloudWatch alarms: %w", err)
 		}
@@ -136,6 +162,11 @@ func (cw *CloudWatch) AlarmStatuses(opts ...DescribeAlarmOpts) ([]AlarmStatus, e
 
 // AlarmDescriptions returns the config of alarms filtered by name.
 func (cw *CloudWatch) AlarmDescriptions(alarmNames []string) ([]*AlarmDescription, error) {
+	return cw.AlarmDescriptionsWithContext(context.Background(), alarmNames)
+}
+
+// AlarmDescriptionsWithContext returns alarm descriptions using ctx.
+func (cw *CloudWatch) AlarmDescriptionsWithContext(ctx context.Context, alarmNames []string) ([]*AlarmDescription, error) {
 	if len(alarmNames) == 0 {
 		return nil, nil
 	}
@@ -144,7 +175,7 @@ func (cw *CloudWatch) AlarmDescriptions(alarmNames []string) ([]*AlarmDescriptio
 		AlarmNames: alarmNames,
 	}
 	for {
-		alarmResp, err := cw.client.DescribeAlarms(context.Background(), in)
+		alarmResp, err := cw.client.DescribeAlarms(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("describe CloudWatch alarms: %w", err)
 		}

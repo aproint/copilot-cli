@@ -54,12 +54,16 @@ type DeployedEnvServicesLister interface {
 
 type ecsClient interface {
 	TaskDefinition(app, env, svc string) (*awsecs.TaskDefinition, error)
+	TaskDefinitionWithContext(ctx context.Context, app, env, svc string) (*awsecs.TaskDefinition, error)
 	Service(app, env, svc string) (*awsecs.Service, error)
+	ServiceWithContext(ctx context.Context, app, env, svc string) (*awsecs.Service, error)
 }
 
 type apprunnerClient interface {
 	DescribeService(svcARN string) (*apprunner.Service, error)
+	DescribeServiceWithContext(ctx context.Context, svcARN string) (*apprunner.Service, error)
 	PrivateURL(vicARN string) (string, error)
+	PrivateURLWithContext(ctx context.Context, vicARN string) (string, error)
 }
 
 type workloadDescriber interface {
@@ -89,18 +93,29 @@ type apprunnerDescriber interface {
 
 type cwAlarmDescriber interface {
 	AlarmDescriptions([]string) ([]*cloudwatch.AlarmDescription, error)
+	AlarmDescriptionsWithContext(context.Context, []string) ([]*cloudwatch.AlarmDescription, error)
+}
+
+func describeAlarms(ctx context.Context, contextEnabled bool, d cwAlarmDescriber, names []string) ([]*cloudwatch.AlarmDescription, error) {
+	if !contextEnabled {
+		return d.AlarmDescriptions(names)
+	}
+	return d.AlarmDescriptionsWithContext(ctx, names)
 }
 
 type bucketDescriber interface {
 	BucketTree(bucket string) (string, error)
+	BucketTreeWithContext(ctx context.Context, bucket string) (string, error)
 }
 
 type bucketDataGetter interface {
 	BucketSizeAndCount(bucket string) (string, int, error)
+	BucketSizeAndCountWithContext(ctx context.Context, bucket string) (string, int, error)
 }
 
 type bucketNameGetter interface {
 	BucketName(app, env, svc string) (string, error)
+	BucketNameWithContext(ctx context.Context, app, env, svc string) (string, error)
 }
 
 type ecsSvcDesc struct {
@@ -175,7 +190,7 @@ func newAppRunnerServiceDescriber(ctx context.Context, opt NewServiceConfig) (*a
 
 // EnvVars returns the environment variables of the task definition.
 func (d *ecsServiceDescriber) EnvVars() ([]*awsecs.ContainerEnvVar, error) {
-	taskDefinition, err := d.ecsClient.TaskDefinition(d.app, d.env, d.name)
+	taskDefinition, err := d.taskDefinition()
 	if err != nil {
 		return nil, fmt.Errorf("describe task definition for service %s: %w", d.name, err)
 	}
@@ -184,7 +199,7 @@ func (d *ecsServiceDescriber) EnvVars() ([]*awsecs.ContainerEnvVar, error) {
 
 // Secrets returns the secrets of the task definition.
 func (d *ecsServiceDescriber) Secrets() ([]*awsecs.ContainerSecret, error) {
-	taskDefinition, err := d.ecsClient.TaskDefinition(d.app, d.env, d.name)
+	taskDefinition, err := d.taskDefinition()
 	if err != nil {
 		return nil, fmt.Errorf("describe task definition for service %s: %w", d.name, err)
 	}
@@ -193,7 +208,7 @@ func (d *ecsServiceDescriber) Secrets() ([]*awsecs.ContainerSecret, error) {
 
 // Platform returns the platform of the task definition.
 func (d *ecsServiceDescriber) Platform() (*awsecs.ContainerPlatform, error) {
-	taskDefinition, err := d.ecsClient.TaskDefinition(d.app, d.env, d.name)
+	taskDefinition, err := d.taskDefinition()
 	if err != nil {
 		return nil, fmt.Errorf("describe task definition for service %s: %w", d.name, err)
 	}
@@ -209,7 +224,7 @@ func (d *ecsServiceDescriber) Platform() (*awsecs.ContainerPlatform, error) {
 
 // ServiceConnectDNSNames returns the service connect dns names of a service.
 func (d *ecsServiceDescriber) ServiceConnectDNSNames() ([]string, error) {
-	service, err := d.ecsClient.Service(d.app, d.env, d.name)
+	service, err := d.service()
 	if err != nil {
 		return nil, fmt.Errorf("get service %s: %w", d.name, err)
 	}
@@ -218,7 +233,7 @@ func (d *ecsServiceDescriber) ServiceConnectDNSNames() ([]string, error) {
 
 // RollbackAlarmNames returns the rollback alarm names of a service.
 func (d *ecsServiceDescriber) RollbackAlarmNames() ([]string, error) {
-	service, err := d.ecsClient.Service(d.app, d.env, d.name)
+	service, err := d.service()
 	if err != nil {
 		return nil, fmt.Errorf("get service %s: %w", d.name, err)
 	}
@@ -226,6 +241,20 @@ func (d *ecsServiceDescriber) RollbackAlarmNames() ([]string, error) {
 		return nil, nil
 	}
 	return service.DeploymentConfiguration.Alarms.AlarmNames, nil
+}
+
+func (d *ecsServiceDescriber) taskDefinition() (*awsecs.TaskDefinition, error) {
+	if !d.contextEnabled {
+		return d.ecsClient.TaskDefinition(d.app, d.env, d.name)
+	}
+	return d.ecsClient.TaskDefinitionWithContext(d.ctx, d.app, d.env, d.name)
+}
+
+func (d *ecsServiceDescriber) service() (*awsecs.Service, error) {
+	if !d.contextEnabled {
+		return d.ecsClient.Service(d.app, d.env, d.name)
+	}
+	return d.ecsClient.ServiceWithContext(d.ctx, d.app, d.env, d.name)
 }
 
 // ServiceARN retrieves the ARN of the app runner service.
@@ -270,7 +299,12 @@ func (d *appRunnerServiceDescriber) Service() (*apprunner.Service, error) {
 		return nil, err
 	}
 
-	service, err := d.apprunnerClient.DescribeService(serviceARN)
+	var service *apprunner.Service
+	if !d.contextEnabled {
+		service, err = d.apprunnerClient.DescribeService(serviceARN)
+	} else {
+		service, err = d.apprunnerClient.DescribeServiceWithContext(d.ctx, serviceARN)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("describe service: %w", err)
 	}
@@ -300,7 +334,12 @@ func (d *appRunnerServiceDescriber) ServiceURL() (string, error) {
 	}
 
 	if !isVICNotFound {
-		url, err := d.apprunnerClient.PrivateURL(vicARN)
+		var url string
+		if !d.contextEnabled {
+			url, err = d.apprunnerClient.PrivateURL(vicARN)
+		} else {
+			url, err = d.apprunnerClient.PrivateURLWithContext(d.ctx, vicARN)
+		}
 		if err != nil {
 			return "", err
 		}

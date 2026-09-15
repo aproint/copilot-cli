@@ -62,7 +62,7 @@ type patcher interface {
 }
 
 type prefixListGetter interface {
-	CloudFrontManagedPrefixListID() (string, error)
+	CloudFrontManagedPrefixListIDWithContext(context.Context) (string, error)
 }
 
 type envDescriber interface {
@@ -279,7 +279,7 @@ type DeployEnvironmentInput struct {
 
 // GenerateCloudFormationTemplate returns the environment stack's template and parameter configuration.
 func (d *envDeployer) GenerateCloudFormationTemplate(ctx context.Context, in *DeployEnvironmentInput) (*GenerateCloudFormationTemplateOutput, error) {
-	stackInput, err := d.buildStackInput(in)
+	stackInput, err := d.buildStackInput(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func (d *envDeployer) GenerateCloudFormationTemplate(ctx context.Context, in *De
 
 // DeployEnvironment deploys an environment using CloudFormation.
 func (d *envDeployer) DeployEnvironment(ctx context.Context, in *DeployEnvironmentInput) error {
-	stackInput, err := d.buildStackInput(in)
+	stackInput, err := d.buildStackInput(ctx, in)
 	if err != nil {
 		return err
 	}
@@ -395,7 +395,7 @@ func (d *envDeployer) uploadAddons(ctx context.Context, bucket string) (string, 
 
 }
 
-func (d *envDeployer) buildStackInput(in *DeployEnvironmentInput) (*cfnstack.EnvConfig, error) {
+func (d *envDeployer) buildStackInput(ctx context.Context, in *DeployEnvironmentInput) (*cfnstack.EnvConfig, error) {
 	resources, err := d.getAppRegionalResources()
 	if err != nil {
 		return nil, err
@@ -404,7 +404,7 @@ func (d *envDeployer) buildStackInput(in *DeployEnvironmentInput) (*cfnstack.Env
 	if err != nil {
 		return nil, err
 	}
-	cidrPrefixListIDs, err := d.cidrPrefixLists(in)
+	cidrPrefixListIDs, err := d.cidrPrefixLists(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -561,14 +561,14 @@ func (d *envDeployer) validateALBWorkloadsDontRedirect() error {
 	return nil
 }
 
-func (d *envDeployer) cidrPrefixLists(in *DeployEnvironmentInput) ([]string, error) {
+func (d *envDeployer) cidrPrefixLists(ctx context.Context, in *DeployEnvironmentInput) ([]string, error) {
 	var cidrPrefixListIDs []string
 
 	// Check if ingress is allowed from cloudfront
 	if in.Manifest == nil || !in.Manifest.IsPublicLBIngressRestrictedToCDN() {
 		return nil, nil
 	}
-	cfManagedPrefixListID, err := d.cfManagedPrefixListID()
+	cfManagedPrefixListID, err := d.cfManagedPrefixListID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -588,8 +588,8 @@ func (d *envDeployer) publicALBSourceIPs(in *DeployEnvironmentInput) []string {
 	return ips
 }
 
-func (d *envDeployer) cfManagedPrefixListID() (string, error) {
-	id, err := d.prefixListGetter.CloudFrontManagedPrefixListID()
+func (d *envDeployer) cfManagedPrefixListID(ctx context.Context) (string, error) {
+	id, err := d.prefixListGetter.CloudFrontManagedPrefixListIDWithContext(ctx)
 	if err != nil {
 		return "", fmt.Errorf("retrieve CloudFront managed prefix list id: %w", err)
 	}

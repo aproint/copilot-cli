@@ -398,9 +398,9 @@ type forceDeployInput struct {
 	svcUpdater serviceForceUpdater
 }
 
-func (d *workloadDeployer) forceDeploy(in *forceDeployInput) error {
+func (d *workloadDeployer) forceDeploy(ctx context.Context, in *forceDeployInput) error {
 	in.spinner.Start(fmt.Sprintf(fmtForceUpdateSvcStart, color.HighlightUserInput(d.name), color.HighlightUserInput(d.env.Name)))
-	if err := in.svcUpdater.ForceUpdateService(d.app.Name, d.env.Name, d.name); err != nil {
+	if err := in.svcUpdater.ForceUpdateServiceWithContext(ctx, d.app.Name, d.env.Name, d.name); err != nil {
 		errLog := fmt.Sprintf(fmtForceUpdateSvcFailed, color.HighlightUserInput(d.name),
 			color.HighlightUserInput(d.env.Name), err)
 		var terr timeoutError

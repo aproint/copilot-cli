@@ -32,12 +32,12 @@ type versionGetter interface {
 }
 
 type serviceForceUpdater interface {
-	ForceUpdateService(app, env, svc string) error
-	LastUpdatedAt(app, env, svc string) (time.Time, error)
+	ForceUpdateServiceWithContext(ctx context.Context, app, env, svc string) error
+	LastUpdatedAtWithContext(ctx context.Context, app, env, svc string) (time.Time, error)
 }
 
 type aliasCertValidator interface {
-	ValidateCertAliases(aliases []string, certs []string) error
+	ValidateCertAliasesWithContext(ctx context.Context, aliases []string, certs []string) error
 }
 
 type svcDeployer struct {
@@ -80,12 +80,12 @@ func (d *svcDeployer) deploy(ctx context.Context, deployOptions Options, stackCo
 	}
 	// Force update the service if --force is set and the service is not updated by the CFN.
 	if deployOptions.ForceNewUpdate {
-		lastUpdatedAt, err := stackConfigOutput.svcUpdater.LastUpdatedAt(d.app.Name, d.env.Name, d.name)
+		lastUpdatedAt, err := stackConfigOutput.svcUpdater.LastUpdatedAtWithContext(ctx, d.app.Name, d.env.Name, d.name)
 		if err != nil {
 			return fmt.Errorf("get the last updated deployment time for %s: %w", d.name, err)
 		}
 		if cmdRunAt.After(lastUpdatedAt) {
-			if err := d.forceDeploy(&forceDeployInput{
+			if err := d.forceDeploy(ctx, &forceDeployInput{
 				spinner:    d.spinner,
 				svcUpdater: stackConfigOutput.svcUpdater,
 			}); err != nil {

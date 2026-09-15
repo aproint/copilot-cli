@@ -274,7 +274,7 @@ func (o *initEnvOpts) Ask(ctx context.Context) error {
 	if err := o.askEnvRegion(); err != nil {
 		return err
 	}
-	return o.askCustomizedResources()
+	return o.askCustomizedResources(ctx)
 }
 
 func (o *initEnvOpts) validateWorkspaceApp(ctx context.Context) error {
@@ -501,19 +501,19 @@ func (o *initEnvOpts) askEnvRegion() error {
 	return nil
 }
 
-func (o *initEnvOpts) askCustomizedResources() error {
+func (o *initEnvOpts) askCustomizedResources(ctx context.Context) error {
 	if o.defaultConfig {
 		return nil
 	}
 	if o.importVPC.isSet() {
-		return o.askImportResources()
+		return o.askImportResources(ctx)
 	}
 	if o.adjustVPC.isSet() {
-		return o.askAdjustResources()
+		return o.askAdjustResources(ctx)
 	}
 	if o.internalALBSubnets != nil {
 		log.Infoln("Because you have designated subnets on which to place an internal ALB, you must import VPC resources.")
-		return o.askImportResources()
+		return o.askImportResources(ctx)
 	}
 	adjustOrImport, err := o.prompt.SelectOne(
 		envInitDefaultEnvConfirmPrompt, "",
@@ -524,21 +524,21 @@ func (o *initEnvOpts) askCustomizedResources() error {
 	}
 	switch adjustOrImport {
 	case envInitImportEnvResourcesSelectOption:
-		return o.askImportResources()
+		return o.askImportResources(ctx)
 	case envInitAdjustEnvResourcesSelectOption:
-		return o.askAdjustResources()
+		return o.askAdjustResources(ctx)
 	case envInitDefaultConfigSelectOption:
 		return nil
 	}
 	return nil
 }
 
-func (o *initEnvOpts) askImportResources() error {
+func (o *initEnvOpts) askImportResources(ctx context.Context) error {
 	if o.selVPC == nil {
 		o.selVPC = selector.NewEC2Select(o.prompt, ec2.New(o.cfg))
 	}
 	if o.importVPC.ID == "" {
-		vpcID, err := o.selVPC.VPC(envInitVPCSelectPrompt, "")
+		vpcID, err := o.selVPC.VPC(ctx, envInitVPCSelectPrompt, "")
 		if err != nil {
 			if err == selector.ErrVPCNotFound {
 				log.Errorf(`No existing VPCs were found. You can either:
@@ -553,7 +553,7 @@ func (o *initEnvOpts) askImportResources() error {
 	if o.ec2Client == nil {
 		o.ec2Client = ec2.New(o.cfg)
 	}
-	dnsSupport, err := o.ec2Client.HasDNSSupport(o.importVPC.ID)
+	dnsSupport, err := o.ec2Client.HasDNSSupportWithContext(ctx, o.importVPC.ID)
 	if err != nil {
 		return fmt.Errorf("check if VPC %s has DNS support enabled: %w", o.importVPC.ID, err)
 	}
@@ -565,7 +565,7 @@ https://aws.amazon.com/premiumsupport/knowledge-center/ecs-pull-container-api-er
 		return fmt.Errorf("VPC %s has no DNS support enabled", o.importVPC.ID)
 	}
 	if o.importVPC.PublicSubnetIDs == nil {
-		publicSubnets, err := o.selVPC.Subnets(selector.SubnetsInput{
+		publicSubnets, err := o.selVPC.Subnets(ctx, selector.SubnetsInput{
 			Msg:      envInitPublicSubnetsSelectPrompt,
 			Help:     "",
 			VPCID:    o.importVPC.ID,
@@ -592,7 +592,7 @@ specific to your workload type(s) (https://aproint.github.io/copilot-cli/docs/ma
 		o.importVPC.PublicSubnetIDs = publicSubnets
 	}
 	if o.importVPC.PrivateSubnetIDs == nil {
-		privateSubnets, err := o.selVPC.Subnets(selector.SubnetsInput{
+		privateSubnets, err := o.selVPC.Subnets(ctx, selector.SubnetsInput{
 			Msg:      envInitPrivateSubnetsSelectPrompt,
 			Help:     "",
 			VPCID:    o.importVPC.ID,
@@ -622,7 +622,7 @@ be able to add them after this environment is created.
 	return o.validateInternalALBSubnets()
 }
 
-func (o *initEnvOpts) askAdjustResources() error {
+func (o *initEnvOpts) askAdjustResources(ctx context.Context) error {
 	if o.adjustVPC.CIDR.String() == emptyIPNet.String() {
 		vpcCIDRString, err := o.prompt.Get(envInitVPCCIDRPrompt, envInitVPCCIDRPromptHelp, validateCIDR,
 			prompt.WithDefaultInput(stack.DefaultVPCCIDR), prompt.WithFinalMessage("VPC CIDR:"))
@@ -635,7 +635,7 @@ func (o *initEnvOpts) askAdjustResources() error {
 		}
 		o.adjustVPC.CIDR = *vpcCIDR
 	}
-	azs, err := o.askAZs()
+	azs, err := o.askAZs(ctx)
 	if err != nil {
 		return err
 	}
@@ -663,14 +663,14 @@ func (o *initEnvOpts) askAdjustResources() error {
 	return nil
 }
 
-func (o *initEnvOpts) askAZs() ([]string, error) {
+func (o *initEnvOpts) askAZs(ctx context.Context) ([]string, error) {
 	if o.adjustVPC.AZs != nil {
 		return o.adjustVPC.AZs, nil
 	}
 	if o.ec2Client == nil {
 		o.ec2Client = ec2.New(o.cfg)
 	}
-	azs, err := o.ec2Client.ListAZs()
+	azs, err := o.ec2Client.ListAZsWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list availability zones for region %s: %v", o.cfg.Region, err)
 	}

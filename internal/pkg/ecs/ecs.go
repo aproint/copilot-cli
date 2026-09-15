@@ -50,13 +50,16 @@ type ecsClient interface {
 	TaskDefinition(taskDefName string) (*ecs.TaskDefinition, error)
 	TaskDefinitionWithContext(ctx context.Context, taskDefName string) (*ecs.TaskDefinition, error)
 	UpdateService(clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error
+	UpdateServiceWithContext(ctx context.Context, clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error
 	DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error)
 	ActiveClusters(arns ...string) ([]string, error)
 	ActiveClustersWithContext(ctx context.Context, arns ...string) ([]string, error)
 	ActiveServices(clusterName string, serviceARNs ...string) ([]string, error)
 	ActiveServicesWithContext(ctx context.Context, clusterName string, serviceARNs ...string) ([]string, error)
 	ListServicesByNamespace(namespace string) ([]string, error)
+	ListServicesByNamespaceWithContext(ctx context.Context, namespace string) ([]string, error)
 	Services(cluster string, services ...string) ([]*ecs.Service, error)
+	ServicesWithContext(ctx context.Context, cluster string, services ...string) ([]*ecs.Service, error)
 }
 
 type stepFunctionsClient interface {
@@ -111,6 +114,15 @@ func (c Client) ForceUpdateService(app, env, svc string) error {
 		return err
 	}
 	return c.ecsClient.UpdateService(clusterName, serviceName, ecs.WithForceUpdate())
+}
+
+// ForceUpdateServiceWithContext forces a service update and waits using ctx.
+func (c Client) ForceUpdateServiceWithContext(ctx context.Context, app, env, svc string) error {
+	clusterName, serviceName, err := c.fetchAndParseServiceARNWithContext(ctx, app, env, svc)
+	if err != nil {
+		return err
+	}
+	return c.ecsClient.UpdateServiceWithContext(ctx, clusterName, serviceName, ecs.WithForceUpdate())
 }
 
 // DescribeService returns the description of an ECS service given Copilot service info.
@@ -188,7 +200,12 @@ func (c Client) ServiceWithContext(ctx context.Context, app, env, svc string) (*
 // ServiceConnectServices returns a list of services that are in the same
 // service connect namespace as the given service, except for itself.
 func (c Client) ServiceConnectServices(app, env, svc string) ([]*ecs.Service, error) {
-	s, err := c.Service(app, env, svc)
+	return c.ServiceConnectServicesWithContext(context.Background(), app, env, svc)
+}
+
+// ServiceConnectServicesWithContext returns services in the same Service Connect namespace using ctx.
+func (c Client) ServiceConnectServicesWithContext(ctx context.Context, app, env, svc string) ([]*ecs.Service, error) {
+	s, err := c.ServiceWithContext(ctx, app, env, svc)
 	if err != nil {
 		return nil, fmt.Errorf("get service: %w", err)
 	}
@@ -196,7 +213,7 @@ func (c Client) ServiceConnectServices(app, env, svc string) ([]*ecs.Service, er
 		return nil, nil
 	}
 
-	arns, err := c.ecsClient.ListServicesByNamespace(aws.ToString(s.Deployments[0].ServiceConnectConfiguration.Namespace))
+	arns, err := c.ecsClient.ListServicesByNamespaceWithContext(ctx, aws.ToString(s.Deployments[0].ServiceConnectConfiguration.Namespace))
 	if err != nil {
 		return nil, fmt.Errorf("get services in the same namespace: %w", err)
 	}
@@ -206,7 +223,7 @@ func (c Client) ServiceConnectServices(app, env, svc string) ([]*ecs.Service, er
 		return arn == aws.ToString(s.ServiceArn)
 	})
 
-	svcs, err := c.ecsClient.Services(aws.ToString(s.ClusterArn), arns...)
+	svcs, err := c.ecsClient.ServicesWithContext(ctx, aws.ToString(s.ClusterArn), arns...)
 	if err != nil {
 		return nil, fmt.Errorf("get services: %w", err)
 	}
@@ -216,6 +233,15 @@ func (c Client) ServiceConnectServices(app, env, svc string) ([]*ecs.Service, er
 // LastUpdatedAt returns the last updated time of the ECS service.
 func (c Client) LastUpdatedAt(app, env, svc string) (time.Time, error) {
 	detail, err := c.Service(app, env, svc)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return detail.LastUpdatedAt(), nil
+}
+
+// LastUpdatedAtWithContext returns the last service update time using ctx.
+func (c Client) LastUpdatedAtWithContext(ctx context.Context, app, env, svc string) (time.Time, error) {
+	detail, err := c.ServiceWithContext(ctx, app, env, svc)
 	if err != nil {
 		return time.Time{}, err
 	}

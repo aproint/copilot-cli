@@ -311,19 +311,19 @@ func (m *MockprefixListGetter) EXPECT() *MockprefixListGetterMockRecorder {
 	return m.recorder
 }
 
-// CloudFrontManagedPrefixListID mocks base method.
-func (m *MockprefixListGetter) CloudFrontManagedPrefixListID() (string, error) {
+// CloudFrontManagedPrefixListIDWithContext mocks base method.
+func (m *MockprefixListGetter) CloudFrontManagedPrefixListIDWithContext(arg0 context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CloudFrontManagedPrefixListID")
+	ret := m.ctrl.Call(m, "CloudFrontManagedPrefixListIDWithContext", arg0)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CloudFrontManagedPrefixListID indicates an expected call of CloudFrontManagedPrefixListID.
-func (mr *MockprefixListGetterMockRecorder) CloudFrontManagedPrefixListID() *gomock.Call {
+// CloudFrontManagedPrefixListIDWithContext indicates an expected call of CloudFrontManagedPrefixListIDWithContext.
+func (mr *MockprefixListGetterMockRecorder) CloudFrontManagedPrefixListIDWithContext(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloudFrontManagedPrefixListID", reflect.TypeOf((*MockprefixListGetter)(nil).CloudFrontManagedPrefixListID))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloudFrontManagedPrefixListIDWithContext", reflect.TypeOf((*MockprefixListGetter)(nil).CloudFrontManagedPrefixListIDWithContext), arg0)
 }
 
 // MockenvDescriber is a mock of envDescriber interface.

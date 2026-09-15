@@ -4,6 +4,7 @@
 package apprunner
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -16,6 +17,24 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAppRunner_WaitForOperationWithContextStopsOnCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockapi(ctrl)
+	client.EXPECT().ListOperations(ctx, gomock.Any()).DoAndReturn(func(context.Context, *apprunner.ListOperationsInput, ...func(*apprunner.Options)) (*apprunner.ListOperationsOutput, error) {
+		cancel()
+		return &apprunner.ListOperationsOutput{OperationSummaryList: []types.OperationSummary{{
+			Id:     awsv2.String("operation"),
+			Status: types.OperationStatusInProgress,
+		}}}, nil
+	})
+
+	service := AppRunner{client: client}
+	err := service.WaitForOperationWithContext(ctx, "operation", "service-arn")
+
+	require.ErrorIs(t, err, context.Canceled)
+}
 
 func TestAppRunner_DescribeService(t *testing.T) {
 	mockTime, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05+00:00")

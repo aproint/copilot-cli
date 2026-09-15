@@ -28,6 +28,7 @@ const (
 
 type logGetter interface {
 	LogEvents(opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error)
+	LogEventsWithContext(ctx context.Context, opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error)
 }
 
 type serviceARNGetter interface {
@@ -68,8 +69,12 @@ type workloadLogger struct {
 
 // WriteLogEvents writes service logs.
 func (s *workloadLogger) writeEventLogs(logEventsOpts cloudwatchlogs.LogEventsOpts, onEvent func(io.Writer, []HumanJSONStringer) error, follow bool) error {
+	return s.writeEventLogsWithContext(context.Background(), logEventsOpts, onEvent, follow)
+}
+
+func (s *workloadLogger) writeEventLogsWithContext(ctx context.Context, logEventsOpts cloudwatchlogs.LogEventsOpts, onEvent func(io.Writer, []HumanJSONStringer) error, follow bool) error {
 	for {
-		logEventsOutput, err := s.eventsGetter.LogEvents(logEventsOpts)
+		logEventsOutput, err := s.eventsGetter.LogEventsWithContext(ctx, logEventsOpts)
 		if err != nil {
 			return fmt.Errorf("get log events for log group %s: %w", logEventsOpts.LogGroup, err)
 		}
@@ -84,7 +89,13 @@ func (s *workloadLogger) writeEventLogs(logEventsOpts cloudwatchlogs.LogEventsOp
 			return nil
 		}
 		logEventsOpts.StreamLastEventTime = logEventsOutput.StreamLastEventTime
-		time.Sleep(cloudwatchlogs.SleepDuration)
+		timer := time.NewTimer(cloudwatchlogs.SleepDuration)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
 	}
 }
 
@@ -119,6 +130,11 @@ type ECSServiceLogger struct {
 
 // WriteLogEvents writes service logs.
 func (s *ECSServiceLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
+	return s.WriteLogEventsWithContext(context.Background(), opts)
+}
+
+// WriteLogEventsWithContext writes service logs using ctx.
+func (s *ECSServiceLogger) WriteLogEventsWithContext(ctx context.Context, opts WriteLogEventsOpts) error {
 	logGroup := fmt.Sprintf(fmtWkldLogGroupName, s.app, s.env, s.name)
 	if opts.LogGroup != "" {
 		logGroup = opts.LogGroup
@@ -132,7 +148,7 @@ func (s *ECSServiceLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
 		LogStreamLimit:         opts.LogStreamLimit,
 		LogStreamPrefixFilters: s.logStreamPrefixes(opts.TaskIDs, opts.ContainerName),
 	}
-	return s.workloadLogger.writeEventLogs(logEventsOpts, opts.OnEvents, opts.Follow)
+	return s.workloadLogger.writeEventLogsWithContext(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
 }
 
 func (s *ECSServiceLogger) logStreamPrefixes(taskIDs []string, container string) []string {
@@ -173,6 +189,11 @@ type AppRunnerServiceLogger struct {
 
 // WriteLogEvents writes service logs.
 func (s *AppRunnerServiceLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
+	return s.WriteLogEventsWithContext(context.Background(), opts)
+}
+
+// WriteLogEventsWithContext writes service logs using ctx.
+func (s *AppRunnerServiceLogger) WriteLogEventsWithContext(ctx context.Context, opts WriteLogEventsOpts) error {
 	var logGroup string
 	switch strings.ToLower(opts.LogGroup) {
 	case "system":
@@ -204,7 +225,7 @@ func (s *AppRunnerServiceLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
 		StreamLastEventTime: nil,
 		LogStreamLimit:      opts.LogStreamLimit,
 	}
-	return s.workloadLogger.writeEventLogs(logEventsOpts, opts.OnEvents, opts.Follow)
+	return s.workloadLogger.writeEventLogsWithContext(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
 }
 
 // NewJobLogger returns an JobLogger for the job under env and app.
@@ -221,6 +242,11 @@ type JobLogger struct {
 
 // WriteLogEvents writes job logs.
 func (s *JobLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
+	return s.WriteLogEventsWithContext(context.Background(), opts)
+}
+
+// WriteLogEventsWithContext writes job logs using ctx.
+func (s *JobLogger) WriteLogEventsWithContext(ctx context.Context, opts WriteLogEventsOpts) error {
 	logStreamLimit := opts.LogStreamLimit
 	if opts.IncludeStateMachineLogs {
 		logStreamLimit *= 2
@@ -238,7 +264,7 @@ func (s *JobLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
 		LogStreamLimit:         logStreamLimit,
 		LogStreamPrefixFilters: s.logStreamPrefixes(opts.TaskIDs, opts.IncludeStateMachineLogs),
 	}
-	return s.workloadLogger.writeEventLogs(logEventsOpts, opts.OnEvents, opts.Follow)
+	return s.workloadLogger.writeEventLogsWithContext(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
 }
 
 //	The log stream prefixes for a job should be:

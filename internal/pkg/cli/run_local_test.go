@@ -1625,7 +1625,7 @@ type taggedResourceGetterDouble struct {
 	GetResourcesByTagsFn func(string, map[string]string) ([]*resourcegroups.Resource, error)
 }
 
-func (d *taggedResourceGetterDouble) GetResourcesByTags(resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
+func (d *taggedResourceGetterDouble) GetResourcesByTagsWithContext(_ context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
 	if d.GetResourcesByTagsFn == nil {
 		return nil, nil
 	}
@@ -1724,13 +1724,13 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 	}{
 		"error getting services": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantError: "get service connect services: some error",
 		},
 		"ignores non-primary deployments": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 			},
 			wantHosts: []orchestrator.Host{
 				{
@@ -1741,7 +1741,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"error getting rds resources": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return nil, errors.New("some error")
 				}
@@ -1750,7 +1750,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"no db instances found": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return nil, nil
 				}
@@ -1764,7 +1764,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"invalid db arn": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1777,7 +1777,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"error describing rds instances": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1793,7 +1793,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"gets rds instance": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1830,7 +1830,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"error describing db cluster": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1864,7 +1864,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"gets db cluster, skips other service resources": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{

@@ -343,7 +343,7 @@ func TestJobLogs_Execute(t *testing.T) {
 
 			mocklogsSvc: func(ctrl *gomock.Controller) logEventsWriter {
 				m := mocks.NewMocklogEventsWriter(ctrl)
-				m.EXPECT().WriteLogEvents(gomock.Any()).Do(func(param logging.WriteLogEventsOpts) {
+				m.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param logging.WriteLogEventsOpts) {
 					require.Equal(t, param.LogStreamLimit, 4)
 					require.Equal(t, param.EndTime, &mockEndTime)
 					require.Equal(t, param.StartTime, &mockStartTime)
@@ -361,7 +361,7 @@ func TestJobLogs_Execute(t *testing.T) {
 			includeStateMachine: true,
 			mocklogsSvc: func(ctrl *gomock.Controller) logEventsWriter {
 				m := mocks.NewMocklogEventsWriter(ctrl)
-				m.EXPECT().WriteLogEvents(gomock.Any()).Do(func(param logging.WriteLogEventsOpts) {
+				m.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param logging.WriteLogEventsOpts) {
 					require.Equal(t, param.LogStreamLimit, 1)
 					require.Equal(t, param.Limit, mockNilLimit)
 					require.Equal(t, param.IncludeStateMachineLogs, true)
@@ -381,7 +381,7 @@ func TestJobLogs_Execute(t *testing.T) {
 
 			mocklogsSvc: func(ctrl *gomock.Controller) logEventsWriter {
 				m := mocks.NewMocklogEventsWriter(ctrl)
-				m.EXPECT().WriteLogEvents(gomock.Any()).Do(func(param logging.WriteLogEventsOpts) {
+				m.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param logging.WriteLogEventsOpts) {
 					require.Equal(t, param.TaskIDs, []string{"mockTaskID"})
 					require.Equal(t, param.EndTime, &mockEndTime)
 					require.Equal(t, param.StartTime, &mockStartTime)
@@ -399,7 +399,7 @@ func TestJobLogs_Execute(t *testing.T) {
 
 			mocklogsSvc: func(ctrl *gomock.Controller) logEventsWriter {
 				m := mocks.NewMocklogEventsWriter(ctrl)
-				m.EXPECT().WriteLogEvents(gomock.Any()).
+				m.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).
 					Return(errors.New("some error"))
 
 				return m

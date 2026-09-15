@@ -1798,6 +1798,21 @@ func (mr *MockecsClientMockRecorder) ServiceConnectServices(app, env, svc interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceConnectServices", reflect.TypeOf((*MockecsClient)(nil).ServiceConnectServices), app, env, svc)
 }
 
+// ServiceConnectServicesWithContext mocks base method.
+func (m *MockecsClient) ServiceConnectServicesWithContext(ctx context.Context, app, env, svc string) ([]*ecs.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServiceConnectServicesWithContext", ctx, app, env, svc)
+	ret0, _ := ret[0].([]*ecs.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServiceConnectServicesWithContext indicates an expected call of ServiceConnectServicesWithContext.
+func (mr *MockecsClientMockRecorder) ServiceConnectServicesWithContext(ctx, app, env, svc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceConnectServicesWithContext", reflect.TypeOf((*MockecsClient)(nil).ServiceConnectServicesWithContext), ctx, app, env, svc)
+}
+
 // TaskDefinition mocks base method.
 func (m *MockecsClient) TaskDefinition(app, env, svc string) (*ecs.TaskDefinition, error) {
 	m.ctrl.T.Helper()
@@ -1836,18 +1851,18 @@ func (m *MocklogEventsWriter) EXPECT() *MocklogEventsWriterMockRecorder {
 	return m.recorder
 }
 
-// WriteLogEvents mocks base method.
-func (m *MocklogEventsWriter) WriteLogEvents(opts logging.WriteLogEventsOpts) error {
+// WriteLogEventsWithContext mocks base method.
+func (m *MocklogEventsWriter) WriteLogEventsWithContext(ctx context.Context, opts logging.WriteLogEventsOpts) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WriteLogEvents", opts)
+	ret := m.ctrl.Call(m, "WriteLogEventsWithContext", ctx, opts)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// WriteLogEvents indicates an expected call of WriteLogEvents.
-func (mr *MocklogEventsWriterMockRecorder) WriteLogEvents(opts interface{}) *gomock.Call {
+// WriteLogEventsWithContext indicates an expected call of WriteLogEventsWithContext.
+func (mr *MocklogEventsWriterMockRecorder) WriteLogEventsWithContext(ctx, opts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteLogEvents", reflect.TypeOf((*MocklogEventsWriter)(nil).WriteLogEvents), opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteLogEventsWithContext", reflect.TypeOf((*MocklogEventsWriter)(nil).WriteLogEventsWithContext), ctx, opts)
 }
 
 // MockexecRunner is a mock of execRunner interface.
@@ -6572,33 +6587,33 @@ func (m *Mockec2Selector) EXPECT() *Mockec2SelectorMockRecorder {
 }
 
 // Subnets mocks base method.
-func (m *Mockec2Selector) Subnets(input selector.SubnetsInput) ([]string, error) {
+func (m *Mockec2Selector) Subnets(ctx context.Context, input selector.SubnetsInput) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Subnets", input)
+	ret := m.ctrl.Call(m, "Subnets", ctx, input)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Subnets indicates an expected call of Subnets.
-func (mr *Mockec2SelectorMockRecorder) Subnets(input interface{}) *gomock.Call {
+func (mr *Mockec2SelectorMockRecorder) Subnets(ctx, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subnets", reflect.TypeOf((*Mockec2Selector)(nil).Subnets), input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subnets", reflect.TypeOf((*Mockec2Selector)(nil).Subnets), ctx, input)
 }
 
 // VPC mocks base method.
-func (m *Mockec2Selector) VPC(prompt, help string) (string, error) {
+func (m *Mockec2Selector) VPC(ctx context.Context, prompt, help string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VPC", prompt, help)
+	ret := m.ctrl.Call(m, "VPC", ctx, prompt, help)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // VPC indicates an expected call of VPC.
-func (mr *Mockec2SelectorMockRecorder) VPC(prompt, help interface{}) *gomock.Call {
+func (mr *Mockec2SelectorMockRecorder) VPC(ctx, prompt, help interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VPC", reflect.TypeOf((*Mockec2Selector)(nil).VPC), prompt, help)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VPC", reflect.TypeOf((*Mockec2Selector)(nil).VPC), ctx, prompt, help)
 }
 
 // MockcredsSelector is a mock of credsSelector interface.
@@ -6662,34 +6677,34 @@ func (m *Mockec2Client) EXPECT() *Mockec2ClientMockRecorder {
 	return m.recorder
 }
 
-// HasDNSSupport mocks base method.
-func (m *Mockec2Client) HasDNSSupport(vpcID string) (bool, error) {
+// HasDNSSupportWithContext mocks base method.
+func (m *Mockec2Client) HasDNSSupportWithContext(ctx context.Context, vpcID string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasDNSSupport", vpcID)
+	ret := m.ctrl.Call(m, "HasDNSSupportWithContext", ctx, vpcID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// HasDNSSupport indicates an expected call of HasDNSSupport.
-func (mr *Mockec2ClientMockRecorder) HasDNSSupport(vpcID interface{}) *gomock.Call {
+// HasDNSSupportWithContext indicates an expected call of HasDNSSupportWithContext.
+func (mr *Mockec2ClientMockRecorder) HasDNSSupportWithContext(ctx, vpcID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDNSSupport", reflect.TypeOf((*Mockec2Client)(nil).HasDNSSupport), vpcID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDNSSupportWithContext", reflect.TypeOf((*Mockec2Client)(nil).HasDNSSupportWithContext), ctx, vpcID)
 }
 
-// ListAZs mocks base method.
-func (m *Mockec2Client) ListAZs() ([]ec2.AZ, error) {
+// ListAZsWithContext mocks base method.
+func (m *Mockec2Client) ListAZsWithContext(ctx context.Context) ([]ec2.AZ, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAZs")
+	ret := m.ctrl.Call(m, "ListAZsWithContext", ctx)
 	ret0, _ := ret[0].([]ec2.AZ)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListAZs indicates an expected call of ListAZs.
-func (mr *Mockec2ClientMockRecorder) ListAZs() *gomock.Call {
+// ListAZsWithContext indicates an expected call of ListAZsWithContext.
+func (mr *Mockec2ClientMockRecorder) ListAZsWithContext(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAZs", reflect.TypeOf((*Mockec2Client)(nil).ListAZs))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAZsWithContext", reflect.TypeOf((*Mockec2Client)(nil).ListAZsWithContext), ctx)
 }
 
 // MockserviceResumer is a mock of serviceResumer interface.
@@ -6715,18 +6730,18 @@ func (m *MockserviceResumer) EXPECT() *MockserviceResumerMockRecorder {
 	return m.recorder
 }
 
-// ResumeService mocks base method.
-func (m *MockserviceResumer) ResumeService(arg0 string) error {
+// ResumeServiceWithContext mocks base method.
+func (m *MockserviceResumer) ResumeServiceWithContext(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResumeService", arg0)
+	ret := m.ctrl.Call(m, "ResumeServiceWithContext", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ResumeService indicates an expected call of ResumeService.
-func (mr *MockserviceResumerMockRecorder) ResumeService(arg0 interface{}) *gomock.Call {
+// ResumeServiceWithContext indicates an expected call of ResumeServiceWithContext.
+func (mr *MockserviceResumerMockRecorder) ResumeServiceWithContext(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeService", reflect.TypeOf((*MockserviceResumer)(nil).ResumeService), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeServiceWithContext", reflect.TypeOf((*MockserviceResumer)(nil).ResumeServiceWithContext), arg0, arg1)
 }
 
 // MockjobInitializer is a mock of jobInitializer interface.
@@ -6991,6 +7006,21 @@ func (m *MockserviceDescriber) DescribeService(app, env, svc string) (*ecs0.Serv
 func (mr *MockserviceDescriberMockRecorder) DescribeService(app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeService", reflect.TypeOf((*MockserviceDescriber)(nil).DescribeService), app, env, svc)
+}
+
+// DescribeServiceWithContext mocks base method.
+func (m *MockserviceDescriber) DescribeServiceWithContext(ctx context.Context, app, env, svc string) (*ecs0.ServiceDesc, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeServiceWithContext", ctx, app, env, svc)
+	ret0, _ := ret[0].(*ecs0.ServiceDesc)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeServiceWithContext indicates an expected call of DescribeServiceWithContext.
+func (mr *MockserviceDescriberMockRecorder) DescribeServiceWithContext(ctx, app, env, svc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeServiceWithContext", reflect.TypeOf((*MockserviceDescriber)(nil).DescribeServiceWithContext), ctx, app, env, svc)
 }
 
 // MockapprunnerServiceDescriber is a mock of apprunnerServiceDescriber interface.
@@ -7672,18 +7702,18 @@ func (m *MockservicePauser) EXPECT() *MockservicePauserMockRecorder {
 	return m.recorder
 }
 
-// PauseService mocks base method.
-func (m *MockservicePauser) PauseService(svcARN string) error {
+// PauseServiceWithContext mocks base method.
+func (m *MockservicePauser) PauseServiceWithContext(ctx context.Context, svcARN string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PauseService", svcARN)
+	ret := m.ctrl.Call(m, "PauseServiceWithContext", ctx, svcARN)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// PauseService indicates an expected call of PauseService.
-func (mr *MockservicePauserMockRecorder) PauseService(svcARN interface{}) *gomock.Call {
+// PauseServiceWithContext indicates an expected call of PauseServiceWithContext.
+func (mr *MockservicePauserMockRecorder) PauseServiceWithContext(ctx, svcARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseService", reflect.TypeOf((*MockservicePauser)(nil).PauseService), svcARN)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PauseServiceWithContext", reflect.TypeOf((*MockservicePauser)(nil).PauseServiceWithContext), ctx, svcARN)
 }
 
 // Mockinterpolator is a mock of interpolator interface.

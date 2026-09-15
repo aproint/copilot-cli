@@ -44,7 +44,7 @@ var (
 )
 
 type elbGetter interface {
-	LoadBalancer(nameOrARN string) (*elbv2.LoadBalancer, error)
+	LoadBalancerWithContext(ctx context.Context, nameOrARN string) (*elbv2.LoadBalancer, error)
 }
 
 type lbWebSvcDeployer struct {
@@ -111,9 +111,9 @@ func (d *lbWebSvcDeployer) UploadArtifacts(ctx context.Context) (*UploadArtifact
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.
-func (d *lbWebSvcDeployer) GenerateCloudFormationTemplate(_ context.Context, in *GenerateCloudFormationTemplateInput) (
+func (d *lbWebSvcDeployer) GenerateCloudFormationTemplate(ctx context.Context, in *GenerateCloudFormationTemplateInput) (
 	*GenerateCloudFormationTemplateOutput, error) {
-	output, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
+	output, err := d.stackConfiguration(ctx, &in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (d *lbWebSvcDeployer) GenerateCloudFormationTemplate(_ context.Context, in 
 
 // DeployWorkload deploys a load balanced web service using CloudFormation.
 func (d *lbWebSvcDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloadInput) (ActionRecommender, error) {
-	stackConfigOutput, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
+	stackConfigOutput, err := d.stackConfiguration(ctx, &in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -132,12 +132,12 @@ func (d *lbWebSvcDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloa
 	return noopActionRecommender{}, nil
 }
 
-func (d *lbWebSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*svcStackConfigurationOutput, error) {
+func (d *lbWebSvcDeployer) stackConfiguration(ctx context.Context, in *StackRuntimeConfiguration) (*svcStackConfigurationOutput, error) {
 	rc, err := d.runtimeConfig(in)
 	if err != nil {
 		return nil, err
 	}
-	if err := d.validateALBRuntime(); err != nil {
+	if err := d.validateALBRuntime(ctx); err != nil {
 		return nil, err
 	}
 	if err := d.validateNLBRuntime(); err != nil {
@@ -145,7 +145,7 @@ func (d *lbWebSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*s
 	}
 	var opts []stack.LoadBalancedWebServiceOption
 	if d.lbMft.HTTPOrBool.ImportedALB != nil {
-		lb, err := d.elbGetter.LoadBalancer(aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
+		lb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
 		if err != nil {
 			return nil, err
 		}
@@ -181,32 +181,32 @@ func (d *lbWebSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*s
 	}, nil
 }
 
-func (d *lbWebSvcDeployer) validateALBRuntime() error {
+func (d *lbWebSvcDeployer) validateALBRuntime(ctx context.Context) error {
 	if d.lbMft.HTTPOrBool.Disabled() {
 		return nil
 	}
 
-	if err := d.validateImportedALBConfig(); err != nil {
+	if err := d.validateImportedALBConfig(ctx); err != nil {
 		return fmt.Errorf(`validate imported ALB configuration for "http": %w`, err)
 	}
 
-	if err := d.validateRuntimeRoutingRule(d.lbMft.HTTPOrBool.Main); err != nil {
+	if err := d.validateRuntimeRoutingRule(ctx, d.lbMft.HTTPOrBool.Main); err != nil {
 		return fmt.Errorf(`validate ALB runtime configuration for "http": %w`, err)
 	}
 
 	for idx, rule := range d.lbMft.HTTPOrBool.AdditionalRoutingRules {
-		if err := d.validateRuntimeRoutingRule(rule); err != nil {
+		if err := d.validateRuntimeRoutingRule(ctx, rule); err != nil {
 			return fmt.Errorf(`validate ALB runtime configuration for "http.additional_rule[%d]": %w`, idx, err)
 		}
 	}
 	return nil
 }
 
-func (d *lbWebSvcDeployer) validateImportedALBConfig() error {
+func (d *lbWebSvcDeployer) validateImportedALBConfig(ctx context.Context) error {
 	if d.lbMft.HTTPOrBool.ImportedALB == nil {
 		return nil
 	}
-	alb, err := d.elbGetter.LoadBalancer(aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
+	alb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
 	if err != nil {
 		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB), err)
 	}
@@ -230,7 +230,7 @@ func (d *lbWebSvcDeployer) validateImportedALBConfig() error {
 	return nil
 }
 
-func (d *lbWebSvcDeployer) validateRuntimeRoutingRule(rule manifest.RoutingRule) error {
+func (d *lbWebSvcDeployer) validateRuntimeRoutingRule(ctx context.Context, rule manifest.RoutingRule) error {
 	hasALBCerts := len(d.envConfig.HTTPConfig.Public.Certificates) != 0
 	hasCDNCerts := d.envConfig.CDNConfig.Config.Certificate != nil
 	hasImportedCerts := hasALBCerts || hasCDNCerts
@@ -265,13 +265,13 @@ func (d *lbWebSvcDeployer) validateRuntimeRoutingRule(rule manifest.RoutingRule)
 
 		if hasALBCerts {
 			albCertValidator := d.newAliasCertValidator(nil)
-			if err := albCertValidator.ValidateCertAliases(aliases, d.envConfig.HTTPConfig.Public.Certificates); err != nil {
+			if err := albCertValidator.ValidateCertAliasesWithContext(ctx, aliases, d.envConfig.HTTPConfig.Public.Certificates); err != nil {
 				return fmt.Errorf("validate aliases against the imported public ALB certificate for env %s: %w", d.env.Name, err)
 			}
 		}
 		if hasCDNCerts {
 			cfCertValidator := d.newAliasCertValidator(aws.String(cloudfront.CertRegion))
-			if err := cfCertValidator.ValidateCertAliases(aliases, []string{*d.envConfig.CDNConfig.Config.Certificate}); err != nil {
+			if err := cfCertValidator.ValidateCertAliasesWithContext(ctx, aliases, []string{*d.envConfig.CDNConfig.Config.Certificate}); err != nil {
 				return fmt.Errorf("validate aliases against the imported CDN certificate for env %s: %w", d.env.Name, err)
 			}
 		}

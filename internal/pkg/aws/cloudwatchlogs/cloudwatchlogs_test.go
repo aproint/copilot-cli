@@ -393,3 +393,23 @@ func TestLogEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestLogEventsWithContextUsesCallerContextForStreamDiscoveryAndRetrieval(t *testing.T) {
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockapi(ctrl)
+	gomock.InOrder(
+		client.EXPECT().DescribeLogStreams(ctx, gomock.Any()).Return(&cloudwatchlogs.DescribeLogStreamsOutput{
+			LogStreams: []types.LogStream{{LogStreamName: aws.String("stream")}},
+		}, nil),
+		client.EXPECT().GetLogEvents(ctx, gomock.Any()).Return(&cloudwatchlogs.GetLogEventsOutput{
+			Events: []types.OutputLogEvent{{Message: aws.String("message"), Timestamp: aws.Int64(1)}},
+		}, nil),
+	)
+
+	logs := CloudWatchLogs{client: client}
+	output, err := logs.LogEventsWithContext(ctx, LogEventsOpts{LogGroup: "group"})
+
+	require.NoError(t, err)
+	require.Equal(t, "message", output.Events[0].Message)
+}

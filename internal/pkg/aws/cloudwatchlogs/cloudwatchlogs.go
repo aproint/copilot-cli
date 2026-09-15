@@ -71,6 +71,9 @@ func (c *CloudWatchLogs) logStreamsWithContext(ctx context.Context, logGroup str
 	var logStreamNames []string
 	logStreamsResp := &cloudwatchlogs.DescribeLogStreamsOutput{}
 	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		var err error
 		logStreamsResp, err = c.client.DescribeLogStreams(ctx, &cloudwatchlogs.DescribeLogStreamsInput{
 			LogGroupName: awsv2.String(logGroup),
@@ -128,6 +131,9 @@ func (c *CloudWatchLogs) LogEventsWithContext(ctx context.Context, opts LogEvent
 		streamLastEventTime[k] = v
 	}
 	for _, logStream := range logStreams {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		// Set override value
 		in.LogStreamName = awsv2.String(logStream)
 		if streamLastEventTime[logStream] != 0 {

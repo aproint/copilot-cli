@@ -4,6 +4,7 @@
 package ec2
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -15,6 +16,62 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestEC2_PublicIPWithContextUsesCallerContext(t *testing.T) {
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	ctrl := gomock.NewController(t)
+	mockAPI := mocks.NewMockapi(ctrl)
+	mockAPI.EXPECT().DescribeNetworkInterfaces(ctx, gomock.Any()).Return(&ec2.DescribeNetworkInterfacesOutput{
+		NetworkInterfaces: []types.NetworkInterface{{
+			Association: &types.NetworkInterfaceAssociation{PublicIp: awsv2.String("1.2.3.4")},
+		}},
+	}, nil)
+
+	client := EC2{client: mockAPI}
+	publicIP, err := client.PublicIPWithContext(ctx, "eni-123")
+
+	require.NoError(t, err)
+	require.Equal(t, "1.2.3.4", publicIP)
+}
+
+func TestEC2_ListVPCsWithContextUsesCallerContextForEveryPage(t *testing.T) {
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	ctrl := gomock.NewController(t)
+	mockAPI := mocks.NewMockapi(ctrl)
+	gomock.InOrder(
+		mockAPI.EXPECT().DescribeVpcs(ctx, &ec2.DescribeVpcsInput{}).Return(&ec2.DescribeVpcsOutput{
+			Vpcs:      []types.Vpc{{VpcId: awsv2.String("vpc-1")}},
+			NextToken: awsv2.String("next"),
+		}, nil),
+		mockAPI.EXPECT().DescribeVpcs(ctx, &ec2.DescribeVpcsInput{NextToken: awsv2.String("next")}).Return(&ec2.DescribeVpcsOutput{
+			Vpcs: []types.Vpc{{VpcId: awsv2.String("vpc-2")}},
+		}, nil),
+	)
+
+	client := EC2{client: mockAPI}
+	vpcs, err := client.ListVPCsWithContext(ctx)
+
+	require.NoError(t, err)
+	require.Equal(t, []VPC{
+		{Resource: Resource{ID: "vpc-1"}},
+		{Resource: Resource{ID: "vpc-2"}},
+	}, vpcs)
+}
+
+func TestEC2_ListVPCsWithContextStopsBeforeNextPageWhenCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ctrl := gomock.NewController(t)
+	mockAPI := mocks.NewMockapi(ctrl)
+	mockAPI.EXPECT().DescribeVpcs(ctx, &ec2.DescribeVpcsInput{}).DoAndReturn(func(context.Context, *ec2.DescribeVpcsInput, ...func(*ec2.Options)) (*ec2.DescribeVpcsOutput, error) {
+		cancel()
+		return &ec2.DescribeVpcsOutput{NextToken: awsv2.String("next")}, nil
+	})
+
+	client := EC2{client: mockAPI}
+	_, err := client.ListVPCsWithContext(ctx)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
 
 var (
 	inAppEnvFilters = []Filter{
@@ -335,7 +392,7 @@ func TestEC2_managedPrefixList(t *testing.T) {
 				client: mockAPI,
 			}
 
-			output, err := ec2Client.managedPrefixList(mockPrefixListName)
+			output, err := ec2Client.managedPrefixList(context.Background(), mockPrefixListName)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else if tc.wantedErrorMsgPrefix != "" {

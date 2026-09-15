@@ -167,12 +167,20 @@ func (e *ECS) ServicesWithContext(ctx context.Context, cluster string, services 
 // ListServicesByNamespace returns a list of service ARNs of services that
 // are in the given namespace.
 func (e *ECS) ListServicesByNamespace(namespace string) ([]string, error) {
+	return e.ListServicesByNamespaceWithContext(context.Background(), namespace)
+}
+
+// ListServicesByNamespaceWithContext returns service ARNs in the namespace using ctx for every page.
+func (e *ECS) ListServicesByNamespaceWithContext(ctx context.Context, namespace string) ([]string, error) {
 	var arns []string
 	in := &ecs.ListServicesByNamespaceInput{
 		Namespace: awsv2.String(namespace),
 	}
 	for {
-		resp, err := e.client.ListServicesByNamespace(context.Background(), in)
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		resp, err := e.client.ListServicesByNamespace(ctx, in)
 		if err != nil {
 			return nil, err
 		}
@@ -197,6 +205,11 @@ func WithForceUpdate() UpdateServiceOpts {
 
 // UpdateService calls ECS API and updates the specific service running in the cluster.
 func (e *ECS) UpdateService(clusterName, serviceName string, opts ...UpdateServiceOpts) error {
+	return e.UpdateServiceWithContext(context.Background(), clusterName, serviceName, opts...)
+}
+
+// UpdateServiceWithContext updates a service and waits for it to become stable using ctx.
+func (e *ECS) UpdateServiceWithContext(ctx context.Context, clusterName, serviceName string, opts ...UpdateServiceOpts) error {
 	in := &ecs.UpdateServiceInput{
 		Cluster: awsv2.String(clusterName),
 		Service: awsv2.String(serviceName),
@@ -204,12 +217,12 @@ func (e *ECS) UpdateService(clusterName, serviceName string, opts ...UpdateServi
 	for _, opt := range opts {
 		opt(in)
 	}
-	svc, err := e.client.UpdateService(context.Background(), in)
+	svc, err := e.client.UpdateService(ctx, in)
 	if err != nil {
 		return fmt.Errorf("update service %s from cluster %s: %w", serviceName, clusterName, err)
 	}
 	s := Service(*svc.Service)
-	if err := e.waitUntilServiceStable(&s); err != nil {
+	if err := e.waitUntilServiceStable(ctx, &s); err != nil {
 		return fmt.Errorf("wait until service %s becomes stable: %w", serviceName, err)
 	}
 	return nil
@@ -217,7 +230,7 @@ func (e *ECS) UpdateService(clusterName, serviceName string, opts ...UpdateServi
 
 // waitUntilServiceStable waits until the service is stable.
 // See https://docs.aws.amazon.com/cli/latest/reference/ecs/wait/services-stable.html
-func (e *ECS) waitUntilServiceStable(svc *Service) error {
+func (e *ECS) waitUntilServiceStable(ctx context.Context, svc *Service) error {
 	var err error
 	var tryNum int
 	for {
@@ -233,12 +246,18 @@ func (e *ECS) waitUntilServiceStable(svc *Service) error {
 				maxRetries: e.maxServiceStableTries,
 			}
 		}
-		svc, err = e.Service(awsv2.ToString(svc.ClusterArn), awsv2.ToString(svc.ServiceName))
+		svc, err = e.ServiceWithContext(ctx, awsv2.ToString(svc.ClusterArn), awsv2.ToString(svc.ServiceName))
 		if err != nil {
 			return err
 		}
 		tryNum++
-		time.Sleep(e.pollIntervalDuration)
+		timer := time.NewTimer(e.pollIntervalDuration)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
 	}
 }
 

@@ -44,8 +44,12 @@ type jobLogsOpts struct {
 }
 
 func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
+	return newJobLogOptsWithContext(context.Background(), vars)
+}
+
+func newJobLogOptsWithContext(ctx context.Context, vars jobLogsVars) (*jobLogsOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job logs"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +73,7 @@ func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
 		if err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
-		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
@@ -171,7 +175,7 @@ func (o *jobLogsOpts) Execute(ctx context.Context) error {
 		logStreamLimit = o.last
 	}
 
-	err := o.logsSvc.WriteLogEvents(logging.WriteLogEventsOpts{
+	err := o.logsSvc.WriteLogEventsWithContext(ctx, logging.WriteLogEventsOpts{
 		Follow:                  o.follow,
 		Limit:                   limit,
 		EndTime:                 o.endTime,
@@ -252,7 +256,7 @@ func buildJobLogsCmd() *cobra.Command {
   Displays container logs and state machine execution logs from the last execution.
   /code $ copilot job logs --include-state-machine --last 1`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newJobLogOpts(vars)
+			opts, err := newJobLogOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

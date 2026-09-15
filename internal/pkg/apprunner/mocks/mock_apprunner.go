@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	apprunner "github.com/aproint/copilot-cli/internal/pkg/aws/apprunner"
@@ -66,6 +67,21 @@ func (mr *MockappRunnerClientMockRecorder) DescribeService(svcARN interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeService", reflect.TypeOf((*MockappRunnerClient)(nil).DescribeService), svcARN)
 }
 
+// DescribeServiceWithContext mocks base method.
+func (m *MockappRunnerClient) DescribeServiceWithContext(ctx context.Context, svcARN string) (*apprunner.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeServiceWithContext", ctx, svcARN)
+	ret0, _ := ret[0].(*apprunner.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeServiceWithContext indicates an expected call of DescribeServiceWithContext.
+func (mr *MockappRunnerClientMockRecorder) DescribeServiceWithContext(ctx, svcARN interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeServiceWithContext", reflect.TypeOf((*MockappRunnerClient)(nil).DescribeServiceWithContext), ctx, svcARN)
+}
+
 // StartDeployment mocks base method.
 func (m *MockappRunnerClient) StartDeployment(svcARN string) (string, error) {
 	m.ctrl.T.Helper()
@@ -81,6 +97,21 @@ func (mr *MockappRunnerClientMockRecorder) StartDeployment(svcARN interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartDeployment", reflect.TypeOf((*MockappRunnerClient)(nil).StartDeployment), svcARN)
 }
 
+// StartDeploymentWithContext mocks base method.
+func (m *MockappRunnerClient) StartDeploymentWithContext(ctx context.Context, svcARN string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartDeploymentWithContext", ctx, svcARN)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StartDeploymentWithContext indicates an expected call of StartDeploymentWithContext.
+func (mr *MockappRunnerClientMockRecorder) StartDeploymentWithContext(ctx, svcARN interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartDeploymentWithContext", reflect.TypeOf((*MockappRunnerClient)(nil).StartDeploymentWithContext), ctx, svcARN)
+}
+
 // WaitForOperation mocks base method.
 func (m *MockappRunnerClient) WaitForOperation(operationId, svcARN string) error {
 	m.ctrl.T.Helper()
@@ -93,6 +124,20 @@ func (m *MockappRunnerClient) WaitForOperation(operationId, svcARN string) error
 func (mr *MockappRunnerClientMockRecorder) WaitForOperation(operationId, svcARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForOperation", reflect.TypeOf((*MockappRunnerClient)(nil).WaitForOperation), operationId, svcARN)
+}
+
+// WaitForOperationWithContext mocks base method.
+func (m *MockappRunnerClient) WaitForOperationWithContext(ctx context.Context, operationId, svcARN string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitForOperationWithContext", ctx, operationId, svcARN)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitForOperationWithContext indicates an expected call of WaitForOperationWithContext.
+func (mr *MockappRunnerClientMockRecorder) WaitForOperationWithContext(ctx, operationId, svcARN interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForOperationWithContext", reflect.TypeOf((*MockappRunnerClient)(nil).WaitForOperationWithContext), ctx, operationId, svcARN)
 }
 
 // MockresourceGetter is a mock of resourceGetter interface.
@@ -131,4 +176,19 @@ func (m *MockresourceGetter) GetResourcesByTags(resourceType string, tags map[st
 func (mr *MockresourceGetterMockRecorder) GetResourcesByTags(resourceType, tags interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcesByTags", reflect.TypeOf((*MockresourceGetter)(nil).GetResourcesByTags), resourceType, tags)
+}
+
+// GetResourcesByTagsWithContext mocks base method.
+func (m *MockresourceGetter) GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourcesByTagsWithContext", ctx, resourceType, tags)
+	ret0, _ := ret[0].([]*resourcegroups.Resource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResourcesByTagsWithContext indicates an expected call of GetResourcesByTagsWithContext.
+func (mr *MockresourceGetterMockRecorder) GetResourcesByTagsWithContext(ctx, resourceType, tags interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcesByTagsWithContext", reflect.TypeOf((*MockresourceGetter)(nil).GetResourcesByTagsWithContext), ctx, resourceType, tags)
 }

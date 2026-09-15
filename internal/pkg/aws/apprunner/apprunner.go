@@ -122,9 +122,17 @@ func (a *AppRunner) DescribeServiceWithContext(ctx context.Context, svcARN strin
 
 // ServiceARN returns the ARN of an AppRunner service given its service name.
 func (a *AppRunner) ServiceARN(svc string) (string, error) {
+	return a.ServiceARNWithContext(context.Background(), svc)
+}
+
+// ServiceARNWithContext returns the ARN of an App Runner service using ctx for every page.
+func (a *AppRunner) ServiceARNWithContext(ctx context.Context, svc string) (string, error) {
 	var nextToken *string
 	for {
-		resp, err := a.client.ListServices(context.Background(), &apprunner.ListServicesInput{
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		resp, err := a.client.ListServices(ctx, &apprunner.ListServicesInput{
 			NextToken: nextToken,
 		})
 		if err != nil {
@@ -145,7 +153,12 @@ func (a *AppRunner) ServiceARN(svc string) (string, error) {
 
 // PauseService pause the running App Runner service.
 func (a *AppRunner) PauseService(svcARN string) error {
-	resp, err := a.client.PauseService(context.Background(), &apprunner.PauseServiceInput{
+	return a.PauseServiceWithContext(context.Background(), svcARN)
+}
+
+// PauseServiceWithContext pauses the running App Runner service using ctx.
+func (a *AppRunner) PauseServiceWithContext(ctx context.Context, svcARN string) error {
+	resp, err := a.client.PauseService(ctx, &apprunner.PauseServiceInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
@@ -154,7 +167,7 @@ func (a *AppRunner) PauseService(svcARN string) error {
 	if resp.OperationId == nil && string(resp.Service.Status) == svcStatusPaused {
 		return nil
 	}
-	if err := a.WaitForOperation(awsv2.ToString(resp.OperationId), svcARN); err != nil {
+	if err := a.WaitForOperationWithContext(ctx, awsv2.ToString(resp.OperationId), svcARN); err != nil {
 		return err
 	}
 	return nil
@@ -162,7 +175,12 @@ func (a *AppRunner) PauseService(svcARN string) error {
 
 // ResumeService resumes a paused App Runner service.
 func (a *AppRunner) ResumeService(svcARN string) error {
-	resp, err := a.client.ResumeService(context.Background(), &apprunner.ResumeServiceInput{
+	return a.ResumeServiceWithContext(context.Background(), svcARN)
+}
+
+// ResumeServiceWithContext resumes a paused App Runner service using ctx.
+func (a *AppRunner) ResumeServiceWithContext(ctx context.Context, svcARN string) error {
+	resp, err := a.client.ResumeService(ctx, &apprunner.ResumeServiceInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
@@ -171,7 +189,7 @@ func (a *AppRunner) ResumeService(svcARN string) error {
 	if resp.OperationId == nil && string(resp.Service.Status) == svcStatusRunning {
 		return nil
 	}
-	if err := a.WaitForOperation(awsv2.ToString(resp.OperationId), svcARN); err != nil {
+	if err := a.WaitForOperationWithContext(ctx, awsv2.ToString(resp.OperationId), svcARN); err != nil {
 		return err
 	}
 	return nil
@@ -179,7 +197,12 @@ func (a *AppRunner) ResumeService(svcARN string) error {
 
 // StartDeployment initiates a manual deployment to an AWS App Runner service.
 func (a *AppRunner) StartDeployment(svcARN string) (string, error) {
-	out, err := a.client.StartDeployment(context.Background(), &apprunner.StartDeploymentInput{
+	return a.StartDeploymentWithContext(context.Background(), svcARN)
+}
+
+// StartDeploymentWithContext initiates a manual deployment using ctx.
+func (a *AppRunner) StartDeploymentWithContext(ctx context.Context, svcARN string) (string, error) {
+	out, err := a.client.StartDeployment(ctx, &apprunner.StartDeploymentInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
 	if err != nil {
@@ -190,9 +213,17 @@ func (a *AppRunner) StartDeployment(svcARN string) (string, error) {
 
 // DescribeOperation return OperationSummary for given OperationId and ServiceARN.
 func (a *AppRunner) DescribeOperation(operationId, svcARN string) (*types.OperationSummary, error) {
+	return a.DescribeOperationWithContext(context.Background(), operationId, svcARN)
+}
+
+// DescribeOperationWithContext returns the operation summary using ctx for every page.
+func (a *AppRunner) DescribeOperationWithContext(ctx context.Context, operationId, svcARN string) (*types.OperationSummary, error) {
 	var nextToken *string
 	for {
-		resp, err := a.client.ListOperations(context.Background(), &apprunner.ListOperationsInput{
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		resp, err := a.client.ListOperations(ctx, &apprunner.ListOperationsInput{
 			ServiceArn: awsv2.String(svcARN),
 			NextToken:  nextToken,
 		})
@@ -214,8 +245,13 @@ func (a *AppRunner) DescribeOperation(operationId, svcARN string) (*types.Operat
 
 // WaitForOperation waits for a service operation.
 func (a *AppRunner) WaitForOperation(operationId, svcARN string) error {
+	return a.WaitForOperationWithContext(context.Background(), operationId, svcARN)
+}
+
+// WaitForOperationWithContext waits for a service operation using ctx.
+func (a *AppRunner) WaitForOperationWithContext(ctx context.Context, operationId, svcARN string) error {
 	for {
-		resp, err := a.DescribeOperation(operationId, svcARN)
+		resp, err := a.DescribeOperationWithContext(ctx, operationId, svcARN)
 		if err != nil {
 			return fmt.Errorf("error describing operation %s: %w", operationId, err)
 		}
@@ -227,7 +263,13 @@ func (a *AppRunner) WaitForOperation(operationId, svcARN string) error {
 				operationId: operationId,
 			}
 		}
-		time.Sleep(3 * time.Second)
+		timer := time.NewTimer(3 * time.Second)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
 	}
 }
 

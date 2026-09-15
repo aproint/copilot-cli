@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	cloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
@@ -48,6 +49,20 @@ func (mr *MockStateMachineExecutorMockRecorder) Execute(stateMachineARN interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockStateMachineExecutor)(nil).Execute), stateMachineARN)
 }
 
+// ExecuteWithContext mocks base method.
+func (m *MockStateMachineExecutor) ExecuteWithContext(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecuteWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ExecuteWithContext indicates an expected call of ExecuteWithContext.
+func (mr *MockStateMachineExecutorMockRecorder) ExecuteWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteWithContext", reflect.TypeOf((*MockStateMachineExecutor)(nil).ExecuteWithContext), arg0, arg1)
+}
+
 // MockCFNStackResourceLister is a mock of CFNStackResourceLister interface.
 type MockCFNStackResourceLister struct {
 	ctrl     *gomock.Controller
@@ -84,4 +99,19 @@ func (m *MockCFNStackResourceLister) StackResources(name string) ([]*cloudformat
 func (mr *MockCFNStackResourceListerMockRecorder) StackResources(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResources", reflect.TypeOf((*MockCFNStackResourceLister)(nil).StackResources), name)
+}
+
+// StackResourcesWithContext mocks base method.
+func (m *MockCFNStackResourceLister) StackResourcesWithContext(arg0 context.Context, arg1 string) ([]*cloudformation.StackResource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StackResourcesWithContext", arg0, arg1)
+	ret0, _ := ret[0].([]*cloudformation.StackResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StackResourcesWithContext indicates an expected call of StackResourcesWithContext.
+func (mr *MockCFNStackResourceListerMockRecorder) StackResourcesWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResourcesWithContext", reflect.TypeOf((*MockCFNStackResourceLister)(nil).StackResourcesWithContext), arg0, arg1)
 }

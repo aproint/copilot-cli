@@ -256,7 +256,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				}, nil)
 
 				mockRoute53 := mocks.NewMockdomainHostedZoneGetter(ctrl)
-				mockRoute53.EXPECT().PublicDomainHostedZoneID("foobar.com").Return("", errors.New("some error"))
+				mockRoute53.EXPECT().PublicDomainHostedZoneIDContext(context.Background(), "foobar.com").Return("", errors.New("some error"))
 
 				return &appUpgradeOpts{
 					appUpgradeVars: appUpgradeVars{
@@ -312,7 +312,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				}).Return(nil)
 
 				mockRoute53 := mocks.NewMockdomainHostedZoneGetter(ctrl)
-				mockRoute53.EXPECT().PublicDomainHostedZoneID("hello.com").Return("2klfqok3", nil)
+				mockRoute53.EXPECT().PublicDomainHostedZoneIDContext(context.Background(), "hello.com").Return("2klfqok3", nil)
 
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
 				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any(), &deploy.CreateAppInput{

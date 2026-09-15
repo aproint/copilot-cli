@@ -413,3 +413,16 @@ func TestSSM_GetSecretValue(t *testing.T) {
 		})
 	}
 }
+
+func TestSSM_PutSecretPropagatesContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("caller"), "ssm secret mutation")
+
+	ctrl := gomock.NewController(t)
+	api := mocks.NewMockapi(ctrl)
+	api.EXPECT().PutParameter(ctx, gomock.Any()).Return(&ssm.PutParameterOutput{}, nil)
+
+	client := SSM{client: api}
+	_, err := client.PutSecretWithContext(ctx, PutSecretInput{Name: "secret", Value: "value"})
+	require.NoError(t, err)
+}

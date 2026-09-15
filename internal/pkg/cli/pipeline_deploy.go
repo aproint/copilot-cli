@@ -83,6 +83,7 @@ type newOverrideOpts struct {
 
 type deployPipelineOpts struct {
 	deployPipelineVars
+	ctx context.Context
 
 	pipelineDeployer      pipelineDeployer
 	sel                   wsPipelineSelector
@@ -96,7 +97,7 @@ type deployPipelineOpts struct {
 	sessProvider          *sessions.Provider
 	newSvcListCmd         func(io.Writer, string) cmd
 	newJobListCmd         func(io.Writer, string) cmd
-	pipelineVersionGetter func(string, string, bool) (versionGetter, error)
+	pipelineVersionGetter func(context.Context, string, string, bool) (versionGetter, error)
 	pipelineStackConfig   func(in *deploy.CreatePipelineInput) stackConfiguration
 
 	configureDeployedPipelineLister func() deployedPipelineLister
@@ -116,8 +117,12 @@ type deployPipelineOpts struct {
 }
 
 func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error) {
+	return newDeployPipelineOptsWithContext(context.Background(), vars)
+}
+
+func newDeployPipelineOptsWithContext(ctx context.Context, vars deployPipelineVars) (*deployPipelineOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline deploy"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -135,6 +140,7 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 	}
 
 	opts := &deployPipelineOpts{
+		ctx:                ctx,
 		ws:                 ws,
 		pipelineDeployer:   deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
 		region:             defaultConfig.Region,
@@ -190,8 +196,8 @@ func newDeployPipelineOpts(vars deployPipelineVars) (*deployPipelineOpts, error)
 		// Initialize the client only after the appName is asked.
 		return deploy.NewPipelineStore(rg.New(defaultConfig))
 	}
-	opts.pipelineVersionGetter = func(appName, name string, isLegacy bool) (versionGetter, error) {
-		return describe.NewPipelineStackDescriber(appName, name, isLegacy)
+	opts.pipelineVersionGetter = func(ctx context.Context, appName, name string, isLegacy bool) (versionGetter, error) {
+		return describe.NewPipelineStackDescriberWithContext(ctx, appName, name, isLegacy)
 	}
 	return opts, nil
 }
@@ -244,12 +250,13 @@ func validatePipelineVersion(vg versionGetter, name, templateVersion string) err
 
 // Execute creates a new pipeline or updates the current pipeline if it already exists.
 func (o *deployPipelineOpts) Execute(ctx context.Context) error {
+	o.ctx = ctx
 	if !o.allowDowngrade {
-		isLegacy, err := o.isLegacy(o.name)
+		isLegacy, err := o.isLegacy(ctx, o.name)
 		if err != nil {
 			return err
 		}
-		pipelineVersionGetter, err := o.pipelineVersionGetter(o.appName, o.name, isLegacy)
+		pipelineVersionGetter, err := o.pipelineVersionGetter(ctx, o.appName, o.name, isLegacy)
 		if err != nil {
 			return err
 		}
@@ -267,7 +274,7 @@ func (o *deployPipelineOpts) Execute(ctx context.Context) error {
 	// If the source has an existing connection, get the correlating ConnectionARN.
 	connection, ok := pipeline.Source.Properties["connection_name"]
 	if ok {
-		arn, err := o.codestar.GetConnectionARN((connection).(string))
+		arn, err := o.codestar.GetConnectionARNWithContext(ctx, (connection).(string))
 		if err != nil {
 			return fmt.Errorf("get connection ARN: %w", err)
 		}
@@ -293,12 +300,12 @@ func (o *deployPipelineOpts) Execute(ctx context.Context) error {
 	}
 
 	// Get cross-regional resources.
-	artifactBuckets, err := o.getArtifactBuckets()
+	artifactBuckets, err := o.getArtifactBuckets(ctx)
 	if err != nil {
 		return fmt.Errorf("get cross-regional resources: %w", err)
 	}
 
-	isLegacy, err := o.isLegacy(pipeline.Name)
+	isLegacy, err := o.isLegacy(ctx, pipeline.Name)
 	if err != nil {
 		return err
 	}
@@ -357,14 +364,14 @@ func (o *deployPipelineOpts) Execute(ctx context.Context) error {
 
 	// bootstrap pipeline resources
 	o.prog.Start(fmt.Sprintf(fmtPipelineDeployResourcesStart, color.HighlightUserInput(o.appName)))
-	err = o.pipelineDeployer.AddPipelineResourcesToApp(o.app, o.region)
+	err = o.pipelineDeployer.AddPipelineResourcesToAppWithContext(ctx, o.app, o.region)
 	if err != nil {
 		o.prog.Stop(log.Serrorf(fmtPipelineDeployResourcesFailed, color.HighlightUserInput(o.appName)))
 		return fmt.Errorf("add pipeline resources to application %s in %s: %w", o.appName, o.region, err)
 	}
 	o.prog.Stop(log.Ssuccessf(fmtPipelineDeployResourcesComplete, color.HighlightUserInput(o.appName)))
 
-	if err := o.deployPipeline(deployPipelineInput, stackConfig); err != nil {
+	if err := o.deployPipeline(ctx, deployPipelineInput, stackConfig); err != nil {
 		return err
 	}
 	return nil
@@ -372,12 +379,17 @@ func (o *deployPipelineOpts) Execute(ctx context.Context) error {
 
 // DeployDiff returns the stringified diff of the template against the deployed template of the pipeline.
 func (o *deployPipelineOpts) DeployDiff(template string) (string, error) {
-	isLegacy, err := o.isLegacy(o.pipeline.Name)
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
+	isLegacy, err := o.isLegacy(ctx, o.pipeline.Name)
 	if err != nil {
 		return "", err
 	}
 
-	tmpl, err := o.pipelineDeployer.Template(stack.NameForPipeline(o.app.Name, o.pipeline.Name, isLegacy))
+	tmpl, err := o.pipelineDeployer.TemplateWithContext(ctx, stack.NameForPipeline(o.app.Name, o.pipeline.Name, isLegacy))
 	if err != nil {
 		var errNotFound *awscloudformation.ErrStackNotFound
 		if !errors.As(err, &errNotFound) {
@@ -396,12 +408,12 @@ func (o *deployPipelineOpts) DeployDiff(template string) (string, error) {
 	return buf.String(), nil
 }
 
-func (o *deployPipelineOpts) isLegacy(inputName string) (bool, error) {
+func (o *deployPipelineOpts) isLegacy(ctx context.Context, inputName string) (bool, error) {
 	if o.isLegacyPipeline != nil {
 		return *o.isLegacyPipeline, nil
 	}
 	lister := o.configureDeployedPipelineLister()
-	pipelines, err := lister.ListDeployedPipelines(o.appName)
+	pipelines, err := lister.ListDeployedPipelinesWithContext(ctx, o.appName)
 	if err != nil {
 		o.isLegacyPipeline = aws.Bool(false)
 		return false, fmt.Errorf("list deployed pipelines for app %s: %w", o.appName, err)
@@ -504,8 +516,8 @@ func (o deployPipelineOpts) getLocalWorkloads(ctx context.Context) ([]string, er
 	return localWklds, nil
 }
 
-func (o *deployPipelineOpts) getArtifactBuckets() ([]deploy.ArtifactBucket, error) {
-	regionalResources, err := o.pipelineDeployer.GetRegionalAppResources(o.app)
+func (o *deployPipelineOpts) getArtifactBuckets(ctx context.Context) ([]deploy.ArtifactBucket, error) {
+	regionalResources, err := o.pipelineDeployer.GetRegionalAppResourcesWithContext(ctx, o.app)
 	if err != nil {
 		return nil, err
 	}
@@ -522,8 +534,8 @@ func (o *deployPipelineOpts) getArtifactBuckets() ([]deploy.ArtifactBucket, erro
 	return buckets, nil
 }
 
-func (o *deployPipelineOpts) getBucketName() (string, error) {
-	resources, err := o.pipelineDeployer.GetAppResourcesByRegion(o.app, o.region)
+func (o *deployPipelineOpts) getBucketName(ctx context.Context) (string, error) {
+	resources, err := o.pipelineDeployer.GetAppResourcesByRegionWithContext(ctx, o.app, o.region)
 	if err != nil {
 		return "", fmt.Errorf("get app resources: %w", err)
 	}
@@ -542,14 +554,14 @@ func (o *deployPipelineOpts) shouldUpdate() (bool, error) {
 	return shouldUpdate, nil
 }
 
-func (o *deployPipelineOpts) deployPipeline(in *deploy.CreatePipelineInput, stackConfig deploycfn.StackConfiguration) error {
-	exist, err := o.pipelineDeployer.PipelineExists(stackConfig)
+func (o *deployPipelineOpts) deployPipeline(ctx context.Context, in *deploy.CreatePipelineInput, stackConfig deploycfn.StackConfiguration) error {
+	exist, err := o.pipelineDeployer.PipelineExistsWithContext(ctx, stackConfig)
 	if err != nil {
 		return fmt.Errorf("check if pipeline exists: %w", err)
 	}
 
 	// Find the bucket to push the pipeline template to.
-	bucketName, err := o.getBucketName()
+	bucketName, err := o.getBucketName(ctx)
 	if err != nil {
 		return fmt.Errorf("get bucket name: %w", err)
 	}
@@ -572,7 +584,7 @@ func (o *deployPipelineOpts) deployPipeline(in *deploy.CreatePipelineInput, stac
 			log.Infof("%s Go to %s to update the status of connection %s from PENDING to AVAILABLE.", color.Emphasize("ACTION REQUIRED!"), color.HighlightResource(connectionsURL), color.HighlightUserInput(connectionName))
 			log.Infoln()
 		}
-		if err := o.pipelineDeployer.CreatePipeline(bucketName, stackConfig); err != nil {
+		if err := o.pipelineDeployer.CreatePipelineWithContext(ctx, bucketName, stackConfig); err != nil {
 			var alreadyExists *cloudformation.ErrStackAlreadyExists
 			if !errors.As(err, &alreadyExists) {
 				o.prog.Stop(log.Serrorf(fmtPipelineDeployFailed, color.HighlightUserInput(o.pipeline.Name)))
@@ -595,7 +607,7 @@ func (o *deployPipelineOpts) deployPipeline(in *deploy.CreatePipelineInput, stac
 	}
 
 	o.prog.Start(fmt.Sprintf(fmtPipelineDeployProposalStart, color.HighlightUserInput(o.pipeline.Name)))
-	if err := o.pipelineDeployer.UpdatePipeline(bucketName, stackConfig); err != nil {
+	if err := o.pipelineDeployer.UpdatePipelineWithContext(ctx, bucketName, stackConfig); err != nil {
 		o.prog.Stop(log.Serrorf(fmtPipelineDeployProposalFailed, color.HighlightUserInput(o.pipeline.Name)))
 		return fmt.Errorf("update pipeline: %w", err)
 	}
@@ -624,7 +636,7 @@ func buildPipelineDeployCmd() *cobra.Command {
   /code $ copilot pipeline deploy
 `,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeployPipelineOpts(vars)
+			opts, err := newDeployPipelineOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

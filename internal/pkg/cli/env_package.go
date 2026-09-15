@@ -84,8 +84,12 @@ type packageEnvOpts struct {
 }
 
 func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
+	return newPackageEnvOptsWithContext(context.Background(), vars)
+}
+
+func newPackageEnvOptsWithContext(ctx context.Context, vars packageEnvVars) (*packageEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env package"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -351,7 +355,7 @@ func buildEnvPkgCmd() *cobra.Command {
   test.env.yml      test.env.params.json
   /endcodeblock`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPackageEnvOpts(vars)
+			opts, err := newPackageEnvOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

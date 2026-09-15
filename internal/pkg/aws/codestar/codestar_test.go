@@ -215,3 +215,24 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestCodeStar_GetConnectionARNPropagatesContextAcrossPages(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("caller"), "connection discovery")
+	nextToken := "next"
+
+	ctrl := gomock.NewController(t)
+	api := mocks.NewMockapi(ctrl)
+	api.EXPECT().ListConnections(ctx, &codestarconnections.ListConnectionsInput{}).Return(
+		&codestarconnections.ListConnectionsOutput{NextToken: &nextToken}, nil)
+	api.EXPECT().ListConnections(ctx, &codestarconnections.ListConnectionsInput{NextToken: &nextToken}).Return(
+		&codestarconnections.ListConnectionsOutput{Connections: []types.Connection{{
+			ConnectionName: awsv2.String("connection"),
+			ConnectionArn:  awsv2.String("arn"),
+		}}}, nil)
+
+	client := CodeStar{client: api}
+	arn, err := client.GetConnectionARNWithContext(ctx, "connection")
+	require.NoError(t, err)
+	require.Equal(t, "arn", arn)
+}

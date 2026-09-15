@@ -71,8 +71,12 @@ type deployEnvOpts struct {
 }
 
 func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
+	return newEnvDeployOptsWithContext(context.Background(), vars)
+}
+
+func newEnvDeployOptsWithContext(ctx context.Context, vars deployEnvVars) (*deployEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env deploy"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +391,7 @@ func buildEnvDeployCmd() *cobra.Command {
 Deploy an environment named "test".
 /code $copilot env deploy --name test`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newEnvDeployOpts(vars)
+			opts, err := newEnvDeployOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

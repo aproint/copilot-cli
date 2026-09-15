@@ -71,6 +71,7 @@ type svcLogsOpts struct {
 }
 
 type wkldLogOpts struct {
+	ctx context.Context
 	// Internal states.
 	startTime *int64
 	endTime   *int64
@@ -105,6 +106,7 @@ func newSvcLogOptsWithContext(ctx context.Context, vars svcLogsVars) (*svcLogsOp
 	opts := &svcLogsOpts{
 		svcLogsVars: vars,
 		wkldLogOpts: wkldLogOpts{
+			ctx:         ctx,
 			w:           log.OutputWriter,
 			configStore: configStore,
 			deployStore: deployStore,

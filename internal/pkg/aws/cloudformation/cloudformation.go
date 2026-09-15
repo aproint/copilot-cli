@@ -100,10 +100,15 @@ func (c *CloudFormation) CreateWithContext(ctx context.Context, stack *Stack) (c
 
 // CreateAndWait calls Create and then WaitForCreate.
 func (c *CloudFormation) CreateAndWait(stack *Stack) error {
-	if _, err := c.Create(stack); err != nil {
+	return c.CreateAndWaitWithContext(context.Background(), stack)
+}
+
+// CreateAndWaitWithContext calls CreateWithContext and then WaitForCreate using ctx.
+func (c *CloudFormation) CreateAndWaitWithContext(ctx context.Context, stack *Stack) error {
+	if _, err := c.CreateWithContext(ctx, stack); err != nil {
 		return err
 	}
-	return c.WaitForCreate(context.Background(), stack.Name)
+	return c.WaitForCreate(ctx, stack.Name)
 }
 
 // DescribeChangeSet gathers and returns all changes for a change set.
@@ -155,10 +160,15 @@ func (c *CloudFormation) UpdateWithContext(ctx context.Context, stack *Stack) (c
 
 // UpdateAndWait calls Update and then blocks until the stack is updated or until the max attempt window expires.
 func (c *CloudFormation) UpdateAndWait(stack *Stack) error {
-	if _, err := c.Update(stack); err != nil {
+	return c.UpdateAndWaitWithContext(context.Background(), stack)
+}
+
+// UpdateAndWaitWithContext calls UpdateWithContext and then WaitForUpdate using ctx.
+func (c *CloudFormation) UpdateAndWaitWithContext(ctx context.Context, stack *Stack) error {
+	if _, err := c.UpdateWithContext(ctx, stack); err != nil {
 		return err
 	}
-	return c.WaitForUpdate(context.Background(), stack.Name)
+	return c.WaitForUpdate(ctx, stack.Name)
 }
 
 // WaitForUpdate blocks until the stack is updated or until the max attempt window expires.
@@ -346,7 +356,12 @@ func (c *CloudFormation) TemplateBodyFromChangeSetWithContext(ctx context.Contex
 
 // Outputs returns the outputs of a stack description.
 func (c *CloudFormation) Outputs(stack *Stack) (map[string]string, error) {
-	stackDescription, err := c.Describe(stack.Name)
+	return c.OutputsWithContext(context.Background(), stack)
+}
+
+// OutputsWithContext returns the outputs of a stack description using ctx.
+func (c *CloudFormation) OutputsWithContext(ctx context.Context, stack *Stack) (map[string]string, error) {
+	stackDescription, err := c.DescribeWithContext(ctx, stack.Name)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve outputs of stack description: %w", err)
 	}

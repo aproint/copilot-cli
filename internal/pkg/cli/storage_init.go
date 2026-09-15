@@ -187,8 +187,12 @@ type initStorageOpts struct {
 }
 
 func newStorageInitOpts(vars initStorageVars) (*initStorageOpts, error) {
+	return newStorageInitOptsWithContext(context.Background(), vars)
+}
+
+func newStorageInitOptsWithContext(ctx context.Context, vars initStorageVars) (*initStorageOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("storage init"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1221,7 +1225,7 @@ Storage resources are addons, either for a workload or the environments.`,
   Create an RDS Aurora Serverless v2 cluster using PostgreSQL.
   /code $ copilot storage init -n my-cluster -t Aurora -w frontend --engine PostgreSQL --initial-db testdb`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newStorageInitOpts(vars)
+			opts, err := newStorageInitOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

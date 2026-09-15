@@ -57,6 +57,7 @@ type deleteJobVars struct {
 
 type deleteJobOpts struct {
 	deleteJobVars
+	ctx context.Context
 
 	// Interfaces to dependencies.
 	store           store
@@ -71,8 +72,12 @@ type deleteJobOpts struct {
 }
 
 func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
+	return newDeleteJobOptsWithContext(context.Background(), vars)
+}
+
+func newDeleteJobOptsWithContext(ctx context.Context, vars deleteJobVars) (*deleteJobOpts, error) {
 	provider := sessions.ImmutableProvider(sessions.UserAgentExtras("job delete"))
-	defaultConfig, err := provider.DefaultConfig(context.Background())
+	defaultConfig, err := provider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +85,7 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 	prompter := prompt.New()
 	return &deleteJobOpts{
 		deleteJobVars: vars,
+		ctx:           ctx,
 
 		store:   store,
 		spinner: termprogress.NewSpinner(log.DiagnosticWriter),
@@ -101,13 +107,18 @@ func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
 
 // Validate returns an error if the user inputs are invalid.
 func (o *deleteJobOpts) Validate() error {
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
 	if o.name != "" {
-		if _, err := o.store.GetJob(context.Background(), o.appName, o.name); err != nil {
+		if _, err := o.store.GetJob(ctx, o.appName, o.name); err != nil {
 			return err
 		}
 	}
 	if o.envName != "" {
-		return o.validateEnvName(context.Background())
+		return o.validateEnvName(ctx)
 	}
 	return nil
 }
@@ -160,7 +171,7 @@ func (o *deleteJobOpts) Execute(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.deleteJobs(envs); err != nil {
+	if err := o.deleteJobs(ctx, envs); err != nil {
 		return err
 	}
 
@@ -170,7 +181,7 @@ func (o *deleteJobOpts) Execute(ctx context.Context) error {
 		return nil
 	}
 
-	if err := o.emptyECRRepos(envs); err != nil {
+	if err := o.emptyECRRepos(ctx, envs); err != nil {
 		return err
 	}
 	if err := o.removeJobFromApp(ctx); err != nil {
@@ -244,9 +255,9 @@ func (o *deleteJobOpts) appEnvironments(ctx context.Context) ([]*config.Environm
 	return envs, nil
 }
 
-func (o *deleteJobOpts) deleteJobs(envs []*config.Environment) error {
+func (o *deleteJobOpts) deleteJobs(ctx context.Context, envs []*config.Environment) error {
 	for _, env := range envs {
-		cfg, err := o.sess.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := o.sess.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
@@ -294,7 +305,7 @@ func (o *deleteJobOpts) needsAppCleanup() bool {
 }
 
 // This is to make mocking easier in unit tests
-func (o *deleteJobOpts) emptyECRRepos(envs []*config.Environment) error {
+func (o *deleteJobOpts) emptyECRRepos(ctx context.Context, envs []*config.Environment) error {
 	var uniqueRegions []string
 	for _, env := range envs {
 		if !slices.Contains(uniqueRegions, env.Region) {
@@ -304,7 +315,7 @@ func (o *deleteJobOpts) emptyECRRepos(envs []*config.Environment) error {
 
 	repoName := clideploy.RepoName(o.appName, o.name)
 	for _, region := range uniqueRegions {
-		cfg, err := o.sess.DefaultConfigWithRegion(context.Background(), region)
+		cfg, err := o.sess.DefaultConfigWithRegion(ctx, region)
 		if err != nil {
 			return err
 		}
@@ -366,7 +377,7 @@ func buildJobDeleteCmd() *cobra.Command {
   Delete the "report-generator" job without confirmation prompt.
   /code $ copilot job delete --name report-generator --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteJobOpts(vars)
+			opts, err := newDeleteJobOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

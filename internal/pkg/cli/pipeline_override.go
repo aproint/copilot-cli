@@ -20,6 +20,7 @@ import (
 
 type overridePipelineOpts struct {
 	*overrideOpts
+	ctx context.Context
 
 	// Interfaces to interact with dependencies.
 	ws       wsPipelineReader
@@ -27,6 +28,10 @@ type overridePipelineOpts struct {
 }
 
 func newOverridePipelineOpts(vars overrideVars) (*overridePipelineOpts, error) {
+	return newOverridePipelineOptsWithContext(context.Background(), vars)
+}
+
+func newOverridePipelineOptsWithContext(ctx context.Context, vars overrideVars) (*overridePipelineOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -34,7 +39,7 @@ func newOverridePipelineOpts(vars overrideVars) (*overridePipelineOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline override"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -43,8 +48,10 @@ func newOverridePipelineOpts(vars overrideVars) (*overridePipelineOpts, error) {
 	store := newSSMConfigStoreFromConfig(defaultConfig)
 
 	cmd := &overridePipelineOpts{
+		ctx: ctx,
 		overrideOpts: &overrideOpts{
 			overrideVars: vars,
+			ctx:          ctx,
 			fs:           fs,
 			cfgStore:     store,
 			prompt:       prompt,
@@ -113,7 +120,7 @@ func (o *overridePipelineOpts) askPipelineName() error {
 }
 
 func (o *overridePipelineOpts) newPipelinePackageCmd(tplBuf stringWriteCloser) (executor, error) {
-	cmd, err := newPackagePipelineOpts(packagePipelineVars{
+	cmd, err := newPackagePipelineOptsWithContext(o.ctx, packagePipelineVars{
 		name:    o.name,
 		appName: o.appName,
 	})
@@ -137,7 +144,7 @@ or add new resources to the Pipeline's AWS CloudFormation template.`,
   /code $ copilot pipeline override -n myrepo-main --toolkit cdk`,
 
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newOverridePipelineOpts(vars)
+			opts, err := newOverridePipelineOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

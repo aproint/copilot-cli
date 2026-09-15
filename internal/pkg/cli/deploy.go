@@ -114,8 +114,12 @@ type deployOpts struct {
 }
 
 func newDeployOpts(vars deployVars) (*deployOpts, error) {
+	return newDeployOptsWithContext(context.Background(), vars)
+}
+
+func newDeployOptsWithContext(ctx context.Context, vars deployVars) (*deployOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("deploy"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -142,7 +146,7 @@ func newDeployOpts(vars deployVars) (*deployOpts, error) {
 		},
 		newDeployEnvCmd: func(o *deployOpts) (cmd, error) {
 			// This command passes flags down from
-			return newEnvDeployOpts(deployEnvVars{
+			return newEnvDeployOptsWithContext(ctx, deployEnvVars{
 				appName:           o.appName,
 				name:              o.envName,
 				forceNewUpdate:    o.forceNewUpdate,
@@ -773,7 +777,7 @@ func BuildDeployCmd() *cobra.Command {
   /code $ copilot deploy --all --init-wkld --deploy-env -e prod`,
 
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeployOpts(vars)
+			opts, err := newDeployOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

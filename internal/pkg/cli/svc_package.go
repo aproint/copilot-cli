@@ -51,6 +51,7 @@ type packageSvcVars struct {
 
 type packageSvcOpts struct {
 	packageSvcVars
+	ctx context.Context
 
 	// Interfaces to interact with dependencies.
 	ws                   wsWlDirReader
@@ -83,6 +84,10 @@ type packageSvcOpts struct {
 }
 
 func newPackageSvcOpts(vars packageSvcVars) (*packageSvcOpts, error) {
+	return newPackageSvcOptsWithContext(context.Background(), vars)
+}
+
+func newPackageSvcOptsWithContext(ctx context.Context, vars packageSvcVars) (*packageSvcOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -90,7 +95,7 @@ func newPackageSvcOpts(vars packageSvcVars) (*packageSvcOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc package"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -99,6 +104,7 @@ func newPackageSvcOpts(vars packageSvcVars) (*packageSvcOpts, error) {
 	prompter := prompt.New()
 	opts := &packageSvcOpts{
 		packageSvcVars:    vars,
+		ctx:               ctx,
 		store:             store,
 		ws:                ws,
 		fs:                fs,
@@ -294,7 +300,7 @@ func (o *packageSvcOpts) validateOrAskEnvName(ctx context.Context) error {
 func (o *packageSvcOpts) configureClients(ctx context.Context) error {
 	o.gitShortCommit = imageTagFromGit(o.runner) // Best effort assign git tag.
 	// client to retrieve an application's resources created with CloudFormation.
-	defaultConfig, err := o.sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := o.sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("create default config: %w", err)
 	}
@@ -302,7 +308,7 @@ func (o *packageSvcOpts) configureClients(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	envConfig, err := o.sessProvider.ConfigFromRole(context.Background(), targetEnv.ManagerRoleARN, targetEnv.Region)
+	envConfig, err := o.sessProvider.ConfigFromRole(ctx, targetEnv.ManagerRoleARN, targetEnv.Region)
 	if err != nil {
 		return err
 	}
@@ -506,7 +512,7 @@ func buildSvcPackageCmd() *cobra.Command {
   frontend-test.stack.yml      frontend-test.params.json
   /endcodeblock`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPackageSvcOpts(vars)
+			opts, err := newPackageSvcOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

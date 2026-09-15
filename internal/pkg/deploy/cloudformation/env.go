@@ -89,6 +89,20 @@ func (cf CloudFormation) DeleteEnvironment(appName, envName, cfnExecRoleARN stri
 	})
 }
 
+// DeleteEnvironmentWithContext deletes an environment stack using ctx.
+func (cf CloudFormation) DeleteEnvironmentWithContext(ctx context.Context, appName, envName, cfnExecRoleARN string) error {
+	stackName := stack.NameForEnv(appName, envName)
+	description := fmt.Sprintf("Delete environment stack %s", stackName)
+	return cf.deleteAndRenderStack(deleteAndRenderInput{
+		ctx:         ctx,
+		stackName:   stackName,
+		description: description,
+		deleteFn: func(ctx context.Context) error {
+			return cf.cfnClient.DeleteAndWaitWithRoleARNWithContext(ctx, stackName, cfnExecRoleARN)
+		},
+	})
+}
+
 // GetEnvironment returns the Environment metadata from the CloudFormation stack.
 func (cf CloudFormation) GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error) {
 	conf := stack.NewBootstrapEnvStackConfig(&stack.EnvConfig{
@@ -176,6 +190,20 @@ func (cf CloudFormation) UpdateEnvironmentTemplate(appName, envName, templateBod
 	s.Tags = descr.Tags
 	s.RoleARN = aws.String(cfnExecRoleARN)
 	return cf.cfnClient.UpdateAndWait(s)
+}
+
+// UpdateEnvironmentTemplateWithContext updates an environment stack template using ctx.
+func (cf CloudFormation) UpdateEnvironmentTemplateWithContext(ctx context.Context, appName, envName, templateBody, cfnExecRoleARN string) error {
+	stackName := stack.NameForEnv(appName, envName)
+	descr, err := cf.cfnClient.DescribeWithContext(ctx, stackName)
+	if err != nil {
+		return fmt.Errorf("describe stack %s: %w", stackName, err)
+	}
+	s := cloudformation.NewStack(stackName, templateBody)
+	s.Parameters = descr.Parameters
+	s.Tags = descr.Tags
+	s.RoleARN = aws.String(cfnExecRoleARN)
+	return cf.cfnClient.UpdateAndWaitWithContext(ctx, s)
 }
 
 func (cf CloudFormation) toUploadedStack(ctx context.Context, artifactBucketARN string, stackConfig StackConfiguration) (*cloudformation.Stack, error) {

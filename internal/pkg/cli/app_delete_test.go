@@ -188,7 +188,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 			setupMocks: func(mocks deleteAppMocks) {
 				gomock.InOrder(
 					// delete pipelines
-					mocks.codepipeline.EXPECT().ListDeployedPipelines(mockAppName).Return(mockPipelines, nil),
+					mocks.codepipeline.EXPECT().ListDeployedPipelinesWithContext(context.Background(), mockAppName).Return(mockPipelines, nil),
 					mocks.pipelineDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteSvcs
@@ -203,7 +203,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.store.EXPECT().ListEnvironments(ctx, mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
-					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
+					mocks.deployer.EXPECT().ListTaskStacksWithContext(context.Background(), mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
 					mocks.taskDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// deleteEnvs
@@ -212,13 +212,13 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 
 					// emptyS3bucket
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
-					mocks.deployer.EXPECT().GetRegionalAppResources(mockApp).Return(mockResources, nil),
+					mocks.deployer.EXPECT().GetRegionalAppResourcesWithContext(context.Background(), mockApp).Return(mockResources, nil),
 					mocks.spinner.EXPECT().Start(deleteAppCleanResourcesStartMsg),
-					mocks.bucketEmptier.EXPECT().EmptyBucket(mockResources[0].S3Bucket).Return(nil),
+					mocks.bucketEmptier.EXPECT().EmptyBucketWithContext(context.Background(), mockResources[0].S3Bucket).Return(nil),
 					mocks.spinner.EXPECT().Stop(log.Ssuccess(deleteAppCleanResourcesStopMsg)),
 
 					// deleteAppResources
-					mocks.deployer.EXPECT().DeleteApp(mockAppName).Return(nil),
+					mocks.deployer.EXPECT().DeleteAppWithContext(context.Background(), mockAppName).Return(nil),
 
 					// deleteAppConfigs
 					mocks.spinner.EXPECT().Start(deleteAppConfigStartMsg),
@@ -238,7 +238,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 			setupMocks: func(mocks deleteAppMocks) {
 				gomock.InOrder(
 					// delete pipelines
-					mocks.codepipeline.EXPECT().ListDeployedPipelines(mockAppName).Return(mockPipelines, nil),
+					mocks.codepipeline.EXPECT().ListDeployedPipelinesWithContext(context.Background(), mockAppName).Return(mockPipelines, nil),
 					mocks.pipelineDeleter.EXPECT().Execute(gomock.Any()).Return(nil).Times(2),
 
 					// deleteSvcs
@@ -253,7 +253,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.store.EXPECT().ListEnvironments(ctx, mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
-					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
+					mocks.deployer.EXPECT().ListTaskStacksWithContext(context.Background(), mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
 					mocks.taskDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// deleteEnvs
@@ -262,13 +262,13 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 
 					// emptyS3bucket
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
-					mocks.deployer.EXPECT().GetRegionalAppResources(mockApp).Return(mockResources, nil),
+					mocks.deployer.EXPECT().GetRegionalAppResourcesWithContext(context.Background(), mockApp).Return(mockResources, nil),
 					mocks.spinner.EXPECT().Start(deleteAppCleanResourcesStartMsg),
-					mocks.bucketEmptier.EXPECT().EmptyBucket(mockResources[0].S3Bucket).Return(nil),
+					mocks.bucketEmptier.EXPECT().EmptyBucketWithContext(context.Background(), mockResources[0].S3Bucket).Return(nil),
 					mocks.spinner.EXPECT().Stop(log.Ssuccess(deleteAppCleanResourcesStopMsg)),
 
 					// deleteAppResources
-					mocks.deployer.EXPECT().DeleteApp(mockAppName).Return(nil),
+					mocks.deployer.EXPECT().DeleteAppWithContext(context.Background(), mockAppName).Return(nil),
 
 					// deleteAppConfigs
 					mocks.spinner.EXPECT().Start(deleteAppConfigStartMsg),

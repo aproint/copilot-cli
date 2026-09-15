@@ -376,7 +376,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 			inValues:  testValues,
 
 			setupMocks: func(m secretInitExecuteMocks) {
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/test/secrets/db-password",
 					Value:     "test-password",
 					Overwrite: false,
@@ -387,7 +387,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 				}).Return(&ssm.PutSecretOutput{
 					Version: 1,
 				}, nil)
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/prod/secrets/db-password",
 					Value:     "prod-password",
 					Overwrite: false,
@@ -408,7 +408,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 			inOverwrite: true,
 
 			setupMocks: func(m secretInitExecuteMocks) {
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/test/secrets/db-password",
 					Value:     "test-password",
 					Overwrite: true,
@@ -419,7 +419,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 				}).Return(&ssm.PutSecretOutput{
 					Version: 1,
 				}, nil)
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/prod/secrets/db-password",
 					Value:     "prod-password",
 					Overwrite: true,
@@ -439,7 +439,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 			inValues:  testValues,
 
 			setupMocks: func(m secretInitExecuteMocks) {
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/test/secrets/db-password",
 					Value:     "test-password",
 					Overwrite: false,
@@ -448,7 +448,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "test",
 					},
 				}).Return(nil, &ssm.ErrParameterAlreadyExists{})
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/prod/secrets/db-password",
 					Value:     "prod-password",
 					Overwrite: false,
@@ -468,7 +468,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 			inValues:  testValues,
 
 			setupMocks: func(m secretInitExecuteMocks) {
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/test/secrets/db-password",
 					Value:     "test-password",
 					Overwrite: false,
@@ -477,7 +477,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 						deploy.EnvTagKey: "test",
 					},
 				}).Return(nil, errors.New("some error"))
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/prod/secrets/db-password",
 					Value:     "prod-password",
 					Overwrite: false,
@@ -508,7 +508,7 @@ func TestSecretInitOpts_Execute(t *testing.T) {
 db-host:
     test: test-host`),
 			setupMocks: func(m secretInitExecuteMocks) {
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/test/secrets/db-password",
 					Value:     "test-password",
 					Overwrite: false,
@@ -517,7 +517,7 @@ db-host:
 						deploy.EnvTagKey: "test",
 					},
 				}).Return(nil, errors.New("some error for db-password in test"))
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/prod/secrets/db-password",
 					Value:     "prod-password",
 					Overwrite: false,
@@ -528,7 +528,7 @@ db-host:
 				}).Return(&ssm.PutSecretOutput{
 					Version: 1,
 				}, nil)
-				m.mockSecretPutter.EXPECT().PutSecret(ssm.PutSecretInput{
+				m.mockSecretPutter.EXPECT().PutSecretWithContext(ctx, ssm.PutSecretInput{
 					Name:      "/copilot/test-app/test/secrets/db-host",
 					Value:     "test-host",
 					Overwrite: false,

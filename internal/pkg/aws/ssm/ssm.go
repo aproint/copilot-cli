@@ -47,8 +47,13 @@ type PutSecretOutput ssm.PutParameterOutput
 // PutSecret tries to create the secret, and overwrites it if the secret exists and that `Overwrite` is true.
 // ErrParameterAlreadyExists is returned if the secret exists and `Overwrite` is false.
 func (s *SSM) PutSecret(in PutSecretInput) (*PutSecretOutput, error) {
+	return s.PutSecretWithContext(context.Background(), in)
+}
+
+// PutSecretWithContext tries to create or overwrite a secret using ctx.
+func (s *SSM) PutSecretWithContext(ctx context.Context, in PutSecretInput) (*PutSecretOutput, error) {
 	// First try to create the secret with the tags.
-	out, err := s.createSecret(in)
+	out, err := s.createSecret(ctx, in)
 	if err == nil {
 		return out, nil
 	}
@@ -56,7 +61,7 @@ func (s *SSM) PutSecret(in PutSecretInput) (*PutSecretOutput, error) {
 	// If the parameter already exists and we want to overwrite, we try to overwrite it.
 	var errParameterExists *ErrParameterAlreadyExists
 	if errors.As(err, &errParameterExists) && in.Overwrite {
-		return s.overwriteSecret(in)
+		return s.overwriteSecret(ctx, in)
 	}
 	return nil, err
 }
@@ -74,7 +79,7 @@ func (s *SSM) GetSecretValue(ctx context.Context, name string) (string, error) {
 	return awsv2.ToString(resp.Parameter.Value), nil
 }
 
-func (s *SSM) createSecret(in PutSecretInput) (*PutSecretOutput, error) {
+func (s *SSM) createSecret(ctx context.Context, in PutSecretInput) (*PutSecretOutput, error) {
 	// Create a secret while adding the tags in a single call instead of separate calls to `PutParameter` and
 	// `AddTagsToResource` so that there won't be a case where the parameter is created while the tags are not added.
 
@@ -87,7 +92,7 @@ func (s *SSM) createSecret(in PutSecretInput) (*PutSecretOutput, error) {
 		Value:    awsv2.String(in.Value),
 		Tags:     tags,
 	}
-	output, err := s.client.PutParameter(context.Background(), input)
+	output, err := s.client.PutParameter(ctx, input)
 	if err == nil {
 		return (*PutSecretOutput)(output), nil
 	}
@@ -99,7 +104,7 @@ func (s *SSM) createSecret(in PutSecretInput) (*PutSecretOutput, error) {
 	return nil, fmt.Errorf("create parameter %s: %w", in.Name, err)
 }
 
-func (s *SSM) overwriteSecret(in PutSecretInput) (*PutSecretOutput, error) {
+func (s *SSM) overwriteSecret(ctx context.Context, in PutSecretInput) (*PutSecretOutput, error) {
 	// SSM API does not allow `Overwrite` to be true while `Tags` are not nil, so we have to overwrite the resource and
 	// add the tags in two separate calls.
 
@@ -110,13 +115,13 @@ func (s *SSM) overwriteSecret(in PutSecretInput) (*PutSecretOutput, error) {
 		Value:     awsv2.String(in.Value),
 		Overwrite: awsv2.Bool(in.Overwrite),
 	}
-	output, err := s.client.PutParameter(context.Background(), input)
+	output, err := s.client.PutParameter(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("update parameter %s: %w", in.Name, err)
 	}
 
 	tags := convertTags(in.Tags)
-	_, err = s.client.AddTagsToResource(context.Background(), &ssm.AddTagsToResourceInput{
+	_, err = s.client.AddTagsToResource(ctx, &ssm.AddTagsToResourceInput{
 		ResourceType: types.ResourceTypeForTaggingParameter,
 		ResourceId:   awsv2.String(in.Name),
 		Tags:         tags,

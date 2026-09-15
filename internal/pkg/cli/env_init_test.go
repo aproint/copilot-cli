@@ -1168,7 +1168,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
+				m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().AddEnvToApp(&deploycfn.AddEnvToAppOpts{
 					App:          &config.Application{Name: "phonetool"},
 					EnvName:      "test",
@@ -1184,7 +1184,7 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
+				m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
 				m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Return(nil)
 				m.appCFN.EXPECT().GetAppResourcesByRegion(&config.Application{Name: "phonetool"}, "us-west-2").
 					Return(nil, mockError)
@@ -1198,18 +1198,18 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
 				gomock.InOrder(
-					m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil),
+					m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil),
 					// Skip deleting non-existing roles.
-					m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist")),
-					m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist")),
+					m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist")),
+					m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist")),
 
 					// Cleanup after created roles.
-					m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-CFNExecutionRole")).Return(map[string]string{
+					m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-CFNExecutionRole")).Return(map[string]string{
 						"copilot-application": "phonetool",
 						"copilot-environment": "test",
 					}, nil),
-					m.iam.EXPECT().DeleteRole(gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil),
-					m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist")),
+					m.iam.EXPECT().DeleteRoleWithContext(gomock.Any(), gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil),
+					m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist")),
 				)
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Return(nil)
@@ -1230,8 +1230,8 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.store.EXPECT().CreateEnvironment(gomock.Any(), gomock.Any()).Return(errors.New("some create error"))
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
-				m.iam.EXPECT().ListRoleTags(gomock.Any()).
+				m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
+				m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("does not exist")).AnyTimes()
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -1262,9 +1262,9 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				}).Return(nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
-				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist"))
-				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
+				m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
+				m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist"))
+				m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
@@ -1294,9 +1294,9 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("", &workspace.ErrFileExists{
 					FileName: "/environments/test/manifest.yml",
 				})
-				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
-				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist"))
-				m.iam.EXPECT().ListRoleTags(gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
+				m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
+				m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-CFNExecutionRole")).Return(nil, errors.New("does not exist"))
+				m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Eq("phonetool-test-EnvManagerRole")).Return(nil, errors.New("does not exist"))
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.deployer.EXPECT().GetEnvironment(gomock.Any(), "phonetool", "test").Return(&config.Environment{
@@ -1324,9 +1324,9 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				}).Return(nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
+				m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
 				// Don't attempt to delete any roles since an environment stack already exists.
-				m.iam.EXPECT().ListRoleTags(gomock.Any()).Times(0)
+				m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Any()).Times(0)
 				m.cfn.EXPECT().Exists("phonetool-test").Return(true, nil)
 				m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, conf deploycfn.StackConfiguration, bucketARN string) error {
 					require.Equal(t, conf, stack.NewBootstrapEnvStackConfig(&stack.EnvConfig{
@@ -1380,8 +1380,8 @@ func TestInitEnvOpts_Execute(t *testing.T) {
 				}).Return(nil)
 				m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "4567"}, nil).Times(2)
 				m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-				m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
-				m.iam.EXPECT().ListRoleTags(gomock.Any()).
+				m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
+				m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("does not exist")).AnyTimes()
 				m.cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
 				m.progress.EXPECT().Start(fmt.Sprintf(fmtDNSDelegationStart, "4567"))
@@ -1487,7 +1487,7 @@ func TestInitEnvOpts_Execute_PreMutationCanceledContextPreventsDeploy(t *testing
 	m.store.EXPECT().GetApplication(parent, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 	m.identity.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil)
 	m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-	m.iam.EXPECT().CreateECSServiceLinkedRole().Times(0)
+	m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Times(0)
 	m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Times(0)
 	m.deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	m.deployer.EXPECT().GetEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -1516,8 +1516,8 @@ func TestInitEnvOpts_DeployEnv_CancellationDuringCleanupPreventsStackCreation(t 
 		cancel()
 		return false, nil
 	})
-	iam.EXPECT().ListRoleTags(gomock.Any()).Times(0)
-	iam.EXPECT().DeleteRole(gomock.Any()).Times(0)
+	iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Any()).Times(0)
+	iam.EXPECT().DeleteRoleWithContext(gomock.Any(), gomock.Any()).Times(0)
 	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	opts := &initEnvOpts{
@@ -1550,11 +1550,11 @@ func TestInitEnvOpts_DeployEnv_CancellationAfterRoleLookupPreventsRoleDeletion(t
 	appCFN.EXPECT().GetAppResourcesByRegion(app, "us-west-2").Return(&stack.AppRegionalResources{S3Bucket: "mockBucket"}, nil)
 	identityService.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "some arn"}, nil)
 	cfn.EXPECT().Exists("phonetool-test").Return(false, nil)
-	iam.EXPECT().ListRoleTags("phonetool-test-CFNExecutionRole").DoAndReturn(func(string) (map[string]string, error) {
+	iam.EXPECT().ListRoleTagsContext(gomock.Any(), "phonetool-test-CFNExecutionRole").DoAndReturn(func(context.Context, string) (map[string]string, error) {
 		cancel()
 		return map[string]string{deploy.EnvTagKey: "test"}, nil
 	})
-	iam.EXPECT().DeleteRole(gomock.Any()).Times(0)
+	iam.EXPECT().DeleteRoleWithContext(gomock.Any(), gomock.Any()).Times(0)
 	deployer.EXPECT().CreateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	opts := &initEnvOpts{
@@ -1594,8 +1594,8 @@ func TestInitEnvOpts_Execute_CanceledParentStillCommitsMetadata(t *testing.T) {
 	m.store.EXPECT().GetApplication(parent, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 	m.identity.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
 	m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-	m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
-	m.iam.EXPECT().ListRoleTags(gomock.Any()).Return(nil, errors.New("does not exist")).AnyTimes()
+	m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
+	m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("does not exist")).AnyTimes()
 	m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Return(nil)
 	m.appCFN.EXPECT().GetAppResourcesByRegion(&config.Application{Name: "phonetool"}, "us-west-2").
 		Return(&stack.AppRegionalResources{
@@ -1654,8 +1654,8 @@ func TestInitEnvOpts_Execute_MetadataCommitErrorIsPartialSuccess(t *testing.T) {
 	m.store.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 	m.identity.EXPECT().Get(ctx).Return(identity.Caller{RootUserARN: "some arn", Account: "1234"}, nil).Times(2)
 	m.manifestWriter.EXPECT().WriteEnvironmentManifest(gomock.Any(), "test").Return("/environments/test/manifest.yml", nil)
-	m.iam.EXPECT().CreateECSServiceLinkedRole().Return(nil)
-	m.iam.EXPECT().ListRoleTags(gomock.Any()).Return(nil, errors.New("does not exist")).AnyTimes()
+	m.iam.EXPECT().CreateECSServiceLinkedRoleWithContext(gomock.Any()).Return(nil)
+	m.iam.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("does not exist")).AnyTimes()
 	m.deployer.EXPECT().AddEnvToApp(gomock.Any()).Return(nil)
 	m.appCFN.EXPECT().GetAppResourcesByRegion(&config.Application{Name: "phonetool"}, "us-west-2").
 		Return(&stack.AppRegionalResources{

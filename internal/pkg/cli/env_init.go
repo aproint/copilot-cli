@@ -334,7 +334,7 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	_ = o.iam.CreateECSServiceLinkedRole()
+	_ = o.iam.CreateECSServiceLinkedRoleWithContext(ctx)
 
 	// 4. Add the stack set instance to the app stackset.
 	if err := ctx.Err(); err != nil {
@@ -900,7 +900,7 @@ func (o *initEnvOpts) deleteEnvRoles(ctx context.Context, app, env string) error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		tags, err := o.iam.ListRoleTags(roleName)
+		tags, err := o.iam.ListRoleTagsContext(ctx, roleName)
 		if err != nil {
 			continue
 		}
@@ -910,7 +910,7 @@ func (o *initEnvOpts) deleteEnvRoles(ctx context.Context, app, env string) error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		_ = o.iam.DeleteRole(roleName)
+		_ = o.iam.DeleteRoleWithContext(ctx, roleName)
 	}
 	return nil
 }

@@ -56,6 +56,18 @@ func TestCloudFormation_GetEnvironment(t *testing.T) {
 	}, got)
 }
 
+func TestCloudFormation_DeleteEnvironmentWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+	client := mocks.NewMockcfnClient(ctrl)
+	client.EXPECT().TemplateBodyWithContext(ctx, "phonetool-test").Return("", context.Canceled)
+	cf := &CloudFormation{cfnClient: client}
+
+	err := cf.DeleteEnvironmentWithContext(ctx, "phonetool", "test", "role")
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
 func TestCloudFormation_DeployedEnvironmentParameters(t *testing.T) {
 	testCases := map[string]struct {
 		inAppName string
@@ -272,4 +284,31 @@ func TestCloudFormation_UpdateEnvironmentTemplate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCloudFormation_UpdateEnvironmentTemplateWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+	client := mocks.NewMockcfnClient(ctrl)
+	params := []awscfn.Parameter{{ParameterKey: aws.String("ALBWorkloads"), ParameterValue: aws.String("frontend")}}
+	tags := []awscfn.Tag{{Key: aws.String("copilot-application"), Value: aws.String("phonetool")}}
+	client.EXPECT().DescribeWithContext(ctx, "phonetool-test").Return(&cloudformation.StackDescription{
+		Parameters: params,
+		Tags:       tags,
+	}, nil)
+	client.EXPECT().UpdateAndWaitWithContext(ctx, gomock.Any()).DoAndReturn(
+		func(_ context.Context, s *cloudformation.Stack) error {
+			require.Equal(t, "phonetool-test", s.Name)
+			require.Equal(t, params, s.Parameters)
+			require.Equal(t, tags, s.Tags)
+			require.Equal(t, "hello", s.TemplateBody)
+			require.Equal(t, aws.String("arn"), s.RoleARN)
+			return nil
+		},
+	)
+
+	cf := &CloudFormation{cfnClient: client}
+	err := cf.UpdateEnvironmentTemplateWithContext(ctx, "phonetool", "test", "hello", "arn")
+
+	require.NoError(t, err)
 }

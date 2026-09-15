@@ -48,7 +48,12 @@ var secretTags = func() []types.Tag {
 
 // CreateSecret creates a secret using the default KMS key "aws/secretmanager" to encrypt the secret and returns its ARN.
 func (s *SecretsManager) CreateSecret(secretName, secretString string) (string, error) {
-	resp, err := s.secretsManager.CreateSecret(context.Background(), &secretsmanager.CreateSecretInput{
+	return s.CreateSecretWithContext(context.Background(), secretName, secretString)
+}
+
+// CreateSecretWithContext creates a secret using ctx.
+func (s *SecretsManager) CreateSecretWithContext(ctx context.Context, secretName, secretString string) (string, error) {
+	resp, err := s.secretsManager.CreateSecret(ctx, &secretsmanager.CreateSecretInput{
 		Name:         awsv2.String(secretName),
 		SecretString: awsv2.String(secretString),
 		Tags:         secretTags(),
@@ -72,7 +77,12 @@ func (s *SecretsManager) CreateSecret(secretName, secretString string) (string, 
 
 // DeleteSecret force removes the secret from SecretsManager.
 func (s *SecretsManager) DeleteSecret(secretName string) error {
-	_, err := s.secretsManager.DeleteSecret(context.Background(), &secretsmanager.DeleteSecretInput{
+	return s.DeleteSecretWithContext(context.Background(), secretName)
+}
+
+// DeleteSecretWithContext force removes the secret from Secrets Manager using ctx.
+func (s *SecretsManager) DeleteSecretWithContext(ctx context.Context, secretName string) error {
+	_, err := s.secretsManager.DeleteSecret(ctx, &secretsmanager.DeleteSecretInput{
 		SecretId:                   awsv2.String(secretName),
 		ForceDeleteWithoutRecovery: awsv2.Bool(true), // forego the waiting period to delete the secret
 	})
@@ -92,7 +102,12 @@ type DescribeSecretOutput struct {
 
 // DescribeSecret retrieves the details of a secret.
 func (s *SecretsManager) DescribeSecret(secretName string) (*DescribeSecretOutput, error) {
-	resp, err := s.secretsManager.DescribeSecret(context.Background(), &secretsmanager.DescribeSecretInput{
+	return s.DescribeSecretWithContext(context.Background(), secretName)
+}
+
+// DescribeSecretWithContext retrieves the details of a secret using ctx.
+func (s *SecretsManager) DescribeSecretWithContext(ctx context.Context, secretName string) (*DescribeSecretOutput, error) {
+	resp, err := s.secretsManager.DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
 		SecretId: awsv2.String(secretName),
 	})
 	if err != nil {

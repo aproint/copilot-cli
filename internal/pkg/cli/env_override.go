@@ -21,12 +21,17 @@ import (
 
 type overrideEnvOpts struct {
 	*overrideOpts
+	ctx context.Context
 
 	// Interfaces to interact with dependencies.
 	ws wsEnvironmentReader
 }
 
 func newOverrideEnvOpts(vars overrideVars) (*overrideEnvOpts, error) {
+	return newOverrideEnvOptsWithContext(context.Background(), vars)
+}
+
+func newOverrideEnvOptsWithContext(ctx context.Context, vars overrideVars) (*overrideEnvOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -34,7 +39,7 @@ func newOverrideEnvOpts(vars overrideVars) (*overrideEnvOpts, error) {
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env override"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -42,8 +47,10 @@ func newOverrideEnvOpts(vars overrideVars) (*overrideEnvOpts, error) {
 	vars.requiresEnv = true
 	prompt := prompt.New()
 	cmd := &overrideEnvOpts{
+		ctx: ctx,
 		overrideOpts: &overrideOpts{
 			overrideVars: vars,
+			ctx:          ctx,
 			fs:           fs,
 			cfgStore:     cfgStore,
 			prompt:       prompt,
@@ -96,7 +103,7 @@ func (o *overrideEnvOpts) validateName() error {
 }
 
 func (o *overrideEnvOpts) newEnvPackageCmd(tplBuf stringWriteCloser) (executor, error) {
-	cmd, err := newPackageEnvOpts(packageEnvVars{
+	cmd, err := newPackageEnvOptsWithContext(o.ctx, packageEnvVars{
 		name:    o.name,
 		appName: o.appName,
 	})
@@ -136,7 +143,7 @@ or add new resources to an environment's template.`,
   Create a new Cloud Development Kit application to override environment templates.
   /code $ copilot env override --tool cdk`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newOverrideEnvOpts(vars)
+			opts, err := newOverrideEnvOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -164,12 +164,17 @@ func (s *Stage) HumanString() string {
 
 // RetryStageExecution tries to re-initiate a failed stage for the given pipeline.
 func (c *CodePipeline) RetryStageExecution(pipelineName, stageName string) error {
-	executionID, err := c.pipelineExecutionID(pipelineName)
+	return c.RetryStageExecutionWithContext(context.Background(), pipelineName, stageName)
+}
+
+// RetryStageExecutionWithContext retries a failed stage using ctx.
+func (c *CodePipeline) RetryStageExecutionWithContext(ctx context.Context, pipelineName, stageName string) error {
+	executionID, err := c.pipelineExecutionIDWithContext(ctx, pipelineName)
 	if err != nil {
 		return fmt.Errorf("retrieve pipeline execution ID: %w", err)
 	}
 
-	if _, err = c.client.RetryStageExecution(context.Background(), &cp.RetryStageExecutionInput{
+	if _, err = c.client.RetryStageExecution(ctx, &cp.RetryStageExecutionInput{
 		PipelineExecutionId: &executionID,
 		PipelineName:        &pipelineName,
 		RetryMode:           types.StageRetryModeFailedActions,
@@ -291,11 +296,15 @@ func (c *CodePipeline) getStage(s types.StageDeclaration) (*Stage, error) {
 
 // pipelineExecutionID returns the ExecutionID of the most recent execution of a pipeline.
 func (c *CodePipeline) pipelineExecutionID(pipelineName string) (string, error) {
+	return c.pipelineExecutionIDWithContext(context.Background(), pipelineName)
+}
+
+func (c *CodePipeline) pipelineExecutionIDWithContext(ctx context.Context, pipelineName string) (string, error) {
 	input := &cp.ListPipelineExecutionsInput{
 		MaxResults:   awsv2.Int32(1),
 		PipelineName: &pipelineName,
 	}
-	output, err := c.client.ListPipelineExecutions(context.Background(), input)
+	output, err := c.client.ListPipelineExecutions(ctx, input)
 	if err != nil {
 		return "", fmt.Errorf("list pipeline execution for %s: %w", pipelineName, err)
 	}

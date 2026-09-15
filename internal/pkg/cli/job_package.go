@@ -39,6 +39,7 @@ type packageJobVars struct {
 
 type packageJobOpts struct {
 	packageJobVars
+	ctx context.Context
 
 	// Interfaces to interact with dependencies.
 	ws     wsJobDirReader
@@ -53,8 +54,12 @@ type packageJobOpts struct {
 }
 
 func newPackageJobOpts(vars packageJobVars) (*packageJobOpts, error) {
+	return newPackageJobOptsWithContext(context.Background(), vars)
+}
+
+func newPackageJobOptsWithContext(ctx context.Context, vars packageJobVars) (*packageJobOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job package"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +72,7 @@ func newPackageJobOpts(vars packageJobVars) (*packageJobOpts, error) {
 	prompter := prompt.New()
 	opts := &packageJobOpts{
 		packageJobVars: vars,
+		ctx:            ctx,
 		ws:             ws,
 		store:          store,
 		runner:         exec.NewCmd(),
@@ -107,6 +113,11 @@ func newPackageJobOpts(vars packageJobVars) (*packageJobOpts, error) {
 
 // Validate returns an error if the values provided by the user are invalid.
 func (o *packageJobOpts) Validate() error {
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
@@ -120,7 +131,7 @@ func (o *packageJobOpts) Validate() error {
 		}
 	}
 	if o.envName != "" {
-		if _, err := o.store.GetEnvironment(context.Background(), o.appName, o.envName); err != nil {
+		if _, err := o.store.GetEnvironment(ctx, o.appName, o.envName); err != nil {
 			return err
 		}
 	}
@@ -193,7 +204,7 @@ func buildJobPackageCmd() *cobra.Command {
   report-generator-test.stack.yml      report-generator-test.params.yml
   /endcodeblock`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPackageJobOpts(vars)
+			opts, err := newPackageJobOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

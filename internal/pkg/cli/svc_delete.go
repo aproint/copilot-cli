@@ -73,8 +73,12 @@ type deleteSvcOpts struct {
 }
 
 func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
+	return newDeleteSvcOptsWithContext(context.Background(), vars)
+}
+
+func newDeleteSvcOptsWithContext(ctx context.Context, vars deleteSvcVars) (*deleteSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc delete"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +186,7 @@ func (o *deleteSvcOpts) Execute(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.deleteStacks(wkld.Type, envs); err != nil {
+	if err := o.deleteStacks(ctx, wkld.Type, envs); err != nil {
 		return err
 	}
 
@@ -192,7 +196,7 @@ func (o *deleteSvcOpts) Execute(ctx context.Context) error {
 		return nil
 	}
 
-	if err := o.emptyECRRepos(envs); err != nil {
+	if err := o.emptyECRRepos(ctx, envs); err != nil {
 		return err
 	}
 	if err := o.removeSvcFromApp(ctx); err != nil {
@@ -267,9 +271,9 @@ func (o *deleteSvcOpts) appEnvironments(ctx context.Context) ([]*config.Environm
 	return envs, nil
 }
 
-func (o *deleteSvcOpts) deleteStacks(wkldType string, envs []*config.Environment) error {
+func (o *deleteSvcOpts) deleteStacks(ctx context.Context, wkldType string, envs []*config.Environment) error {
 	for _, env := range envs {
-		cfg, err := o.sess.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := o.sess.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
@@ -292,7 +296,7 @@ func (o *deleteSvcOpts) deleteStacks(wkldType string, envs []*config.Environment
 }
 
 // This is to make mocking easier in unit tests
-func (o *deleteSvcOpts) emptyECRRepos(envs []*config.Environment) error {
+func (o *deleteSvcOpts) emptyECRRepos(ctx context.Context, envs []*config.Environment) error {
 	var uniqueRegions []string
 	for _, env := range envs {
 		if !slices.Contains(uniqueRegions, env.Region) {
@@ -303,7 +307,7 @@ func (o *deleteSvcOpts) emptyECRRepos(envs []*config.Environment) error {
 	// TODO: centralized ECR repo name
 	repoName := clideploy.RepoName(o.appName, o.name)
 	for _, region := range uniqueRegions {
-		cfg, err := o.sess.DefaultConfigWithRegion(context.Background(), region)
+		cfg, err := o.sess.DefaultConfigWithRegion(ctx, region)
 		if err != nil {
 			return err
 		}
@@ -365,7 +369,7 @@ func buildSvcDeleteCmd() *cobra.Command {
   Delete the "test" service without confirmation prompt.
   /code $ copilot svc delete --name test --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteSvcOpts(vars)
+			opts, err := newDeleteSvcOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

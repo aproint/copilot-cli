@@ -302,3 +302,21 @@ func TestSecretsManager_GetSecretValue(t *testing.T) {
 		})
 	}
 }
+
+func TestSecretsManager_MutationsPropagateContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("caller"), "secret mutation")
+
+	ctrl := gomock.NewController(t)
+	api := mocks.NewMockapi(ctrl)
+	api.EXPECT().CreateSecret(ctx, gomock.Any()).Return(&secretsmanager.CreateSecretOutput{}, nil)
+	api.EXPECT().DescribeSecret(ctx, gomock.Any()).Return(&secretsmanager.DescribeSecretOutput{}, nil)
+	api.EXPECT().DeleteSecret(ctx, gomock.Any()).Return(&secretsmanager.DeleteSecretOutput{}, nil)
+
+	client := SecretsManager{secretsManager: api}
+	_, err := client.CreateSecretWithContext(ctx, "secret", "value")
+	require.NoError(t, err)
+	_, err = client.DescribeSecretWithContext(ctx, "secret")
+	require.NoError(t, err)
+	require.NoError(t, client.DeleteSecretWithContext(ctx, "secret"))
+}

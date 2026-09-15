@@ -56,6 +56,7 @@ type secretInitVars struct {
 
 type secretInitOpts struct {
 	secretInitVars
+	ctx                     context.Context
 	shouldShowOverwriteHint bool
 	secretValues            map[string]map[string]string
 
@@ -72,8 +73,12 @@ type secretInitOpts struct {
 }
 
 func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
+	return newSecretInitOptsWithContext(context.Background(), vars)
+}
+
+func newSecretInitOptsWithContext(ctx context.Context, vars secretInitVars) (*secretInitOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("secret init"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +92,7 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 	prompter := prompt.New()
 	opts := secretInitOpts{
 		secretInitVars: vars,
+		ctx:            ctx,
 		store:          store,
 		fs:             fs,
 		ws:             ws,
@@ -113,7 +119,7 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 		if err != nil {
 			return err
 		}
-		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return fmt.Errorf("create config from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
 		}
@@ -140,7 +146,11 @@ func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
 
 // Validate returns an error if the flag values passed by the user are invalid.
 func (o *secretInitOpts) Validate() error {
-	ctx := context.Background()
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
 	if o.inputFilePath != "" && o.name != "" {
 		return errors.New("cannot specify `--cli-input-yaml` with `--name`")
 	}
@@ -215,7 +225,7 @@ func (o *secretInitOpts) Execute(ctx context.Context) error {
 
 		var errs []*errSecretFailedInSomeEnvironments
 		for secretName, secretValues := range secrets {
-			if err := o.putSecret(secretName, secretValues); err != nil {
+			if err := o.putSecret(ctx, secretName, secretValues); err != nil {
 				errs = append(errs, err.(*errSecretFailedInSomeEnvironments))
 			}
 			log.Infoln("")
@@ -235,7 +245,7 @@ func (o *secretInitOpts) Execute(ctx context.Context) error {
 	if err := o.configureClientsAndUpgradeForEnvironments(ctx, o.secretValues); err != nil {
 		return err
 	}
-	return o.putSecret(o.name, o.values)
+	return o.putSecret(ctx, o.name, o.values)
 }
 
 func (o *secretInitOpts) configureClientsAndUpgradeForEnvironments(ctx context.Context, secrets map[string]map[string]string) error {
@@ -257,7 +267,7 @@ func (o *secretInitOpts) configureClientsAndUpgradeForEnvironments(ctx context.C
 	return nil
 }
 
-func (o *secretInitOpts) putSecret(secretName string, values map[string]string) error {
+func (o *secretInitOpts) putSecret(ctx context.Context, secretName string, values map[string]string) error {
 	envs := make([]string, 0)
 	for env := range values {
 		envs = append(envs, env)
@@ -271,7 +281,7 @@ func (o *secretInitOpts) putSecret(secretName string, values map[string]string) 
 
 	errorsForEnvironments := make(map[string]error)
 	for envName, value := range values {
-		err := o.putSecretInEnv(secretName, envName, value)
+		err := o.putSecretInEnv(ctx, secretName, envName, value)
 		if err != nil {
 			errorsForEnvironments[envName] = err
 			continue
@@ -292,7 +302,7 @@ func (o *secretInitOpts) putSecret(secretName string, values map[string]string) 
 	return nil
 }
 
-func (o *secretInitOpts) putSecretInEnv(secretName, envName, value string) error {
+func (o *secretInitOpts) putSecretInEnv(ctx context.Context, secretName, envName, value string) error {
 	name := fmt.Sprintf(fmtSecretParameterName, o.appName, envName, secretName)
 	in := ssm.PutSecretInput{
 		Name:      name,
@@ -304,7 +314,7 @@ func (o *secretInitOpts) putSecretInEnv(secretName, envName, value string) error
 		},
 	}
 
-	out, err := o.secretPutters[envName].PutSecret(in)
+	out, err := o.secretPutters[envName].PutSecretWithContext(ctx, in)
 	if err != nil {
 		var targetErr *ssm.ErrParameterAlreadyExists
 		if errors.As(err, &targetErr) {
@@ -483,7 +493,7 @@ Create a secret named db-password in multiple environments.
 Create secrets from input.yml. For the format of the YAML file, please see https://aproint.github.io/copilot-cli/docs/commands/secret-init/.
 /code $ copilot secret init --cli-input-yaml input.yml`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSecretInitOpts(vars)
+			opts, err := newSecretInitOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

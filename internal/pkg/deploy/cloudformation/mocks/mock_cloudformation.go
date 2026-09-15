@@ -952,6 +952,20 @@ func (mr *Mocks3ClientMockRecorder) EmptyBucket(bucket interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmptyBucket", reflect.TypeOf((*Mocks3Client)(nil).EmptyBucket), bucket)
 }
 
+// EmptyBucketWithContext mocks base method.
+func (m *Mocks3Client) EmptyBucketWithContext(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EmptyBucketWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EmptyBucketWithContext indicates an expected call of EmptyBucketWithContext.
+func (mr *Mocks3ClientMockRecorder) EmptyBucketWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmptyBucketWithContext", reflect.TypeOf((*Mocks3Client)(nil).EmptyBucketWithContext), arg0, arg1)
+}
+
 // Upload mocks base method.
 func (m *Mocks3Client) Upload(bucket, fileName string, data io.Reader) (string, error) {
 	m.ctrl.T.Helper()
@@ -1017,6 +1031,20 @@ func (m *MockimageRemover) ClearRepository(repoName string) error {
 func (mr *MockimageRemoverMockRecorder) ClearRepository(repoName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRepository", reflect.TypeOf((*MockimageRemover)(nil).ClearRepository), repoName)
+}
+
+// ClearRepositoryWithContext mocks base method.
+func (m *MockimageRemover) ClearRepositoryWithContext(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearRepositoryWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearRepositoryWithContext indicates an expected call of ClearRepositoryWithContext.
+func (mr *MockimageRemoverMockRecorder) ClearRepositoryWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRepositoryWithContext", reflect.TypeOf((*MockimageRemover)(nil).ClearRepositoryWithContext), arg0, arg1)
 }
 
 // MockstackSetClient is a mock of stackSetClient interface.
@@ -1153,6 +1181,21 @@ func (mr *MockstackSetClientMockRecorder) DeleteAllInstances(name interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllInstances", reflect.TypeOf((*MockstackSetClient)(nil).DeleteAllInstances), name)
 }
 
+// DeleteAllInstancesWithContext mocks base method.
+func (m *MockstackSetClient) DeleteAllInstancesWithContext(arg0 context.Context, arg1 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAllInstancesWithContext", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteAllInstancesWithContext indicates an expected call of DeleteAllInstancesWithContext.
+func (mr *MockstackSetClientMockRecorder) DeleteAllInstancesWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllInstancesWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DeleteAllInstancesWithContext), arg0, arg1)
+}
+
 // DeleteInstance mocks base method.
 func (m *MockstackSetClient) DeleteInstance(name, account, region string) (string, error) {
 	m.ctrl.T.Helper()
@@ -1166,6 +1209,35 @@ func (m *MockstackSetClient) DeleteInstance(name, account, region string) (strin
 func (mr *MockstackSetClientMockRecorder) DeleteInstance(name, account, region interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockstackSetClient)(nil).DeleteInstance), name, account, region)
+}
+
+// DeleteInstanceWithContext mocks base method.
+func (m *MockstackSetClient) DeleteInstanceWithContext(arg0 context.Context, arg1, arg2, arg3 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInstanceWithContext", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteInstanceWithContext indicates an expected call of DeleteInstanceWithContext.
+func (mr *MockstackSetClientMockRecorder) DeleteInstanceWithContext(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstanceWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DeleteInstanceWithContext), arg0, arg1, arg2, arg3)
+}
+
+// DeleteWithContext mocks base method.
+func (m *MockstackSetClient) DeleteWithContext(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteWithContext indicates an expected call of DeleteWithContext.
+func (mr *MockstackSetClientMockRecorder) DeleteWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DeleteWithContext), arg0, arg1)
 }
 
 // Describe mocks base method.

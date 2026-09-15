@@ -1131,3 +1131,16 @@ func TestCloudFormation_Template(t *testing.T) {
 		})
 	}
 }
+
+func TestCloudFormation_TemplateWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+	client := mocks.NewMockcfnClient(ctrl)
+	client.EXPECT().TemplateBodyWithContext(ctx, "phonetool-test").Return("mockTemplate", nil)
+
+	cf := &CloudFormation{cfnClient: client}
+	got, err := cf.TemplateWithContext(ctx, "phonetool-test")
+
+	require.NoError(t, err)
+	require.Equal(t, "mockTemplate", got)
+}

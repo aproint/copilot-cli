@@ -553,6 +553,22 @@ func TestCloudFormation_AddPipelineResourcesToApp(t *testing.T) {
 	getRegionFromClient = actual
 }
 
+func TestCloudFormation_AddPipelineResourcesToAppWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+	stackSet := mocks.NewMockstackSetClient(ctrl)
+	wantedErr := errors.New("describe stack set")
+	stackSet.EXPECT().DescribeWithContext(ctx, "testapp-infrastructure").Return(stackset.Description{}, wantedErr)
+	cf := CloudFormation{appStackSet: stackSet}
+
+	err := cf.AddPipelineResourcesToAppWithContext(ctx, &config.Application{
+		Name:      "testapp",
+		AccountID: "1234",
+	}, "us-west-2")
+
+	require.ErrorIs(t, err, wantedErr)
+}
+
 func TestCloudFormation_AddServiceToApp(t *testing.T) {
 	mockApp := config.Application{
 		Name:      "testapp",
@@ -925,6 +941,54 @@ func TestCloudFormation_GetAppResourcesByRegion(t *testing.T) {
 	}
 }
 
+func TestCloudFormation_GetAppResourcesWithContext(t *testing.T) {
+	app := &config.Application{Name: "app", AccountID: "12345"}
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+
+	t.Run("one region", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		stackSet := mocks.NewMockstackSetClient(ctrl)
+		regional := mocks.NewMockcfnClient(ctrl)
+		stackSet.EXPECT().InstanceSummariesWithContext(ctx, "app-infrastructure", gomock.Any(), gomock.Any()).Return(
+			[]stackset.InstanceSummary{{StackID: "cross-region-stack", Region: "us-east-9"}}, nil,
+		)
+		regional.EXPECT().DescribeWithContext(ctx, "cross-region-stack").Return(mockValidAppResourceStack(), nil)
+		cf := CloudFormation{
+			appStackSet: stackSet,
+			regionalClient: func(string) cfnClient {
+				return regional
+			},
+		}
+
+		got, err := cf.GetAppResourcesByRegionWithContext(ctx, app, "us-east-9")
+
+		require.NoError(t, err)
+		require.Equal(t, "us-east-9", got.Region)
+	})
+
+	t.Run("all regions", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		stackSet := mocks.NewMockstackSetClient(ctrl)
+		regional := mocks.NewMockcfnClient(ctrl)
+		stackSet.EXPECT().InstanceSummariesWithContext(ctx, "app-infrastructure", gomock.Any()).Return(
+			[]stackset.InstanceSummary{{StackID: "cross-region-stack", Region: "us-west-2"}}, nil,
+		)
+		regional.EXPECT().DescribeWithContext(ctx, "cross-region-stack").Return(mockValidAppResourceStack(), nil)
+		cf := CloudFormation{
+			appStackSet: stackSet,
+			regionalClient: func(string) cfnClient {
+				return regional
+			},
+		}
+
+		got, err := cf.GetRegionalAppResourcesWithContext(ctx, app)
+
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		require.Equal(t, "us-west-2", got[0].Region)
+	})
+}
+
 func TestCloudFormation_DelegateDNSPermissions(t *testing.T) {
 	testCases := map[string]struct {
 		app        *config.Application
@@ -1124,6 +1188,61 @@ func TestCloudFormation_DeleteApp(t *testing.T) {
 			require.Equal(t, tc.want, got)
 		})
 	}
+}
+
+func TestCloudFormation_DeleteAppWithContext(t *testing.T) {
+	type contextKey string
+	const key contextKey = "caller"
+	ctx := context.WithValue(context.Background(), key, "delete app")
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockcfnClient(ctrl)
+	stackSet := mocks.NewMockstackSetClient(ctrl)
+	stackSet.EXPECT().DeleteAllInstancesWithContext(ctx, "testApp-infrastructure").Return("1", nil)
+	stackSet.EXPECT().WaitForOperationWithContext(ctx, "testApp-infrastructure", "1").Return(nil)
+	stackSet.EXPECT().DeleteWithContext(ctx, "testApp-infrastructure").Return(nil)
+	client.EXPECT().TemplateBodyWithContext(ctx, "testApp-infrastructure-roles").Return("", nil)
+	client.EXPECT().DescribeWithContext(ctx, "testApp-infrastructure-roles").Return(&cloudformation.StackDescription{
+		StackId: aws.String("some stack"),
+	}, nil)
+	client.EXPECT().DeleteAndWaitWithContext(gomock.Any(), "testApp-infrastructure-roles").DoAndReturn(
+		func(gotCtx context.Context, _ string) error {
+			require.Equal(t, "delete app", gotCtx.Value(key))
+			return &cloudformation.ErrStackNotFound{}
+		},
+	)
+	client.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(gotCtx context.Context, _ *awscfn.DescribeStackEventsInput) (*awscfn.DescribeStackEventsOutput, error) {
+			require.Equal(t, "delete app", gotCtx.Value(key))
+			return &awscfn.DescribeStackEventsOutput{}, nil
+		},
+	).AnyTimes()
+	cf := CloudFormation{
+		cfnClient:   client,
+		appStackSet: stackSet,
+		console:     new(discardFile),
+	}
+
+	err := cf.DeleteAppWithContext(ctx, "testApp")
+
+	require.NoError(t, err)
+}
+
+func TestCloudFormation_RemoveEnvFromAppWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+	stackSet := mocks.NewMockstackSetClient(ctrl)
+	wantedErr := errors.New("list stack instances")
+	stackSet.EXPECT().InstanceSummariesWithContext(ctx, "app-infrastructure", gomock.Any(), gomock.Any()).Return(nil, wantedErr)
+	cf := CloudFormation{appStackSet: stackSet}
+	env := &config.Environment{Name: "test", AccountID: "12345", Region: "us-west-2"}
+
+	err := cf.RemoveEnvFromAppWithContext(ctx, &RemoveEnvFromAppOpts{
+		App:          &config.Application{Name: "app", AccountID: "12345"},
+		EnvToDelete:  env,
+		Environments: []*config.Environment{env},
+	})
+
+	require.ErrorIs(t, err, wantedErr)
 }
 
 func TestCloudFormation_RenderStackSet(t *testing.T) {

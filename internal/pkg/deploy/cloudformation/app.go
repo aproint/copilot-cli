@@ -141,8 +141,22 @@ func (cf CloudFormation) upgradeAppStack(ctx context.Context, conf *stack.AppSta
 // infrastructure roles stack, then redeploying all the stackset instances with the new list of accounts.
 // If the list of accounts already excludes the account to remove, we return early for idempotency.
 func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccess(appStack *stack.AppStackConfig, accountID string) error {
+	return cf.removeDNSDelegationAndCrossAccountAccessWithOptionalContext(nil, appStack, accountID)
+}
+
+func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithContext(ctx context.Context, appStack *stack.AppStackConfig, accountID string) error {
+	return cf.removeDNSDelegationAndCrossAccountAccessWithOptionalContext(ctx, appStack, accountID)
+}
+
+func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithOptionalContext(ctx context.Context, appStack *stack.AppStackConfig, accountID string) error {
 	// Get the most recently deployed list of delegated accounts.
-	appStackDesc, err := cf.cfnClient.Describe(appStack.StackName())
+	var appStackDesc *cloudformation.StackDescription
+	var err error
+	if ctx == nil {
+		appStackDesc, err = cf.cfnClient.Describe(appStack.StackName())
+	} else {
+		appStackDesc, err = cf.cfnClient.DescribeWithContext(ctx, appStack.StackName())
+	}
 	if err != nil {
 		return fmt.Errorf("get existing application infrastructure stack: %w", err)
 	}
@@ -177,7 +191,12 @@ func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccess(appStack *stac
 		return err
 	}
 	// Update app stack.
-	if err := cf.cfnClient.UpdateAndWait(s); err != nil {
+	if ctx == nil {
+		err = cf.cfnClient.UpdateAndWait(s)
+	} else {
+		err = cf.cfnClient.UpdateAndWaitWithContext(ctx, s)
+	}
+	if err != nil {
 		var errNoUpdates *cloudformation.ErrChangeSetEmpty
 		if errors.As(err, &errNoUpdates) {
 			return nil
@@ -186,7 +205,12 @@ func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccess(appStack *stac
 	}
 
 	// Update stackset instances to remove account.
-	appResourcesConfig, err := cf.getLastDeployedAppConfig(appStack)
+	var appResourcesConfig *stack.AppResourcesConfig
+	if ctx == nil {
+		appResourcesConfig, err = cf.getLastDeployedAppConfig(appStack)
+	} else {
+		appResourcesConfig, err = cf.getLastDeployedAppConfigWithContext(ctx, appStack)
+	}
 	if err != nil {
 		return err
 	}
@@ -196,7 +220,12 @@ func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccess(appStack *stac
 		Accounts:  newAccountList,
 		App:       appResourcesConfig.App,
 	}
-	if err := cf.deployAppConfig(newCfg, newDeploymentConfig, true); err != nil {
+	if ctx == nil {
+		err = cf.deployAppConfig(newCfg, newDeploymentConfig, true)
+	} else {
+		err = cf.deployAppConfigWithContext(ctx, newCfg, newDeploymentConfig, true)
+	}
+	if err != nil {
 		return err
 	}
 	return nil
@@ -452,6 +481,15 @@ type RemoveEnvFromAppOpts struct {
 // ECR repos and a regional S3 bucket before deleting the stackset instance for that region. This method
 // cannot check that deleting the stackset or removing the app won't break copilot. Be careful.
 func (cf CloudFormation) RemoveEnvFromApp(opts *RemoveEnvFromAppOpts) error {
+	return cf.removeEnvFromApp(nil, opts)
+}
+
+// RemoveEnvFromAppWithContext removes an environment from application resources using ctx.
+func (cf CloudFormation) RemoveEnvFromAppWithContext(ctx context.Context, opts *RemoveEnvFromAppOpts) error {
+	return cf.removeEnvFromApp(ctx, opts)
+}
+
+func (cf CloudFormation) removeEnvFromApp(ctx context.Context, opts *RemoveEnvFromAppOpts) error {
 	var accountHasOtherEnvs, regionHasOtherEnvs bool
 	for _, env := range opts.Environments {
 		if env.Name != opts.EnvToDelete.Name {
@@ -478,16 +516,30 @@ func (cf CloudFormation) RemoveEnvFromApp(opts *RemoveEnvFromAppOpts) error {
 	})
 
 	if !regionHasOtherEnvs {
-		if err := cf.cleanUpRegionalResources(opts.App, opts.EnvToDelete.Region); err != nil {
+		var err error
+		if ctx == nil {
+			err = cf.cleanUpRegionalResources(opts.App, opts.EnvToDelete.Region)
+		} else {
+			err = cf.cleanUpRegionalResourcesWithContext(ctx, opts.App, opts.EnvToDelete.Region)
+		}
+		if err != nil {
 			return err
 		}
-		if err := cf.deleteStackSetInstance(appConfig.StackSetName(), opts.EnvToDelete.AccountID, opts.EnvToDelete.Region); err != nil {
+		if ctx == nil {
+			err = cf.deleteStackSetInstance(appConfig.StackSetName(), opts.EnvToDelete.AccountID, opts.EnvToDelete.Region)
+		} else {
+			err = cf.deleteStackSetInstanceWithContext(ctx, appConfig.StackSetName(), opts.EnvToDelete.AccountID, opts.EnvToDelete.Region)
+		}
+		if err != nil {
 			return err
 		}
 	}
 
 	if !accountHasOtherEnvs {
-		return cf.removeDNSDelegationAndCrossAccountAccess(appConfig, opts.EnvToDelete.AccountID)
+		if ctx == nil {
+			return cf.removeDNSDelegationAndCrossAccountAccess(appConfig, opts.EnvToDelete.AccountID)
+		}
+		return cf.removeDNSDelegationAndCrossAccountAccessWithContext(ctx, appConfig, opts.EnvToDelete.AccountID)
 	}
 
 	return nil
@@ -497,6 +549,15 @@ func (cf CloudFormation) RemoveEnvFromApp(opts *RemoveEnvFromAppOpts) error {
 // If there are no regional resources in that region (i.e. a delete call has already been made) it returns nil.
 func (cf CloudFormation) cleanUpRegionalResources(app *config.Application, region string) error {
 	resources, err := cf.GetAppResourcesByRegion(app, region)
+	return cf.cleanUpRegionalResourcesFrom(app, region, resources, err, nil)
+}
+
+func (cf CloudFormation) cleanUpRegionalResourcesWithContext(ctx context.Context, app *config.Application, region string) error {
+	resources, err := cf.GetAppResourcesByRegionWithContext(ctx, app, region)
+	return cf.cleanUpRegionalResourcesFrom(app, region, resources, err, ctx)
+}
+
+func (cf CloudFormation) cleanUpRegionalResourcesFrom(app *config.Application, region string, resources *stack.AppRegionalResources, err error, ctx context.Context) error {
 	if err != nil {
 		// Return early for idempotency if resources not found.
 		var errNotFound *errNoRegionalResources
@@ -506,7 +567,12 @@ func (cf CloudFormation) cleanUpRegionalResources(app *config.Application, regio
 		return err
 	}
 	s3 := cf.regionalS3Client(region)
-	if err := s3.EmptyBucket(resources.S3Bucket); err != nil {
+	if ctx == nil {
+		err = s3.EmptyBucket(resources.S3Bucket)
+	} else {
+		err = s3.EmptyBucketWithContext(ctx, resources.S3Bucket)
+	}
+	if err != nil {
 		return err
 	}
 	ecrRepoName := func(app, workload string) string {
@@ -514,7 +580,12 @@ func (cf CloudFormation) cleanUpRegionalResources(app *config.Application, regio
 	}
 	ecr := cf.regionalECRClient(region)
 	for svcName := range resources.RepositoryURLs {
-		if err := ecr.ClearRepository(ecrRepoName(app.Name, svcName)); err != nil {
+		if ctx == nil {
+			err = ecr.ClearRepository(ecrRepoName(app.Name, svcName))
+		} else {
+			err = ecr.ClearRepositoryWithContext(ctx, ecrRepoName(app.Name, svcName))
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -861,6 +932,33 @@ func (cf CloudFormation) DeleteApp(appName string) error {
 	})
 }
 
+// DeleteAppWithContext deletes all application-specific resources using ctx.
+func (cf CloudFormation) DeleteAppWithContext(ctx context.Context, appName string) error {
+	spinner := progress.NewSpinner(cf.console)
+	spinner.Start(fmt.Sprintf("Delete regional resources for application %q", appName))
+
+	stackSetName := fmt.Sprintf("%s-infrastructure", appName)
+	if err := cf.deleteStackSetInstancesWithContext(ctx, stackSetName); err != nil {
+		spinner.Stop(log.Serrorf("Error deleting regional resources for application %q\n", appName))
+		return err
+	}
+	if err := cf.appStackSet.DeleteWithContext(ctx, stackSetName); err != nil {
+		spinner.Stop(log.Serrorf("Error deleting regional resources for application %q\n", appName))
+		return err
+	}
+	spinner.Stop(log.Ssuccessf("Deleted regional resources for application %q\n", appName))
+	stackName := fmt.Sprintf("%s-infrastructure-roles", appName)
+	description := fmt.Sprintf("Delete application roles stack %s", stackName)
+	return cf.deleteAndRenderStack(deleteAndRenderInput{
+		ctx:         ctx,
+		stackName:   stackName,
+		description: description,
+		deleteFn: func(ctx context.Context) error {
+			return cf.cfnClient.DeleteAndWaitWithContext(ctx, stackName)
+		},
+	})
+}
+
 func (cf CloudFormation) deleteStackSetInstances(name string) error {
 	opID, err := cf.appStackSet.DeleteAllInstances(name)
 	if err != nil {
@@ -872,6 +970,17 @@ func (cf CloudFormation) deleteStackSetInstances(name string) error {
 	return cf.appStackSet.WaitForOperation(name, opID)
 }
 
+func (cf CloudFormation) deleteStackSetInstancesWithContext(ctx context.Context, name string) error {
+	opID, err := cf.appStackSet.DeleteAllInstancesWithContext(ctx, name)
+	if err != nil {
+		if IsEmptyErr(err) {
+			return nil
+		}
+		return err
+	}
+	return cf.appStackSet.WaitForOperationWithContext(ctx, name, opID)
+}
+
 func (cf CloudFormation) deleteStackSetInstance(name, account, region string) error {
 	opId, err := cf.appStackSet.DeleteInstance(name, account, region)
 	if err != nil {
@@ -881,6 +990,17 @@ func (cf CloudFormation) deleteStackSetInstance(name, account, region string) er
 		return err
 	}
 	return cf.appStackSet.WaitForOperation(name, opId)
+}
+
+func (cf CloudFormation) deleteStackSetInstanceWithContext(ctx context.Context, name, account, region string) error {
+	opId, err := cf.appStackSet.DeleteInstanceWithContext(ctx, name, account, region)
+	if err != nil {
+		if IsEmptyErr(err) {
+			return nil
+		}
+		return err
+	}
+	return cf.appStackSet.WaitForOperationWithContext(ctx, name, opId)
 }
 
 type renderStackSetInput struct {

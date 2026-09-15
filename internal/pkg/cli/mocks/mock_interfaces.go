@@ -4234,6 +4234,20 @@ func (mr *MockenvironmentDeployerMockRecorder) DeleteEnvironment(appName, envNam
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEnvironment", reflect.TypeOf((*MockenvironmentDeployer)(nil).DeleteEnvironment), appName, envName, cfnExecRoleARN)
 }
 
+// DeleteEnvironmentWithContext mocks base method.
+func (m *MockenvironmentDeployer) DeleteEnvironmentWithContext(arg0 context.Context, arg1, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteEnvironmentWithContext", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteEnvironmentWithContext indicates an expected call of DeleteEnvironmentWithContext.
+func (mr *MockenvironmentDeployerMockRecorder) DeleteEnvironmentWithContext(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEnvironmentWithContext", reflect.TypeOf((*MockenvironmentDeployer)(nil).DeleteEnvironmentWithContext), arg0, arg1, arg2, arg3)
+}
+
 // GetEnvironment mocks base method.
 func (m *MockenvironmentDeployer) GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error) {
 	m.ctrl.T.Helper()
@@ -4264,6 +4278,21 @@ func (mr *MockenvironmentDeployerMockRecorder) Template(stackName interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Template", reflect.TypeOf((*MockenvironmentDeployer)(nil).Template), stackName)
 }
 
+// TemplateWithContext mocks base method.
+func (m *MockenvironmentDeployer) TemplateWithContext(arg0 context.Context, arg1 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TemplateWithContext", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TemplateWithContext indicates an expected call of TemplateWithContext.
+func (mr *MockenvironmentDeployerMockRecorder) TemplateWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TemplateWithContext", reflect.TypeOf((*MockenvironmentDeployer)(nil).TemplateWithContext), arg0, arg1)
+}
+
 // UpdateEnvironmentTemplate mocks base method.
 func (m *MockenvironmentDeployer) UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN string) error {
 	m.ctrl.T.Helper()
@@ -4276,6 +4305,20 @@ func (m *MockenvironmentDeployer) UpdateEnvironmentTemplate(appName, envName, te
 func (mr *MockenvironmentDeployerMockRecorder) UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvironmentTemplate", reflect.TypeOf((*MockenvironmentDeployer)(nil).UpdateEnvironmentTemplate), appName, envName, templateBody, cfnExecRoleARN)
+}
+
+// UpdateEnvironmentTemplateWithContext mocks base method.
+func (m *MockenvironmentDeployer) UpdateEnvironmentTemplateWithContext(arg0 context.Context, arg1, arg2, arg3, arg4 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEnvironmentTemplateWithContext", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateEnvironmentTemplateWithContext indicates an expected call of UpdateEnvironmentTemplateWithContext.
+func (mr *MockenvironmentDeployerMockRecorder) UpdateEnvironmentTemplateWithContext(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvironmentTemplateWithContext", reflect.TypeOf((*MockenvironmentDeployer)(nil).UpdateEnvironmentTemplateWithContext), arg0, arg1, arg2, arg3, arg4)
 }
 
 // MockwlDeleter is a mock of wlDeleter interface.
@@ -4798,6 +4841,20 @@ func (mr *MockappDeployerMockRecorder) DeleteApp(name interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteApp", reflect.TypeOf((*MockappDeployer)(nil).DeleteApp), name)
 }
 
+// DeleteAppWithContext mocks base method.
+func (m *MockappDeployer) DeleteAppWithContext(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAppWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAppWithContext indicates an expected call of DeleteAppWithContext.
+func (mr *MockappDeployerMockRecorder) DeleteAppWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAppWithContext", reflect.TypeOf((*MockappDeployer)(nil).DeleteAppWithContext), arg0, arg1)
+}
+
 // DeployApp mocks base method.
 func (m *MockappDeployer) DeployApp(arg0 context.Context, arg1 *deploy0.CreateAppInput) error {
 	m.ctrl.T.Helper()
@@ -4990,6 +5047,20 @@ func (m *MockenvDeleterFromApp) RemoveEnvFromApp(opts *cloudformation0.RemoveEnv
 func (mr *MockenvDeleterFromAppMockRecorder) RemoveEnvFromApp(opts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveEnvFromApp", reflect.TypeOf((*MockenvDeleterFromApp)(nil).RemoveEnvFromApp), opts)
+}
+
+// RemoveEnvFromAppWithContext mocks base method.
+func (m *MockenvDeleterFromApp) RemoveEnvFromAppWithContext(arg0 context.Context, arg1 *cloudformation0.RemoveEnvFromAppOpts) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveEnvFromAppWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveEnvFromAppWithContext indicates an expected call of RemoveEnvFromAppWithContext.
+func (mr *MockenvDeleterFromAppMockRecorder) RemoveEnvFromAppWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveEnvFromAppWithContext", reflect.TypeOf((*MockenvDeleterFromApp)(nil).RemoveEnvFromAppWithContext), arg0, arg1)
 }
 
 // MocktaskDeployer is a mock of taskDeployer interface.
@@ -5471,6 +5542,20 @@ func (mr *MockdeployerMockRecorder) DeleteApp(name interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteApp", reflect.TypeOf((*Mockdeployer)(nil).DeleteApp), name)
 }
 
+// DeleteAppWithContext mocks base method.
+func (m *Mockdeployer) DeleteAppWithContext(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAppWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAppWithContext indicates an expected call of DeleteAppWithContext.
+func (mr *MockdeployerMockRecorder) DeleteAppWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAppWithContext", reflect.TypeOf((*Mockdeployer)(nil).DeleteAppWithContext), arg0, arg1)
+}
+
 // DeleteEnvironment mocks base method.
 func (m *Mockdeployer) DeleteEnvironment(appName, envName, cfnExecRoleARN string) error {
 	m.ctrl.T.Helper()
@@ -5483,6 +5568,20 @@ func (m *Mockdeployer) DeleteEnvironment(appName, envName, cfnExecRoleARN string
 func (mr *MockdeployerMockRecorder) DeleteEnvironment(appName, envName, cfnExecRoleARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEnvironment", reflect.TypeOf((*Mockdeployer)(nil).DeleteEnvironment), appName, envName, cfnExecRoleARN)
+}
+
+// DeleteEnvironmentWithContext mocks base method.
+func (m *Mockdeployer) DeleteEnvironmentWithContext(arg0 context.Context, arg1, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteEnvironmentWithContext", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteEnvironmentWithContext indicates an expected call of DeleteEnvironmentWithContext.
+func (mr *MockdeployerMockRecorder) DeleteEnvironmentWithContext(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEnvironmentWithContext", reflect.TypeOf((*Mockdeployer)(nil).DeleteEnvironmentWithContext), arg0, arg1, arg2, arg3)
 }
 
 // DeletePipeline mocks base method.
@@ -5617,6 +5716,21 @@ func (mr *MockdeployerMockRecorder) ListTaskStacks(appName, envName interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTaskStacks", reflect.TypeOf((*Mockdeployer)(nil).ListTaskStacks), appName, envName)
 }
 
+// ListTaskStacksWithContext mocks base method.
+func (m *Mockdeployer) ListTaskStacksWithContext(arg0 context.Context, arg1, arg2 string) ([]deploy0.TaskStackInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTaskStacksWithContext", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]deploy0.TaskStackInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTaskStacksWithContext indicates an expected call of ListTaskStacksWithContext.
+func (mr *MockdeployerMockRecorder) ListTaskStacksWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTaskStacksWithContext", reflect.TypeOf((*Mockdeployer)(nil).ListTaskStacksWithContext), arg0, arg1, arg2)
+}
+
 // PipelineExists mocks base method.
 func (m *Mockdeployer) PipelineExists(stackConfig cloudformation0.StackConfiguration) (bool, error) {
 	m.ctrl.T.Helper()
@@ -5689,6 +5803,20 @@ func (m *Mockdeployer) UpdateEnvironmentTemplate(appName, envName, templateBody,
 func (mr *MockdeployerMockRecorder) UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvironmentTemplate", reflect.TypeOf((*Mockdeployer)(nil).UpdateEnvironmentTemplate), appName, envName, templateBody, cfnExecRoleARN)
+}
+
+// UpdateEnvironmentTemplateWithContext mocks base method.
+func (m *Mockdeployer) UpdateEnvironmentTemplateWithContext(arg0 context.Context, arg1, arg2, arg3, arg4 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEnvironmentTemplateWithContext", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateEnvironmentTemplateWithContext indicates an expected call of UpdateEnvironmentTemplateWithContext.
+func (mr *MockdeployerMockRecorder) UpdateEnvironmentTemplateWithContext(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvironmentTemplateWithContext", reflect.TypeOf((*Mockdeployer)(nil).UpdateEnvironmentTemplateWithContext), arg0, arg1, arg2, arg3, arg4)
 }
 
 // UpdatePipeline mocks base method.

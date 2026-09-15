@@ -671,6 +671,49 @@ func TestStackSet_Delete(t *testing.T) {
 	}
 }
 
+func TestStackSetDeleteMethodsUseContext(t *testing.T) {
+	t.Run("instance", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		api := mocks.NewMockapi(ctrl)
+		ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+		api.EXPECT().DeleteStackInstances(ctx, gomock.Any()).Return(&cloudformation.DeleteStackInstancesOutput{
+			OperationId: aws.String("operation"),
+		}, nil)
+
+		client := &StackSet{client: api}
+		opID, err := client.DeleteInstanceWithContext(ctx, testName, "1111", "us-east-1")
+		require.NoError(t, err)
+		require.Equal(t, "operation", opID)
+	})
+
+	t.Run("all instances", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		api := mocks.NewMockapi(ctrl)
+		ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+		api.EXPECT().ListStackInstances(ctx, gomock.Any()).Return(&cloudformation.ListStackInstancesOutput{
+			Summaries: []types.StackInstanceSummary{{Account: aws.String("1111"), Region: aws.String("us-east-1")}},
+		}, nil)
+		api.EXPECT().DeleteStackInstances(ctx, gomock.Any()).Return(&cloudformation.DeleteStackInstancesOutput{
+			OperationId: aws.String("operation"),
+		}, nil)
+
+		client := &StackSet{client: api}
+		opID, err := client.DeleteAllInstancesWithContext(ctx, testName)
+		require.NoError(t, err)
+		require.Equal(t, "operation", opID)
+	})
+
+	t.Run("stack set", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		api := mocks.NewMockapi(ctrl)
+		ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+		api.EXPECT().DeleteStackSet(ctx, gomock.Any()).Return(&cloudformation.DeleteStackSetOutput{}, nil)
+
+		client := &StackSet{client: api}
+		require.NoError(t, client.DeleteWithContext(ctx, testName))
+	})
+}
+
 func TestStackSet_CreateInstances(t *testing.T) {
 	var (
 		testAccounts = []string{"1234"}

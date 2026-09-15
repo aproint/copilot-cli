@@ -156,10 +156,12 @@ type s3Client interface {
 	Upload(bucket, fileName string, data io.Reader) (string, error)
 	UploadWithContext(ctx context.Context, bucket, fileName string, data io.Reader) (string, error)
 	EmptyBucket(bucket string) error
+	EmptyBucketWithContext(context.Context, string) error
 }
 
 type imageRemover interface {
 	ClearRepository(repoName string) error
+	ClearRepositoryWithContext(context.Context, string) error
 }
 
 type stackSetClient interface {
@@ -178,8 +180,11 @@ type stackSetClient interface {
 	InstanceSummaries(name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
 	InstanceSummariesWithContext(context.Context, string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
 	DeleteInstance(name, account, region string) (string, error)
+	DeleteInstanceWithContext(context.Context, string, string, string) (string, error)
 	DeleteAllInstances(name string) (string, error)
+	DeleteAllInstancesWithContext(context.Context, string) (string, error)
 	Delete(name string) error
+	DeleteWithContext(context.Context, string) error
 	WaitForStackSetLastOperationComplete(name string) error
 	WaitForStackSetLastOperationCompleteWithContext(context.Context, string) error
 	WaitForOperation(name, opID string) error

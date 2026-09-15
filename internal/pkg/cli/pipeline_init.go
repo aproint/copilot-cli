@@ -276,7 +276,9 @@ func (o *initPipelineOpts) Ask(ctx context.Context) error {
 	}
 
 	if o.repoBranch == "" {
-		o.getBranch(ctx)
+		if err := o.getBranch(ctx); err != nil {
+			return err
+		}
 	}
 
 	if err := o.askOrValidatePipelineName(); err != nil {
@@ -486,9 +488,12 @@ func (o *initPipelineOpts) parseRepoDetails(ctx context.Context) error {
 }
 
 // getBranch fetches the user's current branch as a best-guess of which branch they want their pipeline to follow. If err, insert default branch name.
-func (o *initPipelineOpts) getBranch(ctx context.Context) {
+func (o *initPipelineOpts) getBranch(ctx context.Context) error {
 	// Fetches local git branch.
 	err := o.runner.RunWithContext(ctx, "git", []string{"rev-parse", "--abbrev-ref", "HEAD"}, exec.Stdout(&o.buffer))
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	o.repoBranch = strings.TrimSpace(o.buffer.String())
 	if err != nil {
 		o.repoBranch = defaultBranch
@@ -499,6 +504,7 @@ func (o *initPipelineOpts) getBranch(ctx context.Context) {
 	o.buffer.Reset()
 	log.Infof(`Your pipeline will follow branch '%s'.
 `, color.HighlightUserInput(o.repoBranch))
+	return nil
 }
 
 func (o *initPipelineOpts) parseGitHubRepoDetails() error {

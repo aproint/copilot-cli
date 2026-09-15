@@ -280,7 +280,7 @@ func (o *deleteAppOpts) deleteEnvs(ctx context.Context) error {
 
 	for _, env := range envs {
 		// Delete tasks from each environment.
-		tasks, err := o.cfn.ListTaskStacks(o.name, env.Name)
+		tasks, err := o.cfn.ListTaskStacksWithContext(ctx, o.name, env.Name)
 		if err != nil {
 			return err
 		}
@@ -358,7 +358,7 @@ func (o *deleteAppOpts) deletePipelines(ctx context.Context) error {
 }
 
 func (o *deleteAppOpts) deleteAppResources(ctx context.Context) error {
-	if err := o.cfn.DeleteApp(o.name); err != nil {
+	if err := o.cfn.DeleteAppWithContext(ctx, o.name); err != nil {
 		return fmt.Errorf("delete app resources: %w", err)
 	}
 	return nil

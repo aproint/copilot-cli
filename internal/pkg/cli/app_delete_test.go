@@ -203,7 +203,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.store.EXPECT().ListEnvironments(ctx, mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
-					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
+					mocks.deployer.EXPECT().ListTaskStacksWithContext(context.Background(), mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
 					mocks.taskDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// deleteEnvs
@@ -218,7 +218,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.spinner.EXPECT().Stop(log.Ssuccess(deleteAppCleanResourcesStopMsg)),
 
 					// deleteAppResources
-					mocks.deployer.EXPECT().DeleteApp(mockAppName).Return(nil),
+					mocks.deployer.EXPECT().DeleteAppWithContext(context.Background(), mockAppName).Return(nil),
 
 					// deleteAppConfigs
 					mocks.spinner.EXPECT().Start(deleteAppConfigStartMsg),
@@ -253,7 +253,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.store.EXPECT().ListEnvironments(ctx, mockAppName).Return(mockEnvs, nil),
 
 					// deleteTasks
-					mocks.deployer.EXPECT().ListTaskStacks(mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
+					mocks.deployer.EXPECT().ListTaskStacksWithContext(context.Background(), mockAppName, mockEnvs[0].Name).Return(mockTaskStacks, nil),
 					mocks.taskDeleter.EXPECT().Execute(gomock.Any()).Return(nil),
 
 					// deleteEnvs
@@ -268,7 +268,7 @@ func TestDeleteAppOpts_Execute(t *testing.T) {
 					mocks.spinner.EXPECT().Stop(log.Ssuccess(deleteAppCleanResourcesStopMsg)),
 
 					// deleteAppResources
-					mocks.deployer.EXPECT().DeleteApp(mockAppName).Return(nil),
+					mocks.deployer.EXPECT().DeleteAppWithContext(context.Background(), mockAppName).Return(nil),
 
 					// deleteAppConfigs
 					mocks.spinner.EXPECT().Start(deleteAppConfigStartMsg),

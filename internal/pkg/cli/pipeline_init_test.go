@@ -36,6 +36,20 @@ type pipelineInitMocks struct {
 	pipelineLister *mocks.MockdeployedPipelineLister
 }
 
+func TestInitPipelineOptsGetBranchReturnsCancellation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	runner := mocks.NewMockexecRunner(ctrl)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	runner.EXPECT().RunWithContext(ctx, "git", []string{"rev-parse", "--abbrev-ref", "HEAD"}, gomock.Any()).Return(ctx.Err())
+
+	opts := &initPipelineOpts{runner: runner}
+	err := opts.getBranch(ctx)
+
+	require.ErrorIs(t, err, context.Canceled)
+	require.Empty(t, opts.repoBranch)
+}
+
 func TestInitPipelineOpts_Ask(t *testing.T) {
 	const (
 		mockAppName = "my-app"

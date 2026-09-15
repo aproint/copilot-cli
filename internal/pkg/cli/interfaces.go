@@ -393,9 +393,12 @@ type stackDescriber interface {
 type environmentDeployer interface {
 	CreateAndRenderEnvironment(context.Context, cloudformation.StackConfiguration, string) error
 	DeleteEnvironment(appName, envName, cfnExecRoleARN string) error
+	DeleteEnvironmentWithContext(context.Context, string, string, string) error
 	GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error)
 	Template(stackName string) (string, error)
+	TemplateWithContext(context.Context, string) (string, error)
 	UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN string) error
+	UpdateEnvironmentTemplateWithContext(context.Context, string, string, string, string) error
 }
 
 type wlDeleter interface {
@@ -439,6 +442,7 @@ type appDeployer interface {
 	AddEnvToApp(opts *cloudformation.AddEnvToAppOpts) error
 	DelegateDNSPermissions(app *config.Application, accountID string) error
 	DeleteApp(name string) error
+	DeleteAppWithContext(context.Context, string) error
 }
 
 type appResourcesGetter interface {
@@ -451,6 +455,7 @@ type appResourcesGetter interface {
 type envDeleterFromApp interface {
 	appResourcesGetter
 	RemoveEnvFromApp(opts *cloudformation.RemoveEnvFromAppOpts) error
+	RemoveEnvFromAppWithContext(context.Context, *cloudformation.RemoveEnvFromAppOpts) error
 }
 
 type taskDeployer interface {
@@ -484,6 +489,7 @@ type deployer interface {
 	appDeployer
 	pipelineDeployer
 	ListTaskStacks(appName, envName string) ([]deploy.TaskStackInfo, error)
+	ListTaskStacksWithContext(context.Context, string, string) ([]deploy.TaskStackInfo, error)
 }
 
 type domainHostedZoneGetter interface {

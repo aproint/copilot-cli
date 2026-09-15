@@ -353,7 +353,7 @@ func (o *deleteEnvOpts) validateNoDependencyPipelines(ctx context.Context) error
 // In case we encounter a legacy stack, we need to first update the stack to make sure these roles are retained and then
 // proceed with the regular flow.
 func (o *deleteEnvOpts) ensureRolesAreRetained(ctx context.Context) error {
-	body, err := o.deployer.Template(stack.NameForEnv(o.appName, o.name))
+	body, err := o.deployer.TemplateWithContext(ctx, stack.NameForEnv(o.appName, o.name))
 	if err != nil {
 		var stackDoesNotExist *awscfn.ErrStackNotFound
 		if errors.As(err, &stackDoesNotExist) {
@@ -410,7 +410,7 @@ func (o *deleteEnvOpts) ensureRolesAreRetained(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := o.deployer.UpdateEnvironmentTemplate(o.appName, o.name, newBody, env.ExecutionRoleARN); err != nil {
+	if err := o.deployer.UpdateEnvironmentTemplateWithContext(ctx, o.appName, o.name, newBody, env.ExecutionRoleARN); err != nil {
 		return fmt.Errorf("update environment stack to retain environment roles: %w", err)
 	}
 	return nil
@@ -494,7 +494,7 @@ func (o *deleteEnvOpts) deleteStack(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := o.deployer.DeleteEnvironment(o.appName, o.name, env.ExecutionRoleARN); err != nil {
+	if err := o.deployer.DeleteEnvironmentWithContext(ctx, o.appName, o.name, env.ExecutionRoleARN); err != nil {
 		return fmt.Errorf("delete environment %s stack: %w", o.name, err)
 	}
 	return nil
@@ -515,7 +515,7 @@ func (o *deleteEnvOpts) cleanUpAppResources(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.envDeleterFromApp.RemoveEnvFromApp(&cloudformation.RemoveEnvFromAppOpts{
+	if err := o.envDeleterFromApp.RemoveEnvFromAppWithContext(ctx, &cloudformation.RemoveEnvFromAppOpts{
 		App:          app,
 		EnvToDelete:  currentEnv,
 		Environments: envs,

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
+	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/mocks"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	sdkcloudformation "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -104,6 +105,18 @@ func TestCloudFormation_CreatePipelinePropagatesContext(t *testing.T) {
 
 	deployer := CloudFormation{cfnClient: cfn, s3Client: s3}
 	require.NoError(t, deployer.CreatePipelineWithContext(ctx, "bucket", stackConfig))
+}
+
+func TestCloudFormation_DeletePipelineWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+	client := mocks.NewMockcfnClient(ctrl)
+	client.EXPECT().DeleteAndWaitWithContext(ctx, "pipeline-phonetool-test").Return(nil)
+
+	cf := CloudFormation{cfnClient: client}
+	err := cf.DeletePipelineWithContext(ctx, deploy.Pipeline{AppName: "phonetool", Name: "test"})
+
+	require.NoError(t, err)
 }
 
 func TestCloudFormation_CreatePipeline(t *testing.T) {

@@ -210,6 +210,29 @@ func TestCloudFormation_Create(t *testing.T) {
 	}
 }
 
+func TestCloudFormationCreateAndWaitWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockclient(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
+	client.EXPECT().DescribeStacks(ctx, gomock.Any()).Return(nil, errDoesNotExist)
+	client.EXPECT().CreateChangeSet(ctx, gomock.Any()).Return(&cloudformation.CreateChangeSetOutput{
+		Id:      aws.String(mockChangeSetID),
+		StackId: aws.String(mockStack.Name),
+	}, nil)
+	client.EXPECT().WaitUntilChangeSetCreateComplete(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	client.EXPECT().DescribeChangeSet(ctx, gomock.Any()).Return(&cloudformation.DescribeChangeSetOutput{
+		Changes:         []types.Change{{ResourceChange: &types.ResourceChange{}}},
+		ExecutionStatus: types.ExecutionStatusAvailable,
+	}, nil)
+	client.EXPECT().ExecuteChangeSet(ctx, gomock.Any()).Return(&cloudformation.ExecuteChangeSetOutput{}, nil)
+	client.EXPECT().WaitUntilStackCreateComplete(ctx, &cloudformation.DescribeStacksInput{
+		StackName: aws.String(mockStack.Name),
+	}, gomock.Any(), gomock.Any()).Return(nil)
+
+	cfn := &CloudFormation{client: client}
+	require.NoError(t, cfn.CreateAndWaitWithContext(ctx, mockStack))
+}
+
 func TestCloudFormation_CreateWithContextUsesContextForChangeSetLifecycle(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "create-change-set")

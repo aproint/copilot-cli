@@ -134,7 +134,11 @@ func (ss *StackSet) UpdateAndWait(name, template string, opts ...CreateOrUpdateO
 }
 
 func (ss *StackSet) getInstanceSummaries(name string) ([]InstanceSummary, error) {
-	summaries, err := ss.InstanceSummaries(name)
+	return ss.getInstanceSummariesWithContext(context.Background(), name)
+}
+
+func (ss *StackSet) getInstanceSummariesWithContext(ctx context.Context, name string) ([]InstanceSummary, error) {
+	summaries, err := ss.InstanceSummariesWithContext(ctx, name)
 	if err != nil {
 		// If the stack set doesn't exist - just move on.
 		if isNotFoundStackSet(errors.Unwrap(err)) {
@@ -158,7 +162,12 @@ func (ss *StackSet) getInstanceSummaries(name string) ([]InstanceSummary, error)
 // If there is no instance in the given account and region, this function will return an operation ID
 // but the API call will take no action.
 func (ss *StackSet) DeleteInstance(name, account, region string) (string, error) {
-	out, err := ss.client.DeleteStackInstances(context.Background(), &cloudformation.DeleteStackInstancesInput{
+	return ss.DeleteInstanceWithContext(context.Background(), name, account, region)
+}
+
+// DeleteInstanceWithContext deletes a stack set instance using ctx.
+func (ss *StackSet) DeleteInstanceWithContext(ctx context.Context, name, account, region string) (string, error) {
+	out, err := ss.client.DeleteStackInstances(ctx, &cloudformation.DeleteStackInstancesInput{
 		StackSetName: awsv2.String(name),
 		Accounts:     []string{account},
 		Regions:      []string{region},
@@ -176,7 +185,12 @@ func (ss *StackSet) DeleteInstance(name, account, region string) (string, error)
 // If the stack set does not have any instances, then return [ErrStackSetInstancesNotFound].
 // Both errors should satisfy [IsEmptyStackSetErr], otherwise it's an unexpected error.
 func (ss *StackSet) DeleteAllInstances(name string) (string, error) {
-	summaries, err := ss.getInstanceSummaries(name)
+	return ss.DeleteAllInstancesWithContext(context.Background(), name)
+}
+
+// DeleteAllInstancesWithContext removes all stack instances using ctx.
+func (ss *StackSet) DeleteAllInstancesWithContext(ctx context.Context, name string) (string, error) {
+	summaries, err := ss.getInstanceSummariesWithContext(ctx, name)
 	if err != nil {
 		return "", err
 	}
@@ -198,7 +212,7 @@ func (ss *StackSet) DeleteAllInstances(name string) (string, error) {
 		regions = append(regions, region)
 	}
 
-	out, err := ss.client.DeleteStackInstances(context.Background(), &cloudformation.DeleteStackInstancesInput{
+	out, err := ss.client.DeleteStackInstances(ctx, &cloudformation.DeleteStackInstancesInput{
 		StackSetName: awsv2.String(name),
 		Accounts:     accounts,
 		Regions:      regions,
@@ -213,7 +227,12 @@ func (ss *StackSet) DeleteAllInstances(name string) (string, error) {
 
 // Delete deletes the stack set, if the stack set does not exist then just return nil.
 func (ss *StackSet) Delete(name string) error {
-	if _, err := ss.client.DeleteStackSet(context.Background(), &cloudformation.DeleteStackSetInput{
+	return ss.DeleteWithContext(context.Background(), name)
+}
+
+// DeleteWithContext deletes a stack set using ctx.
+func (ss *StackSet) DeleteWithContext(ctx context.Context, name string) error {
+	if _, err := ss.client.DeleteStackSet(ctx, &cloudformation.DeleteStackSetInput{
 		StackSetName: awsv2.String(name),
 	}); err != nil {
 		if !isNotFoundStackSet(err) {

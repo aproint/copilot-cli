@@ -26,7 +26,7 @@ import (
 type initAppMocks struct {
 	mockRoute53Svc   *mocks.MockdomainHostedZoneGetter
 	mockStore        *mocks.Mockstore
-	mockPolicyLister *mocks.MockcontextPolicyLister
+	mockPolicyLister *mocks.MockpolicyLister
 	mockRoleManager  *mocks.MockroleTagsLister
 	mockProg         *mocks.Mockprogress
 }
@@ -50,7 +50,7 @@ func TestInitAppOpts_ValidateDoesNotCallRemoteServices(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	store := mocks.NewMockstore(ctrl)
-	policies := mocks.NewMockcontextPolicyLister(ctrl)
+	policies := mocks.NewMockpolicyLister(ctrl)
 	roles := mocks.NewMockroleTagsLister(ctrl)
 	route53 := mocks.NewMockdomainHostedZoneGetter(ctrl)
 	store.EXPECT().GetApplication(gomock.Any(), gomock.Any()).Times(0)
@@ -246,7 +246,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			m := &initAppMocks{
 				mockStore:        mocks.NewMockstore(ctrl),
 				mockRoute53Svc:   mocks.NewMockdomainHostedZoneGetter(ctrl),
-				mockPolicyLister: mocks.NewMockcontextPolicyLister(ctrl),
+				mockPolicyLister: mocks.NewMockpolicyLister(ctrl),
 				mockRoleManager:  mocks.NewMockroleTagsLister(ctrl),
 				mockProg:         mocks.NewMockprogress(ctrl),
 			}

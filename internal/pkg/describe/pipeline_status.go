@@ -36,12 +36,12 @@ type PipelineStatus struct {
 
 // NewPipelineStatusDescriber instantiates a new pipeline status describer using ctx.
 func NewPipelineStatusDescriber(ctx context.Context, pipeline deploy.Pipeline) (*PipelineStatusDescriber, error) {
-	v2Config, err := sessions.ImmutableProvider().DefaultConfig(ctx)
+	cfg, err := sessions.ImmutableProvider().DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	pipelineSvc := codepipeline.New(v2Config)
+	pipelineSvc := codepipeline.New(cfg)
 	return &PipelineStatusDescriber{
 		ctx:         ctx,
 		pipeline:    pipeline,

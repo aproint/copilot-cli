@@ -203,31 +203,31 @@ type CloudFormation struct {
 }
 
 // New returns a configured CloudFormation client.
-func New(v2Config aws.Config, opts ...OptFn) CloudFormation {
+func New(cfg aws.Config, opts ...OptFn) CloudFormation {
 	client := CloudFormation{
-		cfnClient:      cloudformation.New(v2Config),
-		codeStarClient: codestar.New(v2Config),
-		cpClient:       codepipeline.New(v2Config),
-		ecsClient:      ecs.New(v2Config),
-		cwClient:       cloudwatch.New(v2Config),
+		cfnClient:      cloudformation.New(cfg),
+		codeStarClient: codestar.New(cfg),
+		cpClient:       codepipeline.New(cfg),
+		ecsClient:      ecs.New(cfg),
+		cwClient:       cloudwatch.New(cfg),
 		regionalClient: func(region string) cfnClient {
-			regionalV2Config := v2Config
-			regionalV2Config.Region = region
-			return cloudformation.New(regionalV2Config)
+			regionalConfig := cfg
+			regionalConfig.Region = region
+			return cloudformation.New(regionalConfig)
 		},
 		regionalECRClient: func(region string) imageRemover {
-			regionalV2Config := v2Config
-			regionalV2Config.Region = region
-			return ecr.New(regionalV2Config)
+			regionalConfig := cfg
+			regionalConfig.Region = region
+			return ecr.New(regionalConfig)
 		},
-		appStackSet: stackset.New(v2Config),
-		s3Client:    s3.New(v2Config),
+		appStackSet: stackset.New(cfg),
+		s3Client:    s3.New(cfg),
 		regionalS3Client: func(region string) s3Client {
-			regionalV2Config := v2Config
-			regionalV2Config.Region = region
-			return s3.New(regionalV2Config)
+			regionalConfig := cfg
+			regionalConfig.Region = region
+			return s3.New(regionalConfig)
 		},
-		region:  v2Config.Region,
+		region:  cfg.Region,
 		console: new(discardFile),
 	}
 	for _, opt := range opts {

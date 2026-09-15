@@ -221,12 +221,12 @@ func newInitPipelineOpts(ctx context.Context, vars initPipelineVars) (*initPipel
 	}
 
 	p := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline init"))
-	v2Config, err := p.DefaultConfig(ctx)
+	cfg, err := p.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	ssmStore := newSSMConfigStoreFromConfig(v2Config)
+	ssmStore := newSSMConfigStoreFromConfig(cfg)
 	prompter := prompt.New()
 
 	wsAppName := tryReadingAppName()
@@ -237,16 +237,16 @@ func newInitPipelineOpts(ctx context.Context, vars initPipelineVars) (*initPipel
 	return &initPipelineOpts{
 		initPipelineVars: vars,
 		workspace:        ws,
-		secretsmanager:   secretsmanager.New(v2Config),
+		secretsmanager:   secretsmanager.New(cfg),
 		parser:           template.New(),
 		sessProvider:     p,
-		cfnClient:        cloudformation.New(v2Config, cloudformation.WithProgressTracker(os.Stderr)),
+		cfnClient:        cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr)),
 		store:            ssmStore,
 		prompt:           prompter,
 		sel:              selector.NewAppEnvSelector(prompter, ssmStore),
 		runner:           exec.NewCmd(),
 		wsAppName:        wsAppName,
-		pipelineLister:   deploy.NewPipelineStore(rg.New(v2Config)),
+		pipelineLister:   deploy.NewPipelineStore(rg.New(cfg)),
 	}, nil
 }
 

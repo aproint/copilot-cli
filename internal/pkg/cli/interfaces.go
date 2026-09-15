@@ -597,10 +597,6 @@ type roleDeleter interface {
 }
 
 type policyLister interface {
-	ListPolicyNames() ([]string, error)
-}
-
-type contextPolicyLister interface {
 	ListPolicyNames(context.Context) ([]string, error)
 }
 

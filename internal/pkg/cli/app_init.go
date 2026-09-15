@@ -56,7 +56,7 @@ type initAppOpts struct {
 	cfn                  appDeployer
 	prompt               prompter
 	prog                 progress
-	iam                  contextPolicyLister
+	iam                  policyLister
 	iamRoleManager       roleTagsLister
 	isSessionFromEnvVars func(context.Context) (bool, error)
 

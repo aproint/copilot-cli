@@ -6609,45 +6609,7 @@ func (m *MockpolicyLister) EXPECT() *MockpolicyListerMockRecorder {
 }
 
 // ListPolicyNames mocks base method.
-func (m *MockpolicyLister) ListPolicyNames() ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPolicyNames")
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListPolicyNames indicates an expected call of ListPolicyNames.
-func (mr *MockpolicyListerMockRecorder) ListPolicyNames() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPolicyNames", reflect.TypeOf((*MockpolicyLister)(nil).ListPolicyNames))
-}
-
-// MockcontextPolicyLister is a mock of contextPolicyLister interface.
-type MockcontextPolicyLister struct {
-	ctrl     *gomock.Controller
-	recorder *MockcontextPolicyListerMockRecorder
-}
-
-// MockcontextPolicyListerMockRecorder is the mock recorder for MockcontextPolicyLister.
-type MockcontextPolicyListerMockRecorder struct {
-	mock *MockcontextPolicyLister
-}
-
-// NewMockcontextPolicyLister creates a new mock instance.
-func NewMockcontextPolicyLister(ctrl *gomock.Controller) *MockcontextPolicyLister {
-	mock := &MockcontextPolicyLister{ctrl: ctrl}
-	mock.recorder = &MockcontextPolicyListerMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockcontextPolicyLister) EXPECT() *MockcontextPolicyListerMockRecorder {
-	return m.recorder
-}
-
-// ListPolicyNames mocks base method.
-func (m *MockcontextPolicyLister) ListPolicyNames(arg0 context.Context) ([]string, error) {
+func (m *MockpolicyLister) ListPolicyNames(arg0 context.Context) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListPolicyNames", arg0)
 	ret0, _ := ret[0].([]string)
@@ -6656,9 +6618,9 @@ func (m *MockcontextPolicyLister) ListPolicyNames(arg0 context.Context) ([]strin
 }
 
 // ListPolicyNames indicates an expected call of ListPolicyNames.
-func (mr *MockcontextPolicyListerMockRecorder) ListPolicyNames(arg0 interface{}) *gomock.Call {
+func (mr *MockpolicyListerMockRecorder) ListPolicyNames(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPolicyNames", reflect.TypeOf((*MockcontextPolicyLister)(nil).ListPolicyNames), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPolicyNames", reflect.TypeOf((*MockpolicyLister)(nil).ListPolicyNames), arg0)
 }
 
 // MockserviceDescriber is a mock of serviceDescriber interface.

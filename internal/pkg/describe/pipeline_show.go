@@ -46,12 +46,12 @@ type PipelineDescriber struct {
 
 // NewPipelineDescriber instantiates a new pipeline describer using ctx.
 func NewPipelineDescriber(ctx context.Context, pipeline deploy.Pipeline, showResources bool) (*PipelineDescriber, error) {
-	v2Config, err := sessions.ImmutableProvider().DefaultConfig(ctx)
+	cfg, err := sessions.ImmutableProvider().DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	pipelineSvc := codepipeline.New(v2Config)
+	pipelineSvc := codepipeline.New(cfg)
 
 	return &PipelineDescriber{
 		ctx:      ctx,
@@ -59,7 +59,7 @@ func NewPipelineDescriber(ctx context.Context, pipeline deploy.Pipeline, showRes
 
 		pipelineSvc:   pipelineSvc,
 		showResources: showResources,
-		cfn:           describestack.NewStackDescriber(stack.NameForPipeline(pipeline.AppName, pipeline.Name, pipeline.IsLegacy), v2Config),
+		cfn:           describestack.NewStackDescriber(stack.NameForPipeline(pipeline.AppName, pipeline.Name, pipeline.IsLegacy), cfg),
 	}, nil
 }
 

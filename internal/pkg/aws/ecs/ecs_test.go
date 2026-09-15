@@ -723,6 +723,43 @@ func TestECS_Tasks(t *testing.T) {
 	}
 }
 
+func TestECS_RunningTasksWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "running-tasks")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockapi(ctrl)
+	m.EXPECT().ListTasks(gomock.Eq(ctx), &ecs.ListTasksInput{
+		Cluster:       awsv2.String("cluster"),
+		DesiredStatus: types.DesiredStatusRunning,
+	}).Return(&ecs.ListTasksOutput{}, nil)
+	client := &ECS{client: m}
+
+	tasks, err := client.RunningTasksWithContext(ctx, "cluster")
+
+	require.NoError(t, err)
+	require.Empty(t, tasks)
+}
+
+func TestECS_RunningTasksInFamilyWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "family-tasks")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockapi(ctrl)
+	m.EXPECT().ListTasks(gomock.Eq(ctx), &ecs.ListTasksInput{
+		Cluster:       awsv2.String("cluster"),
+		Family:        awsv2.String("family"),
+		DesiredStatus: types.DesiredStatusRunning,
+	}).Return(&ecs.ListTasksOutput{}, nil)
+	client := &ECS{client: m}
+
+	tasks, err := client.RunningTasksInFamilyWithContext(ctx, "cluster", "family")
+
+	require.NoError(t, err)
+	require.Empty(t, tasks)
+}
+
 func TestECS_StoppedServiceTasks(t *testing.T) {
 	testCases := map[string]struct {
 		clusterName   string

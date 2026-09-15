@@ -5,12 +5,14 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"os"
 	osexec "os/exec"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/term"
 
 	"github.com/golang/mock/gomock"
 )
@@ -35,6 +37,33 @@ func TestCmd_Run(t *testing.T) {
 		// THEN
 		require.NoError(t, err)
 	})
+}
+
+func TestRunWithTerminalRestore(t *testing.T) {
+	originalGetState := getTerminalState
+	originalRestore := restoreTerminal
+	t.Cleanup(func() {
+		getTerminalState = originalGetState
+		restoreTerminal = originalRestore
+	})
+
+	state := new(term.State)
+	runErr := errors.New("run command")
+	restoreErr := errors.New("restore terminal")
+	getTerminalState = func(fd int) (*term.State, error) {
+		require.Equal(t, int(os.Stdin.Fd()), fd)
+		return state, nil
+	}
+	restoreTerminal = func(fd int, gotState *term.State) error {
+		require.Equal(t, int(os.Stdin.Fd()), fd)
+		require.Same(t, state, gotState)
+		return restoreErr
+	}
+
+	err := runWithTerminalRestore(func() error { return runErr })
+
+	require.ErrorIs(t, err, runErr)
+	require.ErrorIs(t, err, restoreErr)
 }
 
 func TestCmd_RunWithContext(t *testing.T) {

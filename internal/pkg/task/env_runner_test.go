@@ -4,6 +4,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -435,4 +436,25 @@ func TestEnvRunner_Run(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEnvRunner_CheckNonZeroExitCodeWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "env-exit-code")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	clusterGetter := mocks.NewMockClusterGetter(ctrl)
+	clusterGetter.EXPECT().ClusterARNWithContext(gomock.Eq(ctx), "app", "env").Return("cluster", nil)
+	exitCodeGetter := mocks.NewMockNonZeroExitCodeGetter(ctrl)
+	exitCodeGetter.EXPECT().HasNonZeroExitCodeWithContext(gomock.Eq(ctx), []string{"task-1"}, "cluster").Return(nil)
+	runner := EnvRunner{
+		App:                   "app",
+		Env:                   "env",
+		ClusterGetter:         clusterGetter,
+		NonZeroExitCodeGetter: exitCodeGetter,
+	}
+
+	err := runner.CheckNonZeroExitCodeWithContext(ctx, []*Task{{TaskARN: "task-1"}})
+
+	require.NoError(t, err)
 }

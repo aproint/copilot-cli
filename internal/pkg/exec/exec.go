@@ -6,10 +6,14 @@ package exec
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
+
+	"golang.org/x/term"
 )
 
 type httpClient interface {
@@ -26,6 +30,11 @@ type runner interface {
 type cmdRunner interface {
 	Run() error
 }
+
+var (
+	getTerminalState = term.GetState
+	restoreTerminal  = term.Restore
+)
 
 // Cmd runs external commands, it wraps the exec.CommandContext function from the stdlib so that
 // running external commands can be unit tested.
@@ -71,6 +80,19 @@ func Stderr(writer io.Writer) CmdOption {
 	return func(c *exec.Cmd) {
 		c.Stderr = writer
 	}
+}
+
+func runWithTerminalRestore(run func() error) (err error) {
+	fd := int(os.Stdin.Fd())
+	state, stateErr := getTerminalState(fd)
+	if stateErr == nil {
+		defer func() {
+			if restoreErr := restoreTerminal(fd, state); restoreErr != nil {
+				err = errors.Join(err, fmt.Errorf("restore terminal state: %w", restoreErr))
+			}
+		}()
+	}
+	return run()
 }
 
 // Run starts the named command and waits until it finishes.

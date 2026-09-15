@@ -825,6 +825,26 @@ func TestCloudFormation_DeleteAndWaitWithContextUsesContextForDeleteAndWaiter(t 
 	require.NoError(t, err)
 }
 
+func TestCloudFormation_DeleteAndWaitWithRoleARNWithContextUsesContextForDeleteAndWaiter(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "delete-role-waiter")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockclient(ctrl)
+	m.EXPECT().DeleteStack(gomock.Eq(ctx), &cloudformation.DeleteStackInput{
+		StackName: aws.String(mockStack.Name),
+		RoleARN:   aws.String("role"),
+	}).Return(nil, nil)
+	m.EXPECT().WaitUntilStackDeleteComplete(gomock.Eq(ctx), &cloudformation.DescribeStacksInput{
+		StackName: aws.String(mockStack.Name),
+	}, gomock.Any(), gomock.Any()).Return(nil)
+	cfn := CloudFormation{client: m}
+
+	err := cfn.DeleteAndWaitWithRoleARNWithContext(ctx, mockStack.Name, "role")
+
+	require.NoError(t, err)
+}
+
 func TestStackDescriber_Metadata(t *testing.T) {
 	testCases := map[string]struct {
 		isStackSet bool

@@ -4,6 +4,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -36,6 +37,20 @@ var taskWithENI = ecs.Task{
 			},
 		},
 	},
+}
+
+func TestConfigRunner_CheckNonZeroExitCodeWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "config-exit-code")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	getter := mocks.NewMockNonZeroExitCodeGetter(ctrl)
+	getter.EXPECT().HasNonZeroExitCodeWithContext(gomock.Eq(ctx), []string{"task-1"}, "cluster").Return(nil)
+	runner := ConfigRunner{Cluster: "cluster", NonZeroExitCodeGetter: getter}
+
+	err := runner.CheckNonZeroExitCodeWithContext(ctx, []*Task{{TaskARN: "task-1"}})
+
+	require.NoError(t, err)
 }
 
 var taskWithNoENI = ecs.Task{

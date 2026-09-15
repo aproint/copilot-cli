@@ -8,8 +8,11 @@ package exec
 import (
 	"context"
 	"os"
-	"os/signal"
+	"os/exec"
+	"time"
 )
+
+const interactiveCancelGracePeriod = 2 * time.Second
 
 // InteractiveRun runs the input command that starts a child process.
 func (c *Cmd) InteractiveRun(name string, args []string) error {
@@ -18,9 +21,19 @@ func (c *Cmd) InteractiveRun(name string, args []string) error {
 
 // InteractiveRunWithContext runs the input command with ctx.
 func (c *Cmd) InteractiveRunWithContext(ctx context.Context, name string, args []string) error {
-	// Ignore interrupt signal otherwise the program exits.
-	signal.Ignore(os.Interrupt)
-	defer signal.Reset(os.Interrupt)
-	cmd := c.command(ctx, name, args, Stdout(os.Stdout), Stdin(os.Stdin), Stderr(os.Stderr))
-	return cmd.Run()
+	cmd := c.command(ctx, name, args,
+		Stdout(os.Stdout),
+		Stdin(os.Stdin),
+		Stderr(os.Stderr),
+		interruptBeforeKill(interactiveCancelGracePeriod))
+	return runWithTerminalRestore(cmd.Run)
+}
+
+func interruptBeforeKill(gracePeriod time.Duration) CmdOption {
+	return func(cmd *exec.Cmd) {
+		cmd.Cancel = func() error {
+			return cmd.Process.Signal(os.Interrupt)
+		}
+		cmd.WaitDelay = gracePeriod
+	}
 }

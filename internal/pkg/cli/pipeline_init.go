@@ -215,13 +215,17 @@ type artifactBucket struct {
 }
 
 func newInitPipelineOpts(vars initPipelineVars) (*initPipelineOpts, error) {
+	return newInitPipelineOptsWithContext(context.Background(), vars)
+}
+
+func newInitPipelineOptsWithContext(ctx context.Context, vars initPipelineVars) (*initPipelineOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
 	p := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline init"))
-	v2Config, err := p.DefaultConfig(context.Background())
+	v2Config, err := p.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -258,21 +262,21 @@ func (o *initPipelineOpts) Validate() error {
 // Ask prompts for required fields that are not passed in and validates them.
 func (o *initPipelineOpts) Ask(ctx context.Context) error {
 	// This command must be executed in the app's workspace because the pipeline manifest and buildspec will be created and stored.
-	if err := validateWorkspaceApp(o.wsAppName, o.appName, o.store); err != nil {
+	if err := validateWorkspaceAppWithContext(ctx, o.wsAppName, o.appName, o.store); err != nil {
 		return err
 	}
 	o.appName = o.wsAppName
 
-	if err := o.askOrValidateURL(); err != nil {
+	if err := o.askOrValidateURL(ctx); err != nil {
 		return err
 	}
 
-	if err := o.parseRepoDetails(); err != nil {
+	if err := o.parseRepoDetails(ctx); err != nil {
 		return err
 	}
 
 	if o.repoBranch == "" {
-		o.getBranch()
+		o.getBranch(ctx)
 	}
 
 	if err := o.askOrValidatePipelineName(); err != nil {
@@ -283,7 +287,7 @@ func (o *initPipelineOpts) Ask(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.validateDuplicatePipeline(); err != nil {
+	if err := o.validateDuplicatePipeline(ctx); err != nil {
 		return err
 	}
 
@@ -302,7 +306,7 @@ func (o *initPipelineOpts) Ask(ctx context.Context) error {
 // Execute writes the pipeline manifest file.
 func (o *initPipelineOpts) Execute(ctx context.Context) error {
 	if o.provider == manifest.GithubV1ProviderName {
-		if err := o.storeGitHubAccessToken(); err != nil {
+		if err := o.storeGitHubAccessToken(ctx); err != nil {
 			return err
 		}
 	}
@@ -327,7 +331,7 @@ func (o *initPipelineOpts) RequiredActions() []string {
 
 // validateDuplicatePipeline checks that the pipeline name isn't already used
 // by another pipeline to reduce potential confusion with a legacy pipeline.
-func (o *initPipelineOpts) validateDuplicatePipeline() error {
+func (o *initPipelineOpts) validateDuplicatePipeline(ctx context.Context) error {
 	var allPipelines []string
 
 	localPipelines, err := o.workspace.ListPipelines()
@@ -338,7 +342,7 @@ func (o *initPipelineOpts) validateDuplicatePipeline() error {
 		allPipelines = append(allPipelines, pipeline.Name)
 	}
 
-	deployedPipelines, err := o.pipelineLister.ListDeployedPipelines(o.appName)
+	deployedPipelines, err := o.pipelineLister.ListDeployedPipelinesWithContext(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("list deployed pipelines for app %s: %w", o.appName, err)
 	}
@@ -372,9 +376,9 @@ func (o *initPipelineOpts) askOrValidatePipelineName() error {
 	return validatePipelineName(o.name, o.appName)
 }
 
-func (o *initPipelineOpts) askOrValidateURL() error {
+func (o *initPipelineOpts) askOrValidateURL(ctx context.Context) error {
 	if o.repoURL == "" {
-		return o.selectURL()
+		return o.selectURL(ctx)
 	}
 
 	return o.validateURL(o.repoURL)
@@ -468,12 +472,12 @@ func (o *initPipelineOpts) askEnvs(ctx context.Context) error {
 	return nil
 }
 
-func (o *initPipelineOpts) parseRepoDetails() error {
+func (o *initPipelineOpts) parseRepoDetails(ctx context.Context) error {
 	switch {
 	case strings.Contains(o.repoURL, githubURL):
 		return o.parseGitHubRepoDetails()
 	case strings.Contains(o.repoURL, ccIdentifier):
-		return o.parseCodeCommitRepoDetails()
+		return o.parseCodeCommitRepoDetails(ctx)
 	case strings.Contains(o.repoURL, bbURL):
 		return o.parseBitbucketRepoDetails()
 	default:
@@ -482,9 +486,9 @@ func (o *initPipelineOpts) parseRepoDetails() error {
 }
 
 // getBranch fetches the user's current branch as a best-guess of which branch they want their pipeline to follow. If err, insert default branch name.
-func (o *initPipelineOpts) getBranch() {
+func (o *initPipelineOpts) getBranch(ctx context.Context) {
 	// Fetches local git branch.
-	err := o.runner.Run("git", []string{"rev-parse", "--abbrev-ref", "HEAD"}, exec.Stdout(&o.buffer))
+	err := o.runner.RunWithContext(ctx, "git", []string{"rev-parse", "--abbrev-ref", "HEAD"}, exec.Stdout(&o.buffer))
 	o.repoBranch = strings.TrimSpace(o.buffer.String())
 	if err != nil {
 		o.repoBranch = defaultBranch
@@ -515,7 +519,7 @@ func (o *initPipelineOpts) parseGitHubRepoDetails() error {
 	return nil
 }
 
-func (o *initPipelineOpts) parseCodeCommitRepoDetails() error {
+func (o *initPipelineOpts) parseCodeCommitRepoDetails(ctx context.Context) error {
 	o.provider = manifest.CodeCommitProviderName
 	repoDetails, err := ccRepoURL(o.repoURL).parse()
 	if err != nil {
@@ -525,7 +529,7 @@ func (o *initPipelineOpts) parseCodeCommitRepoDetails() error {
 	o.ccRegion = repoDetails.region
 
 	// If the CodeCommit region is different than that of the app, pipeline init errors out.
-	cfg, err := o.sessProvider.DefaultConfig(context.Background())
+	cfg, err := o.sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("retrieve default config: %w", err)
 	}
@@ -552,9 +556,9 @@ func (o *initPipelineOpts) parseBitbucketRepoDetails() error {
 	return nil
 }
 
-func (o *initPipelineOpts) selectURL() error {
+func (o *initPipelineOpts) selectURL(ctx context.Context) error {
 	// Fetches and parses all remote repositories.
-	err := o.runner.Run("git", []string{"remote", "-v"}, exec.Stdout(&o.buffer))
+	err := o.runner.RunWithContext(ctx, "git", []string{"remote", "-v"}, exec.Stdout(&o.buffer))
 	if err != nil {
 		return fmt.Errorf("get remote repository info: %w; make sure you have installed Git and are in a Git repository", err)
 	}
@@ -708,9 +712,9 @@ func (url bbRepoURL) parse() (bbRepoDetails, error) {
 	}, nil
 }
 
-func (o *initPipelineOpts) storeGitHubAccessToken() error {
+func (o *initPipelineOpts) storeGitHubAccessToken(ctx context.Context) error {
 	secretName := o.secretName()
-	_, err := o.secretsmanager.CreateSecret(secretName, o.githubAccessToken)
+	_, err := o.secretsmanager.CreateSecretWithContext(ctx, secretName, o.githubAccessToken)
 
 	if err != nil {
 		var existsErr *secretsmanager.ErrSecretAlreadyExists
@@ -845,7 +849,7 @@ func (o *initPipelineOpts) artifactBuckets(ctx context.Context) ([]artifactBucke
 	if err != nil {
 		return nil, fmt.Errorf("get application %s: %w", o.appName, err)
 	}
-	regionalResources, err := o.cfnClient.GetRegionalAppResources(app)
+	regionalResources, err := o.cfnClient.GetRegionalAppResourcesWithContext(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("get regional application resources: %w", err)
 	}
@@ -883,7 +887,7 @@ func buildPipelineInitCmd() *cobra.Command {
   /code  --git-branch main \
   /code  --environments "stage,prod"`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newInitPipelineOpts(vars)
+			opts, err := newInitPipelineOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

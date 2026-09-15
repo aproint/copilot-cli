@@ -62,6 +62,7 @@ func newJobLogOptsWithContext(ctx context.Context, vars jobLogsVars) (*jobLogsOp
 	opts := &jobLogsOpts{
 		jobLogsVars: vars,
 		wkldLogOpts: wkldLogOpts{
+			ctx:         ctx,
 			w:           log.OutputWriter,
 			configStore: configStore,
 			deployStore: deployStore,
@@ -91,7 +92,11 @@ func newJobLogOptsWithContext(ctx context.Context, vars jobLogsVars) (*jobLogsOp
 
 // Validate returns an error if the values provided by flags are invalid.
 func (o *jobLogsOpts) Validate() error {
-	ctx := context.Background()
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
 	if o.appName != "" {
 		if _, err := o.configStore.GetApplication(ctx, o.appName); err != nil {
 			return err

@@ -42,6 +42,7 @@ type appUpgradeVars struct {
 // and clients to execute the command.
 type appUpgradeOpts struct {
 	appUpgradeVars
+	ctx context.Context
 
 	store    store
 	route53  domainHostedZoneGetter
@@ -55,20 +56,25 @@ type appUpgradeOpts struct {
 }
 
 func newAppUpgradeOpts(vars appUpgradeVars) (*appUpgradeOpts, error) {
-	cfg, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app upgrade")).DefaultConfig(context.Background())
+	return newAppUpgradeOptsWithContext(context.Background(), vars)
+}
+
+func newAppUpgradeOptsWithContext(ctx context.Context, vars appUpgradeVars) (*appUpgradeOpts, error) {
+	cfg, err := sessions.ImmutableProvider(sessions.UserAgentExtras("app upgrade")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 	store := newSSMConfigStoreFromConfig(cfg)
 	return &appUpgradeOpts{
 		appUpgradeVars: vars,
+		ctx:            ctx,
 		store:          store,
 		identity:       identity.New(cfg),
 		route53:        route53.New(cfg),
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		upgrader:       cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr)),
 		newVersionGetter: func(appName string) (versionGetter, error) {
-			d, err := describe.NewAppDescriber(appName)
+			d, err := describe.NewAppDescriberWithContext(ctx, appName)
 			if err != nil {
 				return d, fmt.Errorf("new describer for application %q: %w", appName, err)
 			}
@@ -81,7 +87,12 @@ func newAppUpgradeOpts(vars appUpgradeVars) (*appUpgradeOpts, error) {
 // Validate returns an error if the values provided by the user are invalid.
 func (o *appUpgradeOpts) Validate() error {
 	if o.name != "" {
-		_, err := o.store.GetApplication(context.Background(), o.name)
+		ctx := o.ctx
+		if ctx == nil {
+			// Compatibility for callers that construct options directly. Commands always set ctx.
+			ctx = context.Background()
+		}
+		_, err := o.store.GetApplication(ctx, o.name)
 		if err != nil {
 			return fmt.Errorf("get application %s: %w", o.name, err)
 		}
@@ -186,7 +197,7 @@ func (o *appUpgradeOpts) upgradeApplication(ctx context.Context, app *config.App
 
 func (o *appUpgradeOpts) upgradeAppSSMStore(ctx context.Context, app *config.Application) error {
 	if app.Domain != "" && app.DomainHostedZoneID == "" {
-		hostedZoneID, err := o.route53.PublicDomainHostedZoneID(app.Domain)
+		hostedZoneID, err := o.route53.PublicDomainHostedZoneIDContext(ctx, app.Domain)
 		if err != nil {
 			return fmt.Errorf("get hosted zone ID for domain %s: %w", app.Domain, err)
 		}
@@ -208,7 +219,7 @@ func buildAppUpgradeCmd() *cobra.Command {
     Upgrade the application "my-app" to the latest version
     /code $ copilot app upgrade -n my-app`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newAppUpgradeOpts(vars)
+			opts, err := newAppUpgradeOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

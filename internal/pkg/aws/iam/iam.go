@@ -71,6 +71,11 @@ func (c *IAM) ListRoleTagsContext(ctx context.Context, roleName string) (map[str
 // DeleteRole deletes an IAM role based on its ARN.
 // If the role does not exist it returns nil.
 func (c *IAM) DeleteRole(roleNameOrARN string) error {
+	return c.DeleteRoleWithContext(context.Background(), roleNameOrARN)
+}
+
+// DeleteRoleWithContext deletes an IAM role using ctx.
+func (c *IAM) DeleteRoleWithContext(ctx context.Context, roleNameOrARN string) error {
 	roleName := roleNameOrARN
 	if parsed, err := arn.Parse(roleNameOrARN); err == nil {
 		// The parameter is an ARN instead!
@@ -78,10 +83,10 @@ func (c *IAM) DeleteRole(roleNameOrARN string) error {
 		roleName = strings.TrimPrefix(parsed.Resource, "role/")
 	}
 
-	if err := c.deleteRolePolicies(roleName); err != nil {
+	if err := c.deleteRolePolicies(ctx, roleName); err != nil {
 		return err
 	}
-	if _, err := c.client.DeleteRole(context.Background(), &iam.DeleteRoleInput{
+	if _, err := c.client.DeleteRole(ctx, &iam.DeleteRoleInput{
 		RoleName: awsv2.String(roleName),
 	}); err != nil {
 		if isNotExistErr(err) {
@@ -97,7 +102,12 @@ func (c *IAM) DeleteRole(roleNameOrARN string) error {
 // This role is necessary so that Amazon ECS can call AWS APIs.
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using-service-linked-roles.html
 func (c *IAM) CreateECSServiceLinkedRole() error {
-	if _, err := c.client.CreateServiceLinkedRole(context.Background(), &iam.CreateServiceLinkedRoleInput{
+	return c.CreateECSServiceLinkedRoleWithContext(context.Background())
+}
+
+// CreateECSServiceLinkedRoleWithContext creates the ECS service-linked role using ctx.
+func (c *IAM) CreateECSServiceLinkedRoleWithContext(ctx context.Context) error {
+	if _, err := c.client.CreateServiceLinkedRole(ctx, &iam.CreateServiceLinkedRoleInput{
 		AWSServiceName: awsv2.String(ecsServiceName),
 	}); err != nil {
 		return fmt.Errorf("create service linked role for %s: %w", ecsServiceName, err)
@@ -136,13 +146,13 @@ func (c *IAM) ListPolicyNamesContext(ctx context.Context) ([]string, error) {
 	return policyNames, nil
 }
 
-func (c *IAM) deleteRolePolicies(roleName string) error {
-	policyNames, err := c.listRolePolicyNames(roleName)
+func (c *IAM) deleteRolePolicies(ctx context.Context, roleName string) error {
+	policyNames, err := c.listRolePolicyNames(ctx, roleName)
 	if err != nil {
 		return err
 	}
 	for _, policyName := range policyNames {
-		if _, err := c.client.DeleteRolePolicy(context.Background(), &iam.DeleteRolePolicyInput{
+		if _, err := c.client.DeleteRolePolicy(ctx, &iam.DeleteRolePolicyInput{
 			PolicyName: awsv2.String(policyName),
 			RoleName:   awsv2.String(roleName),
 		}); err != nil {
@@ -152,11 +162,11 @@ func (c *IAM) deleteRolePolicies(roleName string) error {
 	return nil
 }
 
-func (c *IAM) listRolePolicyNames(roleName string) ([]string, error) {
+func (c *IAM) listRolePolicyNames(ctx context.Context, roleName string) ([]string, error) {
 	var policyNames []string
 	var marker *string
 	for {
-		out, err := c.client.ListRolePolicies(context.Background(), &iam.ListRolePoliciesInput{
+		out, err := c.client.ListRolePolicies(ctx, &iam.ListRolePoliciesInput{
 			Marker:   marker,
 			RoleName: awsv2.String(roleName),
 		})

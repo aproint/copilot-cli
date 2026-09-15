@@ -4,6 +4,7 @@
 package codepipeline
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -588,4 +589,19 @@ func TestCodePipeline_RetryStageExecution(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCodePipeline_RetryStageExecutionPropagatesContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("caller"), "pipeline retry")
+
+	ctrl := gomock.NewController(t)
+	api := mocks.NewMockapi(ctrl)
+	api.EXPECT().ListPipelineExecutions(ctx, gomock.Any()).Return(&codepipeline.ListPipelineExecutionsOutput{
+		PipelineExecutionSummaries: []types.PipelineExecutionSummary{{PipelineExecutionId: awsv2.String("execution")}},
+	}, nil)
+	api.EXPECT().RetryStageExecution(ctx, gomock.Any()).Return(&codepipeline.RetryStageExecutionOutput{}, nil)
+
+	client := CodePipeline{client: api}
+	require.NoError(t, client.RetryStageExecutionWithContext(ctx, "pipeline", "Source"))
 }

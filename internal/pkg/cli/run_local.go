@@ -112,6 +112,7 @@ type runLocalVars struct {
 
 type runLocalOpts struct {
 	runLocalVars
+	ctx context.Context
 
 	sel              deploySelector
 	ecsClient        ecsClient
@@ -172,6 +173,7 @@ func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLoc
 	}
 	o := &runLocalOpts{
 		runLocalVars:       vars,
+		ctx:                ctx,
 		sel:                selector.NewDeploySelect(prompt.New(), store, deployStore),
 		store:              store,
 		ws:                 ws,
@@ -313,11 +315,16 @@ func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLoc
 
 // Validate returns an error for any invalid optional flags.
 func (o *runLocalOpts) Validate() error {
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
 	// Ensure that the application name provided exists in the workspace
-	app, err := o.store.GetApplication(context.Background(), o.appName)
+	app, err := o.store.GetApplication(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %s: %w", o.appName, err)
 	}

@@ -62,15 +62,15 @@ var (
 )
 
 type resourceGetter interface {
-	GetResources(*resourcegroupstaggingapi.GetResourcesInput) (*resourcegroupstaggingapi.GetResourcesOutput, error)
+	GetResources(context.Context, *resourcegroupstaggingapi.GetResourcesInput) (*resourcegroupstaggingapi.GetResourcesOutput, error)
 }
 
 type resourceGroupsClient struct {
 	client *resourcegroupstaggingapi.Client
 }
 
-func (c *resourceGroupsClient) GetResources(in *resourcegroupstaggingapi.GetResourcesInput) (*resourcegroupstaggingapi.GetResourcesOutput, error) {
-	return c.client.GetResources(context.Background(), in)
+func (c *resourceGroupsClient) GetResources(ctx context.Context, in *resourcegroupstaggingapi.GetResourcesInput) (*resourcegroupstaggingapi.GetResourcesOutput, error) {
+	return c.client.GetResources(ctx, in)
 }
 
 type deleteEnvVars struct {
@@ -81,6 +81,7 @@ type deleteEnvVars struct {
 
 type deleteEnvOpts struct {
 	deleteEnvVars
+	ctx context.Context
 
 	// Interfaces for dependencies.
 	store                  environmentStore
@@ -105,8 +106,12 @@ type deleteEnvOpts struct {
 }
 
 func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
+	return newDeleteEnvOptsWithContext(context.Background(), vars)
+}
+
+func newDeleteEnvOptsWithContext(ctx context.Context, vars deleteEnvVars) (*deleteEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env delete"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -115,6 +120,7 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 	prompter := prompt.New()
 	return &deleteEnvOpts{
 		deleteEnvVars: vars,
+		ctx:           ctx,
 
 		store:  store,
 		prog:   termprogress.NewSpinner(log.DiagnosticWriter),
@@ -122,11 +128,11 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 		prompt: prompter,
 
 		initRuntimeClients: func(o *deleteEnvOpts) error {
-			env, err := o.getEnvConfig(context.Background())
+			env, err := o.getEnvConfig(ctx)
 			if err != nil {
 				return err
 			}
-			cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+			cfg, err := sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 			if err != nil {
 				return fmt.Errorf("create config from environment manager role %s in region %s: %w", env.ManagerRoleARN, env.Region, err)
 			}
@@ -145,8 +151,13 @@ func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
 
 // Validate returns an error if the individual user inputs are invalid.
 func (o *deleteEnvOpts) Validate() error {
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
 	if o.name != "" {
-		if err := o.validateEnvName(context.Background()); err != nil {
+		if err := o.validateEnvName(ctx); err != nil {
 			return err
 		}
 	}
@@ -185,11 +196,11 @@ func (o *deleteEnvOpts) Execute(ctx context.Context) error {
 	if err := o.initRuntimeClients(o); err != nil {
 		return err
 	}
-	if err := o.validateNoRunningServices(); err != nil {
+	if err := o.validateNoRunningServices(ctx); err != nil {
 		return err
 	}
 
-	if err := o.validateNoDependencyPipelines(); err != nil {
+	if err := o.validateNoDependencyPipelines(ctx); err != nil {
 		return err
 	}
 
@@ -201,7 +212,7 @@ func (o *deleteEnvOpts) Execute(ctx context.Context) error {
 	o.prog.Stop(log.Ssuccessf(fmtRetainEnvRolesComplete, o.name))
 
 	// EmptyBuckets checks for env managed s3 buckets and makes a best-effort attempt to delete them.
-	if err := o.emptyBuckets(); err != nil {
+	if err := o.emptyBuckets(ctx); err != nil {
 		// Handle empty bucket error and recommend action, don't exit program. Otherwise swallow error and move on.
 		var emptyBucketErr *errBucketEmptyingFailed
 		if errors.As(err, &emptyBucketErr) {
@@ -274,8 +285,8 @@ func (o *deleteEnvOpts) askEnvName(ctx context.Context) error {
 	return nil
 }
 
-func (o *deleteEnvOpts) validateNoRunningServices() error {
-	stacks, err := o.rg.GetResources(&resourcegroupstaggingapi.GetResourcesInput{
+func (o *deleteEnvOpts) validateNoRunningServices(ctx context.Context) error {
+	stacks, err := o.rg.GetResources(ctx, &resourcegroupstaggingapi.GetResourcesInput{
 		ResourceTypeFilters: []string{"cloudformation"},
 		TagFilters: []types.TagFilter{
 			{
@@ -310,13 +321,13 @@ func (o *deleteEnvOpts) validateNoRunningServices() error {
 	return nil
 }
 
-func (o *deleteEnvOpts) validateNoDependencyPipelines() error {
-	pipelines, err := o.deployedPipelineLister.ListDeployedPipelines(o.appName)
+func (o *deleteEnvOpts) validateNoDependencyPipelines(ctx context.Context) error {
+	pipelines, err := o.deployedPipelineLister.ListDeployedPipelinesWithContext(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("list deployed pipelines: %w", err)
 	}
 	for _, pipeline := range pipelines {
-		info, err := o.pipelineGetter.GetPipeline(pipeline.ResourceName)
+		info, err := o.pipelineGetter.GetPipelineWithContext(ctx, pipeline.ResourceName)
 		if err != nil {
 			return fmt.Errorf("get pipeline %s: %w", pipeline.ResourceName, err)
 		}
@@ -406,8 +417,8 @@ func (o *deleteEnvOpts) ensureRolesAreRetained(ctx context.Context) error {
 }
 
 // emptyBuckets returns nil if buckets were deleted successfully. Otherwise, returns the error.
-func (o *deleteEnvOpts) emptyBuckets() error {
-	s3buckets, err := o.rg.GetResources(&resourcegroupstaggingapi.GetResourcesInput{
+func (o *deleteEnvOpts) emptyBuckets(ctx context.Context) error {
+	s3buckets, err := o.rg.GetResources(ctx, &resourcegroupstaggingapi.GetResourcesInput{
 		ResourceTypeFilters: []string{"s3:bucket"},
 		TagFilters: []types.TagFilter{
 			{
@@ -433,7 +444,7 @@ func (o *deleteEnvOpts) emptyBuckets() error {
 		return fmt.Errorf("find s3 bucket resources: %w", err)
 	}
 
-	envResources, err := o.envStackDescriber.Resources()
+	envResources, err := o.envStackDescriber.ResourcesWithContext(ctx)
 	if err != nil {
 		return fmt.Errorf("find stack resources: %w", err)
 	}
@@ -454,7 +465,7 @@ func (o *deleteEnvOpts) emptyBuckets() error {
 		}
 
 		// Attempt to empty all buckets found via GetResources API call
-		if err = o.s3.EmptyBucket(bucketARN.Resource); err != nil {
+		if err = o.s3.EmptyBucketWithContext(ctx, bucketARN.Resource); err != nil {
 			failedBuckets = append(failedBuckets, bucketARN.Resource)
 			bucketErrors = append(bucketErrors, err)
 			continue
@@ -527,8 +538,8 @@ func (o *deleteEnvOpts) tryDeleteRoles(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = o.iam.DeleteRole(env.ExecutionRoleARN)
-	_ = o.iam.DeleteRole(env.ManagerRoleARN)
+	_ = o.iam.DeleteRoleWithContext(ctx, env.ExecutionRoleARN)
+	_ = o.iam.DeleteRoleWithContext(ctx, env.ManagerRoleARN)
 	return nil
 }
 
@@ -578,7 +589,7 @@ func buildEnvDeleteCmd() *cobra.Command {
   Delete the "test" environment without prompting.
   /code $ copilot env delete --name test --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteEnvOpts(vars)
+			opts, err := newDeleteEnvOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

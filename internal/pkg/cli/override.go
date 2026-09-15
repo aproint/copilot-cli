@@ -68,6 +68,7 @@ type overrideVars struct {
 // overrideOpts represents the command for all "[noun] override" commands.
 type overrideOpts struct {
 	overrideVars
+	ctx context.Context
 
 	// Interfaces to interact with dependencies.
 	fs         afero.Fs
@@ -127,7 +128,12 @@ func (o *overrideOpts) validateAppName() error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
-	_, err := o.cfgStore.GetApplication(context.Background(), o.appName)
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
+	_, err := o.cfgStore.GetApplication(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %q configuration: %v", o.appName, err)
 	}

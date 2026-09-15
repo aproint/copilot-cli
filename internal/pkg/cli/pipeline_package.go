@@ -55,8 +55,12 @@ type packagePipelineOpts struct {
 }
 
 func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, error) {
+	return newPackagePipelineOptsWithContext(context.Background(), vars)
+}
+
+func newPackagePipelineOptsWithContext(ctx context.Context, vars packagePipelineVars) (*packagePipelineOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline package"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -141,7 +145,7 @@ func (o *packagePipelineOpts) Execute(ctx context.Context) error {
 
 	connection, ok := pipelineMft.Source.Properties["connection_name"]
 	if ok {
-		arn, err := o.codestar.GetConnectionARN((connection).(string))
+		arn, err := o.codestar.GetConnectionARNWithContext(ctx, (connection).(string))
 		if err != nil {
 			return fmt.Errorf("get connection ARN: %w", err)
 		}
@@ -169,12 +173,12 @@ func (o *packagePipelineOpts) Execute(ctx context.Context) error {
 	}
 	o.app = appConfig
 
-	artifactBuckets, err := o.getArtifactBuckets()
+	artifactBuckets, err := o.getArtifactBuckets(ctx)
 	if err != nil {
 		return fmt.Errorf("get cross-regional resources: %w", err)
 	}
 
-	isLegacy, err := o.isLegacy(pipelineMft.Name)
+	isLegacy, err := o.isLegacy(ctx, pipelineMft.Name)
 	if err != nil {
 		return err
 	}
@@ -231,9 +235,9 @@ func (o *packagePipelineOpts) getPipelineMft(pipelinePath string) (*manifest.Pip
 	return pipelineMft, nil
 }
 
-func (o *packagePipelineOpts) isLegacy(inputName string) (bool, error) {
+func (o *packagePipelineOpts) isLegacy(ctx context.Context, inputName string) (bool, error) {
 	lister := o.configureDeployedPipelineLister()
-	pipelines, err := lister.ListDeployedPipelines(o.appName)
+	pipelines, err := lister.ListDeployedPipelinesWithContext(ctx, o.appName)
 	if err != nil {
 		return false, fmt.Errorf("list deployed pipelines for app %s: %w", o.appName, err)
 	}
@@ -288,8 +292,8 @@ func (o packagePipelineOpts) getLocalWorkloads(ctx context.Context) ([]string, e
 	return localWklds, nil
 }
 
-func (o *packagePipelineOpts) getArtifactBuckets() ([]deploy.ArtifactBucket, error) {
-	regionalResources, err := o.pipelineDeployer.GetRegionalAppResources(o.app)
+func (o *packagePipelineOpts) getArtifactBuckets(ctx context.Context) ([]deploy.ArtifactBucket, error) {
+	regionalResources, err := o.pipelineDeployer.GetRegionalAppResourcesWithContext(ctx, o.app)
 	if err != nil {
 		return nil, err
 	}

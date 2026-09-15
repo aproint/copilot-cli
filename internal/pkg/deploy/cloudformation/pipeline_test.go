@@ -4,6 +4,7 @@
 package cloudformation
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -27,7 +28,7 @@ func TestCloudFormation_PipelineExists(t *testing.T) {
 		"return false and error on unexpected failure": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().DescribeWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -40,7 +41,7 @@ func TestCloudFormation_PipelineExists(t *testing.T) {
 		"return false if stack does not exist": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(nil, fmt.Errorf("describe stack: %w", &cloudformation.ErrStackNotFound{}))
+				m.EXPECT().DescribeWithContext(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("describe stack: %w", &cloudformation.ErrStackNotFound{}))
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -53,7 +54,7 @@ func TestCloudFormation_PipelineExists(t *testing.T) {
 		"returns true if stack exists": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(nil, nil)
+				m.EXPECT().DescribeWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -84,6 +85,27 @@ func TestCloudFormation_PipelineExists(t *testing.T) {
 	}
 }
 
+func TestCloudFormation_CreatePipelinePropagatesContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("caller"), "pipeline creation")
+
+	ctrl := gomock.NewController(t)
+	cfn := mocks.NewMockcfnClient(ctrl)
+	s3 := mocks.NewMocks3Client(ctrl)
+	stackConfig := mocks.NewMockStackConfiguration(ctrl)
+
+	stackConfig.EXPECT().Template().Return("template", nil)
+	stackConfig.EXPECT().StackName().Return("stack").Times(2)
+	stackConfig.EXPECT().Parameters().Return([]*sdkcloudformation.Parameter{}, nil)
+	stackConfig.EXPECT().Tags().Return([]*sdkcloudformation.Tag{})
+	s3.EXPECT().UploadWithContext(ctx, "bucket", gomock.Any(), gomock.Any()).Return("template-url", nil)
+	cfn.EXPECT().CreateAndWaitWithContext(ctx, gomock.Any()).Return(nil)
+	cfn.EXPECT().OutputsWithContext(ctx, gomock.Any()).Return(nil, nil)
+
+	deployer := CloudFormation{cfnClient: cfn, s3Client: s3}
+	require.NoError(t, deployer.CreatePipelineWithContext(ctx, "bucket", stackConfig))
+}
+
 func TestCloudFormation_CreatePipeline(t *testing.T) {
 	mockS3BucketName := "BitterBucket"
 	mockURL := "templateURL"
@@ -99,13 +121,13 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"exits successfully with base case (no connection)": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(1)
-				m.EXPECT().Outputs(gomock.Any()).Return(nil, nil)
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -115,7 +137,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -131,12 +153,12 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"exits successfully with connection update to wait for": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(1)
-				m.EXPECT().Outputs(gomock.Any()).Return(
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Return(
 					map[string]string{
 						"PipelineConnectionARN": "mockConnectionARN",
 					}, nil)
-				m.EXPECT().StackResources(gomock.Any()).Return([]*cloudformation.StackResource{
+				m.EXPECT().StackResourcesWithContext(gomock.Any(), gomock.Any()).Return([]*cloudformation.StackResource{
 					{
 						LogicalResourceId:  aws.String(cfnLogicalResourceIDPipeline),
 						ResourceType:       aws.String(cfnResourceTypePipeline),
@@ -147,7 +169,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -157,7 +179,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution("mockPipelineResourceID", gomock.Any()).Return(nil)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), "mockPipelineResourceID", gomock.Any()).Return(nil)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -173,13 +195,13 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"returns err if fail to create and wait": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Return(errors.New("some error"))
-				m.EXPECT().Outputs(gomock.Any()).Times(0)
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Return(errors.New("some error"))
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -189,7 +211,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -205,13 +227,13 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"returns error if fails to upload template to S3 bucket": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(0)
-				m.EXPECT().Outputs(gomock.Any()).Times(0)
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -221,7 +243,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -235,13 +257,13 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"returns err if retrieving outputs fails": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(1)
-				m.EXPECT().Outputs(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -251,7 +273,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -267,15 +289,15 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"returns err if unsuccessful in waiting for status to become available": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(1)
-				m.EXPECT().Outputs(gomock.Any()).Return(map[string]string{
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Return(map[string]string{
 					"PipelineConnectionARN": "mockConnectionARN",
 				}, nil)
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -285,7 +307,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -301,16 +323,16 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"returns err if error occurs when retrieving pipeline physical id": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(1)
-				m.EXPECT().Outputs(gomock.Any()).Return(map[string]string{
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Return(map[string]string{
 					"PipelineConnectionARN": "mockConnectionARN",
 				}, nil)
-				m.EXPECT().StackResources(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().StackResourcesWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -320,7 +342,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -336,16 +358,16 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"returns err if unable to find pipeline resource from stack": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(1)
-				m.EXPECT().Outputs(gomock.Any()).Return(map[string]string{
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Return(map[string]string{
 					"PipelineConnectionARN": "mockConnectionARN",
 				}, nil)
-				m.EXPECT().StackResources(gomock.Any()).Return([]*cloudformation.StackResource{}, nil)
+				m.EXPECT().StackResourcesWithContext(gomock.Any(), gomock.Any()).Return([]*cloudformation.StackResource{}, nil)
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -355,7 +377,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution(gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -371,11 +393,11 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 		"returns err if unsuccessful in retrying stage execution": {
 			createCfnMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateAndWait(gomock.Any()).Times(1)
-				m.EXPECT().Outputs(gomock.Any()).Return(map[string]string{
+				m.EXPECT().CreateAndWaitWithContext(gomock.Any(), gomock.Any()).Times(1)
+				m.EXPECT().OutputsWithContext(gomock.Any(), gomock.Any()).Return(map[string]string{
 					"PipelineConnectionARN": "mockConnectionARN",
 				}, nil)
-				m.EXPECT().StackResources(gomock.Any()).Return([]*cloudformation.StackResource{
+				m.EXPECT().StackResourcesWithContext(gomock.Any(), gomock.Any()).Return([]*cloudformation.StackResource{
 					{
 						LogicalResourceId:  aws.String(cfnLogicalResourceIDPipeline),
 						ResourceType:       aws.String(cfnResourceTypePipeline),
@@ -386,7 +408,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			createCsMock: func(ctrl *gomock.Controller) codeStarClient {
@@ -396,7 +418,7 @@ func TestCloudFormation_CreatePipeline(t *testing.T) {
 			},
 			createCpMock: func(ctrl *gomock.Controller) codePipelineClient {
 				m := mocks.NewMockcodePipelineClient(ctrl)
-				m.EXPECT().RetryStageExecution("mockPipelineResourceID", gomock.Any()).Return(errors.New("some error"))
+				m.EXPECT().RetryStageExecutionWithContext(gomock.Any(), "mockPipelineResourceID", gomock.Any()).Return(errors.New("some error"))
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -448,12 +470,12 @@ func TestCloudFormation_UpdatePipeline(t *testing.T) {
 		"exits successfully if there are no updates": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().UpdateAndWait(gomock.Any()).Return(&cloudformation.ErrChangeSetEmpty{})
+				m.EXPECT().UpdateAndWaitWithContext(gomock.Any(), gomock.Any()).Return(&cloudformation.ErrChangeSetEmpty{})
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return(mockURL, nil)
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {
@@ -469,12 +491,12 @@ func TestCloudFormation_UpdatePipeline(t *testing.T) {
 		"returns an error if can't push template to S3 bucket": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				//m.EXPECT().UpdateAndWait(gomock.Any()).Return(&cloudformation.ErrChangeSetEmpty{})
+				//m.EXPECT().UpdateAndWaitWithContext(gomock.Any(), gomock.Any()).Return(&cloudformation.ErrChangeSetEmpty{})
 				return m
 			},
 			createS3Mock: func(ctrl *gomock.Controller) s3Client {
 				m := mocks.NewMocks3Client(ctrl)
-				m.EXPECT().Upload(mockS3BucketName, gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
+				m.EXPECT().UploadWithContext(gomock.Any(), mockS3BucketName, gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 				return m
 			},
 			stackConfigMock: func(ctrl *gomock.Controller) StackConfiguration {

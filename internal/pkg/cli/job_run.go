@@ -45,9 +45,13 @@ type jobRunOpts struct {
 }
 
 func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
+	return newJobRunOptsWithContext(context.Background(), vars)
+}
+
+func newJobRunOptsWithContext(ctx context.Context, vars jobRunVars) (*jobRunOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job deploy"))
 
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +129,7 @@ func (o *jobRunOpts) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := runner.Run(); err != nil {
+	if err := runner.RunWithContext(ctx); err != nil {
 		return fmt.Errorf("execute job %q: %w", o.jobName, err)
 	}
 	log.Successf("Invoked job %q successfully\n", o.jobName)
@@ -194,7 +198,7 @@ func (o *jobRunOpts) envConfig(ctx context.Context) (aws.Config, error) {
 	if err != nil {
 		return aws.Config{}, err
 	}
-	return o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	return o.sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 }
 
 func (o *jobRunOpts) validateEnvCompatible(ctx context.Context) error {
@@ -216,7 +220,7 @@ func buildJobRunCmd() *cobra.Command {
   Run a job named "report-gen" in an application named "report" within a "test" environment
   /code $ copilot job run -a report -n report-gen -e test`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newJobRunOpts(vars)
+			opts, err := newJobRunOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -249,9 +249,31 @@ func (cf CloudFormation) GetAppResourcesByRegion(app *config.Application, region
 	return resources[0], nil
 }
 
+// GetAppResourcesByRegionWithContext fetches regional application resources using ctx.
+func (cf CloudFormation) GetAppResourcesByRegionWithContext(ctx context.Context, app *config.Application, region string) (*stack.AppRegionalResources, error) {
+	resources, err := cf.getResourcesForStackInstancesWithContext(ctx, app, &region)
+	if err != nil {
+		return nil, fmt.Errorf("describing application resources: %w", err)
+	}
+	if len(resources) == 0 {
+		return nil, &errNoRegionalResources{app.Name, region}
+	}
+
+	return resources[0], nil
+}
+
 // GetRegionalAppResources fetches all the regional resources for a particular application.
 func (cf CloudFormation) GetRegionalAppResources(app *config.Application) ([]*stack.AppRegionalResources, error) {
 	resources, err := cf.getResourcesForStackInstances(app, nil)
+	if err != nil {
+		return nil, fmt.Errorf("describing application resources: %w", err)
+	}
+	return resources, nil
+}
+
+// GetRegionalAppResourcesWithContext fetches all regional application resources using ctx.
+func (cf CloudFormation) GetRegionalAppResourcesWithContext(ctx context.Context, app *config.Application) ([]*stack.AppRegionalResources, error) {
+	resources, err := cf.getResourcesForStackInstancesWithContext(ctx, app, nil)
 	if err != nil {
 		return nil, fmt.Errorf("describing application resources: %w", err)
 	}
@@ -275,11 +297,44 @@ func (cf CloudFormation) getResourcesForStackInstances(app *config.Application, 
 	}
 	var regionalResources []*stack.AppRegionalResources
 	for _, summary := range summaries {
+		regionalCFClient := cf.regionalClient(summary.Region)
+		cfStack, err := regionalCFClient.Describe(summary.StackID)
+		if err != nil {
+			return nil, fmt.Errorf("getting outputs for stack %s in region %s: %w", summary.StackID, summary.Region, err)
+		}
+		regionalResource, err := stack.ToAppRegionalResources(cfStack.SDK())
+		if err != nil {
+			return nil, err
+		}
+		regionalResource.Region = summary.Region
+		regionalResources = append(regionalResources, regionalResource)
+	}
+
+	return regionalResources, nil
+}
+
+func (cf CloudFormation) getResourcesForStackInstancesWithContext(ctx context.Context, app *config.Application, region *string) ([]*stack.AppRegionalResources, error) {
+	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
+		Name:      app.Name,
+		AccountID: app.AccountID,
+	})
+	opts := []stackset.InstanceSummariesOption{
+		stackset.FilterSummariesByAccountID(app.AccountID),
+	}
+	if region != nil {
+		opts = append(opts, stackset.FilterSummariesByRegion(*region))
+	}
+	summaries, err := cf.appStackSet.InstanceSummariesWithContext(ctx, appConfig.StackSetName(), opts...)
+	if err != nil {
+		return nil, err
+	}
+	var regionalResources []*stack.AppRegionalResources
+	for _, summary := range summaries {
 		// Since these stacks will likely be in another region, we can't use
 		// the default cf client. Instead, we'll have to create a new client
 		// configured with the stack's region.
 		regionalCFClient := cf.regionalClient(summary.Region)
-		cfStack, err := regionalCFClient.Describe(summary.StackID)
+		cfStack, err := regionalCFClient.DescribeWithContext(ctx, summary.StackID)
 		if err != nil {
 			return nil, fmt.Errorf("getting outputs for stack %s in region %s: %w", summary.StackID, summary.Region, err)
 		}
@@ -584,9 +639,31 @@ func (cf CloudFormation) AddPipelineResourcesToApp(
 		return err
 	}
 
+	if err := cf.addNewAppStackInstances(appConfig, resourcesConfig, appRegion); err != nil {
+		return fmt.Errorf("failed to add stack instance for pipeline, application: %s, region: %s, error: %w",
+			app.Name, appRegion, err)
+	}
+
+	return nil
+}
+
+// AddPipelineResourcesToAppWithContext adds pipeline resources using ctx.
+func (cf CloudFormation) AddPipelineResourcesToAppWithContext(
+	ctx context.Context, app *config.Application, appRegion string) error {
+	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
+		Name:      app.Name,
+		AccountID: app.AccountID,
+		Version:   version.LatestTemplateVersion(),
+	})
+
+	resourcesConfig, err := cf.getLastDeployedAppConfigWithContext(ctx, appConfig)
+	if err != nil {
+		return err
+	}
+
 	// conditionally create a new stack instance in the application region
 	// if there's no existing stack instance.
-	if err := cf.addNewAppStackInstances(appConfig, resourcesConfig, appRegion); err != nil {
+	if err := cf.addNewAppStackInstancesWithContext(ctx, appConfig, resourcesConfig, appRegion); err != nil {
 		return fmt.Errorf("failed to add stack instance for pipeline, application: %s, region: %s, error: %w",
 			app.Name, appRegion, err)
 	}
@@ -665,6 +742,40 @@ func (cf CloudFormation) addNewAppStackInstances(appConfig *stack.AppStackConfig
 		return err
 	}
 
+	shouldDeployNewStackInstance := true
+	for _, summary := range summaries {
+		if summary.Region == region {
+			shouldDeployNewStackInstance = false
+		}
+	}
+
+	if !shouldDeployNewStackInstance {
+		return nil
+	}
+
+	template, err := appConfig.ResourceTemplate(resourcesConfig)
+	if err != nil {
+		return err
+	}
+
+	renderInput := renderStackSetInput{
+		name:               appConfig.StackSetName(),
+		template:           template,
+		hasInstanceUpdates: shouldDeployNewStackInstance,
+		createOpFn: func(context.Context) (string, error) {
+			return cf.appStackSet.CreateInstances(appConfig.StackSetName(), []string{appConfig.AccountID}, []string{region})
+		},
+		now: time.Now,
+	}
+	return cf.renderStackSet(context.Background(), renderInput)
+}
+
+func (cf CloudFormation) addNewAppStackInstancesWithContext(ctx context.Context, appConfig *stack.AppStackConfig, resourcesConfig *stack.AppResourcesConfig, region string) error {
+	summaries, err := cf.appStackSet.InstanceSummariesWithContext(ctx, appConfig.StackSetName())
+	if err != nil {
+		return err
+	}
+
 	// We only want to deploy a new StackInstance if we're
 	// adding an environment in a new region.
 	shouldDeployNewStackInstance := true
@@ -688,12 +799,12 @@ func (cf CloudFormation) addNewAppStackInstances(appConfig *stack.AppStackConfig
 		name:               appConfig.StackSetName(),
 		template:           template,
 		hasInstanceUpdates: shouldDeployNewStackInstance,
-		createOpFn: func(context.Context) (string, error) {
-			return cf.appStackSet.CreateInstances(appConfig.StackSetName(), []string{appConfig.AccountID}, []string{region})
+		createOpFn: func(ctx context.Context) (string, error) {
+			return cf.appStackSet.CreateInstancesWithContext(ctx, appConfig.StackSetName(), []string{appConfig.AccountID}, []string{region})
 		},
 		now: time.Now,
 	}
-	return cf.renderStackSet(context.Background(), renderInput)
+	return cf.renderStackSet(ctx, renderInput)
 }
 
 func (cf CloudFormation) getLastDeployedAppConfig(appConfig *stack.AppStackConfig) (*stack.AppResourcesConfig, error) {

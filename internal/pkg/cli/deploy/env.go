@@ -81,6 +81,7 @@ type stackDescriber interface {
 type envDeployer struct {
 	app *config.Application
 	env *config.Environment
+	ctx context.Context
 
 	// Dependencies to upload artifacts.
 	templateFS       template.Reader
@@ -148,6 +149,7 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 	}
 	cfnClient := deploycfn.New(envManagerConfig, deploycfn.WithProgressTracker(os.Stderr))
 	deployer := &envDeployer{
+		ctx: ctx,
 		app: in.App,
 		env: in.Env,
 
@@ -526,7 +528,12 @@ func (d *envDeployer) validateALBWorkloadsDontRedirect() error {
 		return nil
 	}
 	services := strings.Split(params[cfnstack.EnvParamALBWorkloadsKey], ",")
-	g, ctx := errgroup.WithContext(context.Background())
+	ctx := d.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct deployers directly. Commands always set ctx.
+		ctx = context.Background()
+	}
+	g, ctx := errgroup.WithContext(ctx)
 
 	var badServices []string
 	var badServicesMu sync.Mutex

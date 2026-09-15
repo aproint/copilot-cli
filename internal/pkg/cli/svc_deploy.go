@@ -60,6 +60,7 @@ type deployWkldVars struct {
 
 type deploySvcOpts struct {
 	deployWkldVars
+	ctx context.Context
 
 	store                store
 	ws                   wsWlDirReader
@@ -93,13 +94,17 @@ type deploySvcOpts struct {
 }
 
 func newSvcDeployOpts(vars deployWkldVars) (*deploySvcOpts, error) {
+	return newSvcDeployOptsWithContext(context.Background(), vars)
+}
+
+func newSvcDeployOptsWithContext(ctx context.Context, vars deployWkldVars) (*deploySvcOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc deploy"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +114,7 @@ func newSvcDeployOpts(vars deployWkldVars) (*deploySvcOpts, error) {
 
 	opts := &deploySvcOpts{
 		deployWkldVars: vars,
+		ctx:            ctx,
 
 		store:           store,
 		ws:              ws,
@@ -442,11 +448,11 @@ func (o *deploySvcOpts) configureClients(ctx context.Context) error {
 	o.targetEnv = env
 
 	// client to retrieve an application's resources created with CloudFormation.
-	defaultConfig, err := o.sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := o.sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("create default config: %w", err)
 	}
-	envConfig, err := o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	envConfig, err := o.sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return err
 	}
@@ -576,7 +582,12 @@ func validateWkldVersion(vg versionGetter, name, templateVersion string) error {
 }
 
 func (o *deploySvcOpts) uriRecommendedActions() ([]string, error) {
-	describer, err := describe.NewReachableService(context.Background(), o.appName, o.name, o.store)
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
+	describer, err := describe.NewReachableService(ctx, o.appName, o.name, o.store)
 	if err != nil {
 		var errNotAccessible *describe.ErrNonAccessibleServiceType
 		if errors.As(err, &errNotAccessible) {
@@ -713,7 +724,7 @@ func buildSvcDeployCmd() *cobra.Command {
   Deploys a service with additional resource tags.
   /code $ copilot svc deploy --resource-tags source/revision=bb133e7,deployment/initiator=manual`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcDeployOpts(vars)
+			opts, err := newSvcDeployOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

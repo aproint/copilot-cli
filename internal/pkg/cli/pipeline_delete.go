@@ -75,12 +75,16 @@ type deletePipelineOpts struct {
 }
 
 func newDeletePipelineOpts(vars deletePipelineVars) (*deletePipelineOpts, error) {
+	return newDeletePipelineOptsWithContext(context.Background(), vars)
+}
+
+func newDeletePipelineOptsWithContext(ctx context.Context, vars deletePipelineVars) (*deletePipelineOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
-	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline delete")).DefaultConfig(context.Background())
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline delete")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -123,11 +127,11 @@ func (o *deletePipelineOpts) Ask(ctx context.Context) error {
 	}
 
 	if o.name != "" {
-		if _, err := o.getTargetPipeline(); err != nil {
+		if _, err := o.getTargetPipeline(ctx); err != nil {
 			return fmt.Errorf("validate pipeline name %s: %w", o.name, err)
 		}
 	} else {
-		pipeline, err := askDeployedPipelineName(o.sel, fmt.Sprintf(fmtPipelineDeletePrompt, color.HighlightUserInput(o.appName)), o.appName)
+		pipeline, err := askDeployedPipelineNameWithContext(ctx, o.sel, fmt.Sprintf(fmtPipelineDeletePrompt, color.HighlightUserInput(o.appName)), o.appName)
 		if err != nil {
 			return err
 		}
@@ -154,26 +158,26 @@ func (o *deletePipelineOpts) Ask(ctx context.Context) error {
 }
 
 // Execute deletes the secret and pipeline stack.
-func (o *deletePipelineOpts) Execute(_ context.Context) error {
-	if err := o.getSecret(); err != nil {
+func (o *deletePipelineOpts) Execute(ctx context.Context) error {
+	if err := o.getSecret(ctx); err != nil {
 		return err
 	}
-	if err := o.deleteSecret(); err != nil {
+	if err := o.deleteSecret(ctx); err != nil {
 		return err
 	}
 
-	if err := o.deleteStack(); err != nil {
+	if err := o.deleteStack(ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o *deletePipelineOpts) getTargetPipeline() (deploy.Pipeline, error) {
+func (o *deletePipelineOpts) getTargetPipeline(ctx context.Context) (deploy.Pipeline, error) {
 	if o.targetPipeline != nil {
 		return *o.targetPipeline, nil
 	}
-	pipeline, err := getDeployedPipelineInfo(o.deployedPipelineLister, o.appName, o.name)
+	pipeline, err := getDeployedPipelineInfoWithContext(ctx, o.deployedPipelineLister, o.appName, o.name)
 	if err != nil {
 		return deploy.Pipeline{}, err
 	}
@@ -228,10 +232,10 @@ func (o *deletePipelineOpts) askAppName(ctx context.Context) error {
 	return nil
 }
 
-func (o *deletePipelineOpts) getSecret() error {
+func (o *deletePipelineOpts) getSecret(ctx context.Context) error {
 	// Look for default secret name for GHv1 access token based on default pipeline name.
 	o.ghAccessTokenSecretName = o.pipelineSecretName()
-	output, err := o.secretsmanager.DescribeSecret(o.ghAccessTokenSecretName)
+	output, err := o.secretsmanager.DescribeSecretWithContext(ctx, o.ghAccessTokenSecretName)
 	if err != nil {
 		var notFoundErr *secretsmanager.ErrSecretNotFound
 		if errors.As(err, &notFoundErr) {
@@ -261,7 +265,7 @@ func (o *deletePipelineOpts) pipelineSecretName() string {
 	return fmt.Sprintf("github-token-%s", appAndRepo)
 }
 
-func (o *deletePipelineOpts) deleteSecret() error {
+func (o *deletePipelineOpts) deleteSecret(ctx context.Context) error {
 	if o.ghAccessTokenSecretName == "" {
 		return nil
 	}
@@ -281,7 +285,7 @@ func (o *deletePipelineOpts) deleteSecret() error {
 		}
 	}
 
-	if err := o.secretsmanager.DeleteSecret(o.ghAccessTokenSecretName); err != nil {
+	if err := o.secretsmanager.DeleteSecretWithContext(ctx, o.ghAccessTokenSecretName); err != nil {
 		return err
 	}
 
@@ -290,13 +294,13 @@ func (o *deletePipelineOpts) deleteSecret() error {
 	return nil
 }
 
-func (o *deletePipelineOpts) deleteStack() error {
-	pipeline, err := o.getTargetPipeline()
+func (o *deletePipelineOpts) deleteStack(ctx context.Context) error {
+	pipeline, err := o.getTargetPipeline(ctx)
 	if err != nil {
 		return err
 	}
 	o.prog.Start(fmt.Sprintf(fmtDeletePipelineStart, pipeline.Name, o.appName))
-	if err := o.pipelineDeployer.DeletePipeline(pipeline); err != nil {
+	if err := o.pipelineDeployer.DeletePipelineWithContext(ctx, pipeline); err != nil {
 		o.prog.Stop(log.Serrorf(fmtDeletePipelineFailed, pipeline.Name, o.appName, err))
 		return err
 	}
@@ -320,7 +324,7 @@ func buildPipelineDeleteCmd() *cobra.Command {
   /code $ copilot pipeline delete
 `,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeletePipelineOpts(vars)
+			opts, err := newDeletePipelineOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -166,11 +166,14 @@ type secretsManager interface {
 
 type secretCreator interface {
 	CreateSecret(secretName, secretString string) (string, error)
+	CreateSecretWithContext(context.Context, string, string) (string, error)
 }
 
 type secretDeleter interface {
 	DescribeSecret(secretName string) (*secretsmanager.DescribeSecretOutput, error)
+	DescribeSecretWithContext(context.Context, string) (*secretsmanager.DescribeSecretOutput, error)
 	DeleteSecret(secretName string) error
+	DeleteSecretWithContext(context.Context, string) error
 }
 
 type imageBuilderPusher interface {
@@ -201,6 +204,7 @@ type logEventsWriter interface {
 
 type execRunner interface {
 	Run(name string, args []string, options ...exec.CmdOption) error
+	RunWithContext(context.Context, string, []string, ...exec.CmdOption) error
 }
 
 type eventsWriter interface {
@@ -382,6 +386,7 @@ type bucketEmptier interface {
 
 type stackDescriber interface {
 	Resources() ([]*stackdescr.Resource, error)
+	ResourcesWithContext(context.Context) ([]*stackdescr.Resource, error)
 }
 
 // Interfaces for deploying resources through CloudFormation. Facilitates mocking.
@@ -412,11 +417,17 @@ type imageRemover interface {
 
 type pipelineDeployer interface {
 	CreatePipeline(bucketName string, stackConfig cloudformation.StackConfiguration) error
+	CreatePipelineWithContext(context.Context, string, cloudformation.StackConfiguration) error
 	UpdatePipeline(bucketName string, stackConfig cloudformation.StackConfiguration) error
+	UpdatePipelineWithContext(context.Context, string, cloudformation.StackConfiguration) error
 	PipelineExists(stackConfig cloudformation.StackConfiguration) (bool, error)
+	PipelineExistsWithContext(context.Context, cloudformation.StackConfiguration) (bool, error)
 	DeletePipeline(pipeline deploy.Pipeline) error
+	DeletePipelineWithContext(context.Context, deploy.Pipeline) error
 	AddPipelineResourcesToApp(app *config.Application, region string) error
+	AddPipelineResourcesToAppWithContext(context.Context, *config.Application, string) error
 	Template(stackName string) (string, error)
+	TemplateWithContext(context.Context, string) (string, error)
 	appResourcesGetter
 	// TODO: Add StreamPipelineCreation method
 }
@@ -432,7 +443,9 @@ type appDeployer interface {
 
 type appResourcesGetter interface {
 	GetAppResourcesByRegion(app *config.Application, region string) (*stack.AppRegionalResources, error)
+	GetAppResourcesByRegionWithContext(context.Context, *config.Application, string) (*stack.AppRegionalResources, error)
 	GetRegionalAppResources(app *config.Application) ([]*stack.AppRegionalResources, error)
+	GetRegionalAppResourcesWithContext(context.Context, *config.Application) ([]*stack.AppRegionalResources, error)
 }
 
 type envDeleterFromApp interface {
@@ -475,6 +488,7 @@ type deployer interface {
 
 type domainHostedZoneGetter interface {
 	PublicDomainHostedZoneID(domainName string) (string, error)
+	PublicDomainHostedZoneIDContext(context.Context, string) (string, error)
 	ValidateDomainOwnership(domainName string) error
 }
 
@@ -636,6 +650,7 @@ type wkldInitializerWithoutManifest interface {
 
 type roleDeleter interface {
 	DeleteRole(string) error
+	DeleteRoleWithContext(context.Context, string) error
 }
 
 type policyLister interface {
@@ -675,6 +690,7 @@ type taskStopper interface {
 
 type serviceLinkedRoleCreator interface {
 	CreateECSServiceLinkedRole() error
+	CreateECSServiceLinkedRoleWithContext(context.Context) error
 }
 
 type roleTagsLister interface {
@@ -687,6 +703,7 @@ type contextRoleTagsLister interface {
 
 type roleManager interface {
 	roleTagsLister
+	contextRoleTagsLister
 	roleDeleter
 	serviceLinkedRoleCreator
 }
@@ -707,6 +724,7 @@ type dockerEngine interface {
 
 type codestar interface {
 	GetConnectionARN(string) (string, error)
+	GetConnectionARNWithContext(context.Context, string) (string, error)
 }
 
 type publicIPGetter interface {
@@ -720,6 +738,7 @@ type cliStringer interface {
 
 type secretPutter interface {
 	PutSecret(in ssm.PutSecretInput) (*ssm.PutSecretOutput, error)
+	PutSecretWithContext(context.Context, ssm.PutSecretInput) (*ssm.PutSecretOutput, error)
 }
 
 type servicePauser interface {
@@ -765,6 +784,7 @@ type workloadStackGenerator interface {
 
 type runner interface {
 	Run() error
+	RunWithContext(context.Context) error
 }
 
 type envDeployer interface {

@@ -71,8 +71,12 @@ type deleteAppOpts struct {
 }
 
 func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
+	return newDeleteAppOptsWithContext(context.Background(), vars)
+}
+
+func newDeleteAppOptsWithContext(ctx context.Context, vars deleteAppVars) (*deleteAppOpts, error) {
 	provider := sessions.ImmutableProvider(sessions.UserAgentExtras("app delete"))
-	defaultConfig, err := provider.DefaultConfig(context.Background())
+	defaultConfig, err := provider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -91,7 +95,7 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 		pipelineLister: deploy.NewPipelineStore(rg.New(defaultConfig)),
 		sel:            selector.NewAppEnvSelector(prompter, store),
 		svcDeleteExecutor: func(appName, svcName string) (executor, error) {
-			opts, err := newDeleteSvcOpts(deleteSvcVars{
+			opts, err := newDeleteSvcOptsWithContext(ctx, deleteSvcVars{
 				skipConfirmation: true, // always skip sub-confirmations
 				name:             svcName,
 				appName:          appName,
@@ -102,7 +106,7 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 			return opts, nil
 		},
 		jobDeleteExecutor: func(appName, jobName string) (executor, error) {
-			opts, err := newDeleteJobOpts(deleteJobVars{
+			opts, err := newDeleteJobOptsWithContext(ctx, deleteJobVars{
 				skipConfirmation: true,
 				name:             jobName,
 				appName:          appName,
@@ -113,7 +117,7 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 			return opts, nil
 		},
 		envDeleteExecutor: func(appName, envName string) (executeAsker, error) {
-			opts, err := newDeleteEnvOpts(deleteEnvVars{
+			opts, err := newDeleteEnvOptsWithContext(ctx, deleteEnvVars{
 				skipConfirmation: true,
 				appName:          appName,
 				name:             envName,
@@ -124,7 +128,7 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 			return opts, nil
 		},
 		taskDeleteExecutor: func(appName, envName, taskName string) (executor, error) {
-			opts, err := newDeleteTaskOpts(deleteTaskVars{
+			opts, err := newDeleteTaskOptsWithContext(ctx, deleteTaskVars{
 				app:              appName,
 				env:              envName,
 				name:             taskName,
@@ -136,7 +140,7 @@ func newDeleteAppOpts(vars deleteAppVars) (*deleteAppOpts, error) {
 			return opts, nil
 		},
 		pipelineDeleteExecutor: func(appName, pipelineName string) (executor, error) {
-			opts, err := newDeletePipelineOpts(deletePipelineVars{
+			opts, err := newDeletePipelineOptsWithContext(ctx, deletePipelineVars{
 				appName:            appName,
 				name:               pipelineName,
 				skipConfirmation:   true,
@@ -309,7 +313,7 @@ func (o *deleteAppOpts) emptyS3Bucket(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("get application %s: %w", o.name, err)
 	}
-	appResources, err := o.cfn.GetRegionalAppResources(app)
+	appResources, err := o.cfn.GetRegionalAppResourcesWithContext(ctx, app)
 	if err != nil {
 		// ErrStackSetNotFound means application Parameter Store params are dangling, return nil to continue for deletion.
 		if isStackSetNotExistsErr(err) {
@@ -319,14 +323,14 @@ func (o *deleteAppOpts) emptyS3Bucket(ctx context.Context) error {
 	}
 	o.spinner.Start(deleteAppCleanResourcesStartMsg)
 	for _, resource := range appResources {
-		cfg, err := o.sessProvider.DefaultConfigWithRegion(context.Background(), resource.Region)
+		cfg, err := o.sessProvider.DefaultConfigWithRegion(ctx, resource.Region)
 		if err != nil {
 			return fmt.Errorf("default config with region %s: %w", resource.Region, err)
 		}
 
 		// Empty pipeline buckets.
 		s3Client := o.s3(cfg)
-		if err := s3Client.EmptyBucket(resource.S3Bucket); err != nil {
+		if err := s3Client.EmptyBucketWithContext(ctx, resource.S3Bucket); err != nil {
 			o.spinner.Stop(log.Serrorln("Error cleaning up deployment resources."))
 			return fmt.Errorf("empty bucket %s: %w", resource.S3Bucket, err)
 		}
@@ -336,7 +340,7 @@ func (o *deleteAppOpts) emptyS3Bucket(ctx context.Context) error {
 }
 
 func (o *deleteAppOpts) deletePipelines(ctx context.Context) error {
-	pipelines, err := o.pipelineLister.ListDeployedPipelines(o.name)
+	pipelines, err := o.pipelineLister.ListDeployedPipelinesWithContext(ctx, o.name)
 	if err != nil {
 		return fmt.Errorf("list pipelines for application %s: %w", o.name, err)
 	}
@@ -399,7 +403,7 @@ func buildAppDeleteCommand() *cobra.Command {
   Force delete the application with environments "test" and "prod".
   /code $ copilot app delete --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteAppOpts(vars)
+			opts, err := newDeleteAppOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

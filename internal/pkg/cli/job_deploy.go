@@ -37,6 +37,7 @@ import (
 
 type deployJobOpts struct {
 	deployWkldVars
+	ctx context.Context
 
 	store                store
 	ws                   wsWlDirReader
@@ -65,8 +66,12 @@ type deployJobOpts struct {
 }
 
 func newJobDeployOpts(vars deployWkldVars) (*deployJobOpts, error) {
+	return newJobDeployOptsWithContext(context.Background(), vars)
+}
+
+func newJobDeployOptsWithContext(ctx context.Context, vars deployWkldVars) (*deployJobOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job deploy"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -78,6 +83,7 @@ func newJobDeployOpts(vars deployWkldVars) (*deployJobOpts, error) {
 	prompter := prompt.New()
 	opts := &deployJobOpts{
 		deployWkldVars: vars,
+		ctx:            ctx,
 
 		store:           store,
 		ws:              ws,
@@ -134,16 +140,21 @@ func newJobDeployer(ctx context.Context, o *deployJobOpts) (workloadDeployer, er
 
 // Validate returns an error if the user inputs are invalid.
 func (o *deployJobOpts) Validate() error {
+	ctx := o.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
 	if o.name != "" {
-		if err := o.validateJobName(context.Background()); err != nil {
+		if err := o.validateJobName(ctx); err != nil {
 			return err
 		}
 	}
 	if o.envName != "" {
-		if err := o.validateEnvName(context.Background()); err != nil {
+		if err := o.validateEnvName(ctx); err != nil {
 			return err
 		}
 	}
@@ -296,11 +307,11 @@ func (o *deployJobOpts) configureClients(ctx context.Context) error {
 	o.targetApp = app
 
 	// client to retrieve an application's resources created with CloudFormation
-	defaultConfig, err := o.sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := o.sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("create default config: %w", err)
 	}
-	envConfig, err := o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	envConfig, err := o.sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return err
 	}
@@ -400,7 +411,7 @@ func buildJobDeployCmd() *cobra.Command {
   Deploys a job with additional resource tags.
   /code $ copilot job deploy --resource-tags source/revision=bb133e7,deployment/initiator=manual`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newJobDeployOpts(vars)
+			opts, err := newJobDeployOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

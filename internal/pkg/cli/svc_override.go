@@ -34,6 +34,10 @@ type overrideWorkloadOpts struct {
 }
 
 func newOverrideWorkloadOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
+	return newOverrideWorkloadOptsWithContext(context.Background(), vars)
+}
+
+func newOverrideWorkloadOptsWithContext(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -41,7 +45,7 @@ func newOverrideWorkloadOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, 
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc override"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -52,6 +56,7 @@ func newOverrideWorkloadOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, 
 		envName: vars.envName,
 		overrideOpts: &overrideOpts{
 			overrideVars: vars.overrideVars,
+			ctx:          ctx,
 			fs:           fs,
 			cfgStore:     cfgStore,
 			prompt:       prompt,
@@ -65,7 +70,11 @@ func newOverrideWorkloadOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, 
 }
 
 func newOverrideSvcOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
-	cmd, err := newOverrideWorkloadOpts(vars)
+	return newOverrideSvcOptsWithContext(context.Background(), vars)
+}
+
+func newOverrideSvcOptsWithContext(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
+	cmd, err := newOverrideWorkloadOptsWithContext(ctx, vars)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +112,12 @@ func (o *overrideWorkloadOpts) validateEnvName() error {
 	if o.envName == "" {
 		return nil
 	}
-	_, err := o.cfgStore.GetEnvironment(context.Background(), o.appName, o.envName)
+	ctx := o.overrideOpts.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
+	_, err := o.cfgStore.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return fmt.Errorf("get environment %q configuration: %v", o.envName, err)
 	}
@@ -142,7 +156,7 @@ func (o *overrideWorkloadOpts) newSvcPackageCmd(tplBuf stringWriteCloser) (execu
 	if err != nil {
 		return nil, err
 	}
-	cmd, err := newPackageSvcOpts(packageSvcVars{
+	cmd, err := newPackageSvcOptsWithContext(o.overrideOpts.ctx, packageSvcVars{
 		name:    o.name,
 		envName: envName,
 		appName: o.appName,
@@ -160,7 +174,12 @@ func (o *overrideWorkloadOpts) targetEnvName() (string, error) {
 	if o.envName != "" {
 		return o.envName, nil
 	}
-	envs, err := o.cfgStore.ListEnvironments(context.Background(), o.appName)
+	ctx := o.overrideOpts.ctx
+	if ctx == nil {
+		// Compatibility for callers that construct options directly. Commands always set ctx.
+		ctx = context.Background()
+	}
+	envs, err := o.cfgStore.ListEnvironments(ctx, o.appName)
 	if err != nil {
 		return "", fmt.Errorf("list environments in application %q: %v", o.appName, err)
 	}
@@ -183,7 +202,7 @@ or add new resources to the service's template.`,
   Create a new Cloud Development Kit application to override the "frontend" service template.
   /code $ copilot svc override -n frontend --tool cdk`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newOverrideSvcOpts(vars)
+			opts, err := newOverrideSvcOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

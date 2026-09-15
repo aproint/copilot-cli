@@ -48,7 +48,12 @@ func (s *StepFunctions) StateMachineDefinitionWithContext(ctx context.Context, s
 
 // Execute starts a state machine execution.
 func (s *StepFunctions) Execute(arn string) error {
-	_, err := s.client.StartExecution(context.Background(), &sfn.StartExecutionInput{
+	return s.ExecuteWithContext(context.Background(), arn)
+}
+
+// ExecuteWithContext starts a state machine execution using ctx.
+func (s *StepFunctions) ExecuteWithContext(ctx context.Context, arn string) error {
+	_, err := s.client.StartExecution(ctx, &sfn.StartExecutionInput{
 		StateMachineArn: awsv2.String(arn),
 	})
 	if err != nil {

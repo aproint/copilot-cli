@@ -171,7 +171,7 @@ func TestJobRun_Execute(t *testing.T) {
 			jobName: "mockJob",
 			mockjobRunner: func(ctrl *gomock.Controller) runner {
 				m := mocks.NewMockrunner(ctrl)
-				m.EXPECT().Run().Return(nil)
+				m.EXPECT().RunWithContext(context.Background()).Return(nil)
 				return m
 			},
 			mockEnvChecker: func(ctrl *gomock.Controller) versionCompatibilityChecker {
@@ -184,7 +184,7 @@ func TestJobRun_Execute(t *testing.T) {
 			jobName: "mockJob",
 			mockjobRunner: func(ctrl *gomock.Controller) runner {
 				m := mocks.NewMockrunner(ctrl)
-				m.EXPECT().Run().Return(errors.New("some error"))
+				m.EXPECT().RunWithContext(context.Background()).Return(errors.New("some error"))
 				return m
 			},
 			mockEnvChecker: func(ctrl *gomock.Controller) versionCompatibilityChecker {

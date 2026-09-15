@@ -104,10 +104,12 @@ type cfnClient interface {
 	Create(*cloudformation.Stack) (string, error)
 	CreateWithContext(context.Context, *cloudformation.Stack) (string, error)
 	CreateAndWait(*cloudformation.Stack) error
+	CreateAndWaitWithContext(context.Context, *cloudformation.Stack) error
 	WaitForCreate(ctx context.Context, stackName string) error
 	Update(*cloudformation.Stack) (string, error)
 	UpdateWithContext(context.Context, *cloudformation.Stack) (string, error)
 	UpdateAndWait(*cloudformation.Stack) error
+	UpdateAndWaitWithContext(context.Context, *cloudformation.Stack) error
 	WaitForUpdate(ctx context.Context, stackName string) error
 	Delete(stackName string) error
 	DeleteAndWait(stackName string) error
@@ -128,7 +130,9 @@ type cfnClient interface {
 	ErrorEvents(stackName string) ([]cloudformation.StackEvent, error)
 	ErrorEventsWithContext(context.Context, string) ([]cloudformation.StackEvent, error)
 	Outputs(stack *cloudformation.Stack) (map[string]string, error)
+	OutputsWithContext(context.Context, *cloudformation.Stack) (map[string]string, error)
 	StackResources(name string) ([]*cloudformation.StackResource, error)
+	StackResourcesWithContext(context.Context, string) ([]*cloudformation.StackResource, error)
 	Metadata(opts cloudformation.MetadataOpts) (string, error)
 	MetadataWithContext(context.Context, cloudformation.MetadataOpts) (string, error)
 	CancelUpdateStack(stackName string) error
@@ -145,6 +149,7 @@ type codeStarClient interface {
 
 type codePipelineClient interface {
 	RetryStageExecution(pipelineName, stageName string) error
+	RetryStageExecutionWithContext(context.Context, string, string) error
 }
 
 type s3Client interface {
@@ -161,6 +166,7 @@ type stackSetClient interface {
 	Create(name, template string, opts ...stackset.CreateOrUpdateOption) error
 	CreateWithContext(context.Context, string, string, ...stackset.CreateOrUpdateOption) error
 	CreateInstances(name string, accounts, regions []string) (string, error)
+	CreateInstancesWithContext(context.Context, string, []string, []string) (string, error)
 	CreateInstancesAndWait(name string, accounts, regions []string) error
 	Update(name, template string, opts ...stackset.CreateOrUpdateOption) (string, error)
 	UpdateWithContext(context.Context, string, string, ...stackset.CreateOrUpdateOption) (string, error)
@@ -264,6 +270,11 @@ func New(v2Config aws.Config, opts ...OptFn) CloudFormation {
 // Template returns a deployed stack's template.
 func (cf CloudFormation) Template(stackName string) (string, error) {
 	return cf.cfnClient.TemplateBody(stackName)
+}
+
+// TemplateWithContext returns a deployed stack's template using ctx.
+func (cf CloudFormation) TemplateWithContext(ctx context.Context, stackName string) (string, error) {
+	return cf.cfnClient.TemplateBodyWithContext(ctx, stackName)
 }
 
 // IsEmptyErr returns true if the error occurred because the cloudformation resource does not exist or does not contain any sub-resources.

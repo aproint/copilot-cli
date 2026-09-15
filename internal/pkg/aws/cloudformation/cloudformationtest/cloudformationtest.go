@@ -52,6 +52,11 @@ func (d *Double) CreateAndWait(stack *cfn.Stack) error {
 	return d.CreateAndWaitFn(stack)
 }
 
+// CreateAndWaitWithContext calls the stubbed function.
+func (d *Double) CreateAndWaitWithContext(_ context.Context, stack *cfn.Stack) error {
+	return d.CreateAndWaitFn(stack)
+}
+
 // DescribeChangeSet calls the stubbed function.
 func (d *Double) DescribeChangeSet(id, stack string) (*cfn.ChangeSetDescription, error) {
 	return d.DescribeChangeSetFn(id, stack)
@@ -79,6 +84,11 @@ func (d *Double) UpdateWithContext(_ context.Context, stack *cfn.Stack) (string,
 
 // UpdateAndWait calls the stubbed function.
 func (d *Double) UpdateAndWait(stack *cfn.Stack) error {
+	return d.UpdateAndWaitFn(stack)
+}
+
+// UpdateAndWaitWithContext calls the stubbed function.
+func (d *Double) UpdateAndWaitWithContext(_ context.Context, stack *cfn.Stack) error {
 	return d.UpdateAndWaitFn(stack)
 }
 
@@ -165,6 +175,11 @@ func (d *Double) Outputs(stack *cfn.Stack) (map[string]string, error) {
 	return d.OutputsFn(stack)
 }
 
+// OutputsWithContext calls the stubbed function.
+func (d *Double) OutputsWithContext(_ context.Context, stack *cfn.Stack) (map[string]string, error) {
+	return d.OutputsFn(stack)
+}
+
 // Events calls the stubbed function.
 func (d *Double) Events(stackName string) ([]cfn.StackEvent, error) {
 	return d.EventsFn(stackName)
@@ -172,6 +187,11 @@ func (d *Double) Events(stackName string) ([]cfn.StackEvent, error) {
 
 // StackResources calls the stubbed function.
 func (d *Double) StackResources(name string) ([]*cfn.StackResource, error) {
+	return d.StackResourcesFn(name)
+}
+
+// StackResourcesWithContext calls the stubbed function.
+func (d *Double) StackResourcesWithContext(_ context.Context, name string) ([]*cfn.StackResource, error) {
 	return d.StackResourcesFn(name)
 }
 

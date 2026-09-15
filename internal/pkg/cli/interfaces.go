@@ -187,11 +187,12 @@ type repositoryService interface {
 type ecsClient interface {
 	TaskDefinition(app, env, svc string) (*awsecs.TaskDefinition, error)
 	ServiceConnectServices(app, env, svc string) ([]*awsecs.Service, error)
+	ServiceConnectServicesWithContext(ctx context.Context, app, env, svc string) ([]*awsecs.Service, error)
 	DescribeService(app, env, svc string) (*ecs.ServiceDesc, error)
 }
 
 type logEventsWriter interface {
-	WriteLogEvents(opts logging.WriteLogEventsOpts) error
+	WriteLogEventsWithContext(ctx context.Context, opts logging.WriteLogEventsOpts) error
 }
 
 type execRunner interface {
@@ -589,8 +590,8 @@ type topicSelector interface {
 }
 
 type ec2Selector interface {
-	VPC(prompt, help string) (string, error)
-	Subnets(input selector.SubnetsInput) ([]string, error)
+	VPC(ctx context.Context, prompt, help string) (string, error)
+	Subnets(ctx context.Context, input selector.SubnetsInput) ([]string, error)
 }
 
 type credsSelector interface {
@@ -598,12 +599,12 @@ type credsSelector interface {
 }
 
 type ec2Client interface {
-	HasDNSSupport(vpcID string) (bool, error)
-	ListAZs() ([]ec2.AZ, error)
+	HasDNSSupportWithContext(ctx context.Context, vpcID string) (bool, error)
+	ListAZsWithContext(ctx context.Context) ([]ec2.AZ, error)
 }
 
 type serviceResumer interface {
-	ResumeService(string) error
+	ResumeServiceWithContext(context.Context, string) error
 }
 
 type jobInitializer interface {
@@ -632,6 +633,7 @@ type contextPolicyLister interface {
 
 type serviceDescriber interface {
 	DescribeService(app, env, svc string) (*ecs.ServiceDesc, error)
+	DescribeServiceWithContext(ctx context.Context, app, env, svc string) (*ecs.ServiceDesc, error)
 }
 
 type apprunnerServiceDescriber interface {
@@ -701,7 +703,7 @@ type secretPutter interface {
 }
 
 type servicePauser interface {
-	PauseService(svcARN string) error
+	PauseServiceWithContext(ctx context.Context, svcARN string) error
 }
 
 type interpolator interface {

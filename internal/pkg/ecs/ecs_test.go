@@ -4,6 +4,7 @@
 package ecs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -562,50 +563,50 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 	}{
 		"error getting the service": {
 			setupMocks: func(m clientMocks) {
-				m.resourceGetter.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: mockSvcARN},
 					}, nil)
-				m.resourceGetter.EXPECT().GetResourcesByTags(clusterResourceType, getRgEnvClusterInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), clusterResourceType, getRgEnvClusterInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: "mockARN1"}, {ARN: "mockARN2"},
 					}, nil)
-				m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
-				m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
-				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(nil, mockError)
+				m.ecsClient.EXPECT().ActiveClustersWithContext(gomock.Any(), "mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
+				m.ecsClient.EXPECT().ActiveServicesWithContext(gomock.Any(), "mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
+				m.ecsClient.EXPECT().ServiceWithContext(gomock.Any(), mockCluster, mockService).Return(nil, mockError)
 			},
 			wantedError: fmt.Errorf(`get service: get ECS service mockService: some error`),
 		},
 		"return early when no deployments": {
 			setupMocks: func(m clientMocks) {
-				m.resourceGetter.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: mockSvcARN},
 					}, nil)
-				m.resourceGetter.EXPECT().GetResourcesByTags(clusterResourceType, getRgEnvClusterInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), clusterResourceType, getRgEnvClusterInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: "mockARN1"}, {ARN: "mockARN2"},
 					}, nil)
-				m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
-				m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
-				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
+				m.ecsClient.EXPECT().ActiveClustersWithContext(gomock.Any(), "mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
+				m.ecsClient.EXPECT().ActiveServicesWithContext(gomock.Any(), "mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
+				m.ecsClient.EXPECT().ServiceWithContext(gomock.Any(), mockCluster, mockService).Return(&ecs.Service{
 					Deployments: []awsecs.Deployment{},
 				}, nil)
 			},
 		},
 		"return early when service connect is not enabled": {
 			setupMocks: func(m clientMocks) {
-				m.resourceGetter.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: mockSvcARN},
 					}, nil)
-				m.resourceGetter.EXPECT().GetResourcesByTags(clusterResourceType, getRgEnvClusterInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), clusterResourceType, getRgEnvClusterInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: "mockARN1"}, {ARN: "mockARN2"},
 					}, nil)
-				m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
-				m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
-				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
+				m.ecsClient.EXPECT().ActiveClustersWithContext(gomock.Any(), "mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
+				m.ecsClient.EXPECT().ActiveServicesWithContext(gomock.Any(), "mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
+				m.ecsClient.EXPECT().ServiceWithContext(gomock.Any(), mockCluster, mockService).Return(&ecs.Service{
 					Deployments: []awsecs.Deployment{
 						{},
 					},
@@ -614,17 +615,17 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 		},
 		"error listing namespace": {
 			setupMocks: func(m clientMocks) {
-				m.resourceGetter.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: mockSvcARN},
 					}, nil)
-				m.resourceGetter.EXPECT().GetResourcesByTags(clusterResourceType, getRgEnvClusterInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), clusterResourceType, getRgEnvClusterInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: "mockARN1"}, {ARN: "mockARN2"},
 					}, nil)
-				m.ecsClient.EXPECT().ActiveClusters("mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
-				m.ecsClient.EXPECT().ActiveServices("mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
-				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
+				m.ecsClient.EXPECT().ActiveClustersWithContext(gomock.Any(), "mockARN1", "mockARN2").Return([]string{"mockARN1"}, nil)
+				m.ecsClient.EXPECT().ActiveServicesWithContext(gomock.Any(), "mockARN1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
+				m.ecsClient.EXPECT().ServiceWithContext(gomock.Any(), mockCluster, mockService).Return(&ecs.Service{
 					Deployments: []awsecs.Deployment{
 						{
 							ServiceConnectConfiguration: &awsecs.ServiceConnectConfiguration{
@@ -633,23 +634,23 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.ecsClient.EXPECT().ListServicesByNamespace("namespace").Return(nil, errors.New("some error"))
+				m.ecsClient.EXPECT().ListServicesByNamespaceWithContext(gomock.Any(), "namespace").Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf(`get services in the same namespace: some error`),
 		},
 		"error getting namespaced services, svc arn removed": {
 			setupMocks: func(m clientMocks) {
-				m.resourceGetter.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: mockSvcARN},
 					}, nil)
-				m.resourceGetter.EXPECT().GetResourcesByTags(clusterResourceType, getRgEnvClusterInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), clusterResourceType, getRgEnvClusterInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: "cluster1"}, {ARN: "cluster2"},
 					}, nil)
-				m.ecsClient.EXPECT().ActiveClusters("cluster1", "cluster2").Return([]string{"cluster1"}, nil)
-				m.ecsClient.EXPECT().ActiveServices("cluster1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
-				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
+				m.ecsClient.EXPECT().ActiveClustersWithContext(gomock.Any(), "cluster1", "cluster2").Return([]string{"cluster1"}, nil)
+				m.ecsClient.EXPECT().ActiveServicesWithContext(gomock.Any(), "cluster1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
+				m.ecsClient.EXPECT().ServiceWithContext(gomock.Any(), mockCluster, mockService).Return(&ecs.Service{
 					ServiceArn: aws.String(mockSvcARN),
 					ClusterArn: aws.String("cluster1"),
 					Deployments: []awsecs.Deployment{
@@ -660,28 +661,28 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.ecsClient.EXPECT().ListServicesByNamespace("namespace").Return([]string{
+				m.ecsClient.EXPECT().ListServicesByNamespaceWithContext(gomock.Any(), "namespace").Return([]string{
 					mockSvcARN,
 					"svc1",
 					"svc2",
 				}, nil)
-				m.ecsClient.EXPECT().Services("cluster1", "svc1", "svc2").Return(nil, errors.New("some error"))
+				m.ecsClient.EXPECT().ServicesWithContext(gomock.Any(), "cluster1", "svc1", "svc2").Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf(`get services: some error`),
 		},
 		"success, svc arn not removed": {
 			setupMocks: func(m clientMocks) {
-				m.resourceGetter.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: mockSvcARN},
 					}, nil)
-				m.resourceGetter.EXPECT().GetResourcesByTags(clusterResourceType, getRgEnvClusterInput).
+				m.resourceGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), clusterResourceType, getRgEnvClusterInput).
 					Return([]*resourcegroups.Resource{
 						{ARN: "cluster1"}, {ARN: "cluster2"},
 					}, nil)
-				m.ecsClient.EXPECT().ActiveClusters("cluster1", "cluster2").Return([]string{"cluster1"}, nil)
-				m.ecsClient.EXPECT().ActiveServices("cluster1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
-				m.ecsClient.EXPECT().Service(mockCluster, mockService).Return(&ecs.Service{
+				m.ecsClient.EXPECT().ActiveClustersWithContext(gomock.Any(), "cluster1", "cluster2").Return([]string{"cluster1"}, nil)
+				m.ecsClient.EXPECT().ActiveServicesWithContext(gomock.Any(), "cluster1", []string{mockSvcARN}).Return([]string{mockSvcARN}, nil)
+				m.ecsClient.EXPECT().ServiceWithContext(gomock.Any(), mockCluster, mockService).Return(&ecs.Service{
 					ServiceArn: aws.String(mockSvcARN),
 					ClusterArn: aws.String("cluster1"),
 					Deployments: []awsecs.Deployment{
@@ -692,11 +693,11 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.ecsClient.EXPECT().ListServicesByNamespace("namespace").Return([]string{
+				m.ecsClient.EXPECT().ListServicesByNamespaceWithContext(gomock.Any(), "namespace").Return([]string{
 					"svc1",
 					"svc2",
 				}, nil)
-				m.ecsClient.EXPECT().Services("cluster1", "svc1", "svc2").Return([]*ecs.Service{
+				m.ecsClient.EXPECT().ServicesWithContext(gomock.Any(), "cluster1", "svc1", "svc2").Return([]*ecs.Service{
 					{
 						ServiceArn: aws.String("svc1"),
 					},
@@ -737,7 +738,7 @@ func TestClient_ServiceConnectServices(t *testing.T) {
 			}
 
 			// WHEN
-			got, err := client.ServiceConnectServices(mockApp, mockEnv, mockSvc)
+			got, err := client.ServiceConnectServicesWithContext(context.Background(), mockApp, mockEnv, mockSvc)
 
 			// THEN
 			if test.wantedError != nil {

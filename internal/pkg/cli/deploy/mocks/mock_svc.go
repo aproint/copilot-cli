@@ -127,33 +127,33 @@ func (m *MockserviceForceUpdater) EXPECT() *MockserviceForceUpdaterMockRecorder 
 	return m.recorder
 }
 
-// ForceUpdateService mocks base method.
-func (m *MockserviceForceUpdater) ForceUpdateService(app, env, svc string) error {
+// ForceUpdateServiceWithContext mocks base method.
+func (m *MockserviceForceUpdater) ForceUpdateServiceWithContext(ctx context.Context, app, env, svc string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ForceUpdateService", app, env, svc)
+	ret := m.ctrl.Call(m, "ForceUpdateServiceWithContext", ctx, app, env, svc)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ForceUpdateService indicates an expected call of ForceUpdateService.
-func (mr *MockserviceForceUpdaterMockRecorder) ForceUpdateService(app, env, svc interface{}) *gomock.Call {
+// ForceUpdateServiceWithContext indicates an expected call of ForceUpdateServiceWithContext.
+func (mr *MockserviceForceUpdaterMockRecorder) ForceUpdateServiceWithContext(ctx, app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateService", reflect.TypeOf((*MockserviceForceUpdater)(nil).ForceUpdateService), app, env, svc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateServiceWithContext", reflect.TypeOf((*MockserviceForceUpdater)(nil).ForceUpdateServiceWithContext), ctx, app, env, svc)
 }
 
-// LastUpdatedAt mocks base method.
-func (m *MockserviceForceUpdater) LastUpdatedAt(app, env, svc string) (time.Time, error) {
+// LastUpdatedAtWithContext mocks base method.
+func (m *MockserviceForceUpdater) LastUpdatedAtWithContext(ctx context.Context, app, env, svc string) (time.Time, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LastUpdatedAt", app, env, svc)
+	ret := m.ctrl.Call(m, "LastUpdatedAtWithContext", ctx, app, env, svc)
 	ret0, _ := ret[0].(time.Time)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// LastUpdatedAt indicates an expected call of LastUpdatedAt.
-func (mr *MockserviceForceUpdaterMockRecorder) LastUpdatedAt(app, env, svc interface{}) *gomock.Call {
+// LastUpdatedAtWithContext indicates an expected call of LastUpdatedAtWithContext.
+func (mr *MockserviceForceUpdaterMockRecorder) LastUpdatedAtWithContext(ctx, app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastUpdatedAt", reflect.TypeOf((*MockserviceForceUpdater)(nil).LastUpdatedAt), app, env, svc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastUpdatedAtWithContext", reflect.TypeOf((*MockserviceForceUpdater)(nil).LastUpdatedAtWithContext), ctx, app, env, svc)
 }
 
 // MockaliasCertValidator is a mock of aliasCertValidator interface.
@@ -179,16 +179,16 @@ func (m *MockaliasCertValidator) EXPECT() *MockaliasCertValidatorMockRecorder {
 	return m.recorder
 }
 
-// ValidateCertAliases mocks base method.
-func (m *MockaliasCertValidator) ValidateCertAliases(aliases, certs []string) error {
+// ValidateCertAliasesWithContext mocks base method.
+func (m *MockaliasCertValidator) ValidateCertAliasesWithContext(ctx context.Context, aliases, certs []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateCertAliases", aliases, certs)
+	ret := m.ctrl.Call(m, "ValidateCertAliasesWithContext", ctx, aliases, certs)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ValidateCertAliases indicates an expected call of ValidateCertAliases.
-func (mr *MockaliasCertValidatorMockRecorder) ValidateCertAliases(aliases, certs interface{}) *gomock.Call {
+// ValidateCertAliasesWithContext indicates an expected call of ValidateCertAliasesWithContext.
+func (mr *MockaliasCertValidatorMockRecorder) ValidateCertAliasesWithContext(ctx, aliases, certs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCertAliases", reflect.TypeOf((*MockaliasCertValidator)(nil).ValidateCertAliases), aliases, certs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCertAliasesWithContext", reflect.TypeOf((*MockaliasCertValidator)(nil).ValidateCertAliasesWithContext), ctx, aliases, certs)
 }

@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 	"testing"
@@ -144,7 +145,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"go.dev"}, []string{"mockCertARN"}).Return(errors.New("some error"))
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"go.dev"}, []string{"mockCertARN"}).Return(errors.New("some error"))
 			},
 			expectedErr: "validate ALB runtime configuration for \"http\": validate aliases against the imported certificate for env mock-env: some error",
 		},
@@ -185,8 +186,8 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"go.dev"}, []string{"mockCertARN"}).Return(nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"go.test"}, []string{"mockCertARN"}).Return(nil)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"go.dev"}, []string{"mockCertARN"}).Return(nil)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"go.test"}, []string{"mockCertARN"}).Return(nil)
 			},
 		},
 		"failure if env has imported certs but no alias set": {
@@ -250,7 +251,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"go.test"}, []string{"mockCertARN"}).Return(nil)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"go.test"}, []string{"mockCertARN"}).Return(nil)
 			},
 			expectedErr: `validate ALB runtime configuration for "http.additional_rules[0]": cannot deploy service mock-svc without "alias" to environment mock-env with certificate imported`,
 		},
@@ -274,7 +275,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockELBGetter.EXPECT().LoadBalancer("mockALB").Return(nil, errors.New("some error"))
+				m.mockELBGetter.EXPECT().LoadBalancerWithContext(gomock.Any(), "mockALB").Return(nil, errors.New("some error"))
 			},
 			expectedErr: `validate imported ALB configuration for "http": retrieve load balancer "mockALB": some error`,
 		},
@@ -301,7 +302,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockELBGetter.EXPECT().LoadBalancer("mockALB").Return(&elbv2.LoadBalancer{
+				m.mockELBGetter.EXPECT().LoadBalancerWithContext(gomock.Any(), "mockALB").Return(&elbv2.LoadBalancer{
 					ARN:    "mockALBARN",
 					Name:   "mockALB",
 					Scheme: "internet-facing",
@@ -329,7 +330,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockELBGetter.EXPECT().LoadBalancer("mockALB").Return(&elbv2.LoadBalancer{
+				m.mockELBGetter.EXPECT().LoadBalancerWithContext(gomock.Any(), "mockALB").Return(&elbv2.LoadBalancer{
 					ARN:       "mockALBARN",
 					Name:      "mockALB",
 					Scheme:    "internal",
@@ -358,7 +359,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockELBGetter.EXPECT().LoadBalancer("mockALB").Return(&elbv2.LoadBalancer{
+				m.mockELBGetter.EXPECT().LoadBalancerWithContext(gomock.Any(), "mockALB").Return(&elbv2.LoadBalancer{
 					ARN:    "mockALBARN",
 					Name:   "mockALB",
 					Scheme: "internal",
@@ -405,7 +406,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockELBGetter.EXPECT().LoadBalancer("mockALB").Return(&elbv2.LoadBalancer{
+				m.mockELBGetter.EXPECT().LoadBalancerWithContext(gomock.Any(), "mockALB").Return(&elbv2.LoadBalancer{
 					ARN:    "mockALBARN",
 					Name:   "mockALB",
 					Scheme: "internal",
@@ -447,7 +448,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 			setupMocks: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return(mockAppName+".local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockELBGetter.EXPECT().LoadBalancer("mockALB").Return(&elbv2.LoadBalancer{
+				m.mockELBGetter.EXPECT().LoadBalancerWithContext(gomock.Any(), "mockALB").Return(&elbv2.LoadBalancer{
 					ARN:    "mockALBARN",
 					Name:   "mockALB",
 					Scheme: "internal",
@@ -521,7 +522,7 @@ func TestBackendSvcDeployer_stackConfiguration(t *testing.T) {
 				},
 			}
 
-			_, err := deployer.stackConfiguration(&StackRuntimeConfiguration{})
+			_, err := deployer.stackConfiguration(context.Background(), &StackRuntimeConfiguration{})
 			if tc.expectedErr != "" {
 				require.EqualError(t, err, tc.expectedErr)
 			} else {

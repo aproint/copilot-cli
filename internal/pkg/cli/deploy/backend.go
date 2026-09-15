@@ -70,9 +70,9 @@ func (d *backendSvcDeployer) UploadArtifacts(ctx context.Context) (*UploadArtifa
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.
-func (d *backendSvcDeployer) GenerateCloudFormationTemplate(_ context.Context, in *GenerateCloudFormationTemplateInput) (
+func (d *backendSvcDeployer) GenerateCloudFormationTemplate(ctx context.Context, in *GenerateCloudFormationTemplateInput) (
 	*GenerateCloudFormationTemplateOutput, error) {
-	output, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
+	output, err := d.stackConfiguration(ctx, &in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (d *backendSvcDeployer) GenerateCloudFormationTemplate(_ context.Context, i
 
 // DeployWorkload deploys a backend service using CloudFormation.
 func (d *backendSvcDeployer) DeployWorkload(ctx context.Context, in *DeployWorkloadInput) (ActionRecommender, error) {
-	stackConfigOutput, err := d.stackConfiguration(&in.StackRuntimeConfiguration)
+	stackConfigOutput, err := d.stackConfiguration(ctx, &in.StackRuntimeConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -91,17 +91,17 @@ func (d *backendSvcDeployer) DeployWorkload(ctx context.Context, in *DeployWorkl
 	return noopActionRecommender{}, nil
 }
 
-func (d *backendSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*svcStackConfigurationOutput, error) {
+func (d *backendSvcDeployer) stackConfiguration(ctx context.Context, in *StackRuntimeConfiguration) (*svcStackConfigurationOutput, error) {
 	rc, err := d.runtimeConfig(in)
 	if err != nil {
 		return nil, err
 	}
-	if err := d.validateALBRuntime(); err != nil {
+	if err := d.validateALBRuntime(ctx); err != nil {
 		return nil, err
 	}
 	var opts []stack.BackendServiceOption
 	if d.backendMft.HTTP.ImportedALB != nil {
-		lb, err := d.elbGetter.LoadBalancer(aws.ToString(d.backendMft.HTTP.ImportedALB))
+		lb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.backendMft.HTTP.ImportedALB))
 		if err != nil {
 			return nil, err
 		}
@@ -136,29 +136,29 @@ func (d *backendSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (
 	}, nil
 }
 
-func (d *backendSvcDeployer) validateALBRuntime() error {
+func (d *backendSvcDeployer) validateALBRuntime(ctx context.Context) error {
 	if d.backendMft.HTTP.IsEmpty() {
 		return nil
 	}
-	if err := d.validateImportedALBConfig(); err != nil {
+	if err := d.validateImportedALBConfig(ctx); err != nil {
 		return fmt.Errorf(`validate imported ALB configuration for "http": %w`, err)
 	}
-	if err := d.validateRuntimeRoutingRule(d.backendMft.HTTP.Main); err != nil {
+	if err := d.validateRuntimeRoutingRule(ctx, d.backendMft.HTTP.Main); err != nil {
 		return fmt.Errorf(`validate ALB runtime configuration for "http": %w`, err)
 	}
 	for idx, rule := range d.backendMft.HTTP.AdditionalRoutingRules {
-		if err := d.validateRuntimeRoutingRule(rule); err != nil {
+		if err := d.validateRuntimeRoutingRule(ctx, rule); err != nil {
 			return fmt.Errorf(`validate ALB runtime configuration for "http.additional_rules[%d]": %w`, idx, err)
 		}
 	}
 	return nil
 }
 
-func (d *backendSvcDeployer) validateImportedALBConfig() error {
+func (d *backendSvcDeployer) validateImportedALBConfig(ctx context.Context) error {
 	if d.backendMft.HTTP.ImportedALB == nil {
 		return nil
 	}
-	alb, err := d.elbGetter.LoadBalancer(aws.ToString(d.backendMft.HTTP.ImportedALB))
+	alb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.backendMft.HTTP.ImportedALB))
 	if err != nil {
 		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.ToString(d.backendMft.HTTP.ImportedALB), err)
 	}
@@ -185,7 +185,7 @@ func (d *backendSvcDeployer) validateImportedALBConfig() error {
 	return nil
 }
 
-func (d *backendSvcDeployer) validateRuntimeRoutingRule(rule manifest.RoutingRule) error {
+func (d *backendSvcDeployer) validateRuntimeRoutingRule(ctx context.Context, rule manifest.RoutingRule) error {
 	if rule.IsEmpty() {
 		return nil
 	}
@@ -207,7 +207,7 @@ func (d *backendSvcDeployer) validateRuntimeRoutingRule(rule manifest.RoutingRul
 		return fmt.Errorf("convert aliases to string slice: %w", err)
 	}
 
-	if err := d.aliasCertValidator.ValidateCertAliases(aliases, d.envConfig.HTTPConfig.Private.Certificates); err != nil {
+	if err := d.aliasCertValidator.ValidateCertAliasesWithContext(ctx, aliases, d.envConfig.HTTPConfig.Private.Certificates); err != nil {
 		return fmt.Errorf("validate aliases against the imported certificate for env %s: %w", d.env.Name, err)
 	}
 	return nil

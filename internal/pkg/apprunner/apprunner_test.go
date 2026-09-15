@@ -4,6 +4,7 @@
 package apprunner
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -20,6 +21,52 @@ import (
 type clientMocks struct {
 	rgMock        *mocks.MockresourceGetter
 	appRunnerMock *mocks.MockappRunnerClient
+}
+
+func TestClient_ForceUpdateServiceWithContextUsesCallerContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	rg := mocks.NewMockresourceGetter(ctrl)
+	appRunner := mocks.NewMockappRunnerClient(ctrl)
+	tags := map[string]string{
+		deploy.AppTagKey:     "mockApp",
+		deploy.EnvTagKey:     "mockEnv",
+		deploy.ServiceTagKey: "mockSvc",
+	}
+
+	rg.EXPECT().GetResourcesByTagsWithContext(ctx, serviceResourceType, tags).Return([]*resourcegroups.Resource{
+		{ARN: "mockSvcARN"},
+	}, nil)
+	appRunner.EXPECT().StartDeploymentWithContext(ctx, "mockSvcARN").Return("mockOperationID", nil)
+	appRunner.EXPECT().WaitForOperationWithContext(ctx, "mockOperationID", "mockSvcARN").Return(nil)
+
+	client := Client{appRunnerClient: appRunner, rgGetter: rg}
+	require.NoError(t, client.ForceUpdateServiceWithContext(ctx, "mockApp", "mockEnv", "mockSvc"))
+}
+
+func TestClient_LastUpdatedAtWithContextUsesCallerContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	rg := mocks.NewMockresourceGetter(ctrl)
+	appRunner := mocks.NewMockappRunnerClient(ctrl)
+	want := time.Unix(1494505756, 0)
+	tags := map[string]string{
+		deploy.AppTagKey:     "mockApp",
+		deploy.EnvTagKey:     "mockEnv",
+		deploy.ServiceTagKey: "mockSvc",
+	}
+
+	rg.EXPECT().GetResourcesByTagsWithContext(ctx, serviceResourceType, tags).Return([]*resourcegroups.Resource{
+		{ARN: "mockSvcARN"},
+	}, nil)
+	appRunner.EXPECT().DescribeServiceWithContext(ctx, "mockSvcARN").Return(&apprunner.Service{
+		DateUpdated: want,
+	}, nil)
+
+	client := Client{appRunnerClient: appRunner, rgGetter: rg}
+	got, err := client.LastUpdatedAtWithContext(ctx, "mockApp", "mockEnv", "mockSvc")
+	require.NoError(t, err)
+	require.Equal(t, want, got)
 }
 
 func TestClient_ForceUpdateService(t *testing.T) {

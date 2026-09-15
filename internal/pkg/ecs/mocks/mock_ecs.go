@@ -213,6 +213,21 @@ func (mr *MockecsClientMockRecorder) ListServicesByNamespace(namespace interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServicesByNamespace", reflect.TypeOf((*MockecsClient)(nil).ListServicesByNamespace), namespace)
 }
 
+// ListServicesByNamespaceWithContext mocks base method.
+func (m *MockecsClient) ListServicesByNamespaceWithContext(ctx context.Context, namespace string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServicesByNamespaceWithContext", ctx, namespace)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListServicesByNamespaceWithContext indicates an expected call of ListServicesByNamespaceWithContext.
+func (mr *MockecsClientMockRecorder) ListServicesByNamespaceWithContext(ctx, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServicesByNamespaceWithContext", reflect.TypeOf((*MockecsClient)(nil).ListServicesByNamespaceWithContext), ctx, namespace)
+}
+
 // NetworkConfiguration mocks base method.
 func (m *MockecsClient) NetworkConfiguration(cluster, serviceName string) (*ecs.NetworkConfiguration, error) {
 	m.ctrl.T.Helper()
@@ -338,6 +353,26 @@ func (mr *MockecsClientMockRecorder) Services(cluster interface{}, services ...i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Services", reflect.TypeOf((*MockecsClient)(nil).Services), varargs...)
 }
 
+// ServicesWithContext mocks base method.
+func (m *MockecsClient) ServicesWithContext(ctx context.Context, cluster string, services ...string) ([]*ecs.Service, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, cluster}
+	for _, a := range services {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ServicesWithContext", varargs...)
+	ret0, _ := ret[0].([]*ecs.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServicesWithContext indicates an expected call of ServicesWithContext.
+func (mr *MockecsClientMockRecorder) ServicesWithContext(ctx, cluster interface{}, services ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, cluster}, services...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServicesWithContext", reflect.TypeOf((*MockecsClient)(nil).ServicesWithContext), varargs...)
+}
+
 // StopTasks mocks base method.
 func (m *MockecsClient) StopTasks(tasks []string, opts ...ecs.StopTasksOpts) error {
 	m.ctrl.T.Helper()
@@ -434,6 +469,25 @@ func (mr *MockecsClientMockRecorder) UpdateService(clusterName, serviceName inte
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{clusterName, serviceName}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateService", reflect.TypeOf((*MockecsClient)(nil).UpdateService), varargs...)
+}
+
+// UpdateServiceWithContext mocks base method.
+func (m *MockecsClient) UpdateServiceWithContext(ctx context.Context, clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, clusterName, serviceName}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateServiceWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateServiceWithContext indicates an expected call of UpdateServiceWithContext.
+func (mr *MockecsClientMockRecorder) UpdateServiceWithContext(ctx, clusterName, serviceName interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, clusterName, serviceName}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceWithContext", reflect.TypeOf((*MockecsClient)(nil).UpdateServiceWithContext), varargs...)
 }
 
 // MockstepFunctionsClient is a mock of stepFunctionsClient interface.

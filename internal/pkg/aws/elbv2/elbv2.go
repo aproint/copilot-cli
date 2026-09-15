@@ -178,6 +178,11 @@ type LoadBalancer struct {
 
 // LoadBalancer returns select information about a load balancer.
 func (e *ELBV2) LoadBalancer(nameOrARN string) (*LoadBalancer, error) {
+	return e.LoadBalancerWithContext(context.Background(), nameOrARN)
+}
+
+// LoadBalancerWithContext returns load balancer information using ctx for every request.
+func (e *ELBV2) LoadBalancerWithContext(ctx context.Context, nameOrARN string) (*LoadBalancer, error) {
 	var input *elbv2.DescribeLoadBalancersInput
 	if arn.IsARN(nameOrARN) {
 		input = &elbv2.DescribeLoadBalancersInput{
@@ -188,7 +193,7 @@ func (e *ELBV2) LoadBalancer(nameOrARN string) (*LoadBalancer, error) {
 			Names: []string{nameOrARN},
 		}
 	}
-	output, err := e.client.DescribeLoadBalancers(context.Background(), input)
+	output, err := e.client.DescribeLoadBalancers(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("describe load balancer %q: %w", nameOrARN, err)
 	}
@@ -196,7 +201,7 @@ func (e *ELBV2) LoadBalancer(nameOrARN string) (*LoadBalancer, error) {
 		return nil, fmt.Errorf("no load balancer %q found", nameOrARN)
 	}
 	lb := output.LoadBalancers[0]
-	listeners, err := e.listeners(awsv2.ToString(lb.LoadBalancerArn))
+	listeners, err := e.listeners(ctx, awsv2.ToString(lb.LoadBalancerArn))
 	if err != nil {
 		return nil, err
 	}
@@ -219,11 +224,14 @@ type Listener struct {
 }
 
 // listeners returns select information about all listeners on a given load balancer.
-func (e *ELBV2) listeners(lbARN string) ([]Listener, error) {
+func (e *ELBV2) listeners(ctx context.Context, lbARN string) ([]Listener, error) {
 	var listeners []Listener
 	in := &elbv2.DescribeListenersInput{LoadBalancerArn: awsv2.String(lbARN)}
 	for {
-		output, err := e.client.DescribeListeners(context.Background(), in)
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		output, err := e.client.DescribeListeners(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("describe listeners on load balancer %q: %w", lbARN, err)
 		}

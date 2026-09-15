@@ -5,6 +5,7 @@
 package selector
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
@@ -14,8 +15,8 @@ import (
 
 // VPCSubnetLister list VPCs and subnets.
 type VPCSubnetLister interface {
-	ListVPCs() ([]ec2.VPC, error)
-	ListVPCSubnets(vpcID string) (*ec2.VPCSubnets, error)
+	ListVPCsWithContext(ctx context.Context) ([]ec2.VPC, error)
+	ListVPCSubnetsWithContext(ctx context.Context, vpcID string) (*ec2.VPCSubnets, error)
 }
 
 // EC2Select is a selector for Ec2 resources.
@@ -33,8 +34,8 @@ func NewEC2Select(prompt Prompter, ec2Client VPCSubnetLister) *EC2Select {
 }
 
 // VPC has the user select an available VPC.
-func (s *EC2Select) VPC(msg, help string) (string, error) {
-	vpcs, err := s.ec2Svc.ListVPCs()
+func (s *EC2Select) VPC(ctx context.Context, msg, help string) (string, error) {
+	vpcs, err := s.ec2Svc.ListVPCsWithContext(ctx)
 	if err != nil {
 		return "", fmt.Errorf("list VPC ID: %w", err)
 	}
@@ -70,12 +71,12 @@ type SubnetsInput struct {
 }
 
 // Subnets has the user multiselect subnets given the VPC ID.
-func (s *EC2Select) Subnets(in SubnetsInput) ([]string, error) {
-	return s.selectFromVPCSubnets(in)
+func (s *EC2Select) Subnets(ctx context.Context, in SubnetsInput) ([]string, error) {
+	return s.selectFromVPCSubnets(ctx, in)
 }
 
-func (s *EC2Select) selectFromVPCSubnets(in SubnetsInput) ([]string, error) {
-	allSubnets, err := s.ec2Svc.ListVPCSubnets(in.VPCID)
+func (s *EC2Select) selectFromVPCSubnets(ctx context.Context, in SubnetsInput) ([]string, error) {
+	allSubnets, err := s.ec2Svc.ListVPCSubnetsWithContext(ctx, in.VPCID)
 	if err != nil {
 		return nil, fmt.Errorf("list subnets for VPC %s: %w", in.VPCID, err)
 	}

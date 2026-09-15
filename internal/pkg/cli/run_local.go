@@ -82,7 +82,7 @@ type hostFinder interface {
 }
 
 type taggedResourceGetter interface {
-	GetResourcesByTags(string, map[string]string) ([]*resourcegroups.Resource, error)
+	GetResourcesByTagsWithContext(context.Context, string, map[string]string) ([]*resourcegroups.Resource, error)
 }
 
 type rdsDescriber interface {
@@ -1093,7 +1093,7 @@ type hostDiscoverer struct {
 }
 
 func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error) {
-	svcs, err := h.ecs.ServiceConnectServices(h.app, h.env, h.wkld)
+	svcs, err := h.ecs.ServiceConnectServicesWithContext(ctx, h.app, h.env, h.wkld)
 	if err != nil {
 		return nil, fmt.Errorf("get service connect services: %w", err)
 	}
@@ -1131,7 +1131,7 @@ func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error)
 func (h *hostDiscoverer) rdsHosts(ctx context.Context) ([]orchestrator.Host, error) {
 	var hosts []orchestrator.Host
 
-	resources, err := h.rg.GetResourcesByTags(resourcegroups.ResourceTypeRDS, map[string]string{
+	resources, err := h.rg.GetResourcesByTagsWithContext(ctx, resourcegroups.ResourceTypeRDS, map[string]string{
 		deploy.AppTagKey: h.app,
 		deploy.EnvTagKey: h.env,
 	})

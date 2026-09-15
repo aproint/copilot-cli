@@ -898,7 +898,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"example.com", "foobar.com"}, mockCertARNs).Return(mockError)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"example.com", "foobar.com"}, mockCertARNs).Return(mockError)
 			},
 			wantErr: fmt.Errorf("validate ALB runtime configuration for \"http\": validate aliases against the imported public ALB certificate for env mockEnv: some error"),
 		},
@@ -922,8 +922,8 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"example.com", "foobar.com"}, mockCertARNs).Return(nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"example.com", "foobar.com"}, []string{mockCDNCertARN}).Return(mockError)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"example.com", "foobar.com"}, mockCertARNs).Return(nil)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"example.com", "foobar.com"}, []string{mockCDNCertARN}).Return(mockError)
 			},
 			wantErr: fmt.Errorf("validate ALB runtime configuration for \"http\": validate aliases against the imported CDN certificate for env mockEnv: some error"),
 		},
@@ -985,7 +985,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"mockAlias"}, mockCertARNs).Return(nil).Times(2)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"mockAlias"}, mockCertARNs).Return(nil).Times(2)
 			},
 			wantErr: errors.New("cannot specify nlb.alias when env mockEnv imports one or more certificates"),
 		},
@@ -1132,7 +1132,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).
 					Return(nil)
-				m.mockServiceForceUpdater.EXPECT().LastUpdatedAt(mockAppName, mockEnvName, mockName).
+				m.mockServiceForceUpdater.EXPECT().LastUpdatedAtWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).
 					Return(time.Time{}, mockError)
 			},
 			wantErr: fmt.Errorf("get the last updated deployment time for mockWkld: some error"),
@@ -1151,7 +1151,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).
 					Return(nil)
-				m.mockServiceForceUpdater.EXPECT().LastUpdatedAt(mockAppName, mockEnvName, mockName).
+				m.mockServiceForceUpdater.EXPECT().LastUpdatedAtWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).
 					Return(mockAfterTime, nil)
 			},
 		},
@@ -1169,10 +1169,10 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).
 					Return(cloudformation.NewMockErrChangeSetEmpty())
-				m.mockServiceForceUpdater.EXPECT().LastUpdatedAt(mockAppName, mockEnvName, mockName).
+				m.mockServiceForceUpdater.EXPECT().LastUpdatedAtWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).
 					Return(mockBeforeTime, nil)
 				m.mockSpinner.EXPECT().Start(fmt.Sprintf(fmtForceUpdateSvcStart, mockName, mockEnvName))
-				m.mockServiceForceUpdater.EXPECT().ForceUpdateService(mockAppName, mockEnvName, mockName).Return(mockError)
+				m.mockServiceForceUpdater.EXPECT().ForceUpdateServiceWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).Return(mockError)
 				m.mockSpinner.EXPECT().Stop(log.Serrorf(fmtForceUpdateSvcFailed, mockName, mockEnvName, mockError))
 			},
 			wantErr: fmt.Errorf("force an update for service mockWkld: some error"),
@@ -1191,10 +1191,10 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).
 					Return(cloudformation.NewMockErrChangeSetEmpty())
-				m.mockServiceForceUpdater.EXPECT().LastUpdatedAt(mockAppName, mockEnvName, mockName).
+				m.mockServiceForceUpdater.EXPECT().LastUpdatedAtWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).
 					Return(mockBeforeTime, nil)
 				m.mockSpinner.EXPECT().Start(fmt.Sprintf(fmtForceUpdateSvcStart, mockName, mockEnvName))
-				m.mockServiceForceUpdater.EXPECT().ForceUpdateService(mockAppName, mockEnvName, mockName).
+				m.mockServiceForceUpdater.EXPECT().ForceUpdateServiceWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).
 					Return(&ecs.ErrWaitServiceStableTimeout{})
 				m.mockSpinner.EXPECT().Stop(
 					log.Serror(fmt.Sprintf("%s  Run %s to check for the fail reason.\n",
@@ -1238,7 +1238,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"example.com", "foobar.com"}, mockCertARNs).Return(nil).Times(2)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"example.com", "foobar.com"}, mockCertARNs).Return(nil).Times(2)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).Return(nil)
 			},
 		},
@@ -1262,7 +1262,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"example.com", "foobar.com"}, mockCertARNs).Return(nil).Times(2)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"example.com", "foobar.com"}, mockCertARNs).Return(nil).Times(2)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).Return(nil)
 			},
 		},
@@ -1285,7 +1285,7 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 			mock: func(m *deployMocks) {
 				m.mockEndpointGetter.EXPECT().ServiceDiscoveryEndpoint().Return("mockApp.local", nil)
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
-				m.mockValidator.EXPECT().ValidateCertAliases([]string{"example.com", "foobar.com"}, []string{mockCDNCertARN}).Return(nil).Times(2)
+				m.mockValidator.EXPECT().ValidateCertAliasesWithContext(gomock.Any(), []string{"example.com", "foobar.com"}, []string{mockCDNCertARN}).Return(nil).Times(2)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).Return(nil)
 			},
 		},
@@ -1331,10 +1331,10 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 				m.mockEnvVersionGetter.EXPECT().Version().Return("v1.42.0", nil)
 				m.mockServiceDeployer.EXPECT().DeployService(gomock.Any(), gomock.Any(), "mockBucket", false, gomock.Any()).
 					Return(cloudformation.NewMockErrChangeSetEmpty())
-				m.mockServiceForceUpdater.EXPECT().LastUpdatedAt(mockAppName, mockEnvName, mockName).
+				m.mockServiceForceUpdater.EXPECT().LastUpdatedAtWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).
 					Return(mockBeforeTime, nil)
 				m.mockSpinner.EXPECT().Start(fmt.Sprintf(fmtForceUpdateSvcStart, mockName, mockEnvName))
-				m.mockServiceForceUpdater.EXPECT().ForceUpdateService(mockAppName, mockEnvName, mockName).Return(nil)
+				m.mockServiceForceUpdater.EXPECT().ForceUpdateServiceWithContext(gomock.Any(), mockAppName, mockEnvName, mockName).Return(nil)
 				m.mockSpinner.EXPECT().Stop(log.Ssuccessf(fmtForceUpdateSvcComplete, mockName, mockEnvName))
 			},
 		},

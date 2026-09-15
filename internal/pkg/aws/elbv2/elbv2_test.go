@@ -619,7 +619,7 @@ func TestELBV2_listeners(t *testing.T) {
 				client: mockAPI,
 			}
 
-			actual, err := elbv2Client.listeners(aws.ToString(mockLBARN))
+			actual, err := elbv2Client.listeners(context.Background(), aws.ToString(mockLBARN))
 			if tc.expectedErr != "" {
 				require.EqualError(t, err, tc.expectedErr)
 			} else {

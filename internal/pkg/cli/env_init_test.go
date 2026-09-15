@@ -556,7 +556,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("", mockErr)
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("", mockErr)
 			},
 			wantedError: fmt.Errorf("select VPC: some error"),
 		},
@@ -568,8 +568,8 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(false, mockErr)
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(false, mockErr)
 			},
 			wantedError: fmt.Errorf("check if VPC mockVPC has DNS support enabled: some error"),
 		},
@@ -581,8 +581,8 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(false, nil)
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(false, nil)
 			},
 			wantedError: fmt.Errorf("VPC mockVPC has no DNS support enabled"),
 		},
@@ -594,9 +594,9 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return(nil, mockErr)
 			},
 			wantedError: fmt.Errorf("select public subnets: some error"),
@@ -609,9 +609,9 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet"}, nil)
 			},
 			wantedError: fmt.Errorf("select public subnets: at least two public subnets must be selected to enable Load Balancing"),
@@ -624,11 +624,11 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return(nil, mockErr)
 			},
 			wantedError: fmt.Errorf("select private subnets: some error"),
@@ -641,11 +641,11 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{"mockPrivateSubnet"}, nil)
 			},
 			wantedError: fmt.Errorf("select private subnets: at least two private subnets must be selected"),
@@ -658,11 +658,11 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{"mockPrivateSubnet", "anotherMockPrivateSubnet"}, nil)
 			},
 		},
@@ -674,11 +674,11 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{}, nil)
 			},
 		},
@@ -690,11 +690,11 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, "", envInitCustomizedEnvTypes, gomock.Any()).
 					Return(envInitImportEnvResourcesSelectOption, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{"mockPrivateSubnet", "anotherMockPrivateSubnet"}, nil)
 			},
 		},
@@ -710,7 +710,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
 				m.prompt.EXPECT().SelectOne(envInitDefaultEnvConfirmPrompt, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPCID").Return(true, nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPCID").Return(true, nil)
 			},
 		},
 		"prompt for subnets if only VPC passed with flag": {
@@ -722,10 +722,10 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			},
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{"mockPrivateSubnet", "anotherMockPrivateSubnet"}, nil)
 			},
 		},
@@ -739,8 +739,8 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			},
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
 			},
 		},
 		"prompt for public subnets if only private subnets and VPC passed with flags": {
@@ -753,8 +753,8 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			},
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
 			},
 		},
@@ -768,8 +768,8 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			},
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{"mockPrivateSubnet", "anotherMockPrivateSubnet"}, nil)
 			},
 		},
@@ -783,10 +783,10 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			inInternalALBSubnets: []string{"nonexistentSubnet", "anotherNonexistentSubnet"},
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{"mockPrivateSubnet", "anotherMockPrivateSubnet"}, nil)
 			},
 
@@ -801,10 +801,10 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			},
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return(nil, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return(nil, nil)
 			},
 			wantedError: fmt.Errorf("VPC must have subnets in order to proceed with environment creation"),
@@ -816,11 +816,11 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 			inInternalALBSubnets: []string{"mockPrivateSubnet", "anotherMockPrivateSubnet"},
 			setupMocks: func(m initEnvMocks) {
 				m.sessProvider.EXPECT().ConfigFromProfile(gomock.Any(), gomock.Any()).Return(mockConfig, nil)
-				m.selVPC.EXPECT().VPC(envInitVPCSelectPrompt, "").Return("mockVPC", nil)
-				m.ec2Client.EXPECT().HasDNSSupport("mockVPC").Return(true, nil)
-				m.selVPC.EXPECT().Subnets(mockPublicSubnetInput).
+				m.selVPC.EXPECT().VPC(gomock.Any(), envInitVPCSelectPrompt, "").Return("mockVPC", nil)
+				m.ec2Client.EXPECT().HasDNSSupportWithContext(gomock.Any(), "mockVPC").Return(true, nil)
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPublicSubnetInput).
 					Return([]string{"mockPublicSubnet", "anotherMockPublicSubnet"}, nil)
-				m.selVPC.EXPECT().Subnets(mockPrivateSubnetInput).
+				m.selVPC.EXPECT().Subnets(gomock.Any(), mockPrivateSubnetInput).
 					Return([]string{"mockPrivateSubnet", "anotherMockPrivateSubnet"}, nil)
 			},
 		},
@@ -847,7 +847,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 					Return(envInitAdjustEnvResourcesSelectOption, nil)
 				m.prompt.EXPECT().Get(envInitVPCCIDRPrompt, gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mockVPCCIDR, nil)
-				m.ec2Client.EXPECT().ListAZs().Return(nil, errors.New("some error"))
+				m.ec2Client.EXPECT().ListAZsWithContext(gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("list availability zones for region %s: some error", mockRegion),
 		},
@@ -861,7 +861,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 					Return(envInitAdjustEnvResourcesSelectOption, nil)
 				m.prompt.EXPECT().Get(envInitVPCCIDRPrompt, gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mockVPCCIDR, nil)
-				m.ec2Client.EXPECT().ListAZs().Return([]ec2.AZ{
+				m.ec2Client.EXPECT().ListAZsWithContext(gomock.Any()).Return([]ec2.AZ{
 					{
 						Name: "us-east-1a",
 					},
@@ -879,7 +879,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 					Return(envInitAdjustEnvResourcesSelectOption, nil)
 				m.prompt.EXPECT().Get(envInitVPCCIDRPrompt, gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mockVPCCIDR, nil)
-				m.ec2Client.EXPECT().ListAZs().Return([]ec2.AZ{
+				m.ec2Client.EXPECT().ListAZsWithContext(gomock.Any()).Return([]ec2.AZ{
 					{
 						Name: "us-east-1a",
 					},
@@ -904,7 +904,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 					Return(envInitAdjustEnvResourcesSelectOption, nil)
 				m.prompt.EXPECT().Get(envInitVPCCIDRPrompt, gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(mockVPCCIDR, nil)
-				m.ec2Client.EXPECT().ListAZs().Return([]ec2.AZ{
+				m.ec2Client.EXPECT().ListAZsWithContext(gomock.Any()).Return([]ec2.AZ{
 					{
 						Name: "us-east-1a",
 					},
@@ -931,7 +931,7 @@ func TestInitEnvOpts_Ask(t *testing.T) {
 					Return(envInitAdjustEnvResourcesSelectOption, nil)
 				m.prompt.EXPECT().Get(envInitVPCCIDRPrompt, envInitVPCCIDRPromptHelp, gomock.Any(), gomock.Any()).
 					Return(mockVPCCIDR, nil)
-				m.ec2Client.EXPECT().ListAZs().Return([]ec2.AZ{
+				m.ec2Client.EXPECT().ListAZsWithContext(gomock.Any()).Return([]ec2.AZ{
 					{
 						Name: "us-east-1a",
 					},

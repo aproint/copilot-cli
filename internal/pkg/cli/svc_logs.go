@@ -87,8 +87,12 @@ type wkldLogOpts struct {
 }
 
 func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
+	return newSvcLogOptsWithContext(context.Background(), vars)
+}
+
+func newSvcLogOptsWithContext(ctx context.Context, vars svcLogsVars) (*svcLogsOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc logs"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -112,7 +116,7 @@ func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
 		if err != nil {
 			return fmt.Errorf("get environment: %w", err)
 		}
-		cfg, err := sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return err
 		}
@@ -209,7 +213,7 @@ func (o *svcLogsOpts) Execute(ctx context.Context) error {
 		limit = aws.Int64(int64(o.limit))
 	}
 	if o.previous {
-		taskID, err := o.latestStoppedTaskID()
+		taskID, err := o.latestStoppedTaskID(ctx)
 		if err != nil {
 			if errors.Is(err, noPreviousTasksErr) {
 				log.Warningln("no previously stopped tasks found")
@@ -220,7 +224,7 @@ func (o *svcLogsOpts) Execute(ctx context.Context) error {
 		o.taskIDs = []string{taskID}
 		log.Infoln("previously stopped task:", taskID)
 	}
-	err := o.logsSvc.WriteLogEvents(logging.WriteLogEventsOpts{
+	err := o.logsSvc.WriteLogEventsWithContext(ctx, logging.WriteLogEventsOpts{
 		Follow:        o.follow,
 		Limit:         limit,
 		EndTime:       o.endTime,
@@ -236,8 +240,8 @@ func (o *svcLogsOpts) Execute(ctx context.Context) error {
 	return nil
 }
 
-func (o *svcLogsOpts) latestStoppedTaskID() (string, error) {
-	svcDesc, err := o.ecs.DescribeService(o.appName, o.envName, o.name)
+func (o *svcLogsOpts) latestStoppedTaskID(ctx context.Context) (string, error) {
+	svcDesc, err := o.ecs.DescribeServiceWithContext(ctx, o.appName, o.envName, o.name)
 	if err != nil {
 		return "", fmt.Errorf("describe service %s: %w", o.name, err)
 	}
@@ -351,7 +355,7 @@ func buildSvcLogsCmd() *cobra.Command {
   Display logs from specific log group.
   /code $ copilot svc logs --log-group system`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcLogOpts(vars)
+			opts, err := newSvcLogOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

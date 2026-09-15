@@ -382,7 +382,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 			container: "datadog",
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.logSvcWriter.EXPECT().WriteLogEvents(gomock.Any()).Do(func(param logging.WriteLogEventsOpts) {
+					m.logSvcWriter.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param logging.WriteLogEventsOpts) {
 						require.Equal(t, param.TaskIDs, []string{"mockTaskID"})
 						require.Equal(t, param.EndTime, &mockEndTime)
 						require.Equal(t, param.StartTime, &mockStartTime)
@@ -403,7 +403,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.logSvcWriter.EXPECT().WriteLogEvents(gomock.Any()).Do(func(param logging.WriteLogEventsOpts) {
+					m.logSvcWriter.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param logging.WriteLogEventsOpts) {
 						require.Equal(t, param.TaskIDs, []string{"mockTaskID"})
 						require.Equal(t, param.EndTime, &mockEndTime)
 						require.Equal(t, param.StartTime, &mockStartTime)
@@ -421,7 +421,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 			logGroup:  "system",
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.logSvcWriter.EXPECT().WriteLogEvents(gomock.Any()).Do(func(param logging.WriteLogEventsOpts) {
+					m.logSvcWriter.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param logging.WriteLogEventsOpts) {
 						require.Equal(t, param.TaskIDs, ([]string)(nil))
 						require.Equal(t, param.EndTime, &mockEndTime)
 						require.Equal(t, param.StartTime, &mockStartTime)
@@ -438,7 +438,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 			inputSvc: "mockSvc",
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.logSvcWriter.EXPECT().WriteLogEvents(gomock.Any()).
+					m.logSvcWriter.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).
 						Return(errors.New("some error")),
 				)
 			},
@@ -455,7 +455,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.ecs.EXPECT().DescribeService("my-app", "my-env", "mockSvc").Return(&ecs.ServiceDesc{
+					m.ecs.EXPECT().DescribeServiceWithContext(gomock.Any(), "my-app", "my-env", "mockSvc").Return(&ecs.ServiceDesc{
 						ClusterName: "mockCluster",
 						StoppedTasks: []*awsecs.Task{
 							{
@@ -477,7 +477,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 						},
 					}, nil),
 
-					m.logSvcWriter.EXPECT().WriteLogEvents(gomock.Any()).Do(func(param logging.WriteLogEventsOpts) {
+					m.logSvcWriter.EXPECT().WriteLogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param logging.WriteLogEventsOpts) {
 						require.Equal(t, param.TaskIDs, []string{"mockTaskID1"})
 						require.Equal(t, param.EndTime, &mockEndTime)
 						require.Equal(t, param.StartTime, &mockStartTime)
@@ -498,7 +498,7 @@ func TestSvcLogs_Execute(t *testing.T) {
 
 			setupMocks: func(m wkldLogsMock) {
 				gomock.InOrder(
-					m.ecs.EXPECT().DescribeService("my-app", "my-env", "mockSvc").Return(&ecs.ServiceDesc{
+					m.ecs.EXPECT().DescribeServiceWithContext(gomock.Any(), "my-app", "my-env", "mockSvc").Return(&ecs.ServiceDesc{
 						ClusterName:  "mockCluster",
 						StoppedTasks: []*awsecs.Task{},
 						Tasks: []*awsecs.Task{

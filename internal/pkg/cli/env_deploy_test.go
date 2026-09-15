@@ -230,7 +230,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(nil, errors.New("some error"))
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: errors.New("upload artifacts for environment mockEnv: some error"),
 		},
@@ -244,7 +244,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: fmt.Errorf(`generate the template for environment "mockEnv": some error`),
@@ -259,7 +259,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", errors.New("some error"))
 			},
@@ -275,7 +275,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, nil)
@@ -292,7 +292,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, nil)
@@ -309,7 +309,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, errors.New("some error"))
@@ -326,7 +326,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(false, nil)
@@ -343,7 +343,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Return(true, nil)
@@ -362,7 +362,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.deployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.prompter.EXPECT().Confirm(gomock.Eq(continueDeploymentPrompt), gomock.Any(), gomock.Any()).Times(0)
@@ -378,7 +378,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 				m.deployer.EXPECT().DeployEnvironment(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *deploy.DeployEnvironmentInput) error {
 					return errors.New("some error")
 				})
@@ -394,7 +394,7 @@ func TestDeployEnvOpts_Execute(t *testing.T) {
 					RootUserARN: "mockRootUserARN",
 				}, nil)
 				m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{
+				m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{
 					AddonsURL: "mockAddonsURL",
 					CustomResourceURLs: map[string]string{
 						"mockResource": "mockURL",
@@ -486,7 +486,7 @@ func TestDeployEnvOpts_Execute_UsesCallerContextForDeploy(t *testing.T) {
 	m.interpolator.EXPECT().Interpolate(gomock.Any()).Return("name: mockEnv\ntype: Environment\n", nil)
 	m.identity.EXPECT().Get(parent).Return(identity.Caller{RootUserARN: "mockRootUserARN"}, nil)
 	m.deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-	m.deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{}, nil)
+	m.deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{}, nil)
 	m.deployer.EXPECT().DeployEnvironment(gomock.Eq(parent), gomock.Any()).Return(wantedErr)
 	opts := deployEnvOpts{
 		deployEnvVars: deployEnvVars{name: "mockEnv"},

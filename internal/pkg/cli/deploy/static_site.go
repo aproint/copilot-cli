@@ -28,7 +28,7 @@ import (
 const artifactBucketAssetsDir = "local-assets"
 
 type fileUploader interface {
-	UploadFiles(files []manifest.FileUpload) (string, error)
+	UploadFiles(ctx context.Context, files []manifest.FileUpload) (string, error)
 }
 
 type staticSiteDeployer struct {
@@ -71,8 +71,8 @@ func NewStaticSiteDeployer(in *WorkloadDeployerInput) (*staticSiteDeployer, erro
 			FS:                  svcDeployer.fs,
 			AssetDir:            artifactBucketAssetsDir,
 			AssetMappingFileDir: fmt.Sprintf("%s/environments/%s/workloads/%s/mapping", artifactBucketAssetsDir, svcDeployer.env.Name, svcDeployer.name),
-			Upload: func(path string, data io.Reader) error {
-				_, err := svcDeployer.s3Client.Upload(svcDeployer.resources.S3Bucket, path, data)
+			Upload: func(ctx context.Context, path string, data io.Reader) error {
+				_, err := svcDeployer.s3Client.UploadWithContext(ctx, svcDeployer.resources.S3Bucket, path, data)
 				return err
 			},
 		},
@@ -132,11 +132,11 @@ func (d *staticSiteDeployer) deploy(ctx context.Context, deployOptions Options, 
 }
 
 // UploadArtifacts uploads static assets to the app stackset bucket.
-func (d *staticSiteDeployer) UploadArtifacts() (*UploadArtifactsOutput, error) {
-	return d.uploadArtifacts(d.uploadStaticFiles, d.uploadArtifactsToS3, d.uploadCustomResources)
+func (d *staticSiteDeployer) UploadArtifacts(ctx context.Context) (*UploadArtifactsOutput, error) {
+	return d.uploadArtifacts(ctx, d.uploadStaticFiles, d.uploadArtifactsToS3, d.uploadCustomResources)
 }
 
-func (d *staticSiteDeployer) uploadStaticFiles(out *UploadArtifactsOutput) error {
+func (d *staticSiteDeployer) uploadStaticFiles(ctx context.Context, out *UploadArtifactsOutput) error {
 	if err := d.validateSources(); err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (d *staticSiteDeployer) uploadStaticFiles(out *UploadArtifactsOutput) error
 	if err != nil {
 		return err
 	}
-	path, err := d.uploader.UploadFiles(fullPathSources)
+	path, err := d.uploader.UploadFiles(ctx, fullPathSources)
 	if err != nil {
 		return fmt.Errorf("upload static files: %w", err)
 	}

@@ -147,6 +147,7 @@ type codePipelineClient interface {
 
 type s3Client interface {
 	Upload(bucket, fileName string, data io.Reader) (string, error)
+	UploadWithContext(ctx context.Context, bucket, fileName string, data io.Reader) (string, error)
 	EmptyBucket(bucket string) error
 }
 

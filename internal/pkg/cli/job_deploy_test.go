@@ -269,7 +269,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(nil, mockError)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(nil, mockError)
 			},
 
 			wantedError: fmt.Errorf("upload deploy resources for job upload: some error"),
@@ -288,7 +288,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("generate the template for job %q against environment %q: some error", mockJobName, mockEnvName),
@@ -307,7 +307,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("", errors.New("some error"))
 			},
@@ -327,7 +327,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("", nil)
 				m.mockDiffWriter = &strings.Builder{}
@@ -349,7 +349,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
@@ -371,7 +371,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
@@ -393,7 +393,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
@@ -415,7 +415,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().GenerateCloudFormationTemplate(gomock.Any(), gomock.Any()).Return(&deploy.GenerateCloudFormationTemplateOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployDiff(gomock.Any()).Return("mock diff", nil)
 				m.mockDiffWriter = &strings.Builder{}
@@ -435,7 +435,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 				}
 				m.mockEnvFeaturesDescriber.EXPECT().Version().Return("v1.mock", nil)
 				m.mockEnvFeaturesDescriber.EXPECT().AvailableFeatures().Return([]string{"mockFeature1", "mockFeature2"}, nil)
-				m.mockDeployer.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{}, nil)
+				m.mockDeployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{}, nil)
 				m.mockDeployer.EXPECT().DeployWorkload(gomock.Any(), gomock.Any()).Return(nil, mockError)
 				m.mockDeployer.EXPECT().IsServiceAvailableInRegion("").Return(false, nil)
 			},

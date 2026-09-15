@@ -176,6 +176,7 @@ type imageBuilderPusher interface {
 
 type repositoryLogin interface {
 	Login() (string, error)
+	LoginWithContext(context.Context) (string, error)
 }
 
 type repositoryService interface {
@@ -365,6 +366,7 @@ type wsWriter interface {
 
 type uploader interface {
 	Upload(bucket, key string, data io.Reader) (string, error)
+	UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error)
 }
 
 type bucketEmptier interface {
@@ -707,7 +709,7 @@ type interpolator interface {
 }
 
 type workloadDeployer interface {
-	UploadArtifacts() (*clideploy.UploadArtifactsOutput, error)
+	UploadArtifacts(context.Context) (*clideploy.UploadArtifactsOutput, error)
 	GenerateCloudFormationTemplate(context.Context, *clideploy.GenerateCloudFormationTemplateInput) (
 		*clideploy.GenerateCloudFormationTemplateOutput, error)
 	DeployWorkload(context.Context, *clideploy.DeployWorkloadInput) (clideploy.ActionRecommender, error)
@@ -720,7 +722,7 @@ type templateDiffer interface {
 }
 
 type dockerEngineRunner interface {
-	CheckDockerEngineRunning() error
+	CheckDockerEngineRunningWithContext(context.Context) error
 	Run(context.Context, *dockerengine.RunOptions) error
 	IsContainerRunning(context.Context, string) (bool, error)
 	Stop(context.Context, string) error
@@ -732,7 +734,7 @@ type dockerEngineRunner interface {
 }
 
 type workloadStackGenerator interface {
-	UploadArtifacts() (*clideploy.UploadArtifactsOutput, error)
+	UploadArtifacts(context.Context) (*clideploy.UploadArtifactsOutput, error)
 	GenerateCloudFormationTemplate(context.Context, *clideploy.GenerateCloudFormationTemplateInput) (
 		*clideploy.GenerateCloudFormationTemplateOutput, error)
 	AddonsTemplate() (string, error)
@@ -746,7 +748,7 @@ type runner interface {
 type envDeployer interface {
 	DeployEnvironment(context.Context, *clideploy.DeployEnvironmentInput) error
 	Validate(*manifest.Environment) error
-	UploadArtifacts() (*clideploy.UploadEnvArtifactsOutput, error)
+	UploadArtifacts(context.Context) (*clideploy.UploadEnvArtifactsOutput, error)
 	GenerateCloudFormationTemplate(context.Context, *clideploy.DeployEnvironmentInput) (
 		*clideploy.GenerateCloudFormationTemplateOutput, error)
 	templateDiffer
@@ -755,7 +757,7 @@ type envDeployer interface {
 type envPackager interface {
 	GenerateCloudFormationTemplate(context.Context, *clideploy.DeployEnvironmentInput) (*clideploy.GenerateCloudFormationTemplateOutput, error)
 	Validate(*manifest.Environment) error
-	UploadArtifacts() (*clideploy.UploadEnvArtifactsOutput, error)
+	UploadArtifacts(context.Context) (*clideploy.UploadEnvArtifactsOutput, error)
 	AddonsTemplate() (string, error)
 	templateDiffer
 }

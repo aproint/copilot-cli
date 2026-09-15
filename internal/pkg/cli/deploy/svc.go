@@ -24,6 +24,7 @@ import (
 
 type uploader interface {
 	Upload(bucket, key string, data io.Reader) (string, error)
+	UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error)
 }
 
 type versionGetter interface {

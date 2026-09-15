@@ -81,6 +81,7 @@ func (noopActionRecommender) RecommendedActions() []string {
 
 type repositoryService interface {
 	Login() (string, error)
+	LoginWithContext(context.Context) (string, error)
 	BuildAndPush(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error)
 	Build(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error)
 }
@@ -124,7 +125,7 @@ type LabeledTermPrinter interface {
 }
 
 type dockerEngineRunChecker interface {
-	CheckDockerEngineRunning() error
+	CheckDockerEngineRunningWithContext(context.Context) error
 }
 
 // StackRuntimeConfiguration contains runtime configuration for a workload CloudFormation stack.
@@ -244,8 +245,8 @@ type ImageActionInput struct {
 	GitShortCommitTag string
 	Mft               interface{}
 
-	Login              func() (string, error)
-	CheckDockerEngine  func() error
+	Login              func(context.Context) (string, error)
+	CheckDockerEngine  func(context.Context) error
 	LabeledTermPrinter func(fw syncbuffer.FileWriter, bufs []*syncbuffer.LabeledSyncBuffer, opts ...syncbuffer.LabeledTermPrinterOption) LabeledTermPrinter
 }
 
@@ -259,15 +260,15 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	if err != nil {
 		return nil, err
 	}
-	defaultConfig, err := in.SessionProvider.DefaultConfig(context.Background())
+	defaultConfig, err := in.SessionProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("create default config: %w", err)
 	}
-	envAWSConfig, err := in.SessionProvider.ConfigFromRole(context.Background(), in.Env.ManagerRoleARN, in.Env.Region)
+	envAWSConfig, err := in.SessionProvider.ConfigFromRole(ctx, in.Env.ManagerRoleARN, in.Env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("create env config with region %s: %w", in.Env.Region, err)
 	}
-	defaultEnvRegionConfig, err := in.SessionProvider.DefaultConfigWithRegion(context.Background(), in.Env.Region)
+	defaultEnvRegionConfig, err := in.SessionProvider.DefaultConfigWithRegion(ctx, in.Env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("create default config with region %s: %w", in.Env.Region, err)
 	}
@@ -424,27 +425,27 @@ func (img ContainerImageIdentifier) Tag() string {
 	return img.GitShortCommitTag
 }
 
-func (d *workloadDeployer) buildAndPushContainerImages(out *UploadArtifactsOutput) error {
-	return processContainerImages(&ImageActionInput{
+func (d *workloadDeployer) buildAndPushContainerImages(ctx context.Context, out *UploadArtifactsOutput) error {
+	return processContainerImages(ctx, &ImageActionInput{
 		Name:               d.name,
 		WorkspacePath:      d.workspacePath,
 		Image:              d.image,
 		Mft:                d.mft,
 		CustomTag:          d.image.CustomTag,
 		GitShortCommitTag:  d.image.GitShortCommitTag,
-		Login:              d.repository.Login,
-		CheckDockerEngine:  d.docker.CheckDockerEngineRunning,
+		Login:              d.repository.LoginWithContext,
+		CheckDockerEngine:  d.docker.CheckDockerEngineRunningWithContext,
 		LabeledTermPrinter: d.labeledTermPrinter,
 	}, out, d.repository.BuildAndPush)
 
 }
 
 // BuildContainerImages builds the all the images given the build arguments
-func BuildContainerImages(in *ImageActionInput, out *UploadArtifactsOutput) error {
-	return processContainerImages(in, out, in.Builder.Build)
+func BuildContainerImages(ctx context.Context, in *ImageActionInput, out *UploadArtifactsOutput) error {
+	return processContainerImages(ctx, in, out, in.Builder.Build)
 }
 
-func processContainerImages(in *ImageActionInput, out *UploadArtifactsOutput, buildFunc func(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error)) error {
+func processContainerImages(ctx context.Context, in *ImageActionInput, out *UploadArtifactsOutput, buildFunc func(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error)) error {
 	//this function could either build or buildAndPush the image based on the function received
 	buildArgsPerContainer, err := buildArgsPerContainer(in.Name, in.WorkspacePath, in.Image, in.Mft)
 	if err != nil {
@@ -453,25 +454,28 @@ func processContainerImages(in *ImageActionInput, out *UploadArtifactsOutput, bu
 	if len(buildArgsPerContainer) == 0 {
 		return nil
 	}
-	if err := in.CheckDockerEngine(); err != nil {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := in.CheckDockerEngine(ctx); err != nil {
 		return fmt.Errorf("check if docker engine is running: %w", err)
 	}
-	uri, err := in.Login()
+	uri, err := in.Login(ctx)
 	if err != nil {
 		return fmt.Errorf("login to image repository: %w", err)
 	}
 	isMultipleContainerImages := len(buildArgsPerContainer) > 1
 	if isMultipleContainerImages {
-		return buildContainerImagesInParallel(in, uri, buildArgsPerContainer, buildFunc, out)
+		return buildContainerImagesInParallel(ctx, in, uri, buildArgsPerContainer, buildFunc, out)
 	}
-	return buildSingleContainerImage(in, uri, buildArgsPerContainer, buildFunc, out)
+	return buildSingleContainerImage(ctx, in, uri, buildArgsPerContainer, buildFunc, out)
 }
 
-func buildSingleContainerImage(in *ImageActionInput, uri string, buildArgsPerContainer map[string]*dockerengine.BuildArguments, buildFunc func(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error), out *UploadArtifactsOutput) error {
+func buildSingleContainerImage(ctx context.Context, in *ImageActionInput, uri string, buildArgsPerContainer map[string]*dockerengine.BuildArguments, buildFunc func(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error), out *UploadArtifactsOutput) error {
 	out.ImageDigests = make(map[string]ContainerImageIdentifier, len(buildArgsPerContainer))
 	for name, buildArgs := range buildArgsPerContainer {
 		buildArgs.URI = uri
-		digest, err := buildFunc(context.Background(), buildArgs, os.Stderr)
+		digest, err := buildFunc(ctx, buildArgs, os.Stderr)
 		if err != nil {
 			return fmt.Errorf("build and push the image %q: %w", name, err)
 		}
@@ -489,14 +493,17 @@ func buildSingleContainerImage(in *ImageActionInput, uri string, buildArgsPerCon
 	return nil
 }
 
-func buildContainerImagesInParallel(in *ImageActionInput, uri string, buildArgsPerContainer map[string]*dockerengine.BuildArguments, buildFunc func(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error), out *UploadArtifactsOutput) error {
+func buildContainerImagesInParallel(ctx context.Context, in *ImageActionInput, uri string, buildArgsPerContainer map[string]*dockerengine.BuildArguments, buildFunc func(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error), out *UploadArtifactsOutput) error {
 	var digestsMu sync.Mutex
 	out.ImageDigests = make(map[string]ContainerImageIdentifier, len(buildArgsPerContainer))
 	var labeledBuffers []*syncbuffer.LabeledSyncBuffer
-	g, ctx := errgroup.WithContext(context.Background())
+	g, groupCtx := errgroup.WithContext(ctx)
 	cursor := cursor.New()
 	cursor.Hide()
 	for name, buildArgs := range buildArgsPerContainer {
+		if err := groupCtx.Err(); err != nil {
+			return errors.Join(g.Wait(), err)
+		}
 		// create a copy of loop variables to avoid data race.
 		name := name
 		buildArgs := buildArgs
@@ -511,7 +518,10 @@ func buildContainerImagesInParallel(in *ImageActionInput, uri string, buildArgsP
 		pr, pw := io.Pipe()
 		g.Go(func() error {
 			defer pw.Close()
-			digest, err := buildFunc(ctx, buildArgs, pw)
+			if err := groupCtx.Err(); err != nil {
+				return err
+			}
+			digest, err := buildFunc(groupCtx, buildArgs, pw)
 			if err != nil {
 				return fmt.Errorf("build and push the image %q: %w", name, err)
 			}
@@ -549,7 +559,7 @@ func buildContainerImagesInParallel(in *ImageActionInput, uri string, buildArgsP
 				return nil
 			}
 			select {
-			case <-ctx.Done():
+			case <-groupCtx.Done():
 				return nil
 			case <-time.After(pollIntervalForBuildAndPush):
 			}
@@ -606,16 +616,16 @@ func buildArgsPerContainer(name, workspacePath string, img ContainerImageIdentif
 	return dArgs, nil
 }
 
-func (d *workloadDeployer) uploadArtifactsToS3(out *UploadArtifactsOutput) error {
+func (d *workloadDeployer) uploadArtifactsToS3(ctx context.Context, out *UploadArtifactsOutput) error {
 	var err error
-	out.EnvFileARNs, err = d.pushEnvFilesToS3Bucket(&pushEnvFilesToS3BucketInput{
+	out.EnvFileARNs, err = d.pushEnvFilesToS3Bucket(ctx, &pushEnvFilesToS3BucketInput{
 		fs:       d.fs,
 		uploader: d.s3Client,
 	})
 	if err != nil {
 		return err
 	}
-	out.AddonsURL, err = d.pushAddonsTemplateToS3Bucket()
+	out.AddonsURL, err = d.pushAddonsTemplateToS3Bucket(ctx)
 	if err != nil {
 		return err
 	}
@@ -635,28 +645,31 @@ type UploadArtifactsOutput struct {
 
 // uploadArtifactFunc uploads an artifact and updates out
 // with any relevant information to be returned by uploadArtifacts.
-type uploadArtifactFunc func(out *UploadArtifactsOutput) error
+type uploadArtifactFunc func(context.Context, *UploadArtifactsOutput) error
 
 // uploadArtifacts runs each of the uploadArtifact functions sequentially and returns
 // the output built by each of those functions. It short-circuts and returns
 // the error if one of steps returns an error.
-func (d *workloadDeployer) uploadArtifacts(steps ...uploadArtifactFunc) (*UploadArtifactsOutput, error) {
+func (d *workloadDeployer) uploadArtifacts(ctx context.Context, steps ...uploadArtifactFunc) (*UploadArtifactsOutput, error) {
 	out := &UploadArtifactsOutput{}
 	for _, step := range steps {
-		if err := step(out); err != nil {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if err := step(ctx, out); err != nil {
 			return nil, err
 		}
 	}
 	return out, nil
 }
 
-func (d *workloadDeployer) uploadCustomResources(out *UploadArtifactsOutput) error {
+func (d *workloadDeployer) uploadCustomResources(ctx context.Context, out *UploadArtifactsOutput) error {
 	crs, err := d.customResources(d.templateFS)
 	if err != nil {
 		return err
 	}
-	urls, err := customresource.Upload(func(key string, contents io.Reader) (string, error) {
-		return d.s3Client.Upload(d.resources.S3Bucket, key, contents)
+	urls, err := customresource.UploadWithContext(ctx, func(ctx context.Context, key string, contents io.Reader) (string, error) {
+		return d.s3Client.UploadWithContext(ctx, d.resources.S3Bucket, key, contents)
 	}, crs)
 	if err != nil {
 		return fmt.Errorf("upload custom resources for %q: %w", d.name, err)
@@ -679,7 +692,7 @@ type pushEnvFilesToS3BucketInput struct {
 //	  "firelens_log_router": "arn:aws:s3:::bucket/key2",
 //	  "nginx": "arn:aws:s3:::bucket/key1"
 //	}
-func (d *workloadDeployer) pushEnvFilesToS3Bucket(in *pushEnvFilesToS3BucketInput) (map[string]string, error) {
+func (d *workloadDeployer) pushEnvFilesToS3Bucket(ctx context.Context, in *pushEnvFilesToS3BucketInput) (map[string]string, error) {
 	envFilesByContainer := envFiles(d.mft)
 	uniqueEnvFiles := make(map[string][]string)
 	// Invert the map of containers to env files to get the unique env files to upload.
@@ -702,12 +715,15 @@ func (d *workloadDeployer) pushEnvFilesToS3Bucket(in *pushEnvFilesToS3BucketInpu
 	envFileARNs := make(map[string]string)
 
 	for path, containers := range uniqueEnvFiles {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		content, err := afero.ReadFile(in.fs, filepath.Join(d.workspacePath, path))
 		if err != nil {
 			return nil, fmt.Errorf("read env file %s: %w", path, err)
 		}
 		reader := bytes.NewReader(content)
-		url, err := in.uploader.Upload(d.resources.S3Bucket, artifactpath.EnvFiles(path, content), reader)
+		url, err := in.uploader.UploadWithContext(ctx, d.resources.S3Bucket, artifactpath.EnvFiles(path, content), reader)
 		if err != nil {
 			return nil, fmt.Errorf("put env file %s artifact to bucket %s: %w", path, d.resources.S3Bucket, err)
 		}
@@ -741,12 +757,13 @@ func envFiles(unmarshaledManifest interface{}) map[string]string {
 	return nil
 }
 
-func (d *workloadDeployer) pushAddonsTemplateToS3Bucket() (string, error) {
+func (d *workloadDeployer) pushAddonsTemplateToS3Bucket(ctx context.Context) (string, error) {
 	if d.addons == nil {
 		return "", nil
 	}
 
 	config := addon.PackageConfig{
+		Ctx:           ctx,
 		Bucket:        d.resources.S3Bucket,
 		Uploader:      d.s3Client,
 		WorkspacePath: d.workspacePath,
@@ -762,7 +779,7 @@ func (d *workloadDeployer) pushAddonsTemplateToS3Bucket() (string, error) {
 	}
 
 	reader := strings.NewReader(tmpl)
-	url, err := d.s3Client.Upload(d.resources.S3Bucket, artifactpath.Addons(d.name, []byte(tmpl)), reader)
+	url, err := d.s3Client.UploadWithContext(ctx, d.resources.S3Bucket, artifactpath.Addons(d.name, []byte(tmpl)), reader)
 	if err != nil {
 		return "", fmt.Errorf("put addons artifact to bucket %s: %w", d.resources.S3Bucket, err)
 	}

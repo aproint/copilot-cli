@@ -288,6 +288,16 @@ func TestDockerCommand_Login(t *testing.T) {
 	}
 }
 
+func TestDockerCommand_LoginWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	cmd := NewMockCmd(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+
+	cmd.EXPECT().RunWithContext(ctx, "docker", []string{"login", "-u", "mockUsername", "--password-stdin", "mockURI"}, gomock.Any()).Return(nil)
+
+	require.NoError(t, New(cmd).LoginWithContext(ctx, "mockURI", "mockUsername", "mockPassword"))
+}
+
 func TestDockerCommand_Push(t *testing.T) {
 	emptyLookupEnv := func(key string) (string, bool) {
 		return "", false
@@ -478,6 +488,20 @@ func TestDockerCommand_CheckDockerEngineRunning(t *testing.T) {
 	}
 }
 
+func TestDockerCommand_CheckDockerEngineRunningWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	runner := NewMockCmd(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	runner.EXPECT().RunWithContext(ctx, "docker", []string{"info", "-f", "{{json .}}"}, gomock.Any()).
+		Do(func(_ context.Context, _ string, _ []string, opt exec.CmdOption) {
+			cmd := &osexec.Cmd{}
+			opt(cmd)
+			_, _ = cmd.Stdout.Write([]byte(`{"ID":"running"}`))
+		}).Return(nil)
+
+	require.NoError(t, (DockerCmdClient{runner: runner}).CheckDockerEngineRunningWithContext(ctx))
+}
+
 func TestDockerCommand_GetPlatform(t *testing.T) {
 	mockError := errors.New("some error")
 	var mockCmd *MockCmd
@@ -546,6 +570,24 @@ func TestDockerCommand_GetPlatform(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDockerCommand_GetPlatformWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	runner := NewMockCmd(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	runner.EXPECT().RunWithContext(ctx, "docker", []string{"version", "-f", "'{{json .Server}}'"}, gomock.Any()).
+		Do(func(_ context.Context, _ string, _ []string, opt exec.CmdOption) {
+			cmd := &osexec.Cmd{}
+			opt(cmd)
+			_, _ = cmd.Stdout.Write([]byte(`{"Os":"linux","Arch":"arm64"}`))
+		}).Return(nil)
+
+	os, arch, err := (DockerCmdClient{runner: runner}).GetPlatformWithContext(ctx)
+
+	require.NoError(t, err)
+	require.Equal(t, "linux", os)
+	require.Equal(t, "arm64", arch)
 }
 
 func TestIsEcrCredentialHelperEnabled(t *testing.T) {

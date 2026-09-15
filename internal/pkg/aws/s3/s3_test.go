@@ -80,6 +80,20 @@ func TestS3_Upload(t *testing.T) {
 	}
 }
 
+func TestS3UploadWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	uploader := mocks.NewMocks3ManagerAPI(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+
+	uploader.EXPECT().Upload(ctx, gomock.Any()).Return(&manager.UploadOutput{Location: "mockURL"}, nil)
+
+	service := S3{s3Manager: uploader}
+	url, err := service.UploadWithContext(ctx, "mockBucket", "mockKey", bytes.NewBufferString("data"))
+
+	require.NoError(t, err)
+	require.Equal(t, "mockURL", url)
+}
+
 func TestS3_EmptyBucket(t *testing.T) {
 	batchObject1 := make([]types.ObjectVersion, 1000)
 	batchObject2 := make([]types.ObjectVersion, 10)

@@ -214,6 +214,17 @@ func (c DockerCmdClient) Login(uri, username, password string) error {
 	err := c.runner.Run("docker",
 		[]string{"login", "-u", username, "--password-stdin", uri},
 		exec.Stdin(strings.NewReader(password)))
+	if err != nil {
+		return fmt.Errorf("authenticate to ECR: %w", err)
+	}
+	return nil
+}
+
+// LoginWithContext runs a `docker login` command using ctx.
+func (c DockerCmdClient) LoginWithContext(ctx context.Context, uri, username, password string) error {
+	err := c.runner.RunWithContext(ctx, "docker",
+		[]string{"login", "-u", username, "--password-stdin", uri},
+		exec.Stdin(strings.NewReader(password)))
 
 	if err != nil {
 		return fmt.Errorf("authenticate to ECR: %w", err)
@@ -481,6 +492,20 @@ func (c DockerCmdClient) CheckDockerEngineRunning() error {
 	}
 	buf := &bytes.Buffer{}
 	err := c.runner.Run("docker", []string{"info", "-f", "{{json .}}"}, exec.Stdout(buf))
+	return checkDockerEngineRunningResult(buf, err)
+}
+
+// CheckDockerEngineRunningWithContext runs `docker info` using ctx to check if the Docker engine is running.
+func (c DockerCmdClient) CheckDockerEngineRunningWithContext(ctx context.Context) error {
+	if _, err := osexec.LookPath("docker"); err != nil {
+		return ErrDockerCommandNotFound
+	}
+	buf := &bytes.Buffer{}
+	err := c.runner.RunWithContext(ctx, "docker", []string{"info", "-f", "{{json .}}"}, exec.Stdout(buf))
+	return checkDockerEngineRunningResult(buf, err)
+}
+
+func checkDockerEngineRunningResult(buf *bytes.Buffer, err error) error {
 	if err != nil {
 		return fmt.Errorf("get docker info: %w", err)
 	}
@@ -508,6 +533,20 @@ func (c DockerCmdClient) GetPlatform() (os, arch string, err error) {
 	}
 	buf := &bytes.Buffer{}
 	err = c.runner.Run("docker", []string{"version", "-f", "'{{json .Server}}'"}, exec.Stdout(buf))
+	return parsePlatform(buf, err)
+}
+
+// GetPlatformWithContext runs `docker version` using ctx to get the OS/architecture.
+func (c DockerCmdClient) GetPlatformWithContext(ctx context.Context) (os, arch string, err error) {
+	if _, err := osexec.LookPath("docker"); err != nil {
+		return "", "", ErrDockerCommandNotFound
+	}
+	buf := &bytes.Buffer{}
+	err = c.runner.RunWithContext(ctx, "docker", []string{"version", "-f", "'{{json .Server}}'"}, exec.Stdout(buf))
+	return parsePlatform(buf, err)
+}
+
+func parsePlatform(buf *bytes.Buffer, err error) (os, arch string, parseErr error) {
 	if err != nil {
 		return "", "", fmt.Errorf("run docker version: %w", err)
 	}

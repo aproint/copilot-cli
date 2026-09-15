@@ -121,6 +121,21 @@ func (mr *MockrepositoryServiceMockRecorder) Login() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockrepositoryService)(nil).Login))
 }
 
+// LoginWithContext mocks base method.
+func (m *MockrepositoryService) LoginWithContext(arg0 context.Context) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoginWithContext", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoginWithContext indicates an expected call of LoginWithContext.
+func (mr *MockrepositoryServiceMockRecorder) LoginWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoginWithContext", reflect.TypeOf((*MockrepositoryService)(nil).LoginWithContext), arg0)
+}
+
 // Mocktemplater is a mock of templater interface.
 type Mocktemplater struct {
 	ctrl     *gomock.Controller
@@ -516,18 +531,18 @@ func (m *MockdockerEngineRunChecker) EXPECT() *MockdockerEngineRunCheckerMockRec
 	return m.recorder
 }
 
-// CheckDockerEngineRunning mocks base method.
-func (m *MockdockerEngineRunChecker) CheckDockerEngineRunning() error {
+// CheckDockerEngineRunningWithContext mocks base method.
+func (m *MockdockerEngineRunChecker) CheckDockerEngineRunningWithContext(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckDockerEngineRunning")
+	ret := m.ctrl.Call(m, "CheckDockerEngineRunningWithContext", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CheckDockerEngineRunning indicates an expected call of CheckDockerEngineRunning.
-func (mr *MockdockerEngineRunCheckerMockRecorder) CheckDockerEngineRunning() *gomock.Call {
+// CheckDockerEngineRunningWithContext indicates an expected call of CheckDockerEngineRunningWithContext.
+func (mr *MockdockerEngineRunCheckerMockRecorder) CheckDockerEngineRunningWithContext(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDockerEngineRunning", reflect.TypeOf((*MockdockerEngineRunChecker)(nil).CheckDockerEngineRunning))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDockerEngineRunningWithContext", reflect.TypeOf((*MockdockerEngineRunChecker)(nil).CheckDockerEngineRunningWithContext), arg0)
 }
 
 // MocktimeoutError is a mock of timeoutError interface.

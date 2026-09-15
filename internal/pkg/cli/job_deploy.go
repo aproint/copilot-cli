@@ -203,7 +203,7 @@ func (o *deployJobOpts) Execute(ctx context.Context) error {
 		log.Warningf(`Scheduled Job might not be available in region %s; proceed with caution.
 `, o.targetEnv.Region)
 	}
-	uploadOut, err := deployer.UploadArtifacts()
+	uploadOut, err := deployer.UploadArtifacts(ctx)
 	if err != nil {
 		return fmt.Errorf("upload deploy resources for job %s: %w", o.name, err)
 	}

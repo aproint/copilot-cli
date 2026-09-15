@@ -4,6 +4,7 @@
 package addon
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -14,11 +15,53 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/addon/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/s3"
+	"github.com/aproint/copilot-cli/internal/pkg/template"
 	"github.com/golang/mock/gomock"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
+
+func TestPackageConfigUploadAddonAssetWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	uploader := mocks.NewMockuploader(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	fs := afero.NewMemMapFs()
+	require.NoError(t, afero.WriteFile(fs, "/asset.txt", []byte("asset"), 0644))
+
+	uploader.EXPECT().UploadWithContext(ctx, "bucket", "key", gomock.Any()).Return(s3.URL("us-west-2", "bucket", "key"), nil)
+	config := PackageConfig{
+		Ctx:           ctx,
+		Bucket:        "bucket",
+		Uploader:      uploader,
+		WorkspacePath: "/",
+		FS:            fs,
+		s3Path:        func(string) string { return "key" },
+	}
+
+	location, err := config.uploadAddonAsset("asset.txt", false)
+
+	require.NoError(t, err)
+	require.Equal(t, template.S3ObjectLocation{Bucket: "bucket", Key: "key"}, location)
+}
+
+func TestPackageConfigUploadAddonAssetStopsOnCancellation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	config := PackageConfig{
+		Ctx:           ctx,
+		Bucket:        "bucket",
+		Uploader:      mocks.NewMockuploader(ctrl),
+		WorkspacePath: "/",
+		FS:            afero.NewMemMapFs(),
+		s3Path:        func(string) string { return "key" },
+	}
+
+	_, err := config.uploadAddonAsset("asset.txt", false)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
 
 type addonMocks struct {
 	uploader *mocks.Mockuploader

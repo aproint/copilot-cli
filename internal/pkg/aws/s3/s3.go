@@ -76,7 +76,12 @@ func New(cfg aws.Config) *S3 {
 // Per s3's recommendation https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html:
 // The bucket owner, in addition to the object owner, is granted full control.
 func (s *S3) Upload(bucket, key string, data io.Reader) (string, error) {
-	return s.upload(bucket, key, data)
+	return s.UploadWithContext(context.Background(), bucket, key, data)
+}
+
+// UploadWithContext uploads a file to an S3 bucket under the specified key using ctx.
+func (s *S3) UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error) {
+	return s.upload(ctx, bucket, key, data)
 }
 
 // EmptyBucket deletes all objects within the bucket.
@@ -338,7 +343,7 @@ func (s *S3) addNodes(ctx context.Context, tree treeprint.Tree, prefixes []types
 	return nil
 }
 
-func (s *S3) upload(bucket, key string, buf io.Reader) (string, error) {
+func (s *S3) upload(ctx context.Context, bucket, key string, buf io.Reader) (string, error) {
 	in := &s3.PutObjectInput{
 		Body:        buf,
 		Bucket:      aws.String(bucket),
@@ -346,7 +351,7 @@ func (s *S3) upload(bucket, key string, buf io.Reader) (string, error) {
 		ACL:         types.ObjectCannedACLBucketOwnerFullControl,
 		ContentType: defaultContentTypeFromExt(key),
 	}
-	resp, err := s.s3Manager.Upload(context.Background(), in)
+	resp, err := s.s3Manager.Upload(ctx, in)
 	if err != nil {
 		return "", fmt.Errorf("upload %s to bucket %s: %w", key, bucket, err)
 	}

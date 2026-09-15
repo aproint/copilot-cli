@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	io "io"
 	reflect "reflect"
 	time "time"
@@ -48,6 +49,21 @@ func (m *Mockuploader) Upload(bucket, key string, data io.Reader) (string, error
 func (mr *MockuploaderMockRecorder) Upload(bucket, key, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mockuploader)(nil).Upload), bucket, key, data)
+}
+
+// UploadWithContext mocks base method.
+func (m *Mockuploader) UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadWithContext", ctx, bucket, key, data)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadWithContext indicates an expected call of UploadWithContext.
+func (mr *MockuploaderMockRecorder) UploadWithContext(ctx, bucket, key, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWithContext", reflect.TypeOf((*Mockuploader)(nil).UploadWithContext), ctx, bucket, key, data)
 }
 
 // MockversionGetter is a mock of versionGetter interface.

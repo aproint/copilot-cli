@@ -6,6 +6,7 @@ package addon
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 
 type uploader interface {
 	Upload(bucket, key string, data io.Reader) (string, error)
+	UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error)
 }
 
 // packagePropertyConfig defines how to package a particular property in a cloudformation resource.
@@ -195,6 +197,7 @@ var resourcePackageConfig = map[string][]packagePropertyConfig{
 
 // PackageConfig contains data needed to package a Stack.
 type PackageConfig struct {
+	Ctx           context.Context
 	Bucket        string
 	Uploader      uploader
 	WorkspacePath string
@@ -359,6 +362,11 @@ func isFilePath(path string) bool {
 }
 
 func (p *PackageConfig) uploadAddonAsset(assetPath string, forceZip bool) (template.S3ObjectLocation, error) {
+	if p.Ctx != nil {
+		if err := p.Ctx.Err(); err != nil {
+			return template.S3ObjectLocation{}, err
+		}
+	}
 	// make path absolute from wsPath
 	if !filepath.IsAbs(assetPath) {
 		assetPath = filepath.Join(p.WorkspacePath, assetPath)
@@ -379,7 +387,12 @@ func (p *PackageConfig) uploadAddonAsset(assetPath string, forceZip bool) (templ
 	}
 
 	s3Path := p.s3Path(asset.hash)
-	url, err := p.Uploader.Upload(p.Bucket, s3Path, asset.data)
+	var url string
+	if p.Ctx == nil {
+		url, err = p.Uploader.Upload(p.Bucket, s3Path, asset.data)
+	} else {
+		url, err = p.Uploader.UploadWithContext(p.Ctx, p.Bucket, s3Path, asset.data)
+	}
 	if err != nil {
 		return template.S3ObjectLocation{}, fmt.Errorf("upload %s to s3 bucket %s: %w", assetPath, p.Bucket, err)
 	}

@@ -31,7 +31,12 @@ func New(cfg awsv2.Config) *StepFunctions {
 
 // StateMachineDefinition returns the JSON-based state machine definition.
 func (s *StepFunctions) StateMachineDefinition(stateMachineARN string) (string, error) {
-	out, err := s.client.DescribeStateMachine(context.Background(), &sfn.DescribeStateMachineInput{
+	return s.StateMachineDefinitionWithContext(context.Background(), stateMachineARN)
+}
+
+// StateMachineDefinitionWithContext returns the state machine definition using ctx.
+func (s *StepFunctions) StateMachineDefinitionWithContext(ctx context.Context, stateMachineARN string) (string, error) {
+	out, err := s.client.DescribeStateMachine(ctx, &sfn.DescribeStateMachineInput{
 		StateMachineArn: awsv2.String(stateMachineARN),
 	})
 	if err != nil {

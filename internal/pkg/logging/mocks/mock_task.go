@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	ecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
@@ -47,4 +48,19 @@ func (m *MockTasksDescriber) DescribeTasks(cluster string, taskARNs []string) ([
 func (mr *MockTasksDescriberMockRecorder) DescribeTasks(cluster, taskARNs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasks", reflect.TypeOf((*MockTasksDescriber)(nil).DescribeTasks), cluster, taskARNs)
+}
+
+// DescribeTasksWithContext mocks base method.
+func (m *MockTasksDescriber) DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTasksWithContext", ctx, cluster, taskARNs)
+	ret0, _ := ret[0].([]*ecs.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTasksWithContext indicates an expected call of DescribeTasksWithContext.
+func (mr *MockTasksDescriberMockRecorder) DescribeTasksWithContext(ctx, cluster, taskARNs interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasksWithContext", reflect.TypeOf((*MockTasksDescriber)(nil).DescribeTasksWithContext), ctx, cluster, taskARNs)
 }

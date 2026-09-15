@@ -86,10 +86,15 @@ func (s *S3) UploadWithContext(ctx context.Context, bucket, key string, data io.
 
 // EmptyBucket deletes all objects within the bucket.
 func (s *S3) EmptyBucket(bucket string) error {
+	return s.EmptyBucketWithContext(context.Background(), bucket)
+}
+
+// EmptyBucketWithContext deletes all objects within the bucket using ctx.
+func (s *S3) EmptyBucketWithContext(ctx context.Context, bucket string) error {
 	var listResp *s3.ListObjectVersionsOutput
 	var err error
 
-	bucketExists, err := s.bucketExists(bucket)
+	bucketExists, err := s.bucketExistsWithContext(ctx, bucket)
 	if err != nil {
 		return fmt.Errorf("unable to determine the existence of bucket %s: %w", bucket, err)
 	}
@@ -103,7 +108,10 @@ func (s *S3) EmptyBucket(bucket string) error {
 	}
 	// Remove all versions of all objects.
 	for {
-		listResp, err = s.s3Client.ListObjectVersions(context.Background(), listParams)
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		listResp, err = s.s3Client.ListObjectVersions(ctx, listParams)
 		if err != nil {
 			return fmt.Errorf("list objects for bucket %s: %w", bucket, err)
 		}
@@ -125,7 +133,7 @@ func (s *S3) EmptyBucket(bucket string) error {
 		if len(objectsToDelete) == 0 {
 			return nil
 		}
-		delResp, err := s.s3Client.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
+		delResp, err := s.s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
 			Bucket: aws.String(bucket),
 			Delete: &types.Delete{
 				Objects: objectsToDelete,

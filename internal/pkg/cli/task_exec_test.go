@@ -157,7 +157,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			useDefault: true,
 			setupMocks: func(m execTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+				m.taskSel.EXPECT().RunningTaskWithContext(gomock.Any(), taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockErr)
 			},
 
@@ -195,7 +195,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			setupMocks: func(m execTaskMocks) {
 				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(&config.Environment{}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
-				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+				m.taskSel.EXPECT().RunningTaskWithContext(gomock.Any(), taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockErr)
 			},
 
@@ -205,7 +205,7 @@ func TestTaskExec_Ask(t *testing.T) {
 			useDefault: true,
 			setupMocks: func(m execTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+				m.taskSel.EXPECT().RunningTaskWithContext(gomock.Any(), taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(mockTask, nil)
 			},
 
@@ -217,7 +217,7 @@ func TestTaskExec_Ask(t *testing.T) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.configSel.EXPECT().Application(ctx, taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption).
 					Return(useDefaultClusterOption, nil)
-				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+				m.taskSel.EXPECT().RunningTaskWithContext(gomock.Any(), taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(mockTask, nil)
 			},
 
@@ -232,7 +232,7 @@ func TestTaskExec_Ask(t *testing.T) {
 					Return(mockEnv, nil)
 				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(&config.Environment{}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
-				m.taskSel.EXPECT().RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+				m.taskSel.EXPECT().RunningTaskWithContext(gomock.Any(), taskExecTaskPrompt, taskExecTaskHelpPrompt,
 					gomock.Any(), gomock.Any(), gomock.Any()).Return(mockTask, nil)
 			},
 
@@ -350,7 +350,7 @@ func TestTaskExec_Execute(t *testing.T) {
 			inUseDefault: true,
 			setupMocks: func(m execTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.commandExec.EXPECT().ExecuteCommand(ecs.ExecuteCommandInput{
+				m.commandExec.EXPECT().ExecuteCommandWithContext(gomock.Any(), ecs.ExecuteCommandInput{
 					Cluster:   mockClusterARN,
 					Command:   mockCommand,
 					Container: mockContainerName,
@@ -365,7 +365,7 @@ func TestTaskExec_Execute(t *testing.T) {
 			setupMocks: func(m execTaskMocks) {
 				m.storeSvc.EXPECT().GetEnvironment(ctx, mockApp, mockEnv).Return(&config.Environment{}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
-				m.commandExec.EXPECT().ExecuteCommand(ecs.ExecuteCommandInput{
+				m.commandExec.EXPECT().ExecuteCommandWithContext(gomock.Any(), ecs.ExecuteCommandInput{
 					Cluster:   mockClusterARN,
 					Command:   mockCommand,
 					Container: mockContainerName,

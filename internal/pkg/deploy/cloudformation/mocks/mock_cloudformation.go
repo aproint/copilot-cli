@@ -398,6 +398,20 @@ func (mr *MockcfnClientMockRecorder) DeleteAndWaitWithRoleARN(stackName, roleARN
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWaitWithRoleARN", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWaitWithRoleARN), stackName, roleARN)
 }
 
+// DeleteAndWaitWithRoleARNWithContext mocks base method.
+func (m *MockcfnClient) DeleteAndWaitWithRoleARNWithContext(ctx context.Context, stackName, roleARN string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAndWaitWithRoleARNWithContext", ctx, stackName, roleARN)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAndWaitWithRoleARNWithContext indicates an expected call of DeleteAndWaitWithRoleARNWithContext.
+func (mr *MockcfnClientMockRecorder) DeleteAndWaitWithRoleARNWithContext(ctx, stackName, roleARN interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWaitWithRoleARNWithContext", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWaitWithRoleARNWithContext), ctx, stackName, roleARN)
+}
+
 // Describe mocks base method.
 func (m *MockcfnClient) Describe(stackName string) (*cloudformation.StackDescription, error) {
 	m.ctrl.T.Helper()
@@ -546,6 +560,21 @@ func (m *MockcfnClient) ListStacksWithTags(tags map[string]string) ([]cloudforma
 func (mr *MockcfnClientMockRecorder) ListStacksWithTags(tags interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStacksWithTags", reflect.TypeOf((*MockcfnClient)(nil).ListStacksWithTags), tags)
+}
+
+// ListStacksWithTagsWithContext mocks base method.
+func (m *MockcfnClient) ListStacksWithTagsWithContext(ctx context.Context, tags map[string]string) ([]cloudformation.StackDescription, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListStacksWithTagsWithContext", ctx, tags)
+	ret0, _ := ret[0].([]cloudformation.StackDescription)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListStacksWithTagsWithContext indicates an expected call of ListStacksWithTagsWithContext.
+func (mr *MockcfnClientMockRecorder) ListStacksWithTagsWithContext(ctx, tags interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStacksWithTagsWithContext", reflect.TypeOf((*MockcfnClient)(nil).ListStacksWithTagsWithContext), ctx, tags)
 }
 
 // Metadata mocks base method.

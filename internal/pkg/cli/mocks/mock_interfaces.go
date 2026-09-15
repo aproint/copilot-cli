@@ -105,6 +105,43 @@ func (mr *MockcmdMockRecorder) Validate() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*Mockcmd)(nil).Validate))
 }
 
+// MockcontextValidator is a mock of contextValidator interface.
+type MockcontextValidator struct {
+	ctrl     *gomock.Controller
+	recorder *MockcontextValidatorMockRecorder
+}
+
+// MockcontextValidatorMockRecorder is the mock recorder for MockcontextValidator.
+type MockcontextValidatorMockRecorder struct {
+	mock *MockcontextValidator
+}
+
+// NewMockcontextValidator creates a new mock instance.
+func NewMockcontextValidator(ctrl *gomock.Controller) *MockcontextValidator {
+	mock := &MockcontextValidator{ctrl: ctrl}
+	mock.recorder = &MockcontextValidatorMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockcontextValidator) EXPECT() *MockcontextValidatorMockRecorder {
+	return m.recorder
+}
+
+// ValidateWithContext mocks base method.
+func (m *MockcontextValidator) ValidateWithContext(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateWithContext", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateWithContext indicates an expected call of ValidateWithContext.
+func (mr *MockcontextValidatorMockRecorder) ValidateWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateWithContext", reflect.TypeOf((*MockcontextValidator)(nil).ValidateWithContext), arg0)
+}
+
 // MockactionCommand is a mock of actionCommand interface.
 type MockactionCommand struct {
 	ctrl     *gomock.Controller
@@ -1942,6 +1979,20 @@ func (m *MockeventsWriter) WriteEventsUntilStopped() error {
 func (mr *MockeventsWriterMockRecorder) WriteEventsUntilStopped() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteEventsUntilStopped", reflect.TypeOf((*MockeventsWriter)(nil).WriteEventsUntilStopped))
+}
+
+// WriteEventsUntilStoppedWithContext mocks base method.
+func (m *MockeventsWriter) WriteEventsUntilStoppedWithContext(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteEventsUntilStoppedWithContext", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteEventsUntilStoppedWithContext indicates an expected call of WriteEventsUntilStoppedWithContext.
+func (mr *MockeventsWriterMockRecorder) WriteEventsUntilStoppedWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteEventsUntilStoppedWithContext", reflect.TypeOf((*MockeventsWriter)(nil).WriteEventsUntilStoppedWithContext), arg0)
 }
 
 // MockdefaultSessionProvider is a mock of defaultSessionProvider interface.
@@ -3958,6 +4009,20 @@ func (mr *MockbucketEmptierMockRecorder) EmptyBucket(bucket interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmptyBucket", reflect.TypeOf((*MockbucketEmptier)(nil).EmptyBucket), bucket)
 }
 
+// EmptyBucketWithContext mocks base method.
+func (m *MockbucketEmptier) EmptyBucketWithContext(ctx context.Context, bucket string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EmptyBucketWithContext", ctx, bucket)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EmptyBucketWithContext indicates an expected call of EmptyBucketWithContext.
+func (mr *MockbucketEmptierMockRecorder) EmptyBucketWithContext(ctx, bucket interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmptyBucketWithContext", reflect.TypeOf((*MockbucketEmptier)(nil).EmptyBucketWithContext), ctx, bucket)
+}
+
 // MockstackDescriber is a mock of stackDescriber interface.
 type MockstackDescriber struct {
 	ctrl     *gomock.Controller
@@ -4237,6 +4302,20 @@ func (m *MockimageRemover) ClearRepository(repoName string) error {
 func (mr *MockimageRemoverMockRecorder) ClearRepository(repoName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRepository", reflect.TypeOf((*MockimageRemover)(nil).ClearRepository), repoName)
+}
+
+// ClearRepositoryWithContext mocks base method.
+func (m *MockimageRemover) ClearRepositoryWithContext(ctx context.Context, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearRepositoryWithContext", ctx, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearRepositoryWithContext indicates an expected call of ClearRepositoryWithContext.
+func (mr *MockimageRemoverMockRecorder) ClearRepositoryWithContext(ctx, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRepositoryWithContext", reflect.TypeOf((*MockimageRemover)(nil).ClearRepositoryWithContext), ctx, repoName)
 }
 
 // MockpipelineDeployer is a mock of pipelineDeployer interface.
@@ -4657,6 +4736,25 @@ func (mr *MocktaskDeployerMockRecorder) DeployTask(input interface{}, opts ...in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployTask", reflect.TypeOf((*MocktaskDeployer)(nil).DeployTask), varargs...)
 }
 
+// DeployTaskWithContext mocks base method.
+func (m *MocktaskDeployer) DeployTaskWithContext(ctx context.Context, input *deploy0.CreateTaskResourcesInput, opts ...cloudformation.StackOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, input}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeployTaskWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeployTaskWithContext indicates an expected call of DeployTaskWithContext.
+func (mr *MocktaskDeployerMockRecorder) DeployTaskWithContext(ctx, input interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, input}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployTaskWithContext", reflect.TypeOf((*MocktaskDeployer)(nil).DeployTaskWithContext), varargs...)
+}
+
 // GetTaskStack mocks base method.
 func (m *MocktaskDeployer) GetTaskStack(taskName string) (*deploy0.TaskStackInfo, error) {
 	m.ctrl.T.Helper()
@@ -4670,6 +4768,21 @@ func (m *MocktaskDeployer) GetTaskStack(taskName string) (*deploy0.TaskStackInfo
 func (mr *MocktaskDeployerMockRecorder) GetTaskStack(taskName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskStack", reflect.TypeOf((*MocktaskDeployer)(nil).GetTaskStack), taskName)
+}
+
+// GetTaskStackWithContext mocks base method.
+func (m *MocktaskDeployer) GetTaskStackWithContext(ctx context.Context, taskName string) (*deploy0.TaskStackInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTaskStackWithContext", ctx, taskName)
+	ret0, _ := ret[0].(*deploy0.TaskStackInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTaskStackWithContext indicates an expected call of GetTaskStackWithContext.
+func (mr *MocktaskDeployerMockRecorder) GetTaskStackWithContext(ctx, taskName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskStackWithContext", reflect.TypeOf((*MocktaskDeployer)(nil).GetTaskStackWithContext), ctx, taskName)
 }
 
 // MocktaskStackManager is a mock of taskStackManager interface.
@@ -4709,6 +4822,20 @@ func (mr *MocktaskStackManagerMockRecorder) DeleteTask(task interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTask", reflect.TypeOf((*MocktaskStackManager)(nil).DeleteTask), task)
 }
 
+// DeleteTaskWithContext mocks base method.
+func (m *MocktaskStackManager) DeleteTaskWithContext(ctx context.Context, task deploy0.TaskStackInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTaskWithContext", ctx, task)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteTaskWithContext indicates an expected call of DeleteTaskWithContext.
+func (mr *MocktaskStackManagerMockRecorder) DeleteTaskWithContext(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTaskWithContext", reflect.TypeOf((*MocktaskStackManager)(nil).DeleteTaskWithContext), ctx, task)
+}
+
 // GetTaskStack mocks base method.
 func (m *MocktaskStackManager) GetTaskStack(taskName string) (*deploy0.TaskStackInfo, error) {
 	m.ctrl.T.Helper()
@@ -4722,6 +4849,21 @@ func (m *MocktaskStackManager) GetTaskStack(taskName string) (*deploy0.TaskStack
 func (mr *MocktaskStackManagerMockRecorder) GetTaskStack(taskName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskStack", reflect.TypeOf((*MocktaskStackManager)(nil).GetTaskStack), taskName)
+}
+
+// GetTaskStackWithContext mocks base method.
+func (m *MocktaskStackManager) GetTaskStackWithContext(ctx context.Context, taskName string) (*deploy0.TaskStackInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTaskStackWithContext", ctx, taskName)
+	ret0, _ := ret[0].(*deploy0.TaskStackInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTaskStackWithContext indicates an expected call of GetTaskStackWithContext.
+func (mr *MocktaskStackManagerMockRecorder) GetTaskStackWithContext(ctx, taskName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskStackWithContext", reflect.TypeOf((*MocktaskStackManager)(nil).GetTaskStackWithContext), ctx, taskName)
 }
 
 // MocktaskRunner is a mock of taskRunner interface.
@@ -4761,6 +4903,20 @@ func (mr *MocktaskRunnerMockRecorder) CheckNonZeroExitCode(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckNonZeroExitCode", reflect.TypeOf((*MocktaskRunner)(nil).CheckNonZeroExitCode), arg0)
 }
 
+// CheckNonZeroExitCodeWithContext mocks base method.
+func (m *MocktaskRunner) CheckNonZeroExitCodeWithContext(arg0 context.Context, arg1 []*task.Task) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckNonZeroExitCodeWithContext", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CheckNonZeroExitCodeWithContext indicates an expected call of CheckNonZeroExitCodeWithContext.
+func (mr *MocktaskRunnerMockRecorder) CheckNonZeroExitCodeWithContext(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckNonZeroExitCodeWithContext", reflect.TypeOf((*MocktaskRunner)(nil).CheckNonZeroExitCodeWithContext), arg0, arg1)
+}
+
 // Run mocks base method.
 func (m *MocktaskRunner) Run() ([]*task.Task, error) {
 	m.ctrl.T.Helper()
@@ -4774,6 +4930,21 @@ func (m *MocktaskRunner) Run() ([]*task.Task, error) {
 func (mr *MocktaskRunnerMockRecorder) Run() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MocktaskRunner)(nil).Run))
+}
+
+// RunWithContext mocks base method.
+func (m *MocktaskRunner) RunWithContext(arg0 context.Context) ([]*task.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RunWithContext", arg0)
+	ret0, _ := ret[0].([]*task.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunWithContext indicates an expected call of RunWithContext.
+func (mr *MocktaskRunnerMockRecorder) RunWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWithContext", reflect.TypeOf((*MocktaskRunner)(nil).RunWithContext), arg0)
 }
 
 // MockdefaultClusterGetter is a mock of defaultClusterGetter interface.
@@ -4812,6 +4983,21 @@ func (m *MockdefaultClusterGetter) HasDefaultCluster() (bool, error) {
 func (mr *MockdefaultClusterGetterMockRecorder) HasDefaultCluster() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDefaultCluster", reflect.TypeOf((*MockdefaultClusterGetter)(nil).HasDefaultCluster))
+}
+
+// HasDefaultClusterWithContext mocks base method.
+func (m *MockdefaultClusterGetter) HasDefaultClusterWithContext(arg0 context.Context) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasDefaultClusterWithContext", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasDefaultClusterWithContext indicates an expected call of HasDefaultClusterWithContext.
+func (mr *MockdefaultClusterGetterMockRecorder) HasDefaultClusterWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasDefaultClusterWithContext", reflect.TypeOf((*MockdefaultClusterGetter)(nil).HasDefaultClusterWithContext), arg0)
 }
 
 // Mockdeployer is a mock of deployer interface.
@@ -6487,6 +6673,26 @@ func (mr *MockcfTaskSelectorMockRecorder) Task(prompt, help interface{}, opts ..
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Task", reflect.TypeOf((*MockcfTaskSelector)(nil).Task), varargs...)
 }
 
+// TaskWithContext mocks base method.
+func (m *MockcfTaskSelector) TaskWithContext(ctx context.Context, prompt, help string, opts ...selector.GetDeployedTaskOpts) (string, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, prompt, help}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TaskWithContext", varargs...)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TaskWithContext indicates an expected call of TaskWithContext.
+func (mr *MockcfTaskSelectorMockRecorder) TaskWithContext(ctx, prompt, help interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, prompt, help}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskWithContext", reflect.TypeOf((*MockcfTaskSelector)(nil).TaskWithContext), varargs...)
+}
+
 // MockdockerfileSelector is a mock of dockerfileSelector interface.
 type MockdockerfileSelector struct {
 	ctrl     *gomock.Controller
@@ -7098,6 +7304,20 @@ func (mr *MockecsCommandExecutorMockRecorder) ExecuteCommand(in interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteCommand", reflect.TypeOf((*MockecsCommandExecutor)(nil).ExecuteCommand), in)
 }
 
+// ExecuteCommandWithContext mocks base method.
+func (m *MockecsCommandExecutor) ExecuteCommandWithContext(ctx context.Context, in ecs.ExecuteCommandInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecuteCommandWithContext", ctx, in)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ExecuteCommandWithContext indicates an expected call of ExecuteCommandWithContext.
+func (mr *MockecsCommandExecutorMockRecorder) ExecuteCommandWithContext(ctx, in interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteCommandWithContext", reflect.TypeOf((*MockecsCommandExecutor)(nil).ExecuteCommandWithContext), ctx, in)
+}
+
 // MockssmPluginManager is a mock of ssmPluginManager interface.
 type MockssmPluginManager struct {
 	ctrl     *gomock.Controller
@@ -7186,6 +7406,20 @@ func (mr *MocktaskStopperMockRecorder) StopDefaultClusterTasks(familyName interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopDefaultClusterTasks", reflect.TypeOf((*MocktaskStopper)(nil).StopDefaultClusterTasks), familyName)
 }
 
+// StopDefaultClusterTasksWithContext mocks base method.
+func (m *MocktaskStopper) StopDefaultClusterTasksWithContext(ctx context.Context, familyName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StopDefaultClusterTasksWithContext", ctx, familyName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StopDefaultClusterTasksWithContext indicates an expected call of StopDefaultClusterTasksWithContext.
+func (mr *MocktaskStopperMockRecorder) StopDefaultClusterTasksWithContext(ctx, familyName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopDefaultClusterTasksWithContext", reflect.TypeOf((*MocktaskStopper)(nil).StopDefaultClusterTasksWithContext), ctx, familyName)
+}
+
 // StopOneOffTasks mocks base method.
 func (m *MocktaskStopper) StopOneOffTasks(app, env, family string) error {
 	m.ctrl.T.Helper()
@@ -7198,6 +7432,20 @@ func (m *MocktaskStopper) StopOneOffTasks(app, env, family string) error {
 func (mr *MocktaskStopperMockRecorder) StopOneOffTasks(app, env, family interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopOneOffTasks", reflect.TypeOf((*MocktaskStopper)(nil).StopOneOffTasks), app, env, family)
+}
+
+// StopOneOffTasksWithContext mocks base method.
+func (m *MocktaskStopper) StopOneOffTasksWithContext(ctx context.Context, app, env, family string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StopOneOffTasksWithContext", ctx, app, env, family)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StopOneOffTasksWithContext indicates an expected call of StopOneOffTasksWithContext.
+func (mr *MocktaskStopperMockRecorder) StopOneOffTasksWithContext(ctx, app, env, family interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopOneOffTasksWithContext", reflect.TypeOf((*MocktaskStopper)(nil).StopOneOffTasksWithContext), ctx, app, env, family)
 }
 
 // StopWorkloadTasks mocks base method.
@@ -7474,6 +7722,26 @@ func (mr *MockrunningTaskSelectorMockRecorder) RunningTask(prompt, help interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTask", reflect.TypeOf((*MockrunningTaskSelector)(nil).RunningTask), varargs...)
 }
 
+// RunningTaskWithContext mocks base method.
+func (m *MockrunningTaskSelector) RunningTaskWithContext(ctx context.Context, prompt, help string, opts ...selector.TaskOpts) (*ecs.Task, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, prompt, help}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RunningTaskWithContext", varargs...)
+	ret0, _ := ret[0].(*ecs.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunningTaskWithContext indicates an expected call of RunningTaskWithContext.
+func (mr *MockrunningTaskSelectorMockRecorder) RunningTaskWithContext(ctx, prompt, help interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, prompt, help}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTaskWithContext", reflect.TypeOf((*MockrunningTaskSelector)(nil).RunningTaskWithContext), varargs...)
+}
+
 // MockdockerEngine is a mock of dockerEngine interface.
 type MockdockerEngine struct {
 	ctrl     *gomock.Controller
@@ -7601,6 +7869,21 @@ func (m *MockpublicIPGetter) PublicIP(ENI string) (string, error) {
 func (mr *MockpublicIPGetterMockRecorder) PublicIP(ENI interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublicIP", reflect.TypeOf((*MockpublicIPGetter)(nil).PublicIP), ENI)
+}
+
+// PublicIPWithContext mocks base method.
+func (m *MockpublicIPGetter) PublicIPWithContext(ctx context.Context, ENI string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PublicIPWithContext", ctx, ENI)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PublicIPWithContext indicates an expected call of PublicIPWithContext.
+func (mr *MockpublicIPGetterMockRecorder) PublicIPWithContext(ctx, ENI interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublicIPWithContext", reflect.TypeOf((*MockpublicIPGetter)(nil).PublicIPWithContext), ctx, ENI)
 }
 
 // MockcliStringer is a mock of cliStringer interface.

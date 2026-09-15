@@ -43,6 +43,7 @@ type api interface {
 
 type ssmSessionStarter interface {
 	StartSession(ssmSession *types.Session) error
+	StartSessionWithContext(ctx context.Context, ssmSession *types.Session) error
 }
 
 type clientWithWaiter struct {
@@ -284,12 +285,22 @@ func (e *ECS) StoppedServiceTasksWithContext(ctx context.Context, cluster, servi
 // RunningTasksInFamily calls ECS API and returns ECS tasks with the desired status to be RUNNING
 // within the same task definition family.
 func (e *ECS) RunningTasksInFamily(cluster, family string) ([]*Task, error) {
-	return e.listTasks(context.Background(), cluster, withFamily(family), withRunningTasks())
+	return e.RunningTasksInFamilyWithContext(context.Background(), cluster, family)
+}
+
+// RunningTasksInFamilyWithContext returns running tasks in a family using ctx.
+func (e *ECS) RunningTasksInFamilyWithContext(ctx context.Context, cluster, family string) ([]*Task, error) {
+	return e.listTasks(ctx, cluster, withFamily(family), withRunningTasks())
 }
 
 // RunningTasks calls ECS API and returns ECS tasks with the desired status to be RUNNING.
 func (e *ECS) RunningTasks(cluster string) ([]*Task, error) {
-	return e.listTasks(context.Background(), cluster, withRunningTasks())
+	return e.RunningTasksWithContext(context.Background(), cluster)
+}
+
+// RunningTasksWithContext returns running tasks using ctx.
+func (e *ECS) RunningTasksWithContext(ctx context.Context, cluster string) ([]*Task, error) {
+	return e.listTasks(ctx, cluster, withRunningTasks())
 }
 
 type listTasksOpts func(*ecs.ListTasksInput)
@@ -373,13 +384,18 @@ func WithStopTaskCluster(cluster string) StopTasksOpts {
 
 // StopTasks stops multiple running tasks given their IDs or ARNs.
 func (e *ECS) StopTasks(tasks []string, opts ...StopTasksOpts) error {
+	return e.StopTasksWithContext(context.Background(), tasks, opts...)
+}
+
+// StopTasksWithContext stops multiple running tasks using ctx.
+func (e *ECS) StopTasksWithContext(ctx context.Context, tasks []string, opts ...StopTasksOpts) error {
 	in := &ecs.StopTaskInput{}
 	for _, opt := range opts {
 		opt(in)
 	}
 	for _, task := range tasks {
 		in.Task = awsv2.String(task)
-		if _, err := e.client.StopTask(context.Background(), in); err != nil {
+		if _, err := e.client.StopTask(ctx, in); err != nil {
 			return fmt.Errorf("stop task %s: %w", task, err)
 		}
 	}
@@ -388,7 +404,12 @@ func (e *ECS) StopTasks(tasks []string, opts ...StopTasksOpts) error {
 
 // DefaultCluster returns the default cluster ARN in the account and region.
 func (e *ECS) DefaultCluster() (string, error) {
-	resp, err := e.client.DescribeClusters(context.Background(), &ecs.DescribeClustersInput{})
+	return e.DefaultClusterWithContext(context.Background())
+}
+
+// DefaultClusterWithContext returns the default cluster ARN using ctx.
+func (e *ECS) DefaultClusterWithContext(ctx context.Context) (string, error) {
+	resp, err := e.client.DescribeClusters(ctx, &ecs.DescribeClustersInput{})
 	if err != nil {
 		return "", fmt.Errorf("get default cluster: %w", err)
 	}
@@ -408,7 +429,12 @@ func (e *ECS) DefaultCluster() (string, error) {
 
 // HasDefaultCluster tries to find the default cluster and returns true if there is one.
 func (e *ECS) HasDefaultCluster() (bool, error) {
-	if _, err := e.DefaultCluster(); err != nil {
+	return e.HasDefaultClusterWithContext(context.Background())
+}
+
+// HasDefaultClusterWithContext reports whether the default cluster exists using ctx.
+func (e *ECS) HasDefaultClusterWithContext(ctx context.Context) (bool, error) {
+	if _, err := e.DefaultClusterWithContext(ctx); err != nil {
 		if errors.Is(err, ErrNoDefaultCluster) {
 			return false, nil
 		}
@@ -480,7 +506,12 @@ func (e *ECS) ActiveServicesWithContext(ctx context.Context, clusterARN string, 
 // RunTask runs a number of tasks with the task definition and network configurations in a cluster, and returns after
 // the task(s) is running or fails to run, along with task ARNs if possible.
 func (e *ECS) RunTask(input RunTaskInput) ([]*Task, error) {
-	resp, err := e.client.RunTask(context.Background(), &ecs.RunTaskInput{
+	return e.RunTaskWithContext(context.Background(), input)
+}
+
+// RunTaskWithContext runs tasks and waits for them to start using ctx.
+func (e *ECS) RunTaskWithContext(ctx context.Context, input RunTaskInput) ([]*Task, error) {
+	resp, err := e.client.RunTask(ctx, &ecs.RunTaskInput{
 		Cluster:        awsv2.String(input.Cluster),
 		Count:          awsv2.Int32(int32(input.Count)),
 		LaunchType:     types.LaunchTypeFargate,
@@ -506,17 +537,20 @@ func (e *ECS) RunTask(input RunTaskInput) ([]*Task, error) {
 		taskARNs[idx] = awsv2.ToString(task.TaskArn)
 	}
 
-	waitErr := e.client.WaitUntilTasksRunning(context.Background(), &ecs.DescribeTasksInput{
+	waitErr := e.client.WaitUntilTasksRunning(ctx, &ecs.DescribeTasksInput{
 		Cluster: awsv2.String(input.Cluster),
 		Tasks:   taskARNs,
 		Include: []types.TaskField{types.TaskFieldTags},
 	}, 10*time.Minute)
 
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if waitErr != nil && !isRequestTimeoutErr(waitErr) {
 		return nil, fmt.Errorf("wait for tasks to be running: %w", waitErr)
 	}
 
-	tasks, describeErr := e.DescribeTasks(input.Cluster, taskARNs)
+	tasks, describeErr := e.DescribeTasksWithContext(ctx, input.Cluster, taskARNs)
 	if describeErr != nil {
 		return nil, describeErr
 	}
@@ -530,7 +564,12 @@ func (e *ECS) RunTask(input RunTaskInput) ([]*Task, error) {
 
 // DescribeTasks returns the tasks with the taskARNs in the cluster.
 func (e *ECS) DescribeTasks(cluster string, taskARNs []string) ([]*Task, error) {
-	resp, err := e.client.DescribeTasks(context.Background(), &ecs.DescribeTasksInput{
+	return e.DescribeTasksWithContext(context.Background(), cluster, taskARNs)
+}
+
+// DescribeTasksWithContext returns tasks using ctx.
+func (e *ECS) DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*Task, error) {
+	resp, err := e.client.DescribeTasks(ctx, &ecs.DescribeTasksInput{
 		Cluster: awsv2.String(cluster),
 		Tasks:   taskARNs,
 		Include: []types.TaskField{types.TaskFieldTags},
@@ -549,7 +588,12 @@ func (e *ECS) DescribeTasks(cluster string, taskARNs []string) ([]*Task, error) 
 
 // ExecuteCommand executes commands in a running container, and then terminate the session.
 func (e *ECS) ExecuteCommand(in ExecuteCommandInput) (err error) {
-	execCmdresp, err := e.client.ExecuteCommand(context.Background(), &ecs.ExecuteCommandInput{
+	return e.ExecuteCommandWithContext(context.Background(), in)
+}
+
+// ExecuteCommandWithContext executes a command and runs its interactive session using ctx.
+func (e *ECS) ExecuteCommandWithContext(ctx context.Context, in ExecuteCommandInput) (err error) {
+	execCmdresp, err := e.client.ExecuteCommand(ctx, &ecs.ExecuteCommandInput{
 		Cluster:     awsv2.String(in.Cluster),
 		Command:     awsv2.String(in.Command),
 		Container:   awsv2.String(in.Container),
@@ -560,7 +604,7 @@ func (e *ECS) ExecuteCommand(in ExecuteCommandInput) (err error) {
 		return &ErrExecuteCommand{err: err}
 	}
 	sessID := awsv2.ToString(execCmdresp.Session.SessionId)
-	if err = e.newSessStarter().StartSession(execCmdresp.Session); err != nil {
+	if err = e.newSessStarter().StartSessionWithContext(ctx, execCmdresp.Session); err != nil {
 		err = fmt.Errorf("start session %s using ssm plugin: %w", sessID, err)
 	}
 	return err
@@ -568,7 +612,12 @@ func (e *ECS) ExecuteCommand(in ExecuteCommandInput) (err error) {
 
 // NetworkConfiguration returns the network configuration of a service.
 func (e *ECS) NetworkConfiguration(cluster, serviceName string) (*NetworkConfiguration, error) {
-	service, err := e.service(cluster, serviceName)
+	return e.NetworkConfigurationWithContext(context.Background(), cluster, serviceName)
+}
+
+// NetworkConfigurationWithContext returns a service network configuration using ctx.
+func (e *ECS) NetworkConfigurationWithContext(ctx context.Context, cluster, serviceName string) (*NetworkConfiguration, error) {
+	service, err := e.service(ctx, cluster, serviceName)
 	if err != nil {
 		return nil, err
 	}
@@ -585,8 +634,8 @@ func (e *ECS) NetworkConfiguration(cluster, serviceName string) (*NetworkConfigu
 	}, nil
 }
 
-func (e *ECS) service(clusterName, serviceName string) (*Service, error) {
-	resp, err := e.client.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
+func (e *ECS) service(ctx context.Context, clusterName, serviceName string) (*Service, error) {
+	resp, err := e.client.DescribeServices(ctx, &ecs.DescribeServicesInput{
 		Cluster:  awsv2.String(clusterName),
 		Services: []string{serviceName},
 	})

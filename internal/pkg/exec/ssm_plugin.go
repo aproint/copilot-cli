@@ -6,6 +6,7 @@ package exec
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -46,11 +47,16 @@ func NewSSMPluginCommand(region string) SSMPluginCommand {
 
 // StartSession starts a session using the ssm plugin.
 func (s SSMPluginCommand) StartSession(ssmSess *types.Session) error {
+	return s.StartSessionWithContext(context.Background(), ssmSess)
+}
+
+// StartSessionWithContext starts a session using the ssm plugin with ctx.
+func (s SSMPluginCommand) StartSessionWithContext(ctx context.Context, ssmSess *types.Session) error {
 	response, err := json.Marshal(ssmSess)
 	if err != nil {
 		return fmt.Errorf("marshal session response: %w", err)
 	}
-	if err := s.runner.InteractiveRun(ssmPluginBinaryName,
+	if err := s.runner.InteractiveRunWithContext(ctx, ssmPluginBinaryName,
 		[]string{string(response), s.region, startSessionAction}); err != nil {
 		return fmt.Errorf("start session: %w", err)
 	}

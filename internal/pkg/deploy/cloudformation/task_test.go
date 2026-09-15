@@ -4,6 +4,7 @@
 package cloudformation
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -107,7 +108,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 		"successfully gets task stacks while excluding wrongly tagged stack": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(map[string]string{
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), map[string]string{
 					"copilot-application": "appname",
 					"copilot-environment": "test",
 					"copilot-task":        "",
@@ -127,7 +128,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 		"error listing stacks": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: "some error",
 		},
@@ -165,7 +166,7 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 		"successfully gets task stacks while excluding wrongly tagged stack": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(map[string]string{
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), map[string]string{
 					"copilot-task": "",
 				}).Return([]cloudformation.StackDescription{
 					*mockDescription1,
@@ -183,7 +184,7 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 		"error listing stacks": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: "some error",
 		},
@@ -211,4 +212,53 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 		})
 	}
 
+}
+
+func TestCloudFormation_GetTaskStackWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "task-stack")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	client := mocks.NewMockcfnClient(ctrl)
+	client.EXPECT().DescribeWithContext(gomock.Eq(ctx), "task-database").Return(mockDescription1, nil)
+	cf := CloudFormation{cfnClient: client}
+
+	info, err := cf.GetTaskStackWithContext(ctx, "database")
+
+	require.NoError(t, err)
+	require.Equal(t, &deploy.TaskStackInfo{
+		StackName: "task-database",
+		App:       "appname",
+		Env:       "test",
+		RoleARN:   aws.ToString(mockDescription1.RoleARN),
+	}, info)
+}
+
+func TestCloudFormation_DeleteTaskWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "delete-task")
+
+	t.Run("with role", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		client := mocks.NewMockcfnClient(ctrl)
+		client.EXPECT().DeleteAndWaitWithRoleARNWithContext(gomock.Eq(ctx), "task-database", "role").Return(nil)
+		cf := CloudFormation{cfnClient: client}
+
+		err := cf.DeleteTaskWithContext(ctx, deploy.TaskStackInfo{StackName: "task-database", RoleARN: "role"})
+
+		require.NoError(t, err)
+	})
+
+	t.Run("without role", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		client := mocks.NewMockcfnClient(ctrl)
+		client.EXPECT().DeleteAndWaitWithContext(gomock.Eq(ctx), "task-database").Return(nil)
+		cf := CloudFormation{cfnClient: client}
+
+		err := cf.DeleteTaskWithContext(ctx, deploy.TaskStackInfo{StackName: "task-database"})
+
+		require.NoError(t, err)
+	})
 }

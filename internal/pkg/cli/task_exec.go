@@ -54,8 +54,12 @@ type taskExecOpts struct {
 }
 
 func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
+	return newTaskExecOptsWithContext(context.Background(), vars)
+}
+
+func newTaskExecOptsWithContext(ctx context.Context, vars taskExecVars) (*taskExecOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("task exec"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -80,7 +84,11 @@ func newTaskExecOpts(vars taskExecVars) (*taskExecOpts, error) {
 
 // Validate returns an error if the values provided by the user are invalid.
 func (o *taskExecOpts) Validate() error {
-	ctx := context.Background()
+	return o.ValidateWithContext(context.Background())
+}
+
+// ValidateWithContext validates task exec flags using ctx for config lookups.
+func (o *taskExecOpts) ValidateWithContext(ctx context.Context) error {
 	if o.useDefault && (o.appName != tryReadingAppName() || o.envName != "") {
 		return fmt.Errorf("cannot specify both default flag and app or env flags")
 	}
@@ -100,7 +108,7 @@ func (o *taskExecOpts) Validate() error {
 // Ask asks for fields that are required but not passed in.
 func (o *taskExecOpts) Ask(ctx context.Context) error {
 	if o.useDefault {
-		return o.selectTaskInDefaultCluster()
+		return o.selectTaskInDefaultCluster(ctx)
 	}
 	if o.appName == "" {
 		appName, err := o.configSel.Application(ctx, taskExecAppNamePrompt, taskExecAppNameHelpPrompt, useDefaultClusterOption)
@@ -109,7 +117,7 @@ func (o *taskExecOpts) Ask(ctx context.Context) error {
 		}
 		if appName == useDefaultClusterOption {
 			o.useDefault = true
-			return o.selectTaskInDefaultCluster()
+			return o.selectTaskInDefaultCluster(ctx)
 		}
 		o.appName = appName
 	}
@@ -120,7 +128,7 @@ func (o *taskExecOpts) Ask(ctx context.Context) error {
 		}
 		if envName == useDefaultClusterOption {
 			o.useDefault = true
-			return o.selectTaskInDefaultCluster()
+			return o.selectTaskInDefaultCluster(ctx)
 		}
 		o.envName = envName
 	}
@@ -140,7 +148,7 @@ func (o *taskExecOpts) Execute(ctx context.Context) error {
 	}
 	log.Infof("Execute %s in container %s in task %s.\n", color.HighlightCode(o.command),
 		color.HighlightUserInput(container), color.HighlightResource(taskID))
-	if err = o.newCommandExecutor(cfg).ExecuteCommand(awsecs.ExecuteCommandInput{
+	if err = o.newCommandExecutor(cfg).ExecuteCommandWithContext(ctx, awsecs.ExecuteCommandInput{
 		Cluster:   cluster,
 		Command:   o.command,
 		Container: container,
@@ -151,12 +159,12 @@ func (o *taskExecOpts) Execute(ctx context.Context) error {
 	return nil
 }
 
-func (o *taskExecOpts) selectTaskInDefaultCluster() error {
-	cfg, err := o.provider.DefaultConfig(context.Background())
+func (o *taskExecOpts) selectTaskInDefaultCluster(ctx context.Context) error {
+	cfg, err := o.provider.DefaultConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("create default config: %w", err)
 	}
-	task, err := o.newTaskSel(cfg).RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+	task, err := o.newTaskSel(cfg).RunningTaskWithContext(ctx, taskExecTaskPrompt, taskExecTaskHelpPrompt,
 		selector.WithDefault(), selector.WithTaskGroup(o.name), selector.WithTaskID(o.taskID))
 	if err != nil {
 		return fmt.Errorf("select running task in default cluster: %w", err)
@@ -170,11 +178,11 @@ func (o *taskExecOpts) selectTaskInAppEnvCluster(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
-	cfg, err := o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	cfg, err := o.provider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return fmt.Errorf("get config from role %s and region %s: %w", env.ManagerRoleARN, env.Region, err)
 	}
-	task, err := o.newTaskSel(cfg).RunningTask(taskExecTaskPrompt, taskExecTaskHelpPrompt,
+	task, err := o.newTaskSel(cfg).RunningTaskWithContext(ctx, taskExecTaskPrompt, taskExecTaskHelpPrompt,
 		selector.WithAppEnv(o.appName, o.envName), selector.WithTaskGroup(o.name), selector.WithTaskID(o.taskID))
 	if err != nil {
 		return fmt.Errorf("select running task in environment %s: %w", o.envName, err)
@@ -185,13 +193,13 @@ func (o *taskExecOpts) selectTaskInAppEnvCluster(ctx context.Context) error {
 
 func (o *taskExecOpts) config(ctx context.Context) (aws.Config, error) {
 	if o.useDefault {
-		return o.provider.DefaultConfig(context.Background())
+		return o.provider.DefaultConfig(ctx)
 	}
 	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
-	return o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	return o.provider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 }
 
 // buildTaskExecCmd builds the command for execute a running container in a one-off task.
@@ -209,7 +217,7 @@ func buildTaskExecCmd() *cobra.Command {
   Start an interactive bash session with a task prefixed with ID "38c3818" in the default cluster.
   /code $ copilot task exec --default --task-id 38c3818`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newTaskExecOpts(vars)
+			opts, err := newTaskExecOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

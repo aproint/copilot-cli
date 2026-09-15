@@ -31,10 +31,10 @@ func Test_RunTaskRequestFromECSService(t *testing.T) {
 	}{
 		"success": {
 			setUpMock: func(m *mocks.MockECSServiceDescriber) {
-				m.EXPECT().Service(testCluster, testService).Return(&ecs.Service{
+				m.EXPECT().ServiceWithContext(gomock.Any(), testCluster, testService).Return(&ecs.Service{
 					TaskDefinition: aws.String("task-def"),
 				}, nil)
-				m.EXPECT().TaskDefinition("task-def").Return(&ecs.TaskDefinition{
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), "task-def").Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
 					ContainerDefinitions: []awsecs.ContainerDefinition{
@@ -62,7 +62,7 @@ func Test_RunTaskRequestFromECSService(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.EXPECT().NetworkConfiguration(testCluster, testService).Return(&ecs.NetworkConfiguration{
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), testCluster, testService).Return(&ecs.NetworkConfiguration{
 					AssignPublicIp: "1.2.3.4",
 					Subnets:        []string{"sbn-1", "sbn-2"},
 					SecurityGroups: []string{"sg-1", "sg-2"},
@@ -96,35 +96,35 @@ func Test_RunTaskRequestFromECSService(t *testing.T) {
 		},
 		"unable to retrieve service": {
 			setUpMock: func(m *mocks.MockECSServiceDescriber) {
-				m.EXPECT().Service(testCluster, testService).Return(nil, errors.New("some error"))
-				m.EXPECT().NetworkConfiguration(gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().ServiceWithContext(gomock.Any(), testCluster, testService).Return(nil, errors.New("some error"))
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedError: errors.New("retrieve service good-service in cluster crowded-cluster: some error"),
 		},
 		"unable to retrieve task definition": {
 			setUpMock: func(m *mocks.MockECSServiceDescriber) {
-				m.EXPECT().Service(testCluster, testService).Return(&ecs.Service{
+				m.EXPECT().ServiceWithContext(gomock.Any(), testCluster, testService).Return(&ecs.Service{
 					TaskDefinition: aws.String("task-def"),
 				}, nil)
-				m.EXPECT().TaskDefinition("task-def").Return(nil, errors.New("some error"))
-				m.EXPECT().NetworkConfiguration(gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), "task-def").Return(nil, errors.New("some error"))
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedError: errors.New("retrieve task definition task-def: some error"),
 		},
 		"unable to retrieve network configuration": {
 			setUpMock: func(m *mocks.MockECSServiceDescriber) {
-				m.EXPECT().Service(gomock.Any(), gomock.Any()).AnyTimes()
-				m.EXPECT().TaskDefinition(gomock.Any()).AnyTimes()
-				m.EXPECT().NetworkConfiguration(testCluster, testService).Return(nil, errors.New("some error"))
+				m.EXPECT().ServiceWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), testCluster, testService).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("retrieve network configuration for service good-service in cluster crowded-cluster: some error"),
 		},
 		"error if found more than one container": {
 			setUpMock: func(m *mocks.MockECSServiceDescriber) {
-				m.EXPECT().Service(testCluster, testService).Return(&ecs.Service{
+				m.EXPECT().ServiceWithContext(gomock.Any(), testCluster, testService).Return(&ecs.Service{
 					TaskDefinition: aws.String("task-def"),
 				}, nil)
-				m.EXPECT().TaskDefinition("task-def").Return(&ecs.TaskDefinition{
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), "task-def").Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
 					ContainerDefinitions: []awsecs.ContainerDefinition{
@@ -136,7 +136,7 @@ func Test_RunTaskRequestFromECSService(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.EXPECT().NetworkConfiguration(gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedError: errors.New("found more than one container in task definition: task-def"),
 		},
@@ -175,7 +175,7 @@ func Test_RunTaskRequestFromService(t *testing.T) {
 	}{
 		"returns RunTaskRequest with service's main container": {
 			setUpMock: func(m *mocks.MockServiceDescriber) {
-				m.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
 					ContainerDefinitions: []awsecs.ContainerDefinition{
@@ -206,7 +206,7 @@ func Test_RunTaskRequestFromService(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.EXPECT().NetworkConfiguration(testApp, testEnv, testSvc).Return(&ecs.NetworkConfiguration{
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), testApp, testEnv, testSvc).Return(&ecs.NetworkConfiguration{
 					AssignPublicIp: "1.2.3.4",
 					Subnets:        []string{"sbn-1", "sbn-2"},
 					SecurityGroups: []string{"sg-1", "sg-2"},
@@ -240,16 +240,16 @@ func Test_RunTaskRequestFromService(t *testing.T) {
 		},
 		"unable to retrieve task definition": {
 			setUpMock: func(m *mocks.MockServiceDescriber) {
-				m.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
-				m.EXPECT().NetworkConfiguration(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.EXPECT().ClusterARN(gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedError: errors.New("retrieve task definition for service svc: some error"),
 		},
 		"unable to retrieve network configuration": {
 			setUpMock: func(m *mocks.MockServiceDescriber) {
-				m.EXPECT().TaskDefinition(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				m.EXPECT().NetworkConfiguration(testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().NetworkConfigurationWithContext(gomock.Any(), testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
 				m.EXPECT().ClusterARN(gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedError: errors.New("retrieve network configuration for service svc: some error"),
@@ -289,7 +289,7 @@ func Test_RunTaskRequestFromJob(t *testing.T) {
 	}{
 		"returns RunTaskRequest with job's main container": {
 			setUpMock: func(m *mocks.MockJobDescriber) {
-				m.EXPECT().TaskDefinition(testApp, testEnv, testJob).Return(&ecs.TaskDefinition{
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), testApp, testEnv, testJob).Return(&ecs.TaskDefinition{
 					ExecutionRoleArn: aws.String("execution-role"),
 					TaskRoleArn:      aws.String("task-role"),
 					ContainerDefinitions: []awsecs.ContainerDefinition{
@@ -320,7 +320,7 @@ func Test_RunTaskRequestFromJob(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.EXPECT().NetworkConfigurationForJob(testApp, testEnv, testJob).Return(&ecs.NetworkConfiguration{
+				m.EXPECT().NetworkConfigurationForJobWithContext(gomock.Any(), testApp, testEnv, testJob).Return(&ecs.NetworkConfiguration{
 					AssignPublicIp: "1.2.3.4",
 					Subnets:        []string{"sbn-1", "sbn-2"},
 					SecurityGroups: []string{"sg-1", "sg-2"},
@@ -354,16 +354,16 @@ func Test_RunTaskRequestFromJob(t *testing.T) {
 		},
 		"unable to retrieve task definition": {
 			setUpMock: func(m *mocks.MockJobDescriber) {
-				m.EXPECT().TaskDefinition(testApp, testEnv, testJob).Return(nil, errors.New("some error"))
-				m.EXPECT().NetworkConfigurationForJob(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), testApp, testEnv, testJob).Return(nil, errors.New("some error"))
+				m.EXPECT().NetworkConfigurationForJobWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				m.EXPECT().ClusterARN(gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedError: errors.New("retrieve task definition for job test-job: some error"),
 		},
 		"unable to retrieve network configuration": {
 			setUpMock: func(m *mocks.MockJobDescriber) {
-				m.EXPECT().TaskDefinition(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				m.EXPECT().NetworkConfigurationForJob(testApp, testEnv, testJob).Return(nil, errors.New("some error"))
+				m.EXPECT().TaskDefinitionWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().NetworkConfigurationForJobWithContext(gomock.Any(), testApp, testEnv, testJob).Return(nil, errors.New("some error"))
 				m.EXPECT().ClusterARN(gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			wantedError: errors.New("retrieve network configuration for job test-job: some error"),

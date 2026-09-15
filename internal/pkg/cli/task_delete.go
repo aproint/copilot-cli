@@ -73,13 +73,17 @@ type deleteTaskOpts struct {
 }
 
 func newDeleteTaskOpts(vars deleteTaskVars) (*deleteTaskOpts, error) {
+	return newDeleteTaskOptsWithContext(context.Background(), vars)
+}
+
+func newDeleteTaskOptsWithContext(ctx context.Context, vars deleteTaskVars) (*deleteTaskOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("task delete"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -116,6 +120,11 @@ func newDeleteTaskOpts(vars deleteTaskVars) (*deleteTaskOpts, error) {
 
 // Validate checks that flag inputs are valid.
 func (o *deleteTaskOpts) Validate() error {
+	return o.ValidateWithContext(context.Background())
+}
+
+// ValidateWithContext validates task deletion flags using ctx for remote lookups.
+func (o *deleteTaskOpts) ValidateWithContext(ctx context.Context) error {
 
 	if o.name != "" {
 		if err := basicNameValidation(o.name); err != nil {
@@ -124,11 +133,11 @@ func (o *deleteTaskOpts) Validate() error {
 	}
 
 	// If default flag specified,
-	if err := o.validateFlagsWithDefaultCluster(); err != nil {
+	if err := o.validateFlagsWithDefaultCluster(ctx); err != nil {
 		return err
 	}
 
-	if err := o.validateFlagsWithEnv(context.Background()); err != nil {
+	if err := o.validateFlagsWithEnv(ctx); err != nil {
 		return err
 	}
 
@@ -168,7 +177,7 @@ func (o *deleteTaskOpts) validateTaskName(ctx context.Context) error {
 	return nil
 }
 
-func (o *deleteTaskOpts) validateFlagsWithDefaultCluster() error {
+func (o *deleteTaskOpts) validateFlagsWithDefaultCluster(ctx context.Context) error {
 	if !o.defaultCluster {
 		return nil
 	}
@@ -188,7 +197,7 @@ func (o *deleteTaskOpts) validateFlagsWithDefaultCluster() error {
 		return fmt.Errorf("cannot specify both `--env` and `--default`")
 	}
 
-	if err := o.validateTaskName(context.Background()); err != nil {
+	if err := o.validateTaskName(ctx); err != nil {
 		return fmt.Errorf("get task: %w", err)
 	}
 
@@ -287,7 +296,7 @@ func (o *deleteTaskOpts) getConfig(ctx context.Context) (aws.Config, error) {
 		return o.cfg, nil
 	}
 	if o.defaultCluster {
-		cfg, err := o.provider.DefaultConfig(context.Background())
+		cfg, err := o.provider.DefaultConfig(ctx)
 		if err != nil {
 			return aws.Config{}, err
 		}
@@ -300,7 +309,7 @@ func (o *deleteTaskOpts) getConfig(ctx context.Context) (aws.Config, error) {
 	if err != nil {
 		return aws.Config{}, err
 	}
-	cfg, err := o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	cfg, err := o.provider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return aws.Config{}, err
 	}
@@ -320,14 +329,14 @@ func (o *deleteTaskOpts) askTaskName(ctx context.Context) error {
 	}
 	sel := o.newTaskSel(cfg)
 	if o.defaultCluster {
-		task, err := sel.Task(taskDeleteNamePrompt, "", selector.TaskWithDefaultCluster())
+		task, err := sel.TaskWithContext(ctx, taskDeleteNamePrompt, "", selector.TaskWithDefaultCluster())
 		if err != nil {
 			return fmt.Errorf("select task from default cluster: %w", err)
 		}
 		o.name = task
 		return nil
 	}
-	task, err := sel.Task(taskDeleteNamePrompt, "", selector.TaskWithAppEnv(o.app, o.env))
+	task, err := sel.TaskWithContext(ctx, taskDeleteNamePrompt, "", selector.TaskWithAppEnv(o.app, o.env))
 	if err != nil {
 		return fmt.Errorf("select task from environment: %w", err)
 	}
@@ -358,12 +367,12 @@ func (o *deleteTaskOpts) stopTasks(ctx context.Context) error {
 
 	// Stop tasks.
 	if o.defaultCluster {
-		if err = o.newTaskStopper(cfg).StopDefaultClusterTasks(o.name); err != nil {
+		if err = o.newTaskStopper(cfg).StopDefaultClusterTasksWithContext(ctx, o.name); err != nil {
 			o.spinner.Stop(log.Serrorln("Error stopping running tasks in default cluster."))
 			return fmt.Errorf("stop running tasks in family %s: %w", o.name, err)
 		}
 	} else {
-		if err = o.newTaskStopper(cfg).StopOneOffTasks(o.app, o.env, o.name); err != nil {
+		if err = o.newTaskStopper(cfg).StopOneOffTasksWithContext(ctx, o.app, o.env, o.name); err != nil {
 			o.spinner.Stop(log.Serrorln("Error stopping running tasks in environment."))
 			return fmt.Errorf("stop running tasks in family %s: %w", o.name, err)
 		}
@@ -380,7 +389,7 @@ func (o *deleteTaskOpts) clearECRRepository(ctx context.Context) error {
 		return err
 	}
 	if !o.defaultCluster {
-		defaultConfig, err = o.provider.DefaultConfigWithRegion(context.Background(), defaultConfig.Region)
+		defaultConfig, err = o.provider.DefaultConfigWithRegion(ctx, defaultConfig.Region)
 		if err != nil {
 			return fmt.Errorf("get default config for ECR deletion: %s", err)
 		}
@@ -389,7 +398,7 @@ func (o *deleteTaskOpts) clearECRRepository(ctx context.Context) error {
 	ecrRepoName := fmt.Sprintf(deploy.FmtTaskECRRepoName, o.name)
 
 	o.spinner.Start(fmt.Sprintf("Emptying ECR repository for task %s.", color.HighlightUserInput(o.name)))
-	err = o.newImageRemover(defaultConfig).ClearRepository(ecrRepoName)
+	err = o.newImageRemover(defaultConfig).ClearRepositoryWithContext(ctx, ecrRepoName)
 	if err != nil {
 		o.spinner.Stop(log.Serrorln("Error emptying ECR repository."))
 		return fmt.Errorf("empty ECR repository for task %s: %w", o.name, err)
@@ -405,7 +414,7 @@ func (o *deleteTaskOpts) emptyS3Bucket(ctx context.Context, info *deploy.TaskSta
 	if err != nil {
 		return err
 	}
-	err = o.newBucketEmptier(cfg).EmptyBucket(info.BucketName)
+	err = o.newBucketEmptier(cfg).EmptyBucketWithContext(ctx, info.BucketName)
 	if err != nil {
 		o.spinner.Stop(log.Serrorln("Error emptying S3 bucket."))
 		return fmt.Errorf("empty S3 bucket for task %s: %w", o.name, err)
@@ -425,7 +434,7 @@ func (o *deleteTaskOpts) getTaskInfo(ctx context.Context) (*deploy.TaskStackInfo
 	if err != nil {
 		return nil, err
 	}
-	info, err := o.newStackManager(cfg).GetTaskStack(o.name)
+	info, err := o.newStackManager(cfg).GetTaskStackWithContext(ctx, o.name)
 
 	if err != nil {
 		return nil, err
@@ -458,7 +467,7 @@ func (o *deleteTaskOpts) deleteStack(ctx context.Context) error {
 		}
 	}
 	o.spinner.Start(fmt.Sprintf("Deleting CloudFormation stack for task %s.", color.HighlightUserInput(o.name)))
-	err = o.newStackManager(cfg).DeleteTask(*info)
+	err = o.newStackManager(cfg).DeleteTaskWithContext(ctx, *info)
 	if err != nil {
 		o.spinner.Stop(log.Serrorln("Error deleting CloudFormation stack."))
 		return fmt.Errorf("delete stack for task %s: %w", o.name, err)
@@ -488,7 +497,7 @@ func BuildTaskDeleteCmd() *cobra.Command {
   Delete the "test" task without confirmation prompt.
   /code $ copilot task delete --name test --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteTaskOpts(vars)
+			opts, err := newDeleteTaskOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

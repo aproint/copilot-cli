@@ -4,6 +4,7 @@
 package ecs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -720,6 +721,43 @@ func TestECS_Tasks(t *testing.T) {
 		})
 
 	}
+}
+
+func TestECS_RunningTasksWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "running-tasks")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockapi(ctrl)
+	m.EXPECT().ListTasks(gomock.Eq(ctx), &ecs.ListTasksInput{
+		Cluster:       awsv2.String("cluster"),
+		DesiredStatus: types.DesiredStatusRunning,
+	}).Return(&ecs.ListTasksOutput{}, nil)
+	client := &ECS{client: m}
+
+	tasks, err := client.RunningTasksWithContext(ctx, "cluster")
+
+	require.NoError(t, err)
+	require.Empty(t, tasks)
+}
+
+func TestECS_RunningTasksInFamilyWithContextUsesCallerContext(t *testing.T) {
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "family-tasks")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockapi(ctrl)
+	m.EXPECT().ListTasks(gomock.Eq(ctx), &ecs.ListTasksInput{
+		Cluster:       awsv2.String("cluster"),
+		Family:        awsv2.String("family"),
+		DesiredStatus: types.DesiredStatusRunning,
+	}).Return(&ecs.ListTasksOutput{}, nil)
+	client := &ECS{client: m}
+
+	tasks, err := client.RunningTasksInFamilyWithContext(ctx, "cluster", "family")
+
+	require.NoError(t, err)
+	require.Empty(t, tasks)
 }
 
 func TestECS_StoppedServiceTasks(t *testing.T) {
@@ -1445,6 +1483,46 @@ func TestECS_RunTask(t *testing.T) {
 	}
 }
 
+func TestECS_RunTaskWithContextUsesCallerContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	mockAPI := mocks.NewMockapi(ctrl)
+	mockAPI.EXPECT().RunTask(gomock.Eq(ctx), gomock.Any()).Return(&ecs.RunTaskOutput{
+		Tasks: []types.Task{{TaskArn: awsv2.String("task-1")}},
+	}, nil)
+	mockAPI.EXPECT().WaitUntilTasksRunning(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil)
+	mockAPI.EXPECT().DescribeTasks(gomock.Eq(ctx), gomock.Any()).Return(&ecs.DescribeTasksOutput{
+		Tasks: []types.Task{{TaskArn: awsv2.String("task-1")}},
+	}, nil)
+
+	client := &ECS{client: mockAPI}
+	_, err := client.RunTaskWithContext(ctx, RunTaskInput{Cluster: "cluster", Count: 1, TaskFamilyName: "task"})
+	require.NoError(t, err)
+}
+
+func TestECS_ExecuteCommandWithContextUsesCallerContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	session := &types.Session{SessionId: awsv2.String("session")}
+	mockAPI := mocks.NewMockapi(ctrl)
+	mockAPI.EXPECT().ExecuteCommand(gomock.Eq(ctx), gomock.Any()).Return(&ecs.ExecuteCommandOutput{Session: session}, nil)
+	mockStarter := mocks.NewMockssmSessionStarter(ctrl)
+	mockStarter.EXPECT().StartSessionWithContext(gomock.Eq(ctx), session).Return(nil)
+
+	client := &ECS{
+		client: mockAPI,
+		newSessStarter: func() ssmSessionStarter {
+			return mockStarter
+		},
+	}
+	err := client.ExecuteCommandWithContext(ctx, ExecuteCommandInput{})
+	require.NoError(t, err)
+}
+
 func TestECS_DescribeTasks(t *testing.T) {
 	inCluster := "my-cluster"
 	inTaskARNs := []string{"task-1", "task-2", "task-3"}
@@ -1557,7 +1635,7 @@ func TestECS_ExecuteCommand(t *testing.T) {
 				}, nil)
 			},
 			mockSessStarter: func(m *mocks.MockssmSessionStarter) {
-				m.EXPECT().StartSession(mockSess).Return(mockErr)
+				m.EXPECT().StartSessionWithContext(gomock.Any(), mockSess).Return(mockErr)
 			},
 			wantedError: fmt.Errorf("start session mockSessID using ssm plugin: some error"),
 		},
@@ -1568,7 +1646,7 @@ func TestECS_ExecuteCommand(t *testing.T) {
 				}, nil)
 			},
 			mockSessStarter: func(m *mocks.MockssmSessionStarter) {
-				m.EXPECT().StartSession(mockSess).Return(nil)
+				m.EXPECT().StartSessionWithContext(gomock.Any(), mockSess).Return(nil)
 			},
 		},
 	}

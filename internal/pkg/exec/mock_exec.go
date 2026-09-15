@@ -5,6 +5,7 @@
 package exec
 
 import (
+	context "context"
 	http "net/http"
 	reflect "reflect"
 
@@ -86,6 +87,20 @@ func (mr *MockrunnerMockRecorder) InteractiveRun(name, args interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InteractiveRun", reflect.TypeOf((*Mockrunner)(nil).InteractiveRun), name, args)
 }
 
+// InteractiveRunWithContext mocks base method.
+func (m *Mockrunner) InteractiveRunWithContext(ctx context.Context, name string, args []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InteractiveRunWithContext", ctx, name, args)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InteractiveRunWithContext indicates an expected call of InteractiveRunWithContext.
+func (mr *MockrunnerMockRecorder) InteractiveRunWithContext(ctx, name, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InteractiveRunWithContext", reflect.TypeOf((*Mockrunner)(nil).InteractiveRunWithContext), ctx, name, args)
+}
+
 // Run mocks base method.
 func (m *Mockrunner) Run(name string, args []string, options ...CmdOption) error {
 	m.ctrl.T.Helper()
@@ -103,6 +118,25 @@ func (mr *MockrunnerMockRecorder) Run(name, args interface{}, options ...interfa
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{name, args}, options...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*Mockrunner)(nil).Run), varargs...)
+}
+
+// RunWithContext mocks base method.
+func (m *Mockrunner) RunWithContext(ctx context.Context, name string, args []string, options ...CmdOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, name, args}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RunWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RunWithContext indicates an expected call of RunWithContext.
+func (mr *MockrunnerMockRecorder) RunWithContext(ctx, name, args interface{}, options ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, name, args}, options...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWithContext", reflect.TypeOf((*Mockrunner)(nil).RunWithContext), varargs...)
 }
 
 // MockcmdRunner is a mock of cmdRunner interface.

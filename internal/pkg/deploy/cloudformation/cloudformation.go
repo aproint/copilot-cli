@@ -113,6 +113,7 @@ type cfnClient interface {
 	DeleteAndWait(stackName string) error
 	DeleteAndWaitWithContext(context.Context, string) error
 	DeleteAndWaitWithRoleARN(stackName, roleARN string) error
+	DeleteAndWaitWithRoleARNWithContext(ctx context.Context, stackName, roleARN string) error
 	Describe(stackName string) (*cloudformation.StackDescription, error)
 	DescribeWithContext(ctx context.Context, stackName string) (*cloudformation.StackDescription, error)
 	DescribeChangeSet(changeSetID, stackName string) (*cloudformation.ChangeSetDescription, error)
@@ -123,6 +124,7 @@ type cfnClient interface {
 	TemplateBodyFromChangeSetWithContext(context.Context, string, string) (string, error)
 	Events(stackName string) ([]cloudformation.StackEvent, error)
 	ListStacksWithTags(tags map[string]string) ([]cloudformation.StackDescription, error)
+	ListStacksWithTagsWithContext(ctx context.Context, tags map[string]string) ([]cloudformation.StackDescription, error)
 	ErrorEvents(stackName string) ([]cloudformation.StackEvent, error)
 	ErrorEventsWithContext(context.Context, string) ([]cloudformation.StackEvent, error)
 	Outputs(stack *cloudformation.Stack) (map[string]string, error)

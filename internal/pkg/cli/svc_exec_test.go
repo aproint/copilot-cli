@@ -452,7 +452,7 @@ func TestSvcExec_Execute(t *testing.T) {
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
-					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(nil, mockError),
+					m.ecsSvcDescriber.EXPECT().DescribeServiceWithContext(gomock.Any(), "mockApp", "mockEnv", "mockSvc").Return(nil, mockError),
 				)
 			},
 			wantedError: fmt.Errorf("describe ECS service for mockSvc in environment mockEnv: some error"),
@@ -465,7 +465,7 @@ func TestSvcExec_Execute(t *testing.T) {
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
-					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
+					m.ecsSvcDescriber.EXPECT().DescribeServiceWithContext(gomock.Any(), "mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						Tasks: []*awsecs.Task{},
 					}, nil),
 				)
@@ -481,7 +481,7 @@ func TestSvcExec_Execute(t *testing.T) {
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
-					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
+					m.ecsSvcDescriber.EXPECT().DescribeServiceWithContext(gomock.Any(), "mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						Tasks: []*awsecs.Task{
 							{
 								TaskArn:    aws.String(mockTaskARN),
@@ -502,7 +502,7 @@ func TestSvcExec_Execute(t *testing.T) {
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
-					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
+					m.ecsSvcDescriber.EXPECT().DescribeServiceWithContext(gomock.Any(), "mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						ClusterName: "mockCluster",
 						Tasks: []*awsecs.Task{
 							{
@@ -511,7 +511,7 @@ func TestSvcExec_Execute(t *testing.T) {
 							},
 						},
 					}, nil),
-					m.ecsCommandExecutor.EXPECT().ExecuteCommand(awsecs.ExecuteCommandInput{
+					m.ecsCommandExecutor.EXPECT().ExecuteCommandWithContext(gomock.Any(), awsecs.ExecuteCommandInput{
 						Cluster:   "mockCluster",
 						Container: "hello",
 						Task:      "mockTaskID",
@@ -529,7 +529,7 @@ func TestSvcExec_Execute(t *testing.T) {
 						Name: "my-env",
 					}, nil),
 					m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
-					m.ecsSvcDescriber.EXPECT().DescribeService("mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
+					m.ecsSvcDescriber.EXPECT().DescribeServiceWithContext(gomock.Any(), "mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
 						ClusterName: "mockCluster",
 						Tasks: []*awsecs.Task{
 							{
@@ -542,7 +542,7 @@ func TestSvcExec_Execute(t *testing.T) {
 							},
 						},
 					}, nil),
-					m.ecsCommandExecutor.EXPECT().ExecuteCommand(awsecs.ExecuteCommandInput{
+					m.ecsCommandExecutor.EXPECT().ExecuteCommandWithContext(gomock.Any(), awsecs.ExecuteCommandInput{
 						Cluster:   "mockCluster",
 						Container: "mockSvc",
 						Task:      "mockTaskID",

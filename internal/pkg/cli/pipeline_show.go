@@ -46,7 +46,7 @@ type showPipelineOpts struct {
 	store                  applicationStore
 	codepipeline           pipelineGetter
 	describer              describer
-	initDescriber          func(bool) error
+	initDescriber          func(context.Context, bool) error
 	sel                    codePipelineSelector
 	deployedPipelineLister deployedPipelineLister
 	prompt                 prompter
@@ -56,12 +56,16 @@ type showPipelineOpts struct {
 }
 
 func newShowPipelineOpts(vars showPipelineVars) (*showPipelineOpts, error) {
+	return newShowPipelineOptsWithContext(context.Background(), vars)
+}
+
+func newShowPipelineOptsWithContext(ctx context.Context, vars showPipelineVars) (*showPipelineOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
 	}
 
-	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline show")).DefaultConfig(context.Background())
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline show")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %w", err)
 	}
@@ -79,12 +83,12 @@ func newShowPipelineOpts(vars showPipelineVars) (*showPipelineOpts, error) {
 		prompt:                 prompter,
 		w:                      log.OutputWriter,
 	}
-	opts.initDescriber = func(enableResources bool) error {
-		pipeline, err := opts.getTargetPipeline()
+	opts.initDescriber = func(ctx context.Context, enableResources bool) error {
+		pipeline, err := opts.getTargetPipeline(ctx)
 		if err != nil {
 			return err
 		}
-		describer, err := describe.NewPipelineDescriber(pipeline, enableResources)
+		describer, err := describe.NewPipelineDescriberWithContext(ctx, pipeline, enableResources)
 		if err != nil {
 			return fmt.Errorf("new pipeline describer: %w", err)
 		}
@@ -112,12 +116,12 @@ func (o *showPipelineOpts) Ask(ctx context.Context) error {
 		}
 	}
 	if o.name != "" {
-		if _, err := o.getTargetPipeline(); err != nil {
+		if _, err := o.getTargetPipeline(ctx); err != nil {
 			return fmt.Errorf("validate pipeline name %s: %w", o.name, err)
 		}
 		return nil
 	}
-	pipeline, err := askDeployedPipelineName(o.sel, fmt.Sprintf(fmtPipelineShowPrompt, color.HighlightUserInput(o.appName)), o.appName)
+	pipeline, err := askDeployedPipelineNameWithContext(ctx, o.sel, fmt.Sprintf(fmtPipelineShowPrompt, color.HighlightUserInput(o.appName)), o.appName)
 	if err != nil {
 		return err
 	}
@@ -127,8 +131,8 @@ func (o *showPipelineOpts) Ask(ctx context.Context) error {
 }
 
 // Execute shows details about the pipeline.
-func (o *showPipelineOpts) Execute(_ context.Context) error {
-	err := o.initDescriber(o.shouldOutputResources)
+func (o *showPipelineOpts) Execute(ctx context.Context) error {
+	err := o.initDescriber(ctx, o.shouldOutputResources)
 	if err != nil {
 		return err
 	}
@@ -151,11 +155,11 @@ func (o *showPipelineOpts) Execute(_ context.Context) error {
 	return nil
 }
 
-func (o *showPipelineOpts) getTargetPipeline() (deploy.Pipeline, error) {
+func (o *showPipelineOpts) getTargetPipeline(ctx context.Context) (deploy.Pipeline, error) {
 	if o.targetPipeline != nil {
 		return *o.targetPipeline, nil
 	}
-	pipeline, err := getDeployedPipelineInfo(o.deployedPipelineLister, o.appName, o.name)
+	pipeline, err := getDeployedPipelineInfoWithContext(ctx, o.deployedPipelineLister, o.appName, o.name)
 	if err != nil {
 		return deploy.Pipeline{}, err
 	}
@@ -183,7 +187,7 @@ func buildPipelineShowCmd() *cobra.Command {
   Shows info, including resources, about the pipeline "myrepo-mybranch."
   /code $ copilot pipeline show --name myrepo-mybranch --resources`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newShowPipelineOpts(vars)
+			opts, err := newShowPipelineOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

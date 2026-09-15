@@ -45,6 +45,7 @@ const (
 // ResourceGetter retrieves a group of resources that satisfy certain conditions, such as tags.
 type ResourceGetter interface {
 	GetResourcesByTags(resourceType string, tags map[string]string) ([]*rg.Resource, error)
+	GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*rg.Resource, error)
 }
 
 // ConfigStoreClient wraps config store methods utilized by deploy store.
@@ -121,10 +122,26 @@ func NewPipelineStore(getter ResourceGetter) *PipelineStore {
 // ListDeployedPipelines returns a list of names of deployed pipelines by looking up
 // pipeline resources with tags.
 func (p *PipelineStore) ListDeployedPipelines(appName string) ([]Pipeline, error) {
+	return p.listDeployedPipelines(context.Background(), appName, false)
+}
+
+// ListDeployedPipelinesWithContext returns deployed pipelines using ctx.
+func (p *PipelineStore) ListDeployedPipelinesWithContext(ctx context.Context, appName string) ([]Pipeline, error) {
+	return p.listDeployedPipelines(ctx, appName, true)
+}
+
+func (p *PipelineStore) listDeployedPipelines(ctx context.Context, appName string, useContext bool) ([]Pipeline, error) {
 	var pipelines []Pipeline
-	pipelineResources, err := p.getter.GetResourcesByTags(pipelineResourceType, map[string]string{
+	tags := map[string]string{
 		AppTagKey: appName,
-	})
+	}
+	var pipelineResources []*rg.Resource
+	var err error
+	if useContext {
+		pipelineResources, err = p.getter.GetResourcesByTagsWithContext(ctx, pipelineResourceType, tags)
+	} else {
+		pipelineResources, err = p.getter.GetResourcesByTags(pipelineResourceType, tags)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get pipeline resources by tags for app %s: %w", appName, err)
 	}
@@ -182,7 +199,7 @@ func (s *Store) listDeployedWorkloads(ctx context.Context, appName string, envNa
 	if err != nil {
 		return nil, err
 	}
-	resources, err := rgClient.GetResourcesByTags(stackResourceType, map[string]string{
+	resources, err := rgClient.GetResourcesByTagsWithContext(ctx, stackResourceType, map[string]string{
 		AppTagKey: appName,
 		EnvTagKey: envName,
 	})
@@ -252,8 +269,8 @@ type result struct {
 	err  error
 }
 
-func (s *Store) deployedServices(rgClient ResourceGetter, app, env, svc string) result {
-	resources, err := rgClient.GetResourcesByTags(stackResourceType, map[string]string{
+func (s *Store) deployedServices(ctx context.Context, rgClient ResourceGetter, app, env, svc string) result {
+	resources, err := rgClient.GetResourcesByTagsWithContext(ctx, stackResourceType, map[string]string{
 		AppTagKey:     app,
 		EnvTagKey:     env,
 		ServiceTagKey: svc,
@@ -284,7 +301,7 @@ func (s *Store) ListEnvironmentsDeployedTo(ctx context.Context, appName string, 
 				deployedEnv <- result{err: err}
 				return
 			}
-			deployedEnv <- s.deployedServices(rgClient, appName, env.Name, svcName)
+			deployedEnv <- s.deployedServices(ctx, rgClient, appName, env.Name, svcName)
 		}(env)
 	}
 	var envsWithDeployment []string
@@ -316,7 +333,7 @@ func (s *Store) IsWorkloadDeployed(ctx context.Context, appName, envName, name s
 	if err != nil {
 		return false, err
 	}
-	stacks, err := rgClient.GetResourcesByTags(stackResourceType, map[string]string{
+	stacks, err := rgClient.GetResourcesByTagsWithContext(ctx, stackResourceType, map[string]string{
 		AppTagKey:     appName,
 		EnvTagKey:     envName,
 		ServiceTagKey: name,

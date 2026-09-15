@@ -44,6 +44,11 @@ func New(cfg awsv2.Config) *ResourceGroups {
 
 // GetResourcesByTags gets tag set and ARN for the resource with input resource type and tags.
 func (rg *ResourceGroups) GetResourcesByTags(resourceType string, tags map[string]string) ([]*Resource, error) {
+	return rg.GetResourcesByTagsWithContext(context.Background(), resourceType, tags)
+}
+
+// GetResourcesByTagsWithContext gets tag set and ARN for the resource with input resource type and tags using ctx.
+func (rg *ResourceGroups) GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*Resource, error) {
 	var resources []*Resource
 	var tagFilter []types.TagFilter
 	for k, v := range tags {
@@ -59,7 +64,7 @@ func (rg *ResourceGroups) GetResourcesByTags(resourceType string, tags map[strin
 	resourceResp := &resourcegroupstaggingapi.GetResourcesOutput{}
 	for {
 		var err error
-		resourceResp, err = rg.client.GetResources(context.Background(), &resourcegroupstaggingapi.GetResourcesInput{
+		resourceResp, err = rg.client.GetResources(ctx, &resourcegroupstaggingapi.GetResourcesInput{
 			PaginationToken:     resourceResp.PaginationToken,
 			ResourceTypeFilters: []string{resourceType},
 			TagFilters:          tagFilter,

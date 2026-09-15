@@ -33,6 +33,7 @@ const (
 // BackendServiceDescriber retrieves information about a backend service.
 type BackendServiceDescriber struct {
 	ctx             context.Context
+	contextEnabled  bool
 	app             string
 	svc             string
 	enableResources bool
@@ -51,6 +52,7 @@ type BackendServiceDescriber struct {
 func NewBackendServiceDescriber(ctx context.Context, opt NewServiceConfig) (*BackendServiceDescriber, error) {
 	describer := &BackendServiceDescriber{
 		ctx:                  ctx,
+		contextEnabled:       true,
 		app:                  opt.App,
 		svc:                  opt.Svc,
 		enableResources:      opt.EnableResources,
@@ -63,7 +65,7 @@ func NewBackendServiceDescriber(ctx context.Context, opt NewServiceConfig) (*Bac
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +95,7 @@ func NewBackendServiceDescriber(ctx context.Context, opt NewServiceConfig) (*Bac
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +193,7 @@ func (d *BackendServiceDescriber) Describe() (HumanJSONStringer, error) {
 			if err != nil {
 				return nil, err
 			}
-			alarmDescs, err := cwAlarmDescr.AlarmDescriptions(alarmNames)
+			alarmDescs, err := describeAlarms(ctx, d.contextEnabled, cwAlarmDescr, alarmNames)
 			if err != nil {
 				return nil, fmt.Errorf("retrieve alarm descriptions: %w", err)
 			}

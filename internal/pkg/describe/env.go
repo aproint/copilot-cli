@@ -51,6 +51,7 @@ type EnvDescriber struct {
 	env             *config.Environment
 	enableResources bool
 	ctx             context.Context
+	contextEnabled  bool
 
 	configStore ConfigStoreSvc
 	deployStore DeployedEnvServicesLister
@@ -75,7 +76,7 @@ func NewEnvDescriber(ctx context.Context, opt NewEnvDescriberConfig) (*EnvDescri
 	if err != nil {
 		return nil, fmt.Errorf("get environment: %w", err)
 	}
-	cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("assume role for environment %s: %w", env.ManagerRoleARN, err)
 	}
@@ -84,6 +85,7 @@ func NewEnvDescriber(ctx context.Context, opt NewEnvDescriberConfig) (*EnvDescri
 		env:             env,
 		enableResources: opt.EnableResources,
 		ctx:             ctx,
+		contextEnabled:  true,
 
 		configStore: opt.ConfigStore,
 		deployStore: opt.DeployStore,
@@ -113,7 +115,7 @@ func (d *EnvDescriber) Describe() (*EnvDescription, error) {
 
 	var stackResources []*stack.Resource
 	if d.enableResources {
-		stackResources, err = d.cfn.Resources()
+		stackResources, err = loadStackResources(d.ctx, d.contextEnabled, d.cfn)
 		if err != nil {
 			return nil, fmt.Errorf("retrieve environment resources: %w", err)
 		}
@@ -131,7 +133,7 @@ func (d *EnvDescriber) Describe() (*EnvDescription, error) {
 
 // Manifest returns the contents of the manifest used to deploy an environment stack.
 func (d *EnvDescriber) Manifest() ([]byte, error) {
-	tpl, err := d.cfn.StackMetadata()
+	tpl, err := loadStackMetadata(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +159,7 @@ func (d *EnvDescriber) Manifest() ([]byte, error) {
 
 // Params returns the parameters of the environment stack.
 func (d *EnvDescriber) Params() (map[string]string, error) {
-	descr, err := d.cfn.Describe()
+	descr, err := loadStackDescription(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +168,7 @@ func (d *EnvDescriber) Params() (map[string]string, error) {
 
 // Outputs returns the outputs of the environment stack.
 func (d *EnvDescriber) Outputs() (map[string]string, error) {
-	descr, err := d.cfn.Describe()
+	descr, err := loadStackDescription(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +195,7 @@ func (d *EnvDescriber) AvailableFeatures() ([]string, error) {
 //
 // If the Version field does not exist, then it's a legacy template and it returns an version.LegacyEnvTemplate and nil error.
 func (d *EnvDescriber) Version() (string, error) {
-	return stackVersion(d.cfn, version.LegacyEnvTemplate)
+	return stackVersion(d.ctx, d.contextEnabled, d.cfn, version.LegacyEnvTemplate)
 }
 
 // ServiceDiscoveryEndpoint returns the endpoint the environment was initialized with, if any. Otherwise,
@@ -221,7 +223,7 @@ func (d *EnvDescriber) ServiceDiscoveryEndpoint() (string, error) {
 func (d *EnvDescriber) loadStackInfo() (map[string]string, EnvironmentVPC, error) {
 	var environmentVPC EnvironmentVPC
 
-	envStack, err := d.cfn.Describe()
+	envStack, err := loadStackDescription(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return nil, environmentVPC, fmt.Errorf("retrieve environment stack: %w", err)
 	}
@@ -283,7 +285,7 @@ func (d *EnvDescriber) filterDeployedJobs() ([]*config.Workload, error) {
 
 // ValidateCFServiceDomainAliases returns error if an environment using cdn is deployed without specifying http.alias for all load-balanced web services
 func (d *EnvDescriber) ValidateCFServiceDomainAliases() error {
-	stackDescr, err := d.cfn.Describe()
+	stackDescr, err := loadStackDescription(d.ctx, d.contextEnabled, d.cfn)
 	if err != nil {
 		return fmt.Errorf("describe stack: %w", err)
 	}

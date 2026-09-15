@@ -43,7 +43,12 @@ func New(cfg awsv2.Config) *ELBV2 {
 
 // ListenerRulesHostHeaders returns all the host headers for all listener rules.
 func (e *ELBV2) ListenerRulesHostHeaders(ruleARNs []string) ([]string, error) {
-	resp, err := e.client.DescribeRules(context.Background(), &elbv2.DescribeRulesInput{
+	return e.ListenerRulesHostHeadersWithContext(context.Background(), ruleARNs)
+}
+
+// ListenerRulesHostHeadersWithContext returns host headers for listener rules using ctx.
+func (e *ELBV2) ListenerRulesHostHeadersWithContext(ctx context.Context, ruleARNs []string) ([]string, error) {
+	resp, err := e.client.DescribeRules(ctx, &elbv2.DescribeRulesInput{
 		RuleArns: ruleARNs,
 	})
 	if err != nil {
@@ -113,10 +118,15 @@ type TargetHealth types.TargetHealthDescription
 
 // TargetsHealth returns the health status of the targets in a target group.
 func (e *ELBV2) TargetsHealth(targetGroupARN string) ([]*TargetHealth, error) {
+	return e.TargetsHealthWithContext(context.Background(), targetGroupARN)
+}
+
+// TargetsHealthWithContext returns target health using ctx.
+func (e *ELBV2) TargetsHealthWithContext(ctx context.Context, targetGroupARN string) ([]*TargetHealth, error) {
 	in := &elbv2.DescribeTargetHealthInput{
 		TargetGroupArn: awsv2.String(targetGroupARN),
 	}
-	out, err := e.client.DescribeTargetHealth(context.Background(), in)
+	out, err := e.client.DescribeTargetHealth(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("describe target health for target group %s: %w", targetGroupARN, err)
 	}

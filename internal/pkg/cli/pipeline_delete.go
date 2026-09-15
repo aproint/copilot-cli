@@ -189,8 +189,25 @@ func askDeployedPipelineName(sel codePipelineSelector, msg, appName string) (dep
 	return pipeline, nil
 }
 
+func askDeployedPipelineNameWithContext(ctx context.Context, sel codePipelineSelector, msg, appName string) (deploy.Pipeline, error) {
+	pipeline, err := sel.DeployedPipelineWithContext(ctx, msg, "", appName)
+	if err != nil {
+		return deploy.Pipeline{}, fmt.Errorf("select deployed pipelines: %w", err)
+	}
+	return pipeline, nil
+}
+
 func getDeployedPipelineInfo(lister deployedPipelineLister, app, name string) (deploy.Pipeline, error) {
 	pipelines, err := lister.ListDeployedPipelines(app)
+	return findDeployedPipeline(pipelines, name, err)
+}
+
+func getDeployedPipelineInfoWithContext(ctx context.Context, lister deployedPipelineLister, app, name string) (deploy.Pipeline, error) {
+	pipelines, err := lister.ListDeployedPipelinesWithContext(ctx, app)
+	return findDeployedPipeline(pipelines, name, err)
+}
+
+func findDeployedPipeline(pipelines []deploy.Pipeline, name string, err error) (deploy.Pipeline, error) {
 	if err != nil {
 		return deploy.Pipeline{}, fmt.Errorf("list deployed pipelines: %w", err)
 	}

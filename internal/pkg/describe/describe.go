@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -38,9 +39,41 @@ type HumanJSONStringer interface {
 
 type stackDescriber interface {
 	Describe() (stack.StackDescription, error)
+	DescribeWithContext(ctx context.Context) (stack.StackDescription, error)
 	Resources() ([]*stack.Resource, error)
+	ResourcesWithContext(ctx context.Context) ([]*stack.Resource, error)
 	StackMetadata() (string, error)
+	StackMetadataWithContext(ctx context.Context) (string, error)
 	StackSetMetadata() (string, error)
+	StackSetMetadataWithContext(ctx context.Context) (string, error)
+}
+
+func loadStackDescription(ctx context.Context, contextEnabled bool, d stackDescriber) (stack.StackDescription, error) {
+	if !contextEnabled {
+		return d.Describe()
+	}
+	return d.DescribeWithContext(ctx)
+}
+
+func loadStackResources(ctx context.Context, contextEnabled bool, d stackDescriber) ([]*stack.Resource, error) {
+	if !contextEnabled {
+		return d.Resources()
+	}
+	return d.ResourcesWithContext(ctx)
+}
+
+func loadStackMetadata(ctx context.Context, contextEnabled bool, d stackDescriber) (string, error) {
+	if !contextEnabled {
+		return d.StackMetadata()
+	}
+	return d.StackMetadataWithContext(ctx)
+}
+
+func loadStackSetMetadata(ctx context.Context, contextEnabled bool, d stackDescriber) (string, error) {
+	if !contextEnabled {
+		return d.StackSetMetadata()
+	}
+	return d.StackSetMetadataWithContext(ctx)
 }
 
 type deployedSvcResources map[string][]*stack.Resource

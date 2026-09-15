@@ -31,7 +31,11 @@ type listJobOpts struct {
 }
 
 func newListJobOpts(vars listWkldVars) (*listJobOpts, error) {
-	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("job ls")).DefaultConfig(context.Background())
+	return newListJobOptsWithContext(context.Background(), vars)
+}
+
+func newListJobOptsWithContext(ctx context.Context, vars listWkldVars) (*listJobOpts, error) {
+	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("job ls")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +97,7 @@ func buildJobListCmd() *cobra.Command {
   Lists all the jobs for the "myapp" application.
   /code $ copilot job ls --app myapp`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListJobOpts(vars)
+			opts, err := newListJobOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -52,11 +52,13 @@ type envDescriber interface {
 
 type lbDescriber interface {
 	ListenerRulesHostHeaders(ruleARNs []string) ([]string, error)
+	ListenerRulesHostHeadersWithContext(ctx context.Context, ruleARNs []string) ([]string, error)
 }
 
 // LBWebServiceDescriber retrieves information about a load balanced web service.
 type LBWebServiceDescriber struct {
 	ctx             context.Context
+	contextEnabled  bool
 	app             string
 	svc             string
 	enableResources bool
@@ -75,6 +77,7 @@ type LBWebServiceDescriber struct {
 func NewLBWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*LBWebServiceDescriber, error) {
 	describer := &LBWebServiceDescriber{
 		ctx:                  ctx,
+		contextEnabled:       true,
 		app:                  opt.App,
 		svc:                  opt.Svc,
 		enableResources:      opt.EnableResources,
@@ -87,7 +90,7 @@ func NewLBWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*LBWeb
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +135,7 @@ func NewLBWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*LBWeb
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
@@ -203,7 +206,7 @@ func (d *LBWebServiceDescriber) Describe() (HumanJSONStringer, error) {
 			if err != nil {
 				return nil, err
 			}
-			alarms, err := cwAlarmDescr.AlarmDescriptions(alarmNames)
+			alarms, err := describeAlarms(ctx, d.contextEnabled, cwAlarmDescr, alarmNames)
 			if err != nil {
 				return nil, fmt.Errorf("retrieve alarm descriptions: %w", err)
 			}

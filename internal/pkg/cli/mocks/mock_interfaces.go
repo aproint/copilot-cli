@@ -5487,6 +5487,21 @@ func (mr *MockpipelineGetterMockRecorder) GetPipeline(pipelineName interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipeline", reflect.TypeOf((*MockpipelineGetter)(nil).GetPipeline), pipelineName)
 }
 
+// GetPipelineWithContext mocks base method.
+func (m *MockpipelineGetter) GetPipelineWithContext(ctx context.Context, pipelineName string) (*codepipeline.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineWithContext", ctx, pipelineName)
+	ret0, _ := ret[0].(*codepipeline.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineWithContext indicates an expected call of GetPipelineWithContext.
+func (mr *MockpipelineGetterMockRecorder) GetPipelineWithContext(ctx, pipelineName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineWithContext", reflect.TypeOf((*MockpipelineGetter)(nil).GetPipelineWithContext), ctx, pipelineName)
+}
+
 // MockdeployedPipelineLister is a mock of deployedPipelineLister interface.
 type MockdeployedPipelineLister struct {
 	ctrl     *gomock.Controller
@@ -5523,6 +5538,21 @@ func (m *MockdeployedPipelineLister) ListDeployedPipelines(appName string) ([]de
 func (mr *MockdeployedPipelineListerMockRecorder) ListDeployedPipelines(appName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeployedPipelines", reflect.TypeOf((*MockdeployedPipelineLister)(nil).ListDeployedPipelines), appName)
+}
+
+// ListDeployedPipelinesWithContext mocks base method.
+func (m *MockdeployedPipelineLister) ListDeployedPipelinesWithContext(ctx context.Context, appName string) ([]deploy0.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDeployedPipelinesWithContext", ctx, appName)
+	ret0, _ := ret[0].([]deploy0.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDeployedPipelinesWithContext indicates an expected call of ListDeployedPipelinesWithContext.
+func (mr *MockdeployedPipelineListerMockRecorder) ListDeployedPipelinesWithContext(ctx, appName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeployedPipelinesWithContext", reflect.TypeOf((*MockdeployedPipelineLister)(nil).ListDeployedPipelinesWithContext), ctx, appName)
 }
 
 // Mockexecutor is a mock of executor interface.
@@ -6138,6 +6168,21 @@ func (m *MockcodePipelineSelector) DeployedPipeline(prompt, help, app string) (d
 func (mr *MockcodePipelineSelectorMockRecorder) DeployedPipeline(prompt, help, app interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployedPipeline", reflect.TypeOf((*MockcodePipelineSelector)(nil).DeployedPipeline), prompt, help, app)
+}
+
+// DeployedPipelineWithContext mocks base method.
+func (m *MockcodePipelineSelector) DeployedPipelineWithContext(ctx context.Context, prompt, help, app string) (deploy0.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeployedPipelineWithContext", ctx, prompt, help, app)
+	ret0, _ := ret[0].(deploy0.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeployedPipelineWithContext indicates an expected call of DeployedPipelineWithContext.
+func (mr *MockcodePipelineSelectorMockRecorder) DeployedPipelineWithContext(ctx, prompt, help, app interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployedPipelineWithContext", reflect.TypeOf((*MockcodePipelineSelector)(nil).DeployedPipelineWithContext), ctx, prompt, help, app)
 }
 
 // MockwsSelector is a mock of wsSelector interface.

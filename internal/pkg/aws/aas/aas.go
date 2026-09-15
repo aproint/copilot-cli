@@ -38,12 +38,17 @@ func New(cfg awsv2.Config) *ApplicationAutoscaling {
 // ECSServiceAlarmNames returns names of the CloudWatch alarms associated with the
 // scaling policies attached to the ECS service.
 func (a *ApplicationAutoscaling) ECSServiceAlarmNames(cluster, service string) ([]string, error) {
+	return a.ECSServiceAlarmNamesWithContext(context.Background(), cluster, service)
+}
+
+// ECSServiceAlarmNamesWithContext returns alarm names associated with ECS scaling policies using ctx.
+func (a *ApplicationAutoscaling) ECSServiceAlarmNamesWithContext(ctx context.Context, cluster, service string) ([]string, error) {
 	resourceID := fmt.Sprintf(fmtECSResourceID, cluster, service)
 	var alarms []string
 	var err error
 	resp := &aas.DescribeScalingPoliciesOutput{}
 	for {
-		resp, err = a.client.DescribeScalingPolicies(context.Background(), &aas.DescribeScalingPoliciesInput{
+		resp, err = a.client.DescribeScalingPolicies(ctx, &aas.DescribeScalingPoliciesInput{
 			ResourceId:       awsv2.String(resourceID),
 			ServiceNamespace: types.ServiceNamespaceEcs,
 			NextToken:        resp.NextToken,

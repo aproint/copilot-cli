@@ -112,10 +112,15 @@ func New(cpConfig awsv2.Config, rgConfig awsv2.Config) *CodePipeline {
 
 // GetPipeline retrieves information from a given pipeline.
 func (c *CodePipeline) GetPipeline(name string) (*Pipeline, error) {
+	return c.GetPipelineWithContext(context.Background(), name)
+}
+
+// GetPipelineWithContext retrieves information from a given pipeline using ctx.
+func (c *CodePipeline) GetPipelineWithContext(ctx context.Context, name string) (*Pipeline, error) {
 	input := &cp.GetPipelineInput{
 		Name: awsv2.String(name),
 	}
-	resp, err := c.client.GetPipeline(context.Background(), input)
+	resp, err := c.client.GetPipeline(ctx, input)
 
 	if err != nil {
 		return nil, fmt.Errorf("get pipeline %s: %w", name, err)
@@ -180,10 +185,15 @@ func (c *CodePipeline) RetryStageExecution(pipelineName, stageName string) error
 
 // GetPipelineState retrieves status information from a given pipeline.
 func (c *CodePipeline) GetPipelineState(name string) (*PipelineState, error) {
+	return c.GetPipelineStateWithContext(context.Background(), name)
+}
+
+// GetPipelineStateWithContext retrieves status information from a given pipeline using ctx.
+func (c *CodePipeline) GetPipelineStateWithContext(ctx context.Context, name string) (*PipelineState, error) {
 	input := &cp.GetPipelineStateInput{
 		Name: awsv2.String(name),
 	}
-	resp, err := c.client.GetPipelineState(context.Background(), input)
+	resp, err := c.client.GetPipelineState(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("get pipeline state %s: %w", name, err)
 	}

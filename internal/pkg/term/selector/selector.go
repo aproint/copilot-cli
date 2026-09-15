@@ -144,6 +144,7 @@ type wsPipelinesLister interface {
 // codePipelineLister lists deployed pipelines.
 type codePipelineLister interface {
 	ListDeployedPipelines(appName string) ([]deploy.Pipeline, error)
+	ListDeployedPipelinesWithContext(ctx context.Context, appName string) ([]deploy.Pipeline, error)
 }
 
 // workspaceRetriever wraps methods to get workload names, app names, and Dockerfiles from the workspace.
@@ -1002,7 +1003,12 @@ func (s *WsPipelineSelector) WsPipeline(msg, help string) (*workspace.PipelineMa
 
 // DeployedPipeline fetches all the pipelines in a workspace and prompts the user to select one.
 func (s *CodePipelineSelector) DeployedPipeline(msg, help, app string) (deploy.Pipeline, error) {
-	pipelines, err := s.pipelineLister.ListDeployedPipelines(app)
+	return s.DeployedPipelineWithContext(context.Background(), msg, help, app)
+}
+
+// DeployedPipelineWithContext fetches deployed pipelines and prompts the user using ctx.
+func (s *CodePipelineSelector) DeployedPipelineWithContext(ctx context.Context, msg, help, app string) (deploy.Pipeline, error) {
+	pipelines, err := s.pipelineLister.ListDeployedPipelinesWithContext(ctx, app)
 	if err != nil {
 		return deploy.Pipeline{}, fmt.Errorf("list deployed pipelines: %w", err)
 	}

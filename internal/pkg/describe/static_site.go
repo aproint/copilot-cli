@@ -28,9 +28,10 @@ const (
 
 // StaticSiteDescriber retrieves information about a static site service.
 type StaticSiteDescriber struct {
-	ctx context.Context
-	app string
-	svc string
+	ctx            context.Context
+	contextEnabled bool
+	app            string
+	svc            string
 
 	enableResources        bool
 	store                  DeployedEnvServicesLister
@@ -43,6 +44,7 @@ type StaticSiteDescriber struct {
 func NewStaticSiteDescriber(ctx context.Context, opt NewServiceConfig) (*StaticSiteDescriber, error) {
 	describer := &StaticSiteDescriber{
 		ctx:             ctx,
+		contextEnabled:  true,
 		app:             opt.App,
 		svc:             opt.Svc,
 		enableResources: opt.EnableResources,
@@ -70,7 +72,7 @@ func NewStaticSiteDescriber(ctx context.Context, opt NewServiceConfig) (*StaticS
 		if err != nil {
 			return nil, nil, fmt.Errorf("get environment %s: %w", env, err)
 		}
-		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), environment.ManagerRoleARN, environment.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, environment.ManagerRoleARN, environment.Region)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -129,11 +131,21 @@ func (d *StaticSiteDescriber) Describe() (HumanJSONStringer, error) {
 				URL:         uri.URI,
 			})
 		}
-		bucketName, err := bucketNameDescriber.BucketName(d.app, env, d.svc)
+		var bucketName string
+		if !d.contextEnabled {
+			bucketName, err = bucketNameDescriber.BucketName(d.app, env, d.svc)
+		} else {
+			bucketName, err = bucketNameDescriber.BucketNameWithContext(ctx, d.app, env, d.svc)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("get bucket name for %q env: %w", env, err)
 		}
-		tree, err := bucketDescriber.BucketTree(bucketName)
+		var tree string
+		if !d.contextEnabled {
+			tree, err = bucketDescriber.BucketTree(bucketName)
+		} else {
+			tree, err = bucketDescriber.BucketTreeWithContext(ctx, bucketName)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("get tree representation of bucket contents: %w", err)
 		}

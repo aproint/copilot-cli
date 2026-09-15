@@ -12,9 +12,25 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/cli/mocks"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewListEnvOpts_PropagatesCancellationToSessionLoading(t *testing.T) {
+	callerCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	ctrl := gomock.NewController(t)
+	provider := mocks.NewMockdefaultSessionProvider(ctrl)
+	provider.EXPECT().DefaultConfig(callerCtx).DoAndReturn(func(ctx context.Context) (aws.Config, error) {
+		return aws.Config{}, ctx.Err()
+	})
+
+	_, err := newListEnvOptsWithSessionProvider(callerCtx, listEnvVars{}, provider)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
 
 func TestEnvList_Ask(t *testing.T) {
 	testCases := map[string]struct {

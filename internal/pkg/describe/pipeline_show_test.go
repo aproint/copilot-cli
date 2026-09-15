@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -17,6 +18,29 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestPipelineDescriber_PropagatesCancellation(t *testing.T) {
+	callerCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	ctrl := gomock.NewController(t)
+	pipelineGetter := mocks.NewMockpipelineGetter(ctrl)
+	pipelineGetter.EXPECT().GetPipelineWithContext(callerCtx, pipelineResourceName).DoAndReturn(func(ctx context.Context, _ string) (*codepipeline.Pipeline, error) {
+		return nil, ctx.Err()
+	})
+
+	describer := &PipelineDescriber{
+		ctx:            callerCtx,
+		contextEnabled: true,
+		pipeline: deploy.Pipeline{
+			ResourceName: pipelineResourceName,
+		},
+		pipelineSvc: pipelineGetter,
+	}
+	_, err := describer.Describe()
+
+	require.ErrorIs(t, err, context.Canceled)
+}
 
 type pipelineDescriberMocks struct {
 	cfn            *mocks.MockstackDescriber

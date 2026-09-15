@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	cloudformation "github.com/aproint/copilot-cli/internal/pkg/aws/cloudformation"
@@ -49,6 +50,21 @@ func (mr *MockcfnMockRecorder) Describe(name interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*Mockcfn)(nil).Describe), name)
 }
 
+// DescribeWithContext mocks base method.
+func (m *Mockcfn) DescribeWithContext(ctx context.Context, name string) (*cloudformation.StackDescription, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeWithContext", ctx, name)
+	ret0, _ := ret[0].(*cloudformation.StackDescription)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeWithContext indicates an expected call of DescribeWithContext.
+func (mr *MockcfnMockRecorder) DescribeWithContext(ctx, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWithContext", reflect.TypeOf((*Mockcfn)(nil).DescribeWithContext), ctx, name)
+}
+
 // Metadata mocks base method.
 func (m *Mockcfn) Metadata(opt cloudformation.MetadataOpts) (string, error) {
 	m.ctrl.T.Helper()
@@ -64,6 +80,21 @@ func (mr *MockcfnMockRecorder) Metadata(opt interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metadata", reflect.TypeOf((*Mockcfn)(nil).Metadata), opt)
 }
 
+// MetadataWithContext mocks base method.
+func (m *Mockcfn) MetadataWithContext(ctx context.Context, opt cloudformation.MetadataOpts) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MetadataWithContext", ctx, opt)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MetadataWithContext indicates an expected call of MetadataWithContext.
+func (mr *MockcfnMockRecorder) MetadataWithContext(ctx, opt interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MetadataWithContext", reflect.TypeOf((*Mockcfn)(nil).MetadataWithContext), ctx, opt)
+}
+
 // StackResources mocks base method.
 func (m *Mockcfn) StackResources(name string) ([]*cloudformation.StackResource, error) {
 	m.ctrl.T.Helper()
@@ -77,4 +108,19 @@ func (m *Mockcfn) StackResources(name string) ([]*cloudformation.StackResource, 
 func (mr *MockcfnMockRecorder) StackResources(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResources", reflect.TypeOf((*Mockcfn)(nil).StackResources), name)
+}
+
+// StackResourcesWithContext mocks base method.
+func (m *Mockcfn) StackResourcesWithContext(ctx context.Context, name string) ([]*cloudformation.StackResource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StackResourcesWithContext", ctx, name)
+	ret0, _ := ret[0].([]*cloudformation.StackResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StackResourcesWithContext indicates an expected call of StackResourcesWithContext.
+func (mr *MockcfnMockRecorder) StackResourcesWithContext(ctx, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResourcesWithContext", reflect.TypeOf((*Mockcfn)(nil).StackResourcesWithContext), ctx, name)
 }

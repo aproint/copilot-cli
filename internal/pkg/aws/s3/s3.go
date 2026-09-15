@@ -195,7 +195,16 @@ func FormatARN(partition, location string) string {
 
 // BucketTree creates an ASCII tree representing the folder structure of a bucket's objects.
 func (s *S3) BucketTree(bucket string) (string, error) {
-	outputs, err := s.listObjects(bucket, "/")
+	return s.bucketTree(context.Background(), bucket)
+}
+
+// BucketTreeWithContext creates an ASCII tree using ctx for S3 requests.
+func (s *S3) BucketTreeWithContext(ctx context.Context, bucket string) (string, error) {
+	return s.bucketTree(ctx, bucket)
+}
+
+func (s *S3) bucketTree(ctx context.Context, bucket string) (string, error) {
+	outputs, err := s.listObjectsWithContext(ctx, bucket, "/")
 	if err != nil || outputs == nil {
 		return "", err
 	}
@@ -211,7 +220,7 @@ func (s *S3) BucketTree(bucket string) (string, error) {
 		tree.AddNode(aws.ToString(object.Key))
 	}
 	// Recursively add folders and their children.
-	if err := s.addNodes(tree, prefixes, bucket); err != nil {
+	if err := s.addNodes(ctx, tree, prefixes, bucket); err != nil {
 		return "", err
 	}
 	return tree.String(), nil
@@ -219,7 +228,16 @@ func (s *S3) BucketTree(bucket string) (string, error) {
 
 // BucketSizeAndCount returns the total size and number of objects in an S3 bucket.
 func (s *S3) BucketSizeAndCount(bucket string) (string, int, error) {
-	outputs, err := s.listObjects(bucket, "")
+	return s.bucketSizeAndCount(context.Background(), bucket)
+}
+
+// BucketSizeAndCountWithContext returns the total size and object count using ctx.
+func (s *S3) BucketSizeAndCountWithContext(ctx context.Context, bucket string) (string, int, error) {
+	return s.bucketSizeAndCount(ctx, bucket)
+}
+
+func (s *S3) bucketSizeAndCount(ctx context.Context, bucket string) (string, int, error) {
+	outputs, err := s.listObjectsWithContext(ctx, bucket, "")
 	if err != nil || outputs == nil {
 		return "", 0, err
 	}
@@ -235,7 +253,11 @@ func (s *S3) BucketSizeAndCount(bucket string) (string, int, error) {
 }
 
 func (s *S3) listObjects(bucket, delimiter string) ([]s3.ListObjectsV2Output, error) {
-	exists, err := s.bucketExists(bucket)
+	return s.listObjectsWithContext(context.Background(), bucket, delimiter)
+}
+
+func (s *S3) listObjectsWithContext(ctx context.Context, bucket, delimiter string) ([]s3.ListObjectsV2Output, error) {
+	exists, err := s.bucketExistsWithContext(ctx, bucket)
 	if err != nil || !exists {
 		return nil, err
 	}
@@ -247,7 +269,7 @@ func (s *S3) listObjects(bucket, delimiter string) ([]s3.ListObjectsV2Output, er
 			Delimiter:         aws.String(delimiter),
 			ContinuationToken: listResp.NextContinuationToken,
 		}
-		listResp, err = s.s3Client.ListObjectsV2(context.Background(), listParams)
+		listResp, err = s.s3Client.ListObjectsV2(ctx, listParams)
 		if err != nil {
 			return nil, fmt.Errorf("list objects for bucket %s: %w", bucket, err)
 		}
@@ -260,10 +282,14 @@ func (s *S3) listObjects(bucket, delimiter string) ([]s3.ListObjectsV2Output, er
 }
 
 func (s *S3) bucketExists(bucket string) (bool, error) {
+	return s.bucketExistsWithContext(context.Background(), bucket)
+}
+
+func (s *S3) bucketExistsWithContext(ctx context.Context, bucket string) (bool, error) {
 	input := &s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	}
-	_, err := s.s3Client.HeadBucket(context.Background(), input)
+	_, err := s.s3Client.HeadBucket(ctx, input)
 	if err != nil {
 		var aerr smithy.APIError
 		if errors.As(err, &aerr) && aerr.ErrorCode() == errCodeNotFound {
@@ -274,7 +300,7 @@ func (s *S3) bucketExists(bucket string) (bool, error) {
 	return true, nil
 }
 
-func (s *S3) addNodes(tree treeprint.Tree, prefixes []types.CommonPrefix, bucket string) error {
+func (s *S3) addNodes(ctx context.Context, tree treeprint.Tree, prefixes []types.CommonPrefix, bucket string) error {
 	if len(prefixes) == 0 {
 		return nil
 	}
@@ -291,7 +317,7 @@ func (s *S3) addNodes(tree treeprint.Tree, prefixes []types.CommonPrefix, bucket
 				ContinuationToken: listResp.ContinuationToken,
 				Prefix:            prefix.Prefix,
 			}
-			listResp, err = s.s3Client.ListObjectsV2(context.Background(), listParams)
+			listResp, err = s.s3Client.ListObjectsV2(ctx, listParams)
 			if err != nil {
 				return fmt.Errorf("list objects for bucket %s: %w", bucket, err)
 			}
@@ -305,7 +331,7 @@ func (s *S3) addNodes(tree treeprint.Tree, prefixes []types.CommonPrefix, bucket
 			fileName := filepath.Base(aws.ToString(file.Key))
 			branch.AddNode(fileName)
 		}
-		if err := s.addNodes(branch, respPrefixes, bucket); err != nil {
+		if err := s.addNodes(ctx, branch, respPrefixes, bucket); err != nil {
 			return err
 		}
 	}

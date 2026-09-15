@@ -19,12 +19,15 @@ import (
 
 type pipelineStateGetter interface {
 	GetPipelineState(pipelineName string) (*codepipeline.PipelineState, error)
+	GetPipelineStateWithContext(ctx context.Context, pipelineName string) (*codepipeline.PipelineState, error)
 }
 
 // PipelineStatusDescriber retrieves status of a deployed pipeline.
 type PipelineStatusDescriber struct {
-	pipeline    deploy.Pipeline
-	pipelineSvc pipelineStateGetter
+	ctx            context.Context
+	contextEnabled bool
+	pipeline       deploy.Pipeline
+	pipelineSvc    pipelineStateGetter
 }
 
 // PipelineStatus contains the status for a pipeline.
@@ -35,21 +38,34 @@ type PipelineStatus struct {
 
 // NewPipelineStatusDescriber instantiates a new PipelineStatus struct.
 func NewPipelineStatusDescriber(pipeline deploy.Pipeline) (*PipelineStatusDescriber, error) {
-	v2Config, err := sessions.ImmutableProvider().DefaultConfig(context.Background())
+	return NewPipelineStatusDescriberWithContext(context.Background(), pipeline)
+}
+
+// NewPipelineStatusDescriberWithContext instantiates a new pipeline status describer using ctx.
+func NewPipelineStatusDescriberWithContext(ctx context.Context, pipeline deploy.Pipeline) (*PipelineStatusDescriber, error) {
+	v2Config, err := sessions.ImmutableProvider().DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	pipelineSvc := codepipeline.New(v2Config, v2Config)
 	return &PipelineStatusDescriber{
-		pipeline:    pipeline,
-		pipelineSvc: pipelineSvc,
+		ctx:            ctx,
+		contextEnabled: true,
+		pipeline:       pipeline,
+		pipelineSvc:    pipelineSvc,
 	}, nil
 }
 
 // Describe returns status of a pipeline.
 func (d *PipelineStatusDescriber) Describe() (HumanJSONStringer, error) {
-	ps, err := d.pipelineSvc.GetPipelineState(d.pipeline.ResourceName)
+	var ps *codepipeline.PipelineState
+	var err error
+	if !d.contextEnabled {
+		ps, err = d.pipelineSvc.GetPipelineState(d.pipeline.ResourceName)
+	} else {
+		ps, err = d.pipelineSvc.GetPipelineStateWithContext(d.ctx, d.pipeline.ResourceName)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get pipeline status: %w", err)
 	}

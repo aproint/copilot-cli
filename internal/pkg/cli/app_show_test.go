@@ -222,13 +222,13 @@ func TestShowAppOpts_Execute(t *testing.T) {
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil).AnyTimes()
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil).AnyTimes()
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil).AnyTimes()
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.pipelineGetter.EXPECT().
-					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
+					GetPipelineWithContext(gomock.Any(), "pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
 					Name: "my-pipeline-repo",
 				}, nil)
 				m.pipelineGetter.EXPECT().
-					GetPipeline("bad-goose").Return(&codepipeline.Pipeline{
+					GetPipelineWithContext(gomock.Any(), "bad-goose").Return(&codepipeline.Pipeline{
 					Name: "bad-goose",
 				}, nil)
 				m.versionGetter.EXPECT().Version().Return("v0.0.0", nil)
@@ -271,13 +271,13 @@ func TestShowAppOpts_Execute(t *testing.T) {
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.pipelineGetter.EXPECT().
-					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
+					GetPipelineWithContext(gomock.Any(), "pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
 					Name: "my-pipeline-repo",
 				}, nil)
 				m.pipelineGetter.EXPECT().
-					GetPipeline("bad-goose").Return(&codepipeline.Pipeline{
+					GetPipelineWithContext(gomock.Any(), "bad-goose").Return(&codepipeline.Pipeline{
 					Name: "bad-goose",
 				}, nil)
 				m.versionGetter.EXPECT().Version().Return("v0.0.0", nil)
@@ -347,7 +347,7 @@ Pipelines
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
 			},
 
@@ -413,7 +413,7 @@ Pipelines
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
 
 			},
@@ -480,9 +480,9 @@ Pipelines
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.pipelineGetter.EXPECT().
-					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
+					GetPipelineWithContext(gomock.Any(), "pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
 					Name: "my-pipeline-repo",
 				}, nil)
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
@@ -572,9 +572,9 @@ Pipelines
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod2").Return([]string{"my-svc"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test2").Return([]string{"my-svc"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "staging").Return([]string{"my-svc"}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.pipelineGetter.EXPECT().
-					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
+					GetPipelineWithContext(gomock.Any(), "pipeline-my-app-my-pipeline-repo").Return(&codepipeline.Pipeline{
 					Name: "my-pipeline-repo",
 				}, nil)
 				m.versionGetter.EXPECT().Version().Return(mockTemplateVersion, nil)
@@ -727,7 +727,7 @@ Pipelines
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return(nil, testError)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return(nil, testError)
 			},
 			wantedError: fmt.Errorf("list pipelines in application %s: %w", "my-app", testError),
 		},
@@ -768,9 +768,9 @@ Pipelines
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil)
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil)
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.pipelineGetter.EXPECT().
-					GetPipeline("pipeline-my-app-my-pipeline-repo").Return(nil, testError)
+					GetPipelineWithContext(gomock.Any(), "pipeline-my-app-my-pipeline-repo").Return(nil, testError)
 			},
 			wantedError: fmt.Errorf("get info for pipeline %s: %w", mockPipelineName, testError),
 		},
@@ -811,7 +811,7 @@ Pipelines
 				m.deployStore.EXPECT().ListDeployedJobs(gomock.Any(), "my-app", "prod").Return([]string{"my-job"}, nil).AnyTimes()
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "test").Return([]string{"my-svc"}, nil).AnyTimes()
 				m.deployStore.EXPECT().ListDeployedServices(gomock.Any(), "my-app", "prod").Return([]string{"my-svc"}, nil).AnyTimes()
-				m.pipelineLister.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
+				m.pipelineLister.EXPECT().ListDeployedPipelinesWithContext(gomock.Any(), mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.versionGetter.EXPECT().Version().Return("", testError)
 			},
 			wantedError: fmt.Errorf("get version for application %s: %w", "my-app", testError),
@@ -849,7 +849,7 @@ Pipelines
 				codepipeline:   mockPLSvc,
 				pipelineLister: mockPipelineLister,
 				deployStore:    mockDeployStore,
-				newVersionGetter: func(s string) (versionGetter, error) {
+				newVersionGetter: func(context.Context, string) (versionGetter, error) {
 					return mockVersionGetter, nil
 				},
 			}

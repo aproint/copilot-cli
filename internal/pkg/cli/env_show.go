@@ -45,8 +45,12 @@ type showEnvOpts struct {
 }
 
 func newShowEnvOpts(vars showEnvVars) (*showEnvOpts, error) {
+	return newShowEnvOptsWithContext(context.Background(), vars)
+}
+
+func newShowEnvOptsWithContext(ctx context.Context, vars showEnvVars) (*showEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env show"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +183,7 @@ func buildEnvShowCmd() *cobra.Command {
   Print manifest file for deploying the "prod" environment.
   /code $ copilot env show -n prod --manifest`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newShowEnvOpts(vars)
+			opts, err := newShowEnvOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

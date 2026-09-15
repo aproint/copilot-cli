@@ -107,6 +107,8 @@ func (d *LBWebServiceDescriber) URI(envName string) (URI, error) {
 	var uri LBWebServiceURI
 	if albEnabled {
 		uriDescr := &uriDescriber{
+			ctx:              d.ctx,
+			contextEnabled:   d.contextEnabled,
 			svc:              d.svc,
 			env:              envName,
 			svcDescriber:     svcDescr,
@@ -191,6 +193,8 @@ func (d *BackendServiceDescriber) URI(envName string) (URI, error) {
 	for _, res := range resources {
 		if res.LogicalID == svcStackResourceALBTargetGroupLogicalID {
 			uriDescr := &uriDescriber{
+				ctx:              d.ctx,
+				contextEnabled:   d.contextEnabled,
 				svc:              d.svc,
 				env:              envName,
 				svcDescriber:     svcDescr,
@@ -248,6 +252,8 @@ func (d *BackendServiceDescriber) URI(envName string) (URI, error) {
 }
 
 type uriDescriber struct {
+	ctx              context.Context
+	contextEnabled   bool
 	svc              string
 	env              string
 	svcDescriber     ecsDescriber
@@ -309,7 +315,12 @@ func (d *uriDescriber) uri() (accessURI, error) {
 	if err != nil {
 		return accessURI{}, nil
 	}
-	dnsNames, err := lbDescr.ListenerRulesHostHeaders(ruleARNs)
+	var dnsNames []string
+	if !d.contextEnabled {
+		dnsNames, err = lbDescr.ListenerRulesHostHeaders(ruleARNs)
+	} else {
+		dnsNames, err = lbDescr.ListenerRulesHostHeadersWithContext(d.ctx, ruleARNs)
+	}
 	if err != nil {
 		return accessURI{}, fmt.Errorf("get host headers for listener rules %s: %w", strings.Join(ruleARNs, ","), err)
 	}

@@ -103,6 +103,8 @@ func (a *App) HumanString() string {
 
 // AppDescriber retrieves information about an application.
 type AppDescriber struct {
+	ctx               context.Context
+	contextEnabled    bool
 	app               string
 	stackDescriber    stackDescriber
 	stackSetDescriber stackDescriber
@@ -128,6 +130,8 @@ func newAppDescriber(ctx context.Context, appName string, sessProvider appSessio
 		return nil, fmt.Errorf("assume default role for app %s: %w", appName, err)
 	}
 	return &AppDescriber{
+		ctx:               ctx,
+		contextEnabled:    true,
 		app:               appName,
 		stackDescriber:    stack.NewStackDescriber(cfnstack.NameForAppStack(appName), cfg),
 		stackSetDescriber: stack.NewStackDescriber(cfnstack.NameForAppStackSet(appName), cfg),
@@ -146,7 +150,7 @@ func (d *AppDescriber) Version() (string, error) {
 	}
 	stackMetadata, stackSetMetadata := metadata{}, metadata{}
 
-	appStackMetadata, err := d.stackDescriber.StackMetadata()
+	appStackMetadata, err := loadStackMetadata(d.ctx, d.contextEnabled, d.stackDescriber)
 	if err != nil {
 		return "", err
 	}
@@ -158,7 +162,7 @@ func (d *AppDescriber) Version() (string, error) {
 		appStackVersion = version.LegacyAppTemplate
 	}
 
-	appStackSetMetadata, err := d.stackSetDescriber.StackSetMetadata()
+	appStackSetMetadata, err := loadStackSetMetadata(d.ctx, d.contextEnabled, d.stackSetDescriber)
 	if err != nil {
 		return "", err
 	}

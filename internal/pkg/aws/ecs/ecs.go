@@ -97,7 +97,12 @@ func New(cfg awsv2.Config) *ECS {
 
 // TaskDefinition calls ECS API and returns the task definition.
 func (e *ECS) TaskDefinition(taskDefName string) (*TaskDefinition, error) {
-	resp, err := e.client.DescribeTaskDefinition(context.Background(), &ecs.DescribeTaskDefinitionInput{
+	return e.TaskDefinitionWithContext(context.Background(), taskDefName)
+}
+
+// TaskDefinitionWithContext calls ECS API using ctx and returns the task definition.
+func (e *ECS) TaskDefinitionWithContext(ctx context.Context, taskDefName string) (*TaskDefinition, error) {
+	resp, err := e.client.DescribeTaskDefinition(ctx, &ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: awsv2.String(taskDefName),
 	})
 	if err != nil {
@@ -109,7 +114,12 @@ func (e *ECS) TaskDefinition(taskDefName string) (*TaskDefinition, error) {
 
 // Service calls ECS API and returns the specified service running in the cluster.
 func (e *ECS) Service(clusterName, serviceName string) (*Service, error) {
-	svcs, err := e.Services(clusterName, serviceName)
+	return e.ServiceWithContext(context.Background(), clusterName, serviceName)
+}
+
+// ServiceWithContext calls ECS API using ctx and returns the specified service running in the cluster.
+func (e *ECS) ServiceWithContext(ctx context.Context, clusterName, serviceName string) (*Service, error) {
+	svcs, err := e.ServicesWithContext(ctx, clusterName, serviceName)
 	if err != nil {
 		return nil, err
 	}
@@ -122,12 +132,17 @@ func (e *ECS) Service(clusterName, serviceName string) (*Service, error) {
 
 // Services calls the ECS API and returns all of the specified services running in cluster.
 func (e *ECS) Services(cluster string, services ...string) ([]*Service, error) {
+	return e.ServicesWithContext(context.Background(), cluster, services...)
+}
+
+// ServicesWithContext calls ECS API using ctx and returns all specified services running in cluster.
+func (e *ECS) ServicesWithContext(ctx context.Context, cluster string, services ...string) ([]*Service, error) {
 	var svcs []*Service
 
 	for i := 0; i < len(services); i += 10 {
 		split := services[i:min(10+i, len(services))]
 
-		resp, err := e.client.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
+		resp, err := e.client.DescribeServices(ctx, &ecs.DescribeServicesInput{
 			Cluster:  awsv2.String(cluster),
 			Services: split,
 		})
@@ -229,23 +244,33 @@ func (e *ECS) waitUntilServiceStable(svc *Service) error {
 
 // ServiceRunningTasks calls ECS API and returns the ECS tasks spun up by the service, with the desired status to be set to be RUNNING.
 func (e *ECS) ServiceRunningTasks(cluster, service string) ([]*Task, error) {
-	return e.listTasks(cluster, withService(service), withRunningTasks())
+	return e.listTasks(context.Background(), cluster, withService(service), withRunningTasks())
+}
+
+// ServiceRunningTasksWithContext returns running service tasks using ctx.
+func (e *ECS) ServiceRunningTasksWithContext(ctx context.Context, cluster, service string) ([]*Task, error) {
+	return e.listTasks(ctx, cluster, withService(service), withRunningTasks())
 }
 
 // StoppedServiceTasks calls ECS API and returns stopped ECS tasks in a service.
 func (e *ECS) StoppedServiceTasks(cluster, service string) ([]*Task, error) {
-	return e.listTasks(cluster, withService(service), withStoppedTasks())
+	return e.listTasks(context.Background(), cluster, withService(service), withStoppedTasks())
+}
+
+// StoppedServiceTasksWithContext returns stopped service tasks using ctx.
+func (e *ECS) StoppedServiceTasksWithContext(ctx context.Context, cluster, service string) ([]*Task, error) {
+	return e.listTasks(ctx, cluster, withService(service), withStoppedTasks())
 }
 
 // RunningTasksInFamily calls ECS API and returns ECS tasks with the desired status to be RUNNING
 // within the same task definition family.
 func (e *ECS) RunningTasksInFamily(cluster, family string) ([]*Task, error) {
-	return e.listTasks(cluster, withFamily(family), withRunningTasks())
+	return e.listTasks(context.Background(), cluster, withFamily(family), withRunningTasks())
 }
 
 // RunningTasks calls ECS API and returns ECS tasks with the desired status to be RUNNING.
 func (e *ECS) RunningTasks(cluster string) ([]*Task, error) {
-	return e.listTasks(cluster, withRunningTasks())
+	return e.listTasks(context.Background(), cluster, withRunningTasks())
 }
 
 type listTasksOpts func(*ecs.ListTasksInput)
@@ -274,7 +299,7 @@ func withStoppedTasks() listTasksOpts {
 	}
 }
 
-func (e *ECS) listTasks(cluster string, opts ...listTasksOpts) ([]*Task, error) {
+func (e *ECS) listTasks(ctx context.Context, cluster string, opts ...listTasksOpts) ([]*Task, error) {
 	var tasks []*Task
 	in := &ecs.ListTasksInput{
 		Cluster: awsv2.String(cluster),
@@ -283,14 +308,14 @@ func (e *ECS) listTasks(cluster string, opts ...listTasksOpts) ([]*Task, error) 
 		opt(in)
 	}
 	for {
-		listTaskResp, err := e.client.ListTasks(context.Background(), in)
+		listTaskResp, err := e.client.ListTasks(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("list running tasks: %w", err)
 		}
 		if len(listTaskResp.TaskArns) == 0 {
 			return tasks, nil
 		}
-		descTaskResp, err := e.client.DescribeTasks(context.Background(), &ecs.DescribeTasksInput{
+		descTaskResp, err := e.client.DescribeTasks(ctx, &ecs.DescribeTasksInput{
 			Cluster: awsv2.String(cluster),
 			Tasks:   listTaskResp.TaskArns,
 			Include: []types.TaskField{types.TaskFieldTags},
@@ -375,7 +400,12 @@ func (e *ECS) HasDefaultCluster() (bool, error) {
 
 // ActiveClusters returns the subset of cluster arns that have an ACTIVE status.
 func (e *ECS) ActiveClusters(arns ...string) ([]string, error) {
-	resp, err := e.client.DescribeClusters(context.Background(), &ecs.DescribeClustersInput{
+	return e.ActiveClustersWithContext(context.Background(), arns...)
+}
+
+// ActiveClustersWithContext returns active clusters using ctx.
+func (e *ECS) ActiveClustersWithContext(ctx context.Context, arns ...string) ([]string, error) {
+	resp, err := e.client.DescribeClusters(ctx, &ecs.DescribeClustersInput{
 		Clusters: arns,
 	})
 	switch {
@@ -397,12 +427,17 @@ func (e *ECS) ActiveClusters(arns ...string) ([]string, error) {
 
 // ActiveServices returns the subset of service arns that have an ACTIVE status from the given cluster.
 func (e *ECS) ActiveServices(clusterARN string, serviceARNs ...string) ([]string, error) {
+	return e.ActiveServicesWithContext(context.Background(), clusterARN, serviceARNs...)
+}
+
+// ActiveServicesWithContext returns active services using ctx.
+func (e *ECS) ActiveServicesWithContext(ctx context.Context, clusterARN string, serviceARNs ...string) ([]string, error) {
 	// All the filteredSvcARNs will belong to the given Cluster.
 	filteredSvcARNS, err := e.filterServiceARNs(clusterARN, serviceARNs...)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := e.client.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
+	resp, err := e.client.DescribeServices(ctx, &ecs.DescribeServicesInput{
 		Cluster:  awsv2.String(clusterARN),
 		Services: filteredSvcARNS,
 	})

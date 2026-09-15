@@ -23,6 +23,7 @@ import (
 // WorkerServiceDescriber retrieves information about a worker service.
 type WorkerServiceDescriber struct {
 	ctx             context.Context
+	contextEnabled  bool
 	app             string
 	svc             string
 	enableResources bool
@@ -38,6 +39,7 @@ type WorkerServiceDescriber struct {
 func NewWorkerServiceDescriber(ctx context.Context, opt NewServiceConfig) (*WorkerServiceDescriber, error) {
 	describer := &WorkerServiceDescriber{
 		ctx:             ctx,
+		contextEnabled:  true,
 		app:             opt.App,
 		svc:             opt.Svc,
 		enableResources: opt.EnableResources,
@@ -69,7 +71,7 @@ func NewWorkerServiceDescriber(ctx context.Context, opt NewServiceConfig) (*Work
 		if err != nil {
 			return nil, fmt.Errorf("get environment %s: %w", envName, err)
 		}
-		cfg, err := sessions.ImmutableProvider().ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := sessions.ImmutableProvider().ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +127,7 @@ func (d *WorkerServiceDescriber) Describe() (HumanJSONStringer, error) {
 			if err != nil {
 				return nil, err
 			}
-			alarmDescs, err := cwAlarmDescr.AlarmDescriptions(alarmNames)
+			alarmDescs, err := describeAlarms(ctx, d.contextEnabled, cwAlarmDescr, alarmNames)
 			if err != nil {
 				return nil, fmt.Errorf("retrieve alarm descriptions: %w", err)
 			}

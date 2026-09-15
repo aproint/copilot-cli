@@ -2687,6 +2687,37 @@ type applicationMocks struct {
 	prompt    *mocks.MockPrompter
 }
 
+func TestAppEnvSelector_PropagatesCancellation(t *testing.T) {
+	callerCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	t.Run("application lookup", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		store := mocks.NewMockconfigLister(ctrl)
+		store.EXPECT().ListApplications(callerCtx).DoAndReturn(func(ctx context.Context) ([]*config.Application, error) {
+			return nil, ctx.Err()
+		})
+
+		sel := AppEnvSelector{appEnvLister: store}
+		_, err := sel.Application(callerCtx, "Select an app", "Help text")
+
+		require.ErrorIs(t, err, context.Canceled)
+	})
+
+	t.Run("environment lookup", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		store := mocks.NewMockconfigLister(ctrl)
+		store.EXPECT().ListEnvironments(callerCtx, "myapp").DoAndReturn(func(ctx context.Context, _ string) ([]*config.Environment, error) {
+			return nil, ctx.Err()
+		})
+
+		sel := AppEnvSelector{appEnvLister: store}
+		_, err := sel.Environment(callerCtx, "Select an environment", "Help text", "myapp")
+
+		require.ErrorIs(t, err, context.Canceled)
+	})
+}
+
 func TestSelect_Application(t *testing.T) {
 	testCases := map[string]struct {
 		setupMocks func(m applicationMocks)
@@ -2939,7 +2970,7 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 	}{
 		"with no workspace pipelines": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{}, nil)
+				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
@@ -2947,7 +2978,7 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 		},
 		"don't prompt to select if only one workspace pipeline": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
+				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
@@ -2955,14 +2986,14 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 		},
 		"with multiple workspace pipelines": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("bad-goose", nil)
 			},
 			wantedPipeline: mockLegacyPipeline,
 		},
 		"with error selecting": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelines(mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedErr: errors.New("select pipeline: some error"),
@@ -2986,7 +3017,7 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 				prompt:         mockPrompt,
 				pipelineLister: mockCodePipelinesLister,
 			}
-			got, err := sel.DeployedPipeline("Select a pipeline", "Help text", mockAppName)
+			got, err := sel.DeployedPipelineWithContext(ctx, "Select a pipeline", "Help text", mockAppName)
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
 			} else {

@@ -42,8 +42,12 @@ type svcStatusOpts struct {
 }
 
 func newSvcStatusOpts(vars svcStatusVars) (*svcStatusOpts, error) {
+	return newSvcStatusOptsWithContext(context.Background(), vars)
+}
+
+func newSvcStatusOptsWithContext(ctx context.Context, vars svcStatusVars) (*svcStatusOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc status"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -187,7 +191,7 @@ func buildSvcStatusCmd() *cobra.Command {
   Shows status of the deployed service "my-svc"
   /code $ copilot svc status -n my-svc`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcStatusOpts(vars)
+			opts, err := newSvcStatusOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

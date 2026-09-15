@@ -194,7 +194,7 @@ func (o *packageEnvOpts) Execute(ctx context.Context) error {
 	}
 	var uploadArtifactsOut deploy.UploadEnvArtifactsOutput
 	if o.uploadAssets {
-		out, err := packager.UploadArtifacts()
+		out, err := packager.UploadArtifacts(ctx)
 		if err != nil {
 			return fmt.Errorf("upload assets for environment %q: %v", o.name, err)
 		}

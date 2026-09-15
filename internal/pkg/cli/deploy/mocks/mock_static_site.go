@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	manifest "github.com/aproint/copilot-cli/internal/pkg/manifest"
@@ -35,16 +36,16 @@ func (m *MockfileUploader) EXPECT() *MockfileUploaderMockRecorder {
 }
 
 // UploadFiles mocks base method.
-func (m *MockfileUploader) UploadFiles(files []manifest.FileUpload) (string, error) {
+func (m *MockfileUploader) UploadFiles(ctx context.Context, files []manifest.FileUpload) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadFiles", files)
+	ret := m.ctrl.Call(m, "UploadFiles", ctx, files)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UploadFiles indicates an expected call of UploadFiles.
-func (mr *MockfileUploaderMockRecorder) UploadFiles(files interface{}) *gomock.Call {
+func (mr *MockfileUploaderMockRecorder) UploadFiles(ctx, files interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFiles", reflect.TypeOf((*MockfileUploader)(nil).UploadFiles), files)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFiles", reflect.TypeOf((*MockfileUploader)(nil).UploadFiles), ctx, files)
 }

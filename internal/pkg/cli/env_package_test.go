@@ -238,7 +238,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().UploadArtifacts().Return(nil, errors.New("some error"))
+				deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(nil, errors.New("some error"))
 
 				return &packageEnvOpts{
 					packageEnvVars: packageEnvVars{
@@ -364,7 +364,7 @@ func TestPackageEnvOpts_Execute(t *testing.T) {
 				caller.EXPECT().Get(ctx).Return(identity.Caller{}, nil)
 				deployer := mocks.NewMockenvPackager(ctrl)
 				deployer.EXPECT().Validate(gomock.Any()).Return(nil)
-				deployer.EXPECT().UploadArtifacts().Return(&deploy.UploadEnvArtifactsOutput{
+				deployer.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadEnvArtifactsOutput{
 					AddonsURL: "mockAddonsURL",
 					CustomResourceURLs: map[string]string{
 						"mockCustomResource": "mockURL",

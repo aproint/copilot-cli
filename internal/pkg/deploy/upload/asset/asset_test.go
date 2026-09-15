@@ -5,6 +5,7 @@ package asset
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -27,7 +28,7 @@ type fakeS3 struct {
 	err  error
 }
 
-func (f *fakeS3) Upload(path string, data io.Reader) error {
+func (f *fakeS3) Upload(_ context.Context, path string, data io.Reader) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.err != nil {
@@ -289,7 +290,7 @@ func Test_UploadFiles(t *testing.T) {
 				AssetMappingFileDir: mockMappingDir,
 			}
 
-			mappingFilePath, err := u.UploadFiles(tc.files)
+			mappingFilePath, err := u.UploadFiles(context.Background(), tc.files)
 			if tc.expectedError != nil {
 				require.Error(t, err)
 				require.Equal(t, tc.expectedError.Error(), err.Error())
@@ -301,4 +302,26 @@ func Test_UploadFiles(t *testing.T) {
 			require.Equal(t, expected, mockS3.data)
 		})
 	}
+}
+
+func TestUploadFilesCancellation(t *testing.T) {
+	fs := afero.NewMemMapFs()
+	require.NoError(t, afero.WriteFile(fs, "assets/one.txt", []byte("one"), 0644))
+	require.NoError(t, afero.WriteFile(fs, "assets/two.txt", []byte("two"), 0644))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var cancelOnce sync.Once
+	u := ArtifactBucketUploader{
+		FS:                  fs,
+		AssetDir:            "assets",
+		AssetMappingFileDir: "mappings",
+		Upload: func(ctx context.Context, _ string, _ io.Reader) error {
+			cancelOnce.Do(cancel)
+			<-ctx.Done()
+			return ctx.Err()
+		},
+	}
+
+	_, err := u.UploadFiles(ctx, []manifest.FileUpload{{Source: "assets", Recursive: true}})
+	require.ErrorIs(t, err, context.Canceled)
 }

@@ -196,7 +196,7 @@ func (o *deployEnvOpts) Execute(ctx context.Context) error {
 	if err := deployer.Validate(mft); err != nil {
 		return err
 	}
-	artifacts, err := deployer.UploadArtifacts()
+	artifacts, err := deployer.UploadArtifacts(ctx)
 	if err != nil {
 		return fmt.Errorf("upload artifacts for environment %s: %w", o.name, err)
 	}

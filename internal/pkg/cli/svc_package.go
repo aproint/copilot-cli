@@ -371,7 +371,7 @@ func (o *packageSvcOpts) getWorkloadStack(ctx context.Context, generator workloa
 	}
 	var uploadOut clideploy.UploadArtifactsOutput
 	if o.uploadAssets {
-		out, err := generator.UploadArtifacts()
+		out, err := generator.UploadArtifacts(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("upload resources required for deployment for %s: %w", o.name, err)
 		}

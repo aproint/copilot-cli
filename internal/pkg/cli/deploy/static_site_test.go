@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -42,7 +43,7 @@ func TestStaticSiteDeployer_UploadArtifacts(t *testing.T) {
 					_ = fs.Mkdir("mockRoot/assets/", 0755)
 					return fs
 				}
-				m.uploader.EXPECT().UploadFiles(gomock.Any()).Return("", errors.New("some error"))
+				m.uploader.EXPECT().UploadFiles(gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("upload static files: some error"),
 		},
@@ -65,7 +66,7 @@ func TestStaticSiteDeployer_UploadArtifacts(t *testing.T) {
 					_ = fs.Mkdir("mockRoot/assets/", 0755)
 					return fs
 				}
-				m.uploader.EXPECT().UploadFiles([]manifest.FileUpload{
+				m.uploader.EXPECT().UploadFiles(gomock.Any(), []manifest.FileUpload{
 					{
 						Source:      "mockRoot/assets",
 						Destination: "static",
@@ -126,7 +127,7 @@ func TestStaticSiteDeployer_UploadArtifacts(t *testing.T) {
 				wsRoot:   m.cachedWSRoot,
 			}
 
-			actual, err := deployer.UploadArtifacts()
+			actual, err := deployer.UploadArtifacts(context.Background())
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
 			} else {

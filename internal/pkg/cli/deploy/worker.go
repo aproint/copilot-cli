@@ -80,8 +80,8 @@ func workerCustomResources(fs template.Reader) ([]*customresource.CustomResource
 }
 
 // UploadArtifacts uploads the deployment artifacts such as the container image, custom resources, addons and env files.
-func (d *workerSvcDeployer) UploadArtifacts() (*UploadArtifactsOutput, error) {
-	return d.uploadArtifacts(d.buildAndPushContainerImages, d.uploadArtifactsToS3, d.uploadCustomResources)
+func (d *workerSvcDeployer) UploadArtifacts(ctx context.Context) (*UploadArtifactsOutput, error) {
+	return d.uploadArtifacts(ctx, d.buildAndPushContainerImages, d.uploadArtifactsToS3, d.uploadCustomResources)
 }
 
 type workerSvcDeployOutput struct {

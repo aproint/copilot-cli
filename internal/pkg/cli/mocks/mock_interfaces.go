@@ -1647,6 +1647,21 @@ func (mr *MockrepositoryLoginMockRecorder) Login() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockrepositoryLogin)(nil).Login))
 }
 
+// LoginWithContext mocks base method.
+func (m *MockrepositoryLogin) LoginWithContext(arg0 context.Context) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoginWithContext", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoginWithContext indicates an expected call of LoginWithContext.
+func (mr *MockrepositoryLoginMockRecorder) LoginWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoginWithContext", reflect.TypeOf((*MockrepositoryLogin)(nil).LoginWithContext), arg0)
+}
+
 // MockrepositoryService is a mock of repositoryService interface.
 type MockrepositoryService struct {
 	ctrl     *gomock.Controller
@@ -1713,6 +1728,21 @@ func (m *MockrepositoryService) Login() (string, error) {
 func (mr *MockrepositoryServiceMockRecorder) Login() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockrepositoryService)(nil).Login))
+}
+
+// LoginWithContext mocks base method.
+func (m *MockrepositoryService) LoginWithContext(arg0 context.Context) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoginWithContext", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoginWithContext indicates an expected call of LoginWithContext.
+func (mr *MockrepositoryServiceMockRecorder) LoginWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoginWithContext", reflect.TypeOf((*MockrepositoryService)(nil).LoginWithContext), arg0)
 }
 
 // MockecsClient is a mock of ecsClient interface.
@@ -3859,6 +3889,21 @@ func (m *Mockuploader) Upload(bucket, key string, data io.Reader) (string, error
 func (mr *MockuploaderMockRecorder) Upload(bucket, key, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mockuploader)(nil).Upload), bucket, key, data)
+}
+
+// UploadWithContext mocks base method.
+func (m *Mockuploader) UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadWithContext", ctx, bucket, key, data)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadWithContext indicates an expected call of UploadWithContext.
+func (mr *MockuploaderMockRecorder) UploadWithContext(ctx, bucket, key, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWithContext", reflect.TypeOf((*Mockuploader)(nil).UploadWithContext), ctx, bucket, key, data)
 }
 
 // MockbucketEmptier is a mock of bucketEmptier interface.
@@ -7763,18 +7808,18 @@ func (mr *MockworkloadDeployerMockRecorder) IsServiceAvailableInRegion(region in
 }
 
 // UploadArtifacts mocks base method.
-func (m *MockworkloadDeployer) UploadArtifacts() (*deploy.UploadArtifactsOutput, error) {
+func (m *MockworkloadDeployer) UploadArtifacts(arg0 context.Context) (*deploy.UploadArtifactsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadArtifacts")
+	ret := m.ctrl.Call(m, "UploadArtifacts", arg0)
 	ret0, _ := ret[0].(*deploy.UploadArtifactsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UploadArtifacts indicates an expected call of UploadArtifacts.
-func (mr *MockworkloadDeployerMockRecorder) UploadArtifacts() *gomock.Call {
+func (mr *MockworkloadDeployerMockRecorder) UploadArtifacts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockworkloadDeployer)(nil).UploadArtifacts))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockworkloadDeployer)(nil).UploadArtifacts), arg0)
 }
 
 // MocktemplateDiffer is a mock of templateDiffer interface.
@@ -7852,18 +7897,18 @@ func (mr *MockdockerEngineRunnerMockRecorder) Build(arg0, arg1, arg2 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Build", reflect.TypeOf((*MockdockerEngineRunner)(nil).Build), arg0, arg1, arg2)
 }
 
-// CheckDockerEngineRunning mocks base method.
-func (m *MockdockerEngineRunner) CheckDockerEngineRunning() error {
+// CheckDockerEngineRunningWithContext mocks base method.
+func (m *MockdockerEngineRunner) CheckDockerEngineRunningWithContext(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckDockerEngineRunning")
+	ret := m.ctrl.Call(m, "CheckDockerEngineRunningWithContext", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CheckDockerEngineRunning indicates an expected call of CheckDockerEngineRunning.
-func (mr *MockdockerEngineRunnerMockRecorder) CheckDockerEngineRunning() *gomock.Call {
+// CheckDockerEngineRunningWithContext indicates an expected call of CheckDockerEngineRunningWithContext.
+func (mr *MockdockerEngineRunnerMockRecorder) CheckDockerEngineRunningWithContext(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDockerEngineRunning", reflect.TypeOf((*MockdockerEngineRunner)(nil).CheckDockerEngineRunning))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDockerEngineRunningWithContext", reflect.TypeOf((*MockdockerEngineRunner)(nil).CheckDockerEngineRunningWithContext), arg0)
 }
 
 // ContainerExitCode mocks base method.
@@ -8041,18 +8086,18 @@ func (mr *MockworkloadStackGeneratorMockRecorder) GenerateCloudFormationTemplate
 }
 
 // UploadArtifacts mocks base method.
-func (m *MockworkloadStackGenerator) UploadArtifacts() (*deploy.UploadArtifactsOutput, error) {
+func (m *MockworkloadStackGenerator) UploadArtifacts(arg0 context.Context) (*deploy.UploadArtifactsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadArtifacts")
+	ret := m.ctrl.Call(m, "UploadArtifacts", arg0)
 	ret0, _ := ret[0].(*deploy.UploadArtifactsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UploadArtifacts indicates an expected call of UploadArtifacts.
-func (mr *MockworkloadStackGeneratorMockRecorder) UploadArtifacts() *gomock.Call {
+func (mr *MockworkloadStackGeneratorMockRecorder) UploadArtifacts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockworkloadStackGenerator)(nil).UploadArtifacts))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockworkloadStackGenerator)(nil).UploadArtifacts), arg0)
 }
 
 // Mockrunner is a mock of runner interface.
@@ -8160,18 +8205,18 @@ func (mr *MockenvDeployerMockRecorder) GenerateCloudFormationTemplate(arg0, arg1
 }
 
 // UploadArtifacts mocks base method.
-func (m *MockenvDeployer) UploadArtifacts() (*deploy.UploadEnvArtifactsOutput, error) {
+func (m *MockenvDeployer) UploadArtifacts(arg0 context.Context) (*deploy.UploadEnvArtifactsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadArtifacts")
+	ret := m.ctrl.Call(m, "UploadArtifacts", arg0)
 	ret0, _ := ret[0].(*deploy.UploadEnvArtifactsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UploadArtifacts indicates an expected call of UploadArtifacts.
-func (mr *MockenvDeployerMockRecorder) UploadArtifacts() *gomock.Call {
+func (mr *MockenvDeployerMockRecorder) UploadArtifacts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockenvDeployer)(nil).UploadArtifacts))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockenvDeployer)(nil).UploadArtifacts), arg0)
 }
 
 // Validate mocks base method.
@@ -8257,18 +8302,18 @@ func (mr *MockenvPackagerMockRecorder) GenerateCloudFormationTemplate(arg0, arg1
 }
 
 // UploadArtifacts mocks base method.
-func (m *MockenvPackager) UploadArtifacts() (*deploy.UploadEnvArtifactsOutput, error) {
+func (m *MockenvPackager) UploadArtifacts(arg0 context.Context) (*deploy.UploadEnvArtifactsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadArtifacts")
+	ret := m.ctrl.Call(m, "UploadArtifacts", arg0)
 	ret0, _ := ret[0].(*deploy.UploadEnvArtifactsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UploadArtifacts indicates an expected call of UploadArtifacts.
-func (mr *MockenvPackagerMockRecorder) UploadArtifacts() *gomock.Call {
+func (mr *MockenvPackagerMockRecorder) UploadArtifacts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockenvPackager)(nil).UploadArtifacts))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadArtifacts", reflect.TypeOf((*MockenvPackager)(nil).UploadArtifacts), arg0)
 }
 
 // Validate mocks base method.

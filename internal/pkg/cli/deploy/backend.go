@@ -65,8 +65,8 @@ func (backendSvcDeployer) IsServiceAvailableInRegion(region string) (bool, error
 }
 
 // UploadArtifacts uploads the deployment artifacts such as the container image, custom resources, addons and env files.
-func (d *backendSvcDeployer) UploadArtifacts() (*UploadArtifactsOutput, error) {
-	return d.uploadArtifacts(d.buildAndPushContainerImages, d.uploadArtifactsToS3, d.uploadCustomResources)
+func (d *backendSvcDeployer) UploadArtifacts(ctx context.Context) (*UploadArtifactsOutput, error) {
+	return d.uploadArtifacts(ctx, d.buildAndPushContainerImages, d.uploadArtifactsToS3, d.uploadCustomResources)
 }
 
 // GenerateCloudFormationTemplate generates a CloudFormation template and parameters for a workload.

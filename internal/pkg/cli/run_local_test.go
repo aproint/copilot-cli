@@ -1180,7 +1180,7 @@ ecs exec: all containers failed to retrieve credentials`),
 				configureClients: func(_ context.Context) error {
 					return nil
 				},
-				buildContainerImages: func(mft manifest.DynamicWorkload) (map[string]string, error) {
+				buildContainerImages: func(_ context.Context, mft manifest.DynamicWorkload) (map[string]string, error) {
 					return mockContainerURIs, tc.buildImagesError
 				},
 				ws:               m.ws,

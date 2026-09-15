@@ -866,6 +866,21 @@ func (mr *Mocks3ClientMockRecorder) Upload(bucket, fileName, data interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mocks3Client)(nil).Upload), bucket, fileName, data)
 }
 
+// UploadWithContext mocks base method.
+func (m *Mocks3Client) UploadWithContext(ctx context.Context, bucket, fileName string, data io.Reader) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadWithContext", ctx, bucket, fileName, data)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadWithContext indicates an expected call of UploadWithContext.
+func (mr *Mocks3ClientMockRecorder) UploadWithContext(ctx, bucket, fileName, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWithContext", reflect.TypeOf((*Mocks3Client)(nil).UploadWithContext), ctx, bucket, fileName, data)
+}
+
 // MockimageRemover is a mock of imageRemover interface.
 type MockimageRemover struct {
 	ctrl     *gomock.Controller

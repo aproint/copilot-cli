@@ -17,7 +17,7 @@ import (
 // If the service stack doesn't exist, then it creates the stack.
 // If the service stack already exists, it updates the stack.
 func (cf CloudFormation) DeployService(ctx context.Context, conf StackConfiguration, bucketName string, detach bool, opts ...cloudformation.StackOption) error {
-	templateURL, err := cf.uploadStackTemplateToS3(bucketName, conf)
+	templateURL, err := cf.uploadStackTemplateToS3(ctx, bucketName, conf)
 	if err != nil {
 		return err
 	}
@@ -36,12 +36,12 @@ type uploadableStack interface {
 	Template() (string, error)
 }
 
-func (cf CloudFormation) uploadStackTemplateToS3(bucket string, stack uploadableStack) (string, error) {
+func (cf CloudFormation) uploadStackTemplateToS3(ctx context.Context, bucket string, stack uploadableStack) (string, error) {
 	tmpl, err := stack.Template()
 	if err != nil {
 		return "", fmt.Errorf("generate template: %w", err)
 	}
-	url, err := cf.s3Client.Upload(bucket, artifactpath.CFNTemplate(stack.StackName(), []byte(tmpl)), strings.NewReader(tmpl))
+	url, err := cf.s3Client.UploadWithContext(ctx, bucket, artifactpath.CFNTemplate(stack.StackName(), []byte(tmpl)), strings.NewReader(tmpl))
 	if err != nil {
 		return "", err
 	}

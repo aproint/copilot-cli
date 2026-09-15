@@ -5,6 +5,7 @@ package deploy
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -86,7 +87,7 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", fmt.Errorf("some error"))
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", fmt.Errorf("some error"))
 			},
 			wantedError: errors.New("upload custom resources to bucket mockS3Bucket"),
 		},
@@ -96,7 +97,7 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, errors.New("some error")
 				}
@@ -109,7 +110,7 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
@@ -124,7 +125,7 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
@@ -140,14 +141,14 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
 				m.ws.EXPECT().Path().Return("mockPath")
 				m.addons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.addons.EXPECT().Template().Return("mockAddons", nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
 					Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("upload addons template to bucket mockS3Bucket: some error"),
@@ -158,14 +159,14 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
 				m.ws.EXPECT().Path().Return("mockPath")
 				m.addons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.addons.EXPECT().Template().Return("mockAddons", nil)
-				m.s3.EXPECT().Upload("mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
 					Return("mockAddonsURL", nil)
 			},
 			wantedAddonsURL: "mockAddonsURL",
@@ -186,7 +187,7 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
 				crs, err := customresource.Env(fakeTemplateFS())
 				require.NoError(t, err)
-				m.s3.EXPECT().Upload("mockS3Bucket", gomock.Any(), gomock.Any()).DoAndReturn(func(_, key string, _ io.Reader) (url string, err error) {
+				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
 					for _, cr := range crs {
 						if strings.Contains(key, strings.ToLower(cr.Name())) {
 							return "", nil
@@ -240,7 +241,7 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 				parseAddons: m.parseAddons,
 			}
 
-			got, gotErr := d.UploadArtifacts()
+			got, gotErr := d.UploadArtifacts(context.Background())
 			if tc.wantedError != nil {
 				require.Contains(t, gotErr.Error(), tc.wantedError.Error())
 			} else {

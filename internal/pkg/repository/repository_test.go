@@ -98,7 +98,7 @@ func TestRepository_BuildAndPush(t *testing.T) {
 	}{
 		"failed to get repo URI": {
 			mockRegistry: func(m *mocks.MockRegistry) {
-				m.EXPECT().RepositoryURI(inRepoName).Return("", errors.New("some error"))
+				m.EXPECT().RepositoryURIWithContext(gomock.Any(), inRepoName).Return("", errors.New("some error"))
 			},
 			inMockDocker: func(m *mocks.MockContainerLoginBuildPusher) {},
 			wantedError:  errors.New("get repository URI: some error"),
@@ -132,7 +132,7 @@ func TestRepository_BuildAndPush(t *testing.T) {
 		},
 		"success": {
 			mockRegistry: func(m *mocks.MockRegistry) {
-				m.EXPECT().RepositoryURI(inRepoName).Return(defaultDockerArguments.URI, nil)
+				m.EXPECT().RepositoryURIWithContext(gomock.Any(), inRepoName).Return(defaultDockerArguments.URI, nil)
 			},
 			inMockDocker: func(m *mocks.MockContainerLoginBuildPusher) {
 				m.EXPECT().Build(ctx, &defaultDockerArguments, gomock.Any()).Return(nil).Times(1)
@@ -246,4 +246,21 @@ func Test_Login(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLoginWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	registry := mocks.NewMockRegistry(ctrl)
+	docker := mocks.NewMockContainerLoginBuildPusher(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+
+	docker.EXPECT().IsEcrCredentialHelperEnabled("mockRepoURI").Return(false)
+	registry.EXPECT().AuthWithContext(ctx).Return("username", "password", nil)
+	docker.EXPECT().LoginWithContext(ctx, "mockRepoURI", "username", "password").Return(nil)
+
+	repo := &Repository{name: "mockRepo", uri: "mockRepoURI", registry: registry, docker: docker}
+	uri, err := repo.LoginWithContext(ctx)
+
+	require.NoError(t, err)
+	require.Equal(t, "mockRepoURI", uri)
 }

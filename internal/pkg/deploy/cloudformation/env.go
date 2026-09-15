@@ -24,7 +24,7 @@ import (
 
 // CreateAndRenderEnvironment creates the CloudFormation stack for an environment, and render the stack creation to out.
 func (cf CloudFormation) CreateAndRenderEnvironment(ctx context.Context, conf StackConfiguration, bucketARN string) error {
-	cfnStack, err := cf.toUploadedStack(bucketARN, conf)
+	cfnStack, err := cf.toUploadedStack(ctx, bucketARN, conf)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (cf CloudFormation) CreateAndRenderEnvironment(ctx context.Context, conf St
 
 // UpdateAndRenderEnvironment updates the CloudFormation stack for an environment, and render the stack creation to out.
 func (cf CloudFormation) UpdateAndRenderEnvironment(ctx context.Context, conf StackConfiguration, bucketARN string, detach bool, opts ...cloudformation.StackOption) error {
-	cfnStack, err := cf.toUploadedStack(bucketARN, conf)
+	cfnStack, err := cf.toUploadedStack(ctx, bucketARN, conf)
 	if err != nil {
 		return err
 	}
@@ -178,12 +178,12 @@ func (cf CloudFormation) UpdateEnvironmentTemplate(appName, envName, templateBod
 	return cf.cfnClient.UpdateAndWait(s)
 }
 
-func (cf CloudFormation) toUploadedStack(artifactBucketARN string, stackConfig StackConfiguration) (*cloudformation.Stack, error) {
+func (cf CloudFormation) toUploadedStack(ctx context.Context, artifactBucketARN string, stackConfig StackConfiguration) (*cloudformation.Stack, error) {
 	bucketARN, err := arn.Parse(artifactBucketARN)
 	if err != nil {
 		return nil, err
 	}
-	url, err := cf.uploadStackTemplateToS3(bucketARN.Resource, stackConfig)
+	url, err := cf.uploadStackTemplateToS3(ctx, bucketARN.Resource, stackConfig)
 	if err != nil {
 		return nil, err
 	}

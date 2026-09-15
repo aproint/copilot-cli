@@ -38,6 +38,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type completedLabeledTermPrinter struct{}
+
+func (completedLabeledTermPrinter) IsDone() bool { return true }
+func (completedLabeledTermPrinter) Print()       {}
+
 type endpointGetterDouble struct {
 	ServiceDiscoveryEndpointFn func() (string, error)
 }
@@ -186,7 +191,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 	mockAddonPath := fmt.Sprintf("%s/%s/%s/%s.yml", "manual", "addons", mockName, "1307990e6ba5ca145eb35e99182a9bec46531bc54ddf656a602c780fa0240dee")
 	mockError := errors.New("some error")
 	type artifactsUploader interface {
-		UploadArtifacts() (*UploadArtifactsOutput, error)
+		UploadArtifacts(context.Context) (*UploadArtifactsOutput, error)
 	}
 	tests := map[string]struct {
 		inEnvFile         string
@@ -215,7 +220,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, m *deployMocks) {
-				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunning().Return(errors.New("some error"))
+				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunningWithContext(gomock.Any()).Return(errors.New("some error"))
 			},
 			wantErr: fmt.Errorf("check if docker engine is running: some error"),
 		},
@@ -228,8 +233,8 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, m *deployMocks) {
-				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.mockRepositoryService.EXPECT().Login().Return(mockURI, nil)
+				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunningWithContext(gomock.Any()).Return(nil)
+				m.mockRepositoryService.EXPECT().LoginWithContext(gomock.Any()).Return(mockURI, nil)
 				m.mockRepositoryService.EXPECT().BuildAndPush(gomock.Any(), &dockerengine.BuildArguments{
 					URI:        mockURI,
 					Dockerfile: "mockDockerfile",
@@ -254,8 +259,8 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, m *deployMocks) {
-				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.mockRepositoryService.EXPECT().Login().Return(mockURI, nil)
+				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunningWithContext(gomock.Any()).Return(nil)
+				m.mockRepositoryService.EXPECT().LoginWithContext(gomock.Any()).Return(mockURI, nil)
 				m.mockRepositoryService.EXPECT().BuildAndPush(gomock.Any(), &dockerengine.BuildArguments{
 					URI:        mockURI,
 					Dockerfile: "mockDockerfile",
@@ -290,8 +295,8 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, m *deployMocks) {
-				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.mockRepositoryService.EXPECT().Login().Return(mockURI, nil)
+				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunningWithContext(gomock.Any()).Return(nil)
+				m.mockRepositoryService.EXPECT().LoginWithContext(gomock.Any()).Return(mockURI, nil)
 				m.mockRepositoryService.EXPECT().BuildAndPush(gomock.Any(), &dockerengine.BuildArguments{
 					URI:        mockURI,
 					Dockerfile: "mockDockerfile",
@@ -329,8 +334,8 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			},
 			inMockGitTag: "gitTag",
 			mock: func(t *testing.T, m *deployMocks) {
-				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.mockRepositoryService.EXPECT().Login().Return(mockURI, nil)
+				m.mockdockerEngineRunChecker.EXPECT().CheckDockerEngineRunningWithContext(gomock.Any()).Return(nil)
+				m.mockRepositoryService.EXPECT().LoginWithContext(gomock.Any()).Return(mockURI, nil)
 				m.mockRepositoryService.EXPECT().BuildAndPush(gomock.Any(), &dockerengine.BuildArguments{
 					URI:        mockURI,
 					Dockerfile: "sidecarMockDockerfile",
@@ -384,7 +389,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				// Ensure all custom resources were uploaded.
 				crs, err := customresource.LBWS(fakeTemplateFS())
 				require.NoError(t, err)
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_, key string, _ io.Reader) (url string, err error) {
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
 					for _, cr := range crs {
 						if strings.Contains(key, strings.ToLower(cr.Name())) {
 							return "", nil
@@ -412,7 +417,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				// Ensure all custom resources were uploaded.
 				crs, err := customresource.Backend(fakeTemplateFS())
 				require.NoError(t, err)
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_, key string, _ io.Reader) (url string, err error) {
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
 					for _, cr := range crs {
 						if strings.Contains(key, strings.ToLower(cr.Name())) {
 							return "", nil
@@ -440,7 +445,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				// Ensure all custom resources were uploaded.
 				crs, err := customresource.Worker(fakeTemplateFS())
 				require.NoError(t, err)
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_, key string, _ io.Reader) (url string, err error) {
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
 					for _, cr := range crs {
 						if strings.Contains(key, strings.ToLower(cr.Name())) {
 							return "", nil
@@ -468,7 +473,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				// Ensure all custom resources were uploaded.
 				crs, err := customresource.RDWS(fakeTemplateFS())
 				require.NoError(t, err)
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_, key string, _ io.Reader) (url string, err error) {
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
 					for _, cr := range crs {
 						if strings.Contains(key, strings.ToLower(cr.Name())) {
 							return "", nil
@@ -496,7 +501,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				// Ensure all custom resources were uploaded.
 				crs, err := customresource.ScheduledJob(fakeTemplateFS())
 				require.NoError(t, err)
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_, key string, _ io.Reader) (url string, err error) {
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
 					for _, cr := range crs {
 						if strings.Contains(key, strings.ToLower(cr.Name())) {
 							return "", nil
@@ -524,10 +529,10 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			inRegion:       "us-west-2",
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockFileSystem.Create(filepath.Join(mockWorkspacePath, mockEnvFile))
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).Return(mockEnvFileS3URL, nil)
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).Return(mockEnvFileS3URL, nil)
 				m.mockAddons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.mockAddons.EXPECT().Template().Return("", nil)
-				m.mockUploader.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(mockAddonsS3URL, nil)
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mockAddonsS3URL, nil)
 			},
 			wantEnvFileARNs: map[string]string{"nginx": mockEnvFileS3ARN, mockName: mockEnvFileS3ARN},
 			wantAddonsURL:   mockAddonsS3URL,
@@ -537,12 +542,12 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			inRegion:       "us-west-2",
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockFileSystem.Create(filepath.Join(mockWorkspacePath, mockEnvFile))
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).Return(mockEnvFileS3URL, nil)
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).Return(mockEnvFileS3URL, nil)
 				m.mockFileSystem.Create(filepath.Join(mockWorkspacePath, "bar.env"))
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockEnvFilePath("bar.env"), gomock.Any()).Return(mockEnvFileS3URL2, nil)
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockEnvFilePath("bar.env"), gomock.Any()).Return(mockEnvFileS3URL2, nil)
 				m.mockAddons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.mockAddons.EXPECT().Template().Return("", nil)
-				m.mockUploader.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(mockAddonsS3URL, nil)
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mockAddonsS3URL, nil)
 			},
 			wantEnvFileARNs: map[string]string{"nginx": mockEnvFileS3ARN, mockName: mockEnvFileS3ARN2},
 			wantAddonsURL:   mockAddonsS3URL,
@@ -553,7 +558,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockAddons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.mockAddons.EXPECT().Template().Return("", nil)
-				m.mockUploader.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(mockAddonsS3URL, nil)
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mockAddonsS3URL, nil)
 			},
 			wantEnvFileARNs: nil,
 			wantAddonsURL:   mockAddonsS3URL,
@@ -562,7 +567,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			inEnvFile: mockEnvFile,
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockFileSystem.Create(filepath.Join(mockWorkspacePath, mockEnvFile))
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
 					Return("", mockError)
 			},
 			wantErr: fmt.Errorf("put env file foo.env artifact to bucket mockBucket: some error"),
@@ -571,7 +576,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			inEnvFile: mockEnvFile,
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockFileSystem.Create(filepath.Join(mockWorkspacePath, mockEnvFile))
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
 					Return(mockBadEnvFileS3URL, nil)
 
 			},
@@ -582,7 +587,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			inRegion:  "sun-south-0",
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockFileSystem.Create(filepath.Join(mockWorkspacePath, mockEnvFile))
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
 					Return(mockEnvFileS3URL, nil)
 			},
 			wantErr: fmt.Errorf("find the partition for region sun-south-0"),
@@ -592,11 +597,11 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			inRegion:  "us-west-2",
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockFileSystem.Create(filepath.Join(mockWorkspacePath, mockEnvFile))
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockEnvFilePath(mockEnvFile), gomock.Any()).
 					Return(mockEnvFileS3URL, nil)
 				m.mockAddons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.mockAddons.EXPECT().Template().Return("some data", nil)
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockAddonPath, gomock.Any()).
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockAddonPath, gomock.Any()).
 					Return(mockAddonsS3URL, nil)
 			},
 
@@ -608,7 +613,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 			mock: func(t *testing.T, m *deployMocks) {
 				m.mockAddons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.mockAddons.EXPECT().Template().Return("some data", nil)
-				m.mockUploader.EXPECT().Upload(mockS3Bucket, mockAddonPath, gomock.Any()).
+				m.mockUploader.EXPECT().UploadWithContext(gomock.Any(), mockS3Bucket, mockAddonPath, gomock.Any()).
 					Return("", mockError)
 			},
 
@@ -700,7 +705,7 @@ func TestWorkloadDeployer_UploadArtifacts(t *testing.T) {
 				deployer = tc.mockServiceDeployer(wkldDeployer)
 			}
 
-			got, gotErr := deployer.UploadArtifacts()
+			got, gotErr := deployer.UploadArtifacts(context.Background())
 
 			if tc.wantErr != nil {
 				require.EqualError(t, gotErr, tc.wantErr.Error())
@@ -1438,26 +1443,79 @@ func TestWorkloadDeployer_DeployWorkload(t *testing.T) {
 
 func TestUploadArtifacts(t *testing.T) {
 	d := &workloadDeployer{}
-	errFunc := func(out *UploadArtifactsOutput) error {
+	errFunc := func(_ context.Context, out *UploadArtifactsOutput) error {
 		return errors.New("test error")
 	}
-	noErrFunc := func(out *UploadArtifactsOutput) error {
+	noErrFunc := func(_ context.Context, out *UploadArtifactsOutput) error {
 		out.AddonsURL = "an addons url"
 		return nil
 	}
 
-	out, err := d.uploadArtifacts(noErrFunc, errFunc)
+	out, err := d.uploadArtifacts(context.Background(), noErrFunc, errFunc)
 	require.EqualError(t, err, "test error")
 	require.Nil(t, out)
 
-	out, err = d.uploadArtifacts(errFunc, noErrFunc)
+	out, err = d.uploadArtifacts(context.Background(), errFunc, noErrFunc)
 	require.EqualError(t, err, "test error")
 	require.Nil(t, out)
 
-	out, err = d.uploadArtifacts(noErrFunc)
+	out, err = d.uploadArtifacts(context.Background(), noErrFunc)
 	require.NoError(t, err)
 	require.Equal(t, &UploadArtifactsOutput{AddonsURL: "an addons url"}, out)
 
+}
+
+func TestBuildContainerImagesInParallelCancelsSiblingBuilds(t *testing.T) {
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	started := make(chan struct{}, 2)
+	releaseFailure := make(chan struct{})
+	canceled := make(chan error, 1)
+	buildErr := errors.New("build failed")
+
+	go func() {
+		<-started
+		<-started
+		close(releaseFailure)
+	}()
+
+	build := func(ctx context.Context, args *dockerengine.BuildArguments, _ io.Writer) (string, error) {
+		started <- struct{}{}
+		if args.Dockerfile == "fails" {
+			<-releaseFailure
+			return "", buildErr
+		}
+		<-ctx.Done()
+		canceled <- ctx.Err()
+		return "", ctx.Err()
+	}
+
+	err := buildContainerImagesInParallel(ctx, &ImageActionInput{
+		LabeledTermPrinter: func(syncbuffer.FileWriter, []*syncbuffer.LabeledSyncBuffer, ...syncbuffer.LabeledTermPrinterOption) LabeledTermPrinter {
+			return completedLabeledTermPrinter{}
+		},
+	}, "example.com/repository", map[string]*dockerengine.BuildArguments{
+		"failure": {Dockerfile: "fails", Tags: []string{"failure"}},
+		"sibling": {Dockerfile: "waits", Tags: []string{"sibling"}},
+	}, build, &UploadArtifactsOutput{})
+
+	require.ErrorIs(t, err, buildErr)
+	require.ErrorIs(t, <-canceled, context.Canceled)
+}
+
+func TestBuildSingleContainerImageUsesCallerContext(t *testing.T) {
+	type contextKey struct{}
+	ctx := context.WithValue(context.Background(), contextKey{}, "caller context")
+	out := &UploadArtifactsOutput{}
+
+	err := buildSingleContainerImage(ctx, &ImageActionInput{}, "example.com/repository", map[string]*dockerengine.BuildArguments{
+		"api": {Dockerfile: "Dockerfile", Tags: []string{"latest"}},
+	}, func(buildCtx context.Context, _ *dockerengine.BuildArguments, _ io.Writer) (string, error) {
+		require.Equal(t, "caller context", buildCtx.Value(contextKey{}))
+		return "digest", nil
+	}, out)
+
+	require.NoError(t, err)
+	require.Equal(t, "digest", out.ImageDigests["api"].Digest)
 }
 
 type deployDiffMocks struct {

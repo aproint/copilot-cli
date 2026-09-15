@@ -136,7 +136,7 @@ type runLocalOpts struct {
 	dockerExcludes   []string
 
 	newRecursiveWatcher  func() (recursiveWatcher, error)
-	buildContainerImages func(mft manifest.DynamicWorkload) (map[string]string, error)
+	buildContainerImages func(ctx context.Context, mft manifest.DynamicWorkload) (map[string]string, error)
 	configureClients     func(ctx context.Context) error
 	labeledTermPrinter   func(fw syncbuffer.FileWriter, bufs []*syncbuffer.LabeledSyncBuffer, opts ...syncbuffer.LabeledTermPrinterOption) clideploy.LabeledTermPrinter
 	unmarshal            func([]byte) (manifest.DynamicWorkload, error)
@@ -147,8 +147,12 @@ type runLocalOpts struct {
 }
 
 func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
+	return newRunLocalOptsWithContext(context.Background(), vars)
+}
+
+func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLocalOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("run local"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -181,11 +185,11 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 		prog:               termprogress.NewSpinner(log.DiagnosticWriter),
 	}
 	o.configureClients = func(ctx context.Context) error {
-		defaultConfigEnvRegion, err := o.sessProvider.DefaultConfigWithRegion(context.Background(), o.targetEnv.Region)
+		defaultConfigEnvRegion, err := o.sessProvider.DefaultConfigWithRegion(ctx, o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("create default config with region %s: %w", o.targetEnv.Region, err)
 		}
-		envManagerConfig, err := o.sessProvider.ConfigFromRole(context.Background(), o.targetEnv.ManagerRoleARN, o.targetEnv.Region)
+		envManagerConfig, err := o.sessProvider.ConfigFromRole(ctx, o.targetEnv.ManagerRoleARN, o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("create env manager config %s: %w", o.targetEnv.Region, err)
 		}
@@ -235,7 +239,7 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 		o.envChecker = envDesc
 		return nil
 	}
-	o.buildContainerImages = func(mft manifest.DynamicWorkload) (map[string]string, error) {
+	o.buildContainerImages = func(ctx context.Context, mft manifest.DynamicWorkload) (map[string]string, error) {
 		if dockerWkld, ok := mft.Manifest().(dockerWorkload); ok {
 			dfDir := filepath.Dir(dockerWkld.Dockerfile())
 			o.dockerExcludes, err = dockerfile.ReadDockerignore(afero.NewOsFs(), filepath.Join(ws.Path(), dfDir))
@@ -250,15 +254,15 @@ func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
 			GitShortCommitTag: gitShortCommit,
 		}
 		out := &clideploy.UploadArtifactsOutput{}
-		if err := clideploy.BuildContainerImages(&clideploy.ImageActionInput{
+		if err := clideploy.BuildContainerImages(ctx, &clideploy.ImageActionInput{
 			Name:               o.wkldName,
 			WorkspacePath:      o.ws.Path(),
 			Image:              image,
 			Mft:                mft.Manifest(),
 			GitShortCommitTag:  gitShortCommit,
 			Builder:            o.repository,
-			Login:              o.repository.Login,
-			CheckDockerEngine:  o.dockerEngine.CheckDockerEngineRunning,
+			Login:              o.repository.LoginWithContext,
+			CheckDockerEngine:  o.dockerEngine.CheckDockerEngineRunningWithContext,
 			LabeledTermPrinter: o.labeledTermPrinter,
 		}, out); err != nil {
 			return nil, err
@@ -572,7 +576,7 @@ func (o *runLocalOpts) prepareTask(ctx context.Context) (orchestrator.Task, erro
 		return orchestrator.Task{}, err
 	}
 
-	containerURIs, err := o.buildContainerImages(mft)
+	containerURIs, err := o.buildContainerImages(ctx, mft)
 	if err != nil {
 		return orchestrator.Task{}, fmt.Errorf("build images: %w", err)
 	}
@@ -1223,7 +1227,7 @@ func BuildRunLocalCmd() *cobra.Command {
 		Short: "Run the workload locally.",
 		Long:  "Run the workload locally.",
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newRunLocalOpts(vars)
+			opts, err := newRunLocalOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

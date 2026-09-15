@@ -46,7 +46,12 @@ func New(cfg awsv2.Config) ECR {
 
 // Auth returns the basic authentication credentials needed to push images.
 func (c ECR) Auth() (username string, password string, err error) {
-	response, err := c.client.GetAuthorizationToken(context.Background(), &ecr.GetAuthorizationTokenInput{})
+	return c.AuthWithContext(context.Background())
+}
+
+// AuthWithContext returns the basic authentication credentials needed to push images using ctx.
+func (c ECR) AuthWithContext(ctx context.Context) (username string, password string, err error) {
+	response, err := c.client.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 
 	if err != nil {
 		return "", "", fmt.Errorf("get ECR auth: %w", err)
@@ -64,7 +69,12 @@ func (c ECR) Auth() (username string, password string, err error) {
 
 // RepositoryURI returns the ECR repository URI.
 func (c ECR) RepositoryURI(name string) (string, error) {
-	result, err := c.client.DescribeRepositories(context.Background(), &ecr.DescribeRepositoriesInput{
+	return c.RepositoryURIWithContext(context.Background(), name)
+}
+
+// RepositoryURIWithContext returns the ECR repository URI using ctx.
+func (c ECR) RepositoryURIWithContext(ctx context.Context, name string) (string, error) {
+	result, err := c.client.DescribeRepositories(ctx, &ecr.DescribeRepositoriesInput{
 		RepositoryNames: []string{name},
 	})
 

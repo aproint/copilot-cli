@@ -261,7 +261,7 @@ count: 1`
 			},
 			setupMocks: func(m *svcPackageExecuteMock) {
 				m.ws.EXPECT().ReadWorkloadManifest("api").Return([]byte(lbwsMft), nil)
-				m.generator.EXPECT().UploadArtifacts().Return(&deploy.UploadArtifactsOutput{
+				m.generator.EXPECT().UploadArtifacts(gomock.Any()).Return(&deploy.UploadArtifactsOutput{
 					ImageDigests: map[string]deploy.ContainerImageIdentifier{
 						"api": {
 							Digest: mockDigest,

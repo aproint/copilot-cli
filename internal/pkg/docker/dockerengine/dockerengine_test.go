@@ -288,6 +288,16 @@ func TestDockerCommand_Login(t *testing.T) {
 	}
 }
 
+func TestDockerCommand_LoginWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	cmd := NewMockCmd(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+
+	cmd.EXPECT().RunWithContext(ctx, "docker", []string{"login", "-u", "mockUsername", "--password-stdin", "mockURI"}, gomock.Any()).Return(nil)
+
+	require.NoError(t, New(cmd).LoginWithContext(ctx, "mockURI", "mockUsername", "mockPassword"))
+}
+
 func TestDockerCommand_Push(t *testing.T) {
 	emptyLookupEnv := func(key string) (string, bool) {
 		return "", false

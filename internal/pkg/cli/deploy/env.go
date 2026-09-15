@@ -122,15 +122,15 @@ func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	defaultConfig, err := in.SessionProvider.DefaultConfig(context.Background())
+	defaultConfig, err := in.SessionProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get default config: %w", err)
 	}
-	envRegionConfig, err := in.SessionProvider.DefaultConfigWithRegion(context.Background(), in.Env.Region)
+	envRegionConfig, err := in.SessionProvider.DefaultConfigWithRegion(ctx, in.Env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("get default config in env region %s: %w", in.Env.Region, err)
 	}
-	envManagerConfig, err := in.SessionProvider.ConfigFromRole(context.Background(), in.Env.ManagerRoleARN, in.Env.Region)
+	envManagerConfig, err := in.SessionProvider.ConfigFromRole(ctx, in.Env.ManagerRoleARN, in.Env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("get env config: %w", err)
 	}
@@ -203,7 +203,7 @@ type UploadEnvArtifactsOutput struct {
 }
 
 // UploadArtifacts uploads the deployment artifacts for the environment.
-func (d *envDeployer) UploadArtifacts() (*UploadEnvArtifactsOutput, error) {
+func (d *envDeployer) UploadArtifacts(ctx context.Context) (*UploadEnvArtifactsOutput, error) {
 	resources, err := d.getAppRegionalResources()
 	if err != nil {
 		return nil, err
@@ -211,11 +211,11 @@ func (d *envDeployer) UploadArtifacts() (*UploadEnvArtifactsOutput, error) {
 	if err := d.patcher.EnsureManagerRoleIsAllowedToUpload(resources.S3Bucket); err != nil {
 		return nil, fmt.Errorf("ensure env manager role has permissions to upload: %w", err)
 	}
-	customResourceURLs, err := d.uploadCustomResources(resources.S3Bucket)
+	customResourceURLs, err := d.uploadCustomResources(ctx, resources.S3Bucket)
 	if err != nil {
 		return nil, err
 	}
-	addonsURL, err := d.uploadAddons(resources.S3Bucket)
+	addonsURL, err := d.uploadAddons(ctx, resources.S3Bucket)
 	if err != nil {
 		return nil, err
 	}
@@ -350,13 +350,13 @@ func (d *envDeployer) getAppRegionalResources() (*cfnstack.AppRegionalResources,
 	return resources, nil
 }
 
-func (d *envDeployer) uploadCustomResources(bucket string) (map[string]string, error) {
+func (d *envDeployer) uploadCustomResources(ctx context.Context, bucket string) (map[string]string, error) {
 	crs, err := customresource.Env(d.templateFS)
 	if err != nil {
 		return nil, fmt.Errorf("read custom resources for environment %s: %w", d.env.Name, err)
 	}
-	urls, err := customresource.Upload(func(key string, dat io.Reader) (url string, err error) {
-		return d.s3.Upload(bucket, key, dat)
+	urls, err := customresource.UploadWithContext(ctx, func(ctx context.Context, key string, dat io.Reader) (url string, err error) {
+		return d.s3.UploadWithContext(ctx, bucket, key, dat)
 	}, crs)
 	if err != nil {
 		return nil, fmt.Errorf("upload custom resources to bucket %s: %w", bucket, err)
@@ -364,7 +364,7 @@ func (d *envDeployer) uploadCustomResources(bucket string) (map[string]string, e
 	return urls, nil
 }
 
-func (d *envDeployer) uploadAddons(bucket string) (string, error) {
+func (d *envDeployer) uploadAddons(ctx context.Context, bucket string) (string, error) {
 	addons, err := d.parseAddons()
 	if err != nil {
 		var notFoundErr *addon.ErrAddonsNotFound
@@ -374,6 +374,7 @@ func (d *envDeployer) uploadAddons(bucket string) (string, error) {
 		return "", nil
 	}
 	pkgConfig := addon.PackageConfig{
+		Ctx:           ctx,
 		Bucket:        bucket,
 		Uploader:      d.s3,
 		WorkspacePath: d.ws.Path(),
@@ -386,7 +387,7 @@ func (d *envDeployer) uploadAddons(bucket string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("render addons template: %w", err)
 	}
-	url, err := d.s3.Upload(bucket, artifactpath.EnvironmentAddons([]byte(tmpl)), strings.NewReader(tmpl))
+	url, err := d.s3.UploadWithContext(ctx, bucket, artifactpath.EnvironmentAddons([]byte(tmpl)), strings.NewReader(tmpl))
 	if err != nil {
 		return "", fmt.Errorf("upload addons template to bucket %s: %w", bucket, err)
 	}

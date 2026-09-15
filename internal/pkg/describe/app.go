@@ -104,7 +104,6 @@ func (a *App) HumanString() string {
 // AppDescriber retrieves information about an application.
 type AppDescriber struct {
 	ctx               context.Context
-	contextEnabled    bool
 	app               string
 	stackDescriber    stackDescriber
 	stackSetDescriber stackDescriber
@@ -114,13 +113,8 @@ type appSessionProvider interface {
 	DefaultConfig(context.Context) (aws.Config, error)
 }
 
-// NewAppDescriber instantiates an application describer.
-func NewAppDescriber(appName string) (*AppDescriber, error) {
-	return NewAppDescriberWithContext(context.Background(), appName)
-}
-
-// NewAppDescriberWithContext instantiates an application describer using the caller context.
-func NewAppDescriberWithContext(ctx context.Context, appName string) (*AppDescriber, error) {
+// NewAppDescriber instantiates an application describer using the caller context.
+func NewAppDescriber(ctx context.Context, appName string) (*AppDescriber, error) {
 	return newAppDescriber(ctx, appName, sessions.ImmutableProvider())
 }
 
@@ -131,7 +125,6 @@ func newAppDescriber(ctx context.Context, appName string, sessProvider appSessio
 	}
 	return &AppDescriber{
 		ctx:               ctx,
-		contextEnabled:    true,
 		app:               appName,
 		stackDescriber:    stack.NewStackDescriber(cfnstack.NameForAppStack(appName), cfg),
 		stackSetDescriber: stack.NewStackDescriber(cfnstack.NameForAppStackSet(appName), cfg),
@@ -150,7 +143,7 @@ func (d *AppDescriber) Version() (string, error) {
 	}
 	stackMetadata, stackSetMetadata := metadata{}, metadata{}
 
-	appStackMetadata, err := loadStackMetadata(d.ctx, d.contextEnabled, d.stackDescriber)
+	appStackMetadata, err := loadStackMetadata(d.ctx, d.stackDescriber)
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +155,7 @@ func (d *AppDescriber) Version() (string, error) {
 		appStackVersion = version.LegacyAppTemplate
 	}
 
-	appStackSetMetadata, err := loadStackSetMetadata(d.ctx, d.contextEnabled, d.stackSetDescriber)
+	appStackSetMetadata, err := loadStackSetMetadata(d.ctx, d.stackSetDescriber)
 	if err != nil {
 		return "", err
 	}

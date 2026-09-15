@@ -238,7 +238,7 @@ func TestSvcPause_Execute(t *testing.T) {
 		"errors if failed to pause the service": {
 			mocking: func(t *testing.T, mockPauser *mocks.MockservicePauser, mockProgress *mocks.Mockprogress) {
 				mockProgress.EXPECT().Start("Pausing service mock-svc in environment mock-env.")
-				mockPauser.EXPECT().PauseServiceWithContext(gomock.Any(), "mock-svc-arn").Return(mockError)
+				mockPauser.EXPECT().PauseService(gomock.Any(), "mock-svc-arn").Return(mockError)
 				mockProgress.EXPECT().Stop(log.Serrorf("Failed to pause service mock-svc in environment mock-env.\n"))
 			},
 			wantedError: fmt.Errorf("some error"),
@@ -246,7 +246,7 @@ func TestSvcPause_Execute(t *testing.T) {
 		"success": {
 			mocking: func(t *testing.T, mockPauser *mocks.MockservicePauser, mockProgress *mocks.Mockprogress) {
 				mockProgress.EXPECT().Start("Pausing service mock-svc in environment mock-env.")
-				mockPauser.EXPECT().PauseServiceWithContext(gomock.Any(), "mock-svc-arn").Return(nil)
+				mockPauser.EXPECT().PauseService(gomock.Any(), "mock-svc-arn").Return(nil)
 				mockProgress.EXPECT().Stop(log.Ssuccessf("Paused service mock-svc in environment mock-env.\n"))
 			},
 		},

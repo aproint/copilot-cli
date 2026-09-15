@@ -23,7 +23,7 @@ type clientMocks struct {
 	appRunnerMock *mocks.MockappRunnerClient
 }
 
-func TestClient_ForceUpdateServiceWithContextUsesCallerContext(t *testing.T) {
+func TestClient_ForceUpdateServiceUsesCallerContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	rg := mocks.NewMockresourceGetter(ctrl)
@@ -34,17 +34,17 @@ func TestClient_ForceUpdateServiceWithContextUsesCallerContext(t *testing.T) {
 		deploy.ServiceTagKey: "mockSvc",
 	}
 
-	rg.EXPECT().GetResourcesByTagsWithContext(ctx, serviceResourceType, tags).Return([]*resourcegroups.Resource{
+	rg.EXPECT().GetResourcesByTags(ctx, serviceResourceType, tags).Return([]*resourcegroups.Resource{
 		{ARN: "mockSvcARN"},
 	}, nil)
-	appRunner.EXPECT().StartDeploymentWithContext(ctx, "mockSvcARN").Return("mockOperationID", nil)
-	appRunner.EXPECT().WaitForOperationWithContext(ctx, "mockOperationID", "mockSvcARN").Return(nil)
+	appRunner.EXPECT().StartDeployment(ctx, "mockSvcARN").Return("mockOperationID", nil)
+	appRunner.EXPECT().WaitForOperation(ctx, "mockOperationID", "mockSvcARN").Return(nil)
 
 	client := Client{appRunnerClient: appRunner, rgGetter: rg}
-	require.NoError(t, client.ForceUpdateServiceWithContext(ctx, "mockApp", "mockEnv", "mockSvc"))
+	require.NoError(t, client.ForceUpdateService(ctx, "mockApp", "mockEnv", "mockSvc"))
 }
 
-func TestClient_LastUpdatedAtWithContextUsesCallerContext(t *testing.T) {
+func TestClient_LastUpdatedAtUsesCallerContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	rg := mocks.NewMockresourceGetter(ctrl)
@@ -56,15 +56,15 @@ func TestClient_LastUpdatedAtWithContextUsesCallerContext(t *testing.T) {
 		deploy.ServiceTagKey: "mockSvc",
 	}
 
-	rg.EXPECT().GetResourcesByTagsWithContext(ctx, serviceResourceType, tags).Return([]*resourcegroups.Resource{
+	rg.EXPECT().GetResourcesByTags(ctx, serviceResourceType, tags).Return([]*resourcegroups.Resource{
 		{ARN: "mockSvcARN"},
 	}, nil)
-	appRunner.EXPECT().DescribeServiceWithContext(ctx, "mockSvcARN").Return(&apprunner.Service{
+	appRunner.EXPECT().DescribeService(ctx, "mockSvcARN").Return(&apprunner.Service{
 		DateUpdated: want,
 	}, nil)
 
 	client := Client{appRunnerClient: appRunner, rgGetter: rg}
-	got, err := client.LastUpdatedAtWithContext(ctx, "mockApp", "mockEnv", "mockSvc")
+	got, err := client.LastUpdatedAt(ctx, "mockApp", "mockEnv", "mockSvc")
 	require.NoError(t, err)
 	require.Equal(t, want, got)
 }
@@ -90,20 +90,20 @@ func TestClient_ForceUpdateService(t *testing.T) {
 	}{
 		"fail get the app runner service": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).Return(nil, mockError)
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).Return(nil, mockError)
 			},
 			wantErr: fmt.Errorf("get App Runner service with tags (mockApp, mockEnv, mockSvc): some error"),
 		},
 		"no app runner service found": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{}, nil)
 			},
 			wantErr: fmt.Errorf("no App Runner service found for mockSvc in environment mockEnv"),
 		},
 		"more than one app runner service found": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{}, {},
 					}, nil)
@@ -112,39 +112,39 @@ func TestClient_ForceUpdateService(t *testing.T) {
 		},
 		"error if fail to start new deployment": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{
 							ARN: mockSvcARN,
 						},
 					}, nil)
-				m.appRunnerMock.EXPECT().StartDeployment(mockSvcARN).Return("", mockError)
+				m.appRunnerMock.EXPECT().StartDeployment(context.Background(), mockSvcARN).Return("", mockError)
 			},
 			wantErr: fmt.Errorf("some error"),
 		},
 		"error if fail to wait for deployment": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{
 							ARN: mockSvcARN,
 						},
 					}, nil)
-				m.appRunnerMock.EXPECT().StartDeployment(mockSvcARN).Return(mockOperationID, nil)
-				m.appRunnerMock.EXPECT().WaitForOperation(mockOperationID, mockSvcARN).Return(mockError)
+				m.appRunnerMock.EXPECT().StartDeployment(context.Background(), mockSvcARN).Return(mockOperationID, nil)
+				m.appRunnerMock.EXPECT().WaitForOperation(context.Background(), mockOperationID, mockSvcARN).Return(mockError)
 			},
 			wantErr: fmt.Errorf("some error"),
 		},
 		"success": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{
 							ARN: mockSvcARN,
 						},
 					}, nil)
-				m.appRunnerMock.EXPECT().StartDeployment(mockSvcARN).Return(mockOperationID, nil)
-				m.appRunnerMock.EXPECT().WaitForOperation(mockOperationID, mockSvcARN).Return(nil)
+				m.appRunnerMock.EXPECT().StartDeployment(context.Background(), mockSvcARN).Return(mockOperationID, nil)
+				m.appRunnerMock.EXPECT().WaitForOperation(context.Background(), mockOperationID, mockSvcARN).Return(nil)
 			},
 		},
 	}
@@ -167,7 +167,7 @@ func TestClient_ForceUpdateService(t *testing.T) {
 				rgGetter:        mockRg,
 			}
 
-			gotErr := c.ForceUpdateService(mockApp, mockEnv, mockSvc)
+			gotErr := c.ForceUpdateService(context.Background(), mockApp, mockEnv, mockSvc)
 
 			if tc.wantErr != nil {
 				require.EqualError(t, gotErr, tc.wantErr.Error())
@@ -200,25 +200,25 @@ func TestClient_LastUpdatedAt(t *testing.T) {
 	}{
 		"error if fail to describe service": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{
 							ARN: mockSvcARN,
 						},
 					}, nil)
-				m.appRunnerMock.EXPECT().DescribeService(mockSvcARN).Return(nil, mockError)
+				m.appRunnerMock.EXPECT().DescribeService(context.Background(), mockSvcARN).Return(nil, mockError)
 			},
 			wantErr: fmt.Errorf("describe service: some error"),
 		},
 		"succeed": {
 			mock: func(m *clientMocks) {
-				m.rgMock.EXPECT().GetResourcesByTags(serviceResourceType, getRgInput).
+				m.rgMock.EXPECT().GetResourcesByTags(context.Background(), serviceResourceType, getRgInput).
 					Return([]*resourcegroups.Resource{
 						{
 							ARN: mockSvcARN,
 						},
 					}, nil)
-				m.appRunnerMock.EXPECT().DescribeService(mockSvcARN).Return(&apprunner.Service{
+				m.appRunnerMock.EXPECT().DescribeService(context.Background(), mockSvcARN).Return(&apprunner.Service{
 					DateUpdated: mockTime,
 				}, nil)
 			},
@@ -244,7 +244,7 @@ func TestClient_LastUpdatedAt(t *testing.T) {
 				rgGetter:        mockRg,
 			}
 
-			got, gotErr := c.LastUpdatedAt(mockApp, mockEnv, mockSvc)
+			got, gotErr := c.LastUpdatedAt(context.Background(), mockApp, mockEnv, mockSvc)
 
 			if tc.wantErr != nil {
 				require.EqualError(t, gotErr, tc.wantErr.Error())

@@ -51,14 +51,8 @@ func (c *CodeStar) WaitUntilConnectionStatusAvailable(ctx context.Context, conne
 	}
 }
 
-// GetConnectionARN retrieves all of the CSC connections in the current account and returns the ARN correlating to the
-// connection name passed in.
-func (c *CodeStar) GetConnectionARN(connectionName string) (connectionARN string, err error) {
-	return c.GetConnectionARNWithContext(context.Background(), connectionName)
-}
-
-// GetConnectionARNWithContext retrieves a connection ARN using ctx for every page.
-func (c *CodeStar) GetConnectionARNWithContext(ctx context.Context, connectionName string) (connectionARN string, err error) {
+// GetConnectionARN retrieves a connection ARN using ctx for every page.
+func (c *CodeStar) GetConnectionARN(ctx context.Context, connectionName string) (connectionARN string, err error) {
 	output, err := c.client.ListConnections(ctx, &codestarconnections.ListConnectionsInput{})
 	if err != nil {
 		return "", fmt.Errorf("get list of connections in AWS account: %w", err)

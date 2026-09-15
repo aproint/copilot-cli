@@ -80,8 +80,7 @@ func (noopActionRecommender) RecommendedActions() []string {
 }
 
 type repositoryService interface {
-	Login() (string, error)
-	LoginWithContext(context.Context) (string, error)
+	Login(context.Context) (string, error)
 	BuildAndPush(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error)
 	Build(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (string, error)
 }
@@ -110,7 +109,7 @@ type serviceDeployer interface {
 }
 
 type deployedTemplateGetter interface {
-	Template(stackName string) (string, error)
+	Template(context.Context, string) (string, error)
 }
 
 type spinner interface {
@@ -125,7 +124,7 @@ type LabeledTermPrinter interface {
 }
 
 type dockerEngineRunChecker interface {
-	CheckDockerEngineRunningWithContext(context.Context) error
+	CheckDockerEngineRunning(context.Context) error
 }
 
 // StackRuntimeConfiguration contains runtime configuration for a workload CloudFormation stack.
@@ -253,9 +252,6 @@ type ImageActionInput struct {
 // newWorkloadDeployer is the constructor for workloadDeployer.
 func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	ctx := in.Ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -272,7 +268,7 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create default config with region %s: %w", in.Env.Region, err)
 	}
-	resources, err := cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(in.App, in.Env.Region)
+	resources, err := cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(ctx, in.App, in.Env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("get application %s resources from region %s: %w", in.App.Name, in.Env.Region, err)
 	}
@@ -350,7 +346,7 @@ func newWorkloadDeployer(in *WorkloadDeployerInput) (*workloadDeployer, error) {
 
 // DeployDiff returns the stringified diff of the template against the deployed template of the workload.
 func (d *workloadDeployer) DeployDiff(template string) (string, error) {
-	tmpl, err := d.tmplGetter.Template(stack.NameForWorkload(d.app.Name, d.env.Name, d.name))
+	tmpl, err := d.tmplGetter.Template(d.ctx, stack.NameForWorkload(d.app.Name, d.env.Name, d.name))
 	if err != nil {
 		var errNotFound *awscloudformation.ErrStackNotFound
 		if !errors.As(err, &errNotFound) {
@@ -400,7 +396,7 @@ type forceDeployInput struct {
 
 func (d *workloadDeployer) forceDeploy(ctx context.Context, in *forceDeployInput) error {
 	in.spinner.Start(fmt.Sprintf(fmtForceUpdateSvcStart, color.HighlightUserInput(d.name), color.HighlightUserInput(d.env.Name)))
-	if err := in.svcUpdater.ForceUpdateServiceWithContext(ctx, d.app.Name, d.env.Name, d.name); err != nil {
+	if err := in.svcUpdater.ForceUpdateService(ctx, d.app.Name, d.env.Name, d.name); err != nil {
 		errLog := fmt.Sprintf(fmtForceUpdateSvcFailed, color.HighlightUserInput(d.name),
 			color.HighlightUserInput(d.env.Name), err)
 		var terr timeoutError
@@ -433,8 +429,8 @@ func (d *workloadDeployer) buildAndPushContainerImages(ctx context.Context, out 
 		Mft:                d.mft,
 		CustomTag:          d.image.CustomTag,
 		GitShortCommitTag:  d.image.GitShortCommitTag,
-		Login:              d.repository.LoginWithContext,
-		CheckDockerEngine:  d.docker.CheckDockerEngineRunningWithContext,
+		Login:              d.repository.Login,
+		CheckDockerEngine:  d.docker.CheckDockerEngineRunning,
 		LabeledTermPrinter: d.labeledTermPrinter,
 	}, out, d.repository.BuildAndPush)
 
@@ -668,8 +664,8 @@ func (d *workloadDeployer) uploadCustomResources(ctx context.Context, out *Uploa
 	if err != nil {
 		return err
 	}
-	urls, err := customresource.UploadWithContext(ctx, func(ctx context.Context, key string, contents io.Reader) (string, error) {
-		return d.s3Client.UploadWithContext(ctx, d.resources.S3Bucket, key, contents)
+	urls, err := customresource.Upload(ctx, func(ctx context.Context, key string, contents io.Reader) (string, error) {
+		return d.s3Client.Upload(ctx, d.resources.S3Bucket, key, contents)
 	}, crs)
 	if err != nil {
 		return fmt.Errorf("upload custom resources for %q: %w", d.name, err)
@@ -723,7 +719,7 @@ func (d *workloadDeployer) pushEnvFilesToS3Bucket(ctx context.Context, in *pushE
 			return nil, fmt.Errorf("read env file %s: %w", path, err)
 		}
 		reader := bytes.NewReader(content)
-		url, err := in.uploader.UploadWithContext(ctx, d.resources.S3Bucket, artifactpath.EnvFiles(path, content), reader)
+		url, err := in.uploader.Upload(ctx, d.resources.S3Bucket, artifactpath.EnvFiles(path, content), reader)
 		if err != nil {
 			return nil, fmt.Errorf("put env file %s artifact to bucket %s: %w", path, d.resources.S3Bucket, err)
 		}
@@ -779,7 +775,7 @@ func (d *workloadDeployer) pushAddonsTemplateToS3Bucket(ctx context.Context) (st
 	}
 
 	reader := strings.NewReader(tmpl)
-	url, err := d.s3Client.UploadWithContext(ctx, d.resources.S3Bucket, artifactpath.Addons(d.name, []byte(tmpl)), reader)
+	url, err := d.s3Client.Upload(ctx, d.resources.S3Bucket, artifactpath.Addons(d.name, []byte(tmpl)), reader)
 	if err != nil {
 		return "", fmt.Errorf("put addons artifact to bucket %s: %w", d.resources.S3Bucket, err)
 	}

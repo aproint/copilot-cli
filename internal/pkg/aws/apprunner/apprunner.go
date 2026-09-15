@@ -59,13 +59,8 @@ func New(cfg awsv2.Config) *AppRunner {
 	}
 }
 
-// DescribeService returns a description of an AppRunner service given its ARN.
-func (a *AppRunner) DescribeService(svcARN string) (*Service, error) {
-	return a.DescribeServiceWithContext(context.Background(), svcARN)
-}
-
-// DescribeServiceWithContext returns a description of an AppRunner service using ctx.
-func (a *AppRunner) DescribeServiceWithContext(ctx context.Context, svcARN string) (*Service, error) {
+// DescribeService returns a description of an AppRunner service using ctx.
+func (a *AppRunner) DescribeService(ctx context.Context, svcARN string) (*Service, error) {
 	resp, err := a.client.DescribeService(ctx, &apprunner.DescribeServiceInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
@@ -120,13 +115,8 @@ func (a *AppRunner) DescribeServiceWithContext(ctx context.Context, svcARN strin
 	}, nil
 }
 
-// ServiceARN returns the ARN of an AppRunner service given its service name.
-func (a *AppRunner) ServiceARN(svc string) (string, error) {
-	return a.ServiceARNWithContext(context.Background(), svc)
-}
-
-// ServiceARNWithContext returns the ARN of an App Runner service using ctx for every page.
-func (a *AppRunner) ServiceARNWithContext(ctx context.Context, svc string) (string, error) {
+// ServiceARN returns the ARN of an App Runner service using ctx for every page.
+func (a *AppRunner) ServiceARN(ctx context.Context, svc string) (string, error) {
 	var nextToken *string
 	for {
 		if err := ctx.Err(); err != nil {
@@ -151,13 +141,8 @@ func (a *AppRunner) ServiceARNWithContext(ctx context.Context, svc string) (stri
 	return "", fmt.Errorf("no AppRunner service found for %s", svc)
 }
 
-// PauseService pause the running App Runner service.
-func (a *AppRunner) PauseService(svcARN string) error {
-	return a.PauseServiceWithContext(context.Background(), svcARN)
-}
-
-// PauseServiceWithContext pauses the running App Runner service using ctx.
-func (a *AppRunner) PauseServiceWithContext(ctx context.Context, svcARN string) error {
+// PauseService pauses the running App Runner service using ctx.
+func (a *AppRunner) PauseService(ctx context.Context, svcARN string) error {
 	resp, err := a.client.PauseService(ctx, &apprunner.PauseServiceInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
@@ -167,19 +152,14 @@ func (a *AppRunner) PauseServiceWithContext(ctx context.Context, svcARN string) 
 	if resp.OperationId == nil && string(resp.Service.Status) == svcStatusPaused {
 		return nil
 	}
-	if err := a.WaitForOperationWithContext(ctx, awsv2.ToString(resp.OperationId), svcARN); err != nil {
+	if err := a.WaitForOperation(ctx, awsv2.ToString(resp.OperationId), svcARN); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ResumeService resumes a paused App Runner service.
-func (a *AppRunner) ResumeService(svcARN string) error {
-	return a.ResumeServiceWithContext(context.Background(), svcARN)
-}
-
-// ResumeServiceWithContext resumes a paused App Runner service using ctx.
-func (a *AppRunner) ResumeServiceWithContext(ctx context.Context, svcARN string) error {
+// ResumeService resumes a paused App Runner service using ctx.
+func (a *AppRunner) ResumeService(ctx context.Context, svcARN string) error {
 	resp, err := a.client.ResumeService(ctx, &apprunner.ResumeServiceInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
@@ -189,19 +169,14 @@ func (a *AppRunner) ResumeServiceWithContext(ctx context.Context, svcARN string)
 	if resp.OperationId == nil && string(resp.Service.Status) == svcStatusRunning {
 		return nil
 	}
-	if err := a.WaitForOperationWithContext(ctx, awsv2.ToString(resp.OperationId), svcARN); err != nil {
+	if err := a.WaitForOperation(ctx, awsv2.ToString(resp.OperationId), svcARN); err != nil {
 		return err
 	}
 	return nil
 }
 
-// StartDeployment initiates a manual deployment to an AWS App Runner service.
-func (a *AppRunner) StartDeployment(svcARN string) (string, error) {
-	return a.StartDeploymentWithContext(context.Background(), svcARN)
-}
-
-// StartDeploymentWithContext initiates a manual deployment using ctx.
-func (a *AppRunner) StartDeploymentWithContext(ctx context.Context, svcARN string) (string, error) {
+// StartDeployment initiates a manual deployment using ctx.
+func (a *AppRunner) StartDeployment(ctx context.Context, svcARN string) (string, error) {
 	out, err := a.client.StartDeployment(ctx, &apprunner.StartDeploymentInput{
 		ServiceArn: awsv2.String(svcARN),
 	})
@@ -211,13 +186,8 @@ func (a *AppRunner) StartDeploymentWithContext(ctx context.Context, svcARN strin
 	return awsv2.ToString(out.OperationId), nil
 }
 
-// DescribeOperation return OperationSummary for given OperationId and ServiceARN.
-func (a *AppRunner) DescribeOperation(operationId, svcARN string) (*types.OperationSummary, error) {
-	return a.DescribeOperationWithContext(context.Background(), operationId, svcARN)
-}
-
-// DescribeOperationWithContext returns the operation summary using ctx for every page.
-func (a *AppRunner) DescribeOperationWithContext(ctx context.Context, operationId, svcARN string) (*types.OperationSummary, error) {
+// DescribeOperation returns the operation summary using ctx for every page.
+func (a *AppRunner) DescribeOperation(ctx context.Context, operationId, svcARN string) (*types.OperationSummary, error) {
 	var nextToken *string
 	for {
 		if err := ctx.Err(); err != nil {
@@ -243,15 +213,10 @@ func (a *AppRunner) DescribeOperationWithContext(ctx context.Context, operationI
 	return nil, fmt.Errorf("no operation found %s", operationId)
 }
 
-// WaitForOperation waits for a service operation.
-func (a *AppRunner) WaitForOperation(operationId, svcARN string) error {
-	return a.WaitForOperationWithContext(context.Background(), operationId, svcARN)
-}
-
-// WaitForOperationWithContext waits for a service operation using ctx.
-func (a *AppRunner) WaitForOperationWithContext(ctx context.Context, operationId, svcARN string) error {
+// WaitForOperation waits for a service operation using ctx.
+func (a *AppRunner) WaitForOperation(ctx context.Context, operationId, svcARN string) error {
 	for {
-		resp, err := a.DescribeOperationWithContext(ctx, operationId, svcARN)
+		resp, err := a.DescribeOperation(ctx, operationId, svcARN)
 		if err != nil {
 			return fmt.Errorf("error describing operation %s: %w", operationId, err)
 		}
@@ -273,13 +238,8 @@ func (a *AppRunner) WaitForOperationWithContext(ctx context.Context, operationId
 	}
 }
 
-// PrivateURL returns the url associated with a VPC Ingress Connection.
-func (a *AppRunner) PrivateURL(vicARN string) (string, error) {
-	return a.PrivateURLWithContext(context.Background(), vicARN)
-}
-
-// PrivateURLWithContext returns the URL associated with a VPC Ingress Connection using ctx.
-func (a *AppRunner) PrivateURLWithContext(ctx context.Context, vicARN string) (string, error) {
+// PrivateURL returns the URL associated with a VPC Ingress Connection using ctx.
+func (a *AppRunner) PrivateURL(ctx context.Context, vicARN string) (string, error) {
 	resp, err := a.client.DescribeVpcIngressConnection(ctx, &apprunner.DescribeVpcIngressConnectionInput{
 		VpcIngressConnectionArn: awsv2.String(vicARN),
 	})

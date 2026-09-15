@@ -55,11 +55,7 @@ type listPipelineOpts struct {
 
 type newPipelineDescriberFunc func(ctx context.Context, pipeline deploy.Pipeline) (describer, error)
 
-func newListPipelinesOpts(vars listPipelineVars) (*listPipelineOpts, error) {
-	return newListPipelinesOptsWithContext(context.Background(), vars)
-}
-
-func newListPipelinesOptsWithContext(ctx context.Context, vars listPipelineVars) (*listPipelineOpts, error) {
+func newListPipelinesOpts(ctx context.Context, vars listPipelineVars) (*listPipelineOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -86,7 +82,7 @@ func newListPipelinesOptsWithContext(ctx context.Context, vars listPipelineVars)
 		w:                os.Stdout,
 		workspace:        ws,
 		newDescriber: func(ctx context.Context, pipeline deploy.Pipeline) (describer, error) {
-			return describe.NewPipelineDescriberWithContext(ctx, pipeline, false)
+			return describe.NewPipelineDescriber(ctx, pipeline, false)
 		},
 		wsAppName: wsAppName,
 	}, nil
@@ -95,7 +91,7 @@ func newListPipelinesOptsWithContext(ctx context.Context, vars listPipelineVars)
 // Ask asks for and validates fields that are required but not passed in.
 func (o *listPipelineOpts) Ask(ctx context.Context) error {
 	if o.shouldShowLocalPipelines {
-		return validateWorkspaceAppWithContext(ctx, o.wsAppName, o.appName, o.store)
+		return validateWorkspaceApp(ctx, o.wsAppName, o.appName, o.store)
 	}
 
 	if o.appName != "" {
@@ -214,7 +210,7 @@ func (o *listPipelineOpts) jsonOutputDeployed(ctx context.Context) error {
 
 // humanOutputDeployed prints the name of all pipelines in the given app that have been deployed.
 func (o *listPipelineOpts) humanOutputDeployed(ctx context.Context) error {
-	pipelines, err := o.pipelineLister.ListDeployedPipelinesWithContext(ctx, o.appName)
+	pipelines, err := o.pipelineLister.ListDeployedPipelines(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("list deployed pipelines: %w", err)
 	}
@@ -231,7 +227,7 @@ func (o *listPipelineOpts) humanOutputDeployed(ctx context.Context) error {
 }
 
 func getDeployedPipelines(ctx context.Context, app string, lister deployedPipelineLister, newDescriber newPipelineDescriberFunc) ([]*describe.Pipeline, error) {
-	pipelines, err := lister.ListDeployedPipelinesWithContext(ctx, app)
+	pipelines, err := lister.ListDeployedPipelines(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed pipelines: %w", err)
 	}
@@ -287,7 +283,7 @@ func buildPipelineListCmd() *cobra.Command {
   Lists all the pipelines for the frontend application.
   /code $ copilot pipeline ls -a frontend`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListPipelinesOptsWithContext(cmd.Context(), vars)
+			opts, err := newListPipelinesOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

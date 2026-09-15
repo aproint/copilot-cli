@@ -26,8 +26,7 @@ const (
 
 // TasksDescriber describes ECS tasks.
 type TasksDescriber interface {
-	DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error)
-	DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error)
+	DescribeTasks(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error)
 }
 
 // TaskClient retrieves the logs of Amazon ECS tasks.
@@ -67,13 +66,8 @@ func NewTaskClient(cfg aws.Config, groupName string, tasks []*task.Task) *TaskCl
 	}
 }
 
-// WriteEventsUntilStopped writes tasks' events to a writer until all tasks have stopped.
-func (t *TaskClient) WriteEventsUntilStopped() error {
-	return t.WriteEventsUntilStoppedWithContext(context.Background())
-}
-
-// WriteEventsUntilStoppedWithContext writes task events until all tasks stop or ctx is canceled.
-func (t *TaskClient) WriteEventsUntilStoppedWithContext(ctx context.Context) error {
+// WriteEventsUntilStopped writes task events until all tasks stop or ctx is canceled.
+func (t *TaskClient) WriteEventsUntilStopped(ctx context.Context) error {
 	in := cloudwatchlogs.LogEventsOpts{
 		LogGroup: fmt.Sprintf(fmtTaskLogGroupName, t.groupName),
 	}
@@ -87,7 +81,7 @@ func (t *TaskClient) WriteEventsUntilStoppedWithContext(ctx context.Context) err
 		}
 		in.LogStreamPrefixFilters = logStreams
 		for i := 0; i < numCWLogsCallsPerRound; i++ {
-			logEventsOutput, err := t.eventsLogger.LogEventsWithContext(ctx, in)
+			logEventsOutput, err := t.eventsLogger.LogEvents(ctx, in)
 			if err != nil {
 				return fmt.Errorf("get task log events: %w", err)
 			}
@@ -119,7 +113,7 @@ func (t *TaskClient) allTasksStopped(ctx context.Context) (bool, error) {
 	// NOTE: all tasks are deployed to the same cluster and there are at least one tasks being deployed
 	cluster := t.tasks[0].ClusterARN
 
-	tasksResp, err := t.taskDescriber.DescribeTasksWithContext(ctx, cluster, taskARNs)
+	tasksResp, err := t.taskDescriber.DescribeTasks(ctx, cluster, taskARNs)
 	if err != nil {
 		return false, fmt.Errorf("describe tasks: %w", err)
 	}

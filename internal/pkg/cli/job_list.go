@@ -30,11 +30,7 @@ type listJobOpts struct {
 	list workloadListWriter
 }
 
-func newListJobOpts(vars listWkldVars) (*listJobOpts, error) {
-	return newListJobOptsWithContext(context.Background(), vars)
-}
-
-func newListJobOptsWithContext(ctx context.Context, vars listWkldVars) (*listJobOpts, error) {
+func newListJobOpts(ctx context.Context, vars listWkldVars) (*listJobOpts, error) {
 	defaultConfig, err := sessions.ImmutableProvider(sessions.UserAgentExtras("job ls")).DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
@@ -62,7 +58,7 @@ func newListJobOptsWithContext(ctx context.Context, vars listWkldVars) (*listJob
 }
 
 // Validate is a no-op for this command.
-func (o *listJobOpts) Validate() error {
+func (o *listJobOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -97,7 +93,7 @@ func buildJobListCmd() *cobra.Command {
   Lists all the jobs for the "myapp" application.
   /code $ copilot job ls --app myapp`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListJobOptsWithContext(cmd.Context(), vars)
+			opts, err := newListJobOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

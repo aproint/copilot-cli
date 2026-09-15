@@ -52,12 +52,12 @@ type initAppOpts struct {
 
 	identity             identityService
 	store                applicationStore
-	route53              contextDomainHostedZoneGetter
+	route53              domainHostedZoneGetter
 	cfn                  appDeployer
 	prompt               prompter
 	prog                 progress
 	iam                  contextPolicyLister
-	iamRoleManager       contextRoleTagsLister
+	iamRoleManager       roleTagsLister
 	isSessionFromEnvVars func(context.Context) (bool, error)
 
 	existingWorkspace func() (wsAppManager, error)
@@ -90,7 +90,7 @@ func newInitAppOptsWithSessionProvider(ctx context.Context, vars initAppVars, se
 		iam:            iamClient,
 		iamRoleManager: iamClient,
 		isSessionFromEnvVars: func(ctx context.Context) (bool, error) {
-			return sessions.AreV2CredsFromEnvVars(ctx, cfg)
+			return sessions.AreCredentialsFromEnvVars(ctx, cfg)
 		},
 		existingWorkspace: func() (wsAppManager, error) {
 			return workspace.Use(fs)
@@ -102,7 +102,7 @@ func newInitAppOptsWithSessionProvider(ctx context.Context, vars initAppVars, se
 }
 
 // Validate returns an error if the user's input is invalid.
-func (o *initAppOpts) Validate() error {
+func (o *initAppOpts) Validate(ctx context.Context) error {
 	if o.name != "" {
 		if err := validateAppNameString(o.name); err != nil {
 			return err
@@ -318,7 +318,7 @@ func (o *initAppOpts) validateAppName(ctx context.Context, name string) error {
 			return err
 		}
 		roleName := fmt.Sprintf("%s-adminrole", name)
-		tags, err := o.iamRoleManager.ListRoleTagsContext(ctx, roleName)
+		tags, err := o.iamRoleManager.ListRoleTags(ctx, roleName)
 		// NOTE: This is a best-effort attempt to check if the app exists in other regions.
 		// The error either indicates that the role does not exist, or not.
 		// In the first case, it means that this is a valid app name, hence we don't error out.
@@ -341,7 +341,7 @@ func (o *initAppOpts) validateAppName(ctx context.Context, name string) error {
 }
 
 func (o *initAppOpts) validatePermBound(ctx context.Context, policyName string) error {
-	IAMPolicies, err := o.iam.ListPolicyNamesContext(ctx)
+	IAMPolicies, err := o.iam.ListPolicyNames(ctx)
 	if err != nil {
 		return fmt.Errorf("list permissions boundary policies: %w", err)
 	}
@@ -354,7 +354,7 @@ func (o *initAppOpts) validatePermBound(ctx context.Context, policyName string) 
 }
 
 func (o *initAppOpts) warnIfDomainIsNotOwned(ctx context.Context) {
-	err := o.route53.ValidateDomainOwnershipContext(ctx, o.domainName)
+	err := o.route53.ValidateDomainOwnership(ctx, o.domainName)
 	if err == nil {
 		return
 	}
@@ -369,7 +369,7 @@ func (o *initAppOpts) domainHostedZoneID(ctx context.Context, domainName string)
 	if o.cachedHostedZoneID != "" {
 		return o.cachedHostedZoneID, nil
 	}
-	hostedZoneID, err := o.route53.PublicDomainHostedZoneIDContext(ctx, domainName)
+	hostedZoneID, err := o.route53.PublicDomainHostedZoneID(ctx, domainName)
 	if err != nil {
 		return "", fmt.Errorf("get public hosted zone ID for domain %s: %w", domainName, err)
 	}

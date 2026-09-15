@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -429,7 +430,7 @@ func TestRDWebServiceDescriber_Describe(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &RDWebServiceDescriber{
+			d := &RDWebServiceDescriber{ctx: context.Background(),
 				app:                    testApp,
 				svc:                    testSvc,
 				enableResources:        tc.shouldOutputResources,

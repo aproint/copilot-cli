@@ -62,42 +62,42 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 	}{
 		"fail to get app resource by region": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(nil, errors.New("some error"))
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("get app resources in region %s: some error", mockEnvRegion),
 		},
 		"fail to find S3 bucket in the region": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{}, nil)
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{}, nil)
 			},
 			wantedError: fmt.Errorf("cannot find the S3 artifact bucket in region %s", mockEnvRegion),
 		},
 		"fail to patch the environment": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(errors.New("some error"))
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(errors.New("some error"))
 			},
 			wantedError: errors.New("ensure env manager role has permissions to upload: some error"),
 		},
 		"fail to upload custom resource scripts": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", fmt.Errorf("some error"))
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(nil)
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", fmt.Errorf("some error"))
 			},
 			wantedError: errors.New("upload custom resources to bucket mockS3Bucket"),
 		},
 		"fail to parse addons": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(nil)
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, errors.New("some error")
 				}
@@ -106,11 +106,11 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 		},
 		"fail to package addons asset": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(nil)
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
@@ -121,11 +121,11 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 		},
 		"fail to render addons template": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(nil)
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
@@ -137,36 +137,36 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 		},
 		"fail to upload addons template": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(nil)
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
 				m.ws.EXPECT().Path().Return("mockPath")
 				m.addons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.addons.EXPECT().Template().Return("mockAddons", nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
 					Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("upload addons template to bucket mockS3Bucket: some error"),
 		},
 		"success with addons and custom resources URLs": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(nil)
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", gomock.Not(artifactpath.EnvironmentAddons([]byte("mockAddons"))), gomock.Any()).AnyTimes().Return("", nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return m.addons, nil
 				}
 				m.ws.EXPECT().Path().Return("mockPath")
 				m.addons.EXPECT().Package(gomock.Any()).Return(nil)
 				m.addons.EXPECT().Template().Return("mockAddons", nil)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", artifactpath.EnvironmentAddons([]byte("mockAddons")), gomock.Any()).
 					Return("mockAddonsURL", nil)
 			},
 			wantedAddonsURL: "mockAddonsURL",
@@ -181,13 +181,13 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 		},
 		"success with only custom resource URLs returned": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload("mockS3Bucket").Return(nil)
+				m.patcher.EXPECT().EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockS3Bucket").Return(nil)
 				crs, err := customresource.Env(fakeTemplateFS())
 				require.NoError(t, err)
-				m.s3.EXPECT().UploadWithContext(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
+				m.s3.EXPECT().Upload(gomock.Any(), "mockS3Bucket", gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, key string, _ io.Reader) (url string, err error) {
 					for _, cr := range crs {
 						if strings.Contains(key, strings.ToLower(cr.Name())) {
 							return "", nil
@@ -230,7 +230,7 @@ func TestEnvDeployer_UploadArtifacts(t *testing.T) {
 				Region:         mockEnvRegion,
 				App:            "mockApp",
 			}
-			d := envDeployer{
+			d := envDeployer{ctx: context.Background(),
 				app:         mockApp,
 				env:         mockEnv,
 				appCFN:      m.appCFN,
@@ -263,7 +263,7 @@ func TestEnvDeployer_DeployDiff(t *testing.T) {
 		"error getting the deployed template": {
 			setUpMocks: func(m *deployDiffMocks) {
 				m.mockDeployedTmplGetter.
-					EXPECT().Template(gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
+					EXPECT().Template(context.Background(), gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
 					Return("", errors.New("some error"))
 			},
 			checkErr: func(t *testing.T, gotErr error) {
@@ -274,7 +274,7 @@ func TestEnvDeployer_DeployDiff(t *testing.T) {
 			inTemplate: `!!!???what a weird template`,
 			setUpMocks: func(m *deployDiffMocks) {
 				m.mockDeployedTmplGetter.EXPECT().
-					Template(gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
+					Template(context.Background(), gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
 					Return("wow such template", nil)
 			},
 			checkErr: func(t *testing.T, gotErr error) {
@@ -285,7 +285,7 @@ func TestEnvDeployer_DeployDiff(t *testing.T) {
 			inTemplate: `peace: and love`,
 			setUpMocks: func(m *deployDiffMocks) {
 				m.mockDeployedTmplGetter.EXPECT().
-					Template(gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
+					Template(context.Background(), gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
 					Return("peace: und Liebe", nil)
 			},
 			wanted: `~ peace: und Liebe -> and love
@@ -295,7 +295,7 @@ func TestEnvDeployer_DeployDiff(t *testing.T) {
 			inTemplate: `peace: and love`,
 			setUpMocks: func(m *deployDiffMocks) {
 				m.mockDeployedTmplGetter.EXPECT().
-					Template(gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
+					Template(context.Background(), gomock.Eq(cfnstack.NameForEnv("mockApp", "mockEnv"))).
 					Return("", &cfnclient.ErrStackNotFound{})
 			},
 			wanted: `+ peace: and love
@@ -311,7 +311,7 @@ func TestEnvDeployer_DeployDiff(t *testing.T) {
 				mockDeployedTmplGetter: mocks.NewMockdeployedTemplateGetter(ctrl),
 			}
 			tc.setUpMocks(m)
-			deployer := envDeployer{
+			deployer := envDeployer{ctx: context.Background(),
 				app: &config.Application{
 					Name: "mockApp",
 				},
@@ -372,7 +372,7 @@ func TestEnvDeployer_AddonsTemplate(t *testing.T) {
 				addons: mocks.NewMockstackBuilder(ctrl),
 			}
 			tc.setUpMocks(m)
-			d := envDeployer{
+			d := envDeployer{ctx: context.Background(),
 				parseAddons: m.parseAddons,
 			}
 			got, gotErr := d.AddonsTemplate()
@@ -407,60 +407,60 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 	}{
 		"fail to get app resources by region": {
 			setUpMocks: func(m *envDeployerMocks, _ *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(gomock.Any(), gomock.Any()).
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), gomock.Any(), gomock.Any()).
 					Return(nil, mockError)
 			},
 			wantedError: errors.New("get app resources in region us-west-2: some error"),
 		},
 		"fail to get existing parameters": {
 			setUpMocks: func(m *envDeployerMocks, _ *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockError)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, mockError)
 			},
 			wantedError: errors.New("describe environment stack parameters: some error"),
 		},
 		"fail to get existing force update ID": {
 			setUpMocks: func(m *envDeployerMocks, _ *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", mockError)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", mockError)
 			},
 			wantedError: errors.New("retrieve environment stack force update ID: some error"),
 		},
 		"fail to generate stack template": {
 			setUpMocks: func(m *envDeployerMocks, _ *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("", mockError)
 			},
 			wantedError: errors.New("generate stack template: some error"),
 		},
 		"fail to generate stack parameters": {
 			setUpMocks: func(m *envDeployerMocks, _ *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("", nil)
 				m.stackSerializer.EXPECT().SerializedParameters().Return("", mockError)
 			},
@@ -468,7 +468,7 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		},
 		"return an error when addons cannot be parsed due to unknown reasons": {
 			setUpMocks: func(m *envDeployerMocks, _ *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
@@ -479,7 +479,7 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		},
 		"return an error if the URL isn't provided and addons template cannot be retrieved": {
 			setUpMocks: func(m *envDeployerMocks, ctrl *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
@@ -492,14 +492,14 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		},
 		"successfully return environment template without addons": {
 			setUpMocks: func(m *envDeployerMocks, _ *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
 					return nil, &addon.ErrAddonsNotFound{}
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), mockAppName, mockEnvName).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), mockAppName, mockEnvName).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("aloo", nil)
 				m.stackSerializer.EXPECT().SerializedParameters().Return("gobi", nil)
 			},
@@ -509,7 +509,7 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 		},
 		"successfully return environment template with addons": {
 			setUpMocks: func(m *envDeployerMocks, ctrl *gomock.Controller) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) {
@@ -517,8 +517,8 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 					mockStack.EXPECT().Template().Return("template", nil)
 					return mockStack, nil
 				}
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), mockAppName, mockEnvName).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), mockAppName, mockEnvName).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.stackSerializer.EXPECT().Template().Return("aloo", nil)
 				m.stackSerializer.EXPECT().SerializedParameters().Return("gobi", nil)
 			},
@@ -538,7 +538,7 @@ func TestEnvDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 				stackSerializer: cfnmocks.NewMockStackConfiguration(ctrl),
 			}
 			tc.setUpMocks(m, ctrl)
-			d := envDeployer{
+			d := envDeployer{ctx: context.Background(),
 				app: mockApp,
 				env: &config.Environment{
 					Name:   mockEnvName,
@@ -583,17 +583,17 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 	}{
 		"fail to get app resources by region": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).
 					Return(nil, errors.New("some error"))
 			},
 			wantedError: fmt.Errorf("get app resources in region %s: some error", mockEnvRegion),
 		},
 		"fail to get prefix list id": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListIDWithContext(gomock.Any()).Return("", errors.New("some error"))
+				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID(gomock.Any()).Return("", errors.New("some error"))
 			},
 			inManifest: &manifest.Environment{
 				EnvironmentConfig: manifest.EnvironmentConfig{
@@ -614,12 +614,12 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 		},
 		"prefix list not retrieved when manifest not present": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
-				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListIDWithContext(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
 				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
@@ -627,60 +627,60 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 		},
 		"fail to get existing parameters": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("describe environment stack parameters: some error"),
 		},
 		"fail to get existing force update ID": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), gomock.Any(), gomock.Any()).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("retrieve environment stack force update ID: some error"),
 		},
 		"fail to deploy environment": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListIDWithContext(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
+				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error"))
 			},
 			wantedError: errors.New("some error"),
 		},
 		"successful environment deployment": {
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListIDWithContext(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
+				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 		},
 		"successful environment deployment, no rollback": {
 			inDisableRollback: true,
 			setUpMocks: func(m *envDeployerMocks) {
-				m.appCFN.EXPECT().GetAppResourcesByRegion(mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
+				m.appCFN.EXPECT().GetAppResourcesByRegion(context.Background(), mockApp, mockEnvRegion).Return(&cfnstack.AppRegionalResources{
 					S3Bucket: "mockS3Bucket",
 				}, nil)
-				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListIDWithContext(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
+				m.prefixListGetter.EXPECT().CloudFrontManagedPrefixListID(gomock.Any()).Return("mockPrefixListID", nil).Times(0)
 				m.parseAddons = func() (stackBuilder, error) { return nil, &addon.ErrAddonsNotFound{} }
-				m.envDeployer.EXPECT().DeployedEnvironmentParametersWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				m.envDeployer.EXPECT().ForceUpdateOutputIDWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				m.envDeployer.EXPECT().DeployedEnvironmentParameters(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				m.envDeployer.EXPECT().ForceUpdateOutputID(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 				m.envDeployer.EXPECT().UpdateAndRenderEnvironment(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Len(2)).Return(nil)
 			},
 		},
@@ -697,7 +697,7 @@ func TestEnvDeployer_DeployEnvironment(t *testing.T) {
 				stackSerializer:  cfnmocks.NewMockStackConfiguration(ctrl),
 			}
 			tc.setUpMocks(m)
-			d := envDeployer{
+			d := envDeployer{ctx: context.Background(),
 				app: mockApp,
 				env: &config.Environment{
 					Name:           mockEnvName,
@@ -837,7 +837,7 @@ func TestEnvDeployer_Validate(t *testing.T) {
 				m.envDescriber.EXPECT().Params().Return(map[string]string{
 					"ALBWorkloads": "svc1",
 				}, nil)
-				m.stackDescribers["svc1"].EXPECT().Resources().Return(nil, errors.New("some error"))
+				m.stackDescribers["svc1"].EXPECT().Resources(gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			expected: `enable TLS termination on CDN: verify service "svc1": get stack resources: some error`,
 		},
@@ -852,7 +852,7 @@ func TestEnvDeployer_Validate(t *testing.T) {
 				m.envDescriber.EXPECT().Params().Return(map[string]string{
 					"ALBWorkloads": "svc1",
 				}, nil)
-				m.stackDescribers["svc1"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc1"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc1RuleARN",
@@ -875,19 +875,19 @@ func TestEnvDeployer_Validate(t *testing.T) {
 				m.envDescriber.EXPECT().Params().Return(map[string]string{
 					"ALBWorkloads": "svc1,svc2,svc3",
 				}, nil)
-				m.stackDescribers["svc1"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc1"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc1RuleARN",
 					},
 				}, nil)
-				m.stackDescribers["svc2"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc2"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc2RuleARN",
 					},
 				}, nil)
-				m.stackDescribers["svc3"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc3"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc3RuleARN",
@@ -942,19 +942,19 @@ If you'd like to use these services without a CDN, ensure each service's A recor
 				m.envDescriber.EXPECT().Params().Return(map[string]string{
 					"ALBWorkloads": "svc1,svc2,svc3",
 				}, nil)
-				m.stackDescribers["svc1"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc1"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc1RuleARN",
 					},
 				}, nil)
-				m.stackDescribers["svc2"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc2"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc2RuleARN",
 					},
 				}, nil)
-				m.stackDescribers["svc3"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc3"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc3RuleARN",
@@ -979,19 +979,19 @@ If you'd like to use these services without a CDN, ensure each service's A recor
 				m.envDescriber.EXPECT().Params().Return(map[string]string{
 					"ALBWorkloads": "svc1,svc2,svc3",
 				}, nil)
-				m.stackDescribers["svc1"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc1"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc1RuleARN",
 					},
 				}, nil)
-				m.stackDescribers["svc2"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc2"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc2RuleARN",
 					},
 				}, nil)
-				m.stackDescribers["svc3"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc3"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc3RuleARN",
@@ -1012,7 +1012,7 @@ If you'd like to use these services without a CDN, ensure each service's A recor
 				m.envDescriber.EXPECT().Params().Return(map[string]string{
 					"ALBWorkloads": "svc1",
 				}, nil)
-				m.stackDescribers["svc1"].EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescribers["svc1"].EXPECT().Resources(gomock.Any()).Return([]*stack.Resource{
 					{
 						LogicalID:  "HTTPListenerRuleWithDomain",
 						PhysicalID: "svc1RuleARN",
@@ -1036,7 +1036,7 @@ If you'd like to use these services without a CDN, ensure each service's A recor
 				tc.setUpMocks(m, ctrl)
 			}
 
-			d := &envDeployer{
+			d := &envDeployer{ctx: context.Background(),
 				app: tc.app,
 				env: &config.Environment{
 					Name: aws.ToString(tc.mft.Name),

@@ -50,7 +50,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 						Name: "dinder",
 					}, nil),
-					mocks.sel.EXPECT().DeployedPipelineWithContext(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
+					mocks.sel.EXPECT().DeployedPipeline(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
 						Name:    mockPipelineName,
 						AppName: mockAppName,
 					}, nil),
@@ -75,7 +75,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 				mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 					Name: "dinder",
 				}, nil)
-				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{
+				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelines(ctx, mockAppName).Return([]deploy.Pipeline{
 					{
 						Name: mockPipelineName,
 					},
@@ -89,7 +89,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 			setupMocks: func(mocks showPipelineMocks) {
 				gomock.InOrder(
 					mocks.sel.EXPECT().Application(ctx, gomock.Any(), gomock.Any()).Return(mockAppName, nil))
-				mocks.sel.EXPECT().DeployedPipelineWithContext(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
+				mocks.sel.EXPECT().DeployedPipeline(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{
 					Name: mockPipelineName,
 				}, nil)
 			},
@@ -105,7 +105,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 				mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 					Name: "dinder",
 				}, nil)
-				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{}, nil)
+				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelines(ctx, mockAppName).Return([]deploy.Pipeline{}, nil)
 			},
 			expectedApp: mockAppName,
 			expectedErr: errors.New("validate pipeline name dander: cannot find pipeline named dander"),
@@ -118,7 +118,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 				mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 					Name: "dinder",
 				}, nil)
-				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{}, errors.New("some error"))
+				mocks.deployedPipelineLister.EXPECT().ListDeployedPipelines(ctx, mockAppName).Return([]deploy.Pipeline{}, errors.New("some error"))
 			},
 			expectedApp: mockAppName,
 			expectedErr: errors.New("validate pipeline name dander: list deployed pipelines: some error"),
@@ -131,7 +131,7 @@ func TestPipelineShow_Ask(t *testing.T) {
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(&config.Application{
 						Name: "dinder",
 					}, nil),
-					mocks.sel.EXPECT().DeployedPipelineWithContext(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{}, mockError),
+					mocks.sel.EXPECT().DeployedPipeline(ctx, gomock.Any(), gomock.Any(), mockAppName).Return(deploy.Pipeline{}, mockError),
 				)
 			},
 			expectedErr: fmt.Errorf("select deployed pipelines: %w", mockError),

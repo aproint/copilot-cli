@@ -103,31 +103,16 @@ func (m *MocklbDescriber) EXPECT() *MocklbDescriberMockRecorder {
 }
 
 // ListenerRulesHostHeaders mocks base method.
-func (m *MocklbDescriber) ListenerRulesHostHeaders(ruleARNs []string) ([]string, error) {
+func (m *MocklbDescriber) ListenerRulesHostHeaders(ctx context.Context, ruleARNs []string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListenerRulesHostHeaders", ruleARNs)
+	ret := m.ctrl.Call(m, "ListenerRulesHostHeaders", ctx, ruleARNs)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListenerRulesHostHeaders indicates an expected call of ListenerRulesHostHeaders.
-func (mr *MocklbDescriberMockRecorder) ListenerRulesHostHeaders(ruleARNs interface{}) *gomock.Call {
+func (mr *MocklbDescriberMockRecorder) ListenerRulesHostHeaders(ctx, ruleARNs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListenerRulesHostHeaders", reflect.TypeOf((*MocklbDescriber)(nil).ListenerRulesHostHeaders), ruleARNs)
-}
-
-// ListenerRulesHostHeadersWithContext mocks base method.
-func (m *MocklbDescriber) ListenerRulesHostHeadersWithContext(ctx context.Context, ruleARNs []string) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListenerRulesHostHeadersWithContext", ctx, ruleARNs)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListenerRulesHostHeadersWithContext indicates an expected call of ListenerRulesHostHeadersWithContext.
-func (mr *MocklbDescriberMockRecorder) ListenerRulesHostHeadersWithContext(ctx, ruleARNs interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListenerRulesHostHeadersWithContext", reflect.TypeOf((*MocklbDescriber)(nil).ListenerRulesHostHeadersWithContext), ctx, ruleARNs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListenerRulesHostHeaders", reflect.TypeOf((*MocklbDescriber)(nil).ListenerRulesHostHeaders), ctx, ruleARNs)
 }

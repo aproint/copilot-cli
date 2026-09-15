@@ -53,17 +53,13 @@ type DeployedEnvServicesLister interface {
 }
 
 type ecsClient interface {
-	TaskDefinition(app, env, svc string) (*awsecs.TaskDefinition, error)
-	TaskDefinitionWithContext(ctx context.Context, app, env, svc string) (*awsecs.TaskDefinition, error)
-	Service(app, env, svc string) (*awsecs.Service, error)
-	ServiceWithContext(ctx context.Context, app, env, svc string) (*awsecs.Service, error)
+	TaskDefinition(ctx context.Context, app, env, svc string) (*awsecs.TaskDefinition, error)
+	Service(ctx context.Context, app, env, svc string) (*awsecs.Service, error)
 }
 
 type apprunnerClient interface {
-	DescribeService(svcARN string) (*apprunner.Service, error)
-	DescribeServiceWithContext(ctx context.Context, svcARN string) (*apprunner.Service, error)
-	PrivateURL(vicARN string) (string, error)
-	PrivateURLWithContext(ctx context.Context, vicARN string) (string, error)
+	DescribeService(ctx context.Context, svcARN string) (*apprunner.Service, error)
+	PrivateURL(ctx context.Context, vicARN string) (string, error)
 }
 
 type workloadDescriber interface {
@@ -92,30 +88,23 @@ type apprunnerDescriber interface {
 }
 
 type cwAlarmDescriber interface {
-	AlarmDescriptions([]string) ([]*cloudwatch.AlarmDescription, error)
-	AlarmDescriptionsWithContext(context.Context, []string) ([]*cloudwatch.AlarmDescription, error)
+	AlarmDescriptions(context.Context, []string) ([]*cloudwatch.AlarmDescription, error)
 }
 
-func describeAlarms(ctx context.Context, contextEnabled bool, d cwAlarmDescriber, names []string) ([]*cloudwatch.AlarmDescription, error) {
-	if !contextEnabled {
-		return d.AlarmDescriptions(names)
-	}
-	return d.AlarmDescriptionsWithContext(ctx, names)
+func describeAlarms(ctx context.Context, d cwAlarmDescriber, names []string) ([]*cloudwatch.AlarmDescription, error) {
+	return d.AlarmDescriptions(ctx, names)
 }
 
 type bucketDescriber interface {
-	BucketTree(bucket string) (string, error)
-	BucketTreeWithContext(ctx context.Context, bucket string) (string, error)
+	BucketTree(ctx context.Context, bucket string) (string, error)
 }
 
 type bucketDataGetter interface {
-	BucketSizeAndCount(bucket string) (string, int, error)
-	BucketSizeAndCountWithContext(ctx context.Context, bucket string) (string, int, error)
+	BucketSizeAndCount(ctx context.Context, bucket string) (string, int, error)
 }
 
 type bucketNameGetter interface {
-	BucketName(app, env, svc string) (string, error)
-	BucketNameWithContext(ctx context.Context, app, env, svc string) (string, error)
+	BucketName(ctx context.Context, app, env, svc string) (string, error)
 }
 
 type ecsSvcDesc struct {
@@ -244,17 +233,11 @@ func (d *ecsServiceDescriber) RollbackAlarmNames() ([]string, error) {
 }
 
 func (d *ecsServiceDescriber) taskDefinition() (*awsecs.TaskDefinition, error) {
-	if !d.contextEnabled {
-		return d.ecsClient.TaskDefinition(d.app, d.env, d.name)
-	}
-	return d.ecsClient.TaskDefinitionWithContext(d.ctx, d.app, d.env, d.name)
+	return d.ecsClient.TaskDefinition(d.ctx, d.app, d.env, d.name)
 }
 
 func (d *ecsServiceDescriber) service() (*awsecs.Service, error) {
-	if !d.contextEnabled {
-		return d.ecsClient.Service(d.app, d.env, d.name)
-	}
-	return d.ecsClient.ServiceWithContext(d.ctx, d.app, d.env, d.name)
+	return d.ecsClient.Service(d.ctx, d.app, d.env, d.name)
 }
 
 // ServiceARN retrieves the ARN of the app runner service.
@@ -299,12 +282,7 @@ func (d *appRunnerServiceDescriber) Service() (*apprunner.Service, error) {
 		return nil, err
 	}
 
-	var service *apprunner.Service
-	if !d.contextEnabled {
-		service, err = d.apprunnerClient.DescribeService(serviceARN)
-	} else {
-		service, err = d.apprunnerClient.DescribeServiceWithContext(d.ctx, serviceARN)
-	}
+	service, err := d.apprunnerClient.DescribeService(d.ctx, serviceARN)
 	if err != nil {
 		return nil, fmt.Errorf("describe service: %w", err)
 	}
@@ -334,12 +312,7 @@ func (d *appRunnerServiceDescriber) ServiceURL() (string, error) {
 	}
 
 	if !isVICNotFound {
-		var url string
-		if !d.contextEnabled {
-			url, err = d.apprunnerClient.PrivateURL(vicARN)
-		} else {
-			url, err = d.apprunnerClient.PrivateURLWithContext(d.ctx, vicARN)
-		}
+		url, err := d.apprunnerClient.PrivateURL(d.ctx, vicARN)
 		if err != nil {
 			return "", err
 		}

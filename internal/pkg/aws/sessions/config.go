@@ -20,12 +20,12 @@ import (
 	"github.com/aws/smithy-go/middleware"
 )
 
-type v2ConfigLoader func(context.Context, ...func(*v2config.LoadOptions) error) (awsv2.Config, error)
+type configLoader func(context.Context, ...func(*v2config.LoadOptions) error) (awsv2.Config, error)
 
 // DefaultConfig returns an SDK v2 config configured against the default AWS profile.
 // DefaultConfig assumes that a region must be present with the config, otherwise it returns an error.
 func (p *Provider) DefaultConfig(ctx context.Context) (awsv2.Config, error) {
-	cfg, err := p.defaultV2Config(ctx)
+	cfg, err := p.defaultConfig(ctx)
 	if err != nil {
 		return awsv2.Config{}, err
 	}
@@ -37,19 +37,19 @@ func (p *Provider) DefaultConfig(ctx context.Context) (awsv2.Config, error) {
 
 // DefaultConfigWithRegion returns an SDK v2 config configured against the default AWS profile and the input region.
 func (p *Provider) DefaultConfigWithRegion(ctx context.Context, region string) (awsv2.Config, error) {
-	return p.v2Loader()(ctx, p.v2LoadOptions(v2config.WithRegion(region))...)
+	return p.loader()(ctx, p.loadOptions(v2config.WithRegion(region))...)
 }
 
 // ConfigFromProfile returns an SDK v2 config configured against the input profile name.
 func (p *Provider) ConfigFromProfile(ctx context.Context, name string) (awsv2.Config, error) {
-	cfg, err := p.v2Loader()(ctx, p.v2LoadOptions(v2config.WithSharedConfigProfile(name))...)
+	cfg, err := p.loader()(ctx, p.loadOptions(v2config.WithSharedConfigProfile(name))...)
 	if err != nil {
 		return awsv2.Config{}, err
 	}
 	if cfg.Region == "" {
 		return awsv2.Config{}, &errMissingRegion{}
 	}
-	if _, err := p.v2Validator().ValidateV2Credentials(ctx, cfg); err != nil {
+	if _, err := p.credentials(ctx, cfg); err != nil {
 		if isCredRetrievalErr(err) {
 			return awsv2.Config{}, &errCredRetrieval{profile: name, parentErr: err}
 		}
@@ -60,7 +60,7 @@ func (p *Provider) ConfigFromProfile(ctx context.Context, name string) (awsv2.Co
 
 // ConfigFromRole returns an SDK v2 config configured against the input role and region.
 func (p *Provider) ConfigFromRole(ctx context.Context, roleARN string, region string) (awsv2.Config, error) {
-	cfg, err := p.defaultV2Config(ctx)
+	cfg, err := p.defaultConfig(ctx)
 	if err != nil {
 		return awsv2.Config{}, fmt.Errorf("create default config: %w", err)
 	}
@@ -80,89 +80,89 @@ func (p *Provider) ConfigFromRole(ctx context.Context, roleARN string, region st
 func (p *Provider) ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (awsv2.Config, error) {
 	return awsv2.Config{
 		Credentials: awsv2.NewCredentialsCache(v2credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, sessionToken)),
-		HTTPClient:  newV2HTTPClient(),
-		Retryer:     newV2Retryer,
-		APIOptions:  p.v2APIOptions(),
+		HTTPClient:  newHTTPClient(),
+		Retryer:     newRetryer,
+		APIOptions:  p.apiOptions(),
 	}, nil
 }
 
-func (p *Provider) defaultV2Config(ctx context.Context) (awsv2.Config, error) {
-	if p.hasDefaultConfigV2 {
-		return p.defaultConfigV2, nil
+func (p *Provider) defaultConfig(ctx context.Context) (awsv2.Config, error) {
+	if p.hasCachedDefaultConfig {
+		return p.cachedDefaultConfig, nil
 	}
 
-	cfg, err := p.v2Loader()(ctx, p.v2LoadOptions()...)
+	cfg, err := p.loader()(ctx, p.loadOptions()...)
 	if err != nil {
 		return awsv2.Config{}, err
 	}
-	if _, err = p.v2Validator().ValidateV2Credentials(ctx, cfg); err != nil {
+	if _, err = p.credentials(ctx, cfg); err != nil {
 		if isCredRetrievalErr(err) {
 			return awsv2.Config{}, &errCredRetrieval{parentErr: err}
 		}
 		return awsv2.Config{}, err
 	}
 
-	p.defaultConfigV2 = cfg
-	p.hasDefaultConfigV2 = true
+	p.cachedDefaultConfig = cfg
+	p.hasCachedDefaultConfig = true
 	return cfg, nil
 }
 
-func (p *Provider) v2LoadOptions(additional ...func(*v2config.LoadOptions) error) []func(*v2config.LoadOptions) error {
+func (p *Provider) loadOptions(additional ...func(*v2config.LoadOptions) error) []func(*v2config.LoadOptions) error {
 	opts := []func(*v2config.LoadOptions) error{
-		v2config.WithHTTPClient(newV2HTTPClient()),
-		v2config.WithRetryer(newV2Retryer),
+		v2config.WithHTTPClient(newHTTPClient()),
+		v2config.WithRetryer(newRetryer),
 		v2config.WithAssumeRoleCredentialOptions(func(o *v2stscreds.AssumeRoleOptions) {
 			o.TokenProvider = v2stscreds.StdinTokenProvider
 		}),
-		v2config.WithAPIOptions(p.v2APIOptions()),
+		v2config.WithAPIOptions(p.apiOptions()),
 	}
 	return append(opts, additional...)
 }
 
-func (p *Provider) v2Loader() v2ConfigLoader {
-	if p.loadV2Config != nil {
-		return p.loadV2Config
+func (p *Provider) loader() configLoader {
+	if p.loadConfig != nil {
+		return p.loadConfig
 	}
 	return v2config.LoadDefaultConfig
 }
 
-func (p *Provider) v2Validator() v2ConfigValidator {
-	if p.configV2Validator != nil {
-		return p.configV2Validator
+func (p *Provider) credentials(ctx context.Context, cfg awsv2.Config) (awsv2.Credentials, error) {
+	if p.validateCredentials != nil {
+		return p.validateCredentials(ctx, cfg)
 	}
-	return &v2Validator{}
+	return Credentials(ctx, cfg)
 }
 
-func newV2HTTPClient() *http.Client {
+func newHTTPClient() *http.Client {
 	return &http.Client{
 		Timeout: clientTimeout,
 	}
 }
 
-func newV2Retryer() awsv2.Retryer {
+func newRetryer() awsv2.Retryer {
 	return retry.NewStandard(func(o *retry.StandardOptions) {
 		o.MaxAttempts = maxRetriesOnRecoverableFailures
 	})
 }
 
-func (p *Provider) v2APIOptions() []func(*middleware.Stack) error {
+func (p *Provider) apiOptions() []func(*middleware.Stack) error {
 	return []func(*middleware.Stack) error{
 		addCopilotUserAgent(p),
 	}
 }
 
-// AreV2CredsFromEnvVars returns true if the config's credentials provider is environment variables, false otherwise.
+// AreCredentialsFromEnvVars returns true if the config's credentials provider is environment variables, false otherwise.
 // An error is returned if the credentials are invalid or the request times out.
-func AreV2CredsFromEnvVars(ctx context.Context, cfg awsv2.Config) (bool, error) {
-	v, err := V2Creds(ctx, cfg)
+func AreCredentialsFromEnvVars(ctx context.Context, cfg awsv2.Config) (bool, error) {
+	v, err := Credentials(ctx, cfg)
 	if err != nil {
 		return false, err
 	}
 	return v.Source == v2config.CredentialsSourceName, nil
 }
 
-// V2Creds returns the credential values from an SDK v2 config.
-func V2Creds(ctx context.Context, cfg awsv2.Config) (awsv2.Credentials, error) {
+// Credentials returns the credential values from an AWS SDK config.
+func Credentials(ctx context.Context, cfg awsv2.Config) (awsv2.Credentials, error) {
 	ctx, cancel := context.WithTimeout(ctx, credsTimeout)
 	defer cancel()
 
@@ -174,12 +174,6 @@ func V2Creds(ctx context.Context, cfg awsv2.Config) (awsv2.Credentials, error) {
 		return awsv2.Credentials{}, fmt.Errorf("get credentials of config: %w", err)
 	}
 	return v, nil
-}
-
-type v2Validator struct{}
-
-func (v *v2Validator) ValidateV2Credentials(ctx context.Context, cfg awsv2.Config) (awsv2.Credentials, error) {
-	return V2Creds(ctx, cfg)
 }
 
 func addCopilotUserAgent(provider *Provider) func(*middleware.Stack) error {

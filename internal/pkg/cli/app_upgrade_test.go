@@ -72,7 +72,7 @@ func TestAppUpgradeOpts_Validate(t *testing.T) {
 			}
 			tc.setupMocks(mocks)
 
-			opts := &appUpgradeOpts{
+			opts := &appUpgradeOpts{ctx: context.Background(),
 				appUpgradeVars: appUpgradeVars{
 					name: tc.inAppName,
 				},
@@ -80,7 +80,7 @@ func TestAppUpgradeOpts_Validate(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -140,7 +140,7 @@ func TestAppUpgradeOpts_Ask(t *testing.T) {
 			}
 			tc.setupMocks(mocks)
 
-			opts := &appUpgradeOpts{
+			opts := &appUpgradeOpts{ctx: context.Background(),
 				appUpgradeVars: appUpgradeVars{
 					name: tc.inApp,
 				},
@@ -179,7 +179,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 	}{
 		"should return error if fail to get template version": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
-				return &appUpgradeOpts{
+				return &appUpgradeOpts{ctx: context.Background(),
 					appUpgradeVars: appUpgradeVars{
 						name: "phonetool",
 					},
@@ -196,7 +196,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 		},
 		"should return if app is up-to-date": {
 			given: func(ctrl *gomock.Controller) *appUpgradeOpts {
-				return &appUpgradeOpts{
+				return &appUpgradeOpts{ctx: context.Background(),
 					appUpgradeVars: appUpgradeVars{
 						name: "phonetool",
 					},
@@ -215,7 +215,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				mockStore := mocks.NewMockstore(ctrl)
 				mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(nil, errors.New("some error"))
 
-				return &appUpgradeOpts{
+				return &appUpgradeOpts{ctx: context.Background(),
 					appUpgradeVars: appUpgradeVars{
 						name: "phonetool",
 					},
@@ -233,7 +233,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				mockStore := mocks.NewMockstore(ctrl)
 				mockStore.EXPECT().GetApplication(ctx, "phonetool").Return(&config.Application{Name: "phonetool"}, nil)
 
-				return &appUpgradeOpts{
+				return &appUpgradeOpts{ctx: context.Background(),
 					appUpgradeVars: appUpgradeVars{
 						name: "phonetool",
 					},
@@ -256,9 +256,9 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				}, nil)
 
 				mockRoute53 := mocks.NewMockdomainHostedZoneGetter(ctrl)
-				mockRoute53.EXPECT().PublicDomainHostedZoneIDContext(context.Background(), "foobar.com").Return("", errors.New("some error"))
+				mockRoute53.EXPECT().PublicDomainHostedZoneID(context.Background(), "foobar.com").Return("", errors.New("some error"))
 
-				return &appUpgradeOpts{
+				return &appUpgradeOpts{ctx: context.Background(),
 					appUpgradeVars: appUpgradeVars{
 						name: "phonetool",
 					},
@@ -282,7 +282,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
 				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any(), gomock.Any()).Return(context.Canceled)
 
-				return &appUpgradeOpts{
+				return &appUpgradeOpts{ctx: context.Background(),
 					appUpgradeVars: appUpgradeVars{
 						name: "phonetool",
 					},
@@ -312,7 +312,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 				}).Return(nil)
 
 				mockRoute53 := mocks.NewMockdomainHostedZoneGetter(ctrl)
-				mockRoute53.EXPECT().PublicDomainHostedZoneIDContext(context.Background(), "hello.com").Return("2klfqok3", nil)
+				mockRoute53.EXPECT().PublicDomainHostedZoneID(context.Background(), "hello.com").Return("2klfqok3", nil)
 
 				mockUpgrader := mocks.NewMockappUpgrader(ctrl)
 				mockUpgrader.EXPECT().UpgradeApplication(gomock.Any(), &deploy.CreateAppInput{
@@ -323,7 +323,7 @@ func TestAppUpgradeOpts_Execute(t *testing.T) {
 					Version:            mockTemplateVersion,
 				}).Return(nil)
 
-				return &appUpgradeOpts{
+				return &appUpgradeOpts{ctx: context.Background(),
 					appUpgradeVars: appUpgradeVars{
 						name: "phonetool",
 					},

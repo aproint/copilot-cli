@@ -143,7 +143,7 @@ func newInitJobOptsWithSessionProvider(ctx context.Context, vars initJobVars, p 
 			return envDescriber, nil
 		},
 		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
-			return describe.NewAppDescriberWithContext(ctx, appName)
+			return describe.NewAppDescriber(ctx, appName)
 		},
 		wsAppName:       tryReadingAppName(),
 		templateVersion: version.LatestTemplateVersion(),
@@ -151,7 +151,7 @@ func newInitJobOptsWithSessionProvider(ctx context.Context, vars initJobVars, p 
 }
 
 // Validate returns an error if the flag values passed by the user are invalid.
-func (o *initJobOpts) Validate() error {
+func (o *initJobOpts) Validate(ctx context.Context) error {
 	// If this app is pending creation, we'll skip validation.
 	if !o.wsPendingCreation {
 		if err := validateWorkspaceAppInput(o.wsAppName, o.appName); err != nil {
@@ -224,7 +224,7 @@ func (o *initJobOpts) Ask(ctx context.Context) error {
 			return fmt.Errorf("read manifest file for job %s: %w", o.name, err)
 		}
 	}
-	dfSelected, err := o.askDockerfile()
+	dfSelected, err := o.askDockerfile(ctx)
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (o *initJobOpts) Execute(ctx context.Context) error {
 	}
 	// If the user passes in an image, their docker engine isn't necessarily running, and we can't do anything with the platform because we're not building the Docker image.
 	if o.image == "" && !o.manifestExists {
-		platform, err := legitimizePlatform(o.dockerEngine, o.wkldType)
+		platform, err := legitimizePlatform(ctx, o.dockerEngine, o.wkldType)
 		if err != nil {
 			return err
 		}
@@ -406,11 +406,11 @@ func (o *initJobOpts) askImage() error {
 }
 
 // isDfSelected indicates if any Dockerfile is in use.
-func (o *initJobOpts) askDockerfile() (isDfSelected bool, err error) {
+func (o *initJobOpts) askDockerfile(ctx context.Context) (isDfSelected bool, err error) {
 	if o.dockerfilePath != "" || o.image != "" {
 		return true, nil
 	}
-	if err = o.dockerEngine.CheckDockerEngineRunning(); err != nil {
+	if err = o.dockerEngine.CheckDockerEngineRunning(ctx); err != nil {
 		var errDaemon *dockerengine.ErrDockerDaemonNotResponsive
 		switch {
 		case errors.Is(err, dockerengine.ErrDockerCommandNotFound):

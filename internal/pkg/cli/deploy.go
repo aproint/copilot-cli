@@ -113,11 +113,7 @@ type deployOpts struct {
 	deploymentOrderMap     map[string]int
 }
 
-func newDeployOpts(vars deployVars) (*deployOpts, error) {
-	return newDeployOptsWithContext(context.Background(), vars)
-}
-
-func newDeployOptsWithContext(ctx context.Context, vars deployVars) (*deployOpts, error) {
+func newDeployOpts(ctx context.Context, vars deployVars) (*deployOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("deploy"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -146,7 +142,7 @@ func newDeployOptsWithContext(ctx context.Context, vars deployVars) (*deployOpts
 		},
 		newDeployEnvCmd: func(o *deployOpts) (cmd, error) {
 			// This command passes flags down from
-			return newEnvDeployOptsWithContext(ctx, deployEnvVars{
+			return newEnvDeployOpts(ctx, deployEnvVars{
 				appName:           o.appName,
 				name:              o.envName,
 				forceNewUpdate:    o.forceNewUpdate,
@@ -487,7 +483,7 @@ func (o *deployOpts) Run(ctx context.Context) error {
 			if err := deployCmd.Ask(ctx); err != nil {
 				return fmt.Errorf("ask %s deploy: %w", o.wlType, err)
 			}
-			if err := deployCmd.Validate(); err != nil {
+			if err := deployCmd.Validate(ctx); err != nil {
 				return fmt.Errorf("validate %s deploy: %w", o.wlType, err)
 			}
 		}
@@ -690,7 +686,7 @@ func (o *deployOpts) maybeInitEnv(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("load env init command : %w", err)
 		}
-		if err = cmd.Validate(); err != nil {
+		if err = cmd.Validate(ctx); err != nil {
 			return err
 		}
 		if err = cmd.Ask(ctx); err != nil {
@@ -722,7 +718,7 @@ func (o *deployOpts) maybeDeployEnv(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("set up env deploy command: %w", err)
 		}
-		if err = cmd.Validate(); err != nil {
+		if err = cmd.Validate(ctx); err != nil {
 			return err
 		}
 		if err = cmd.Ask(ctx); err != nil {
@@ -777,7 +773,7 @@ func BuildDeployCmd() *cobra.Command {
   /code $ copilot deploy --all --init-wkld --deploy-env -e prod`,
 
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeployOptsWithContext(cmd.Context(), vars)
+			opts, err := newDeployOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

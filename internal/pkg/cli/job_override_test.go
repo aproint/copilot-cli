@@ -66,7 +66,7 @@ func TestOverrideJob_Ask(t *testing.T) {
 
 				vars := overrideVars{name: tc.name, appName: "demo", iacTool: "cdk"}
 				cmd := &overrideWorkloadOpts{
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mocks.NewMockstore(ctrl),
 						cfnPrompt:    mockCfnPrompt,

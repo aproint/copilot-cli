@@ -134,10 +134,10 @@ func (m *MockWorkloadAdder) EXPECT() *MockWorkloadAdderMockRecorder {
 }
 
 // AddJobToApp mocks base method.
-func (m *MockWorkloadAdder) AddJobToApp(app *config.Application, jobName string, opts ...cloudformation.AddWorkloadToAppOpt) error {
+func (m *MockWorkloadAdder) AddJobToApp(arg0 context.Context, arg1 *config.Application, arg2 string, arg3 ...cloudformation.AddWorkloadToAppOpt) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{app, jobName}
-	for _, a := range opts {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AddJobToApp", varargs...)
@@ -146,17 +146,17 @@ func (m *MockWorkloadAdder) AddJobToApp(app *config.Application, jobName string,
 }
 
 // AddJobToApp indicates an expected call of AddJobToApp.
-func (mr *MockWorkloadAdderMockRecorder) AddJobToApp(app, jobName interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockWorkloadAdderMockRecorder) AddJobToApp(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{app, jobName}, opts...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddJobToApp", reflect.TypeOf((*MockWorkloadAdder)(nil).AddJobToApp), varargs...)
 }
 
 // AddServiceToApp mocks base method.
-func (m *MockWorkloadAdder) AddServiceToApp(app *config.Application, serviceName string, opts ...cloudformation.AddWorkloadToAppOpt) error {
+func (m *MockWorkloadAdder) AddServiceToApp(arg0 context.Context, arg1 *config.Application, arg2 string, arg3 ...cloudformation.AddWorkloadToAppOpt) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{app, serviceName}
-	for _, a := range opts {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AddServiceToApp", varargs...)
@@ -165,9 +165,9 @@ func (m *MockWorkloadAdder) AddServiceToApp(app *config.Application, serviceName
 }
 
 // AddServiceToApp indicates an expected call of AddServiceToApp.
-func (mr *MockWorkloadAdderMockRecorder) AddServiceToApp(app, serviceName interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockWorkloadAdderMockRecorder) AddServiceToApp(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{app, serviceName}, opts...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddServiceToApp", reflect.TypeOf((*MockWorkloadAdder)(nil).AddServiceToApp), varargs...)
 }
 

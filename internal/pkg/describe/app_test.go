@@ -45,8 +45,8 @@ func TestAppDescriber_Version(t *testing.T) {
 		"should return error if fail to get metadata": {
 			given: func(ctrl *gomock.Controller) *AppDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return("", errors.New("some error"))
-				return &AppDescriber{
+				m.EXPECT().StackMetadata(context.Background()).Return("", errors.New("some error"))
+				return &AppDescriber{ctx: context.Background(),
 					app:               "phonetool",
 					stackDescriber:    m,
 					stackSetDescriber: m,
@@ -57,9 +57,9 @@ func TestAppDescriber_Version(t *testing.T) {
 		"success": {
 			given: func(ctrl *gomock.Controller) *AppDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return(`{"TemplateVersion":"v1.2.0"}`, nil)
-				m.EXPECT().StackSetMetadata().Return(`{"TemplateVersion":"v1.0.0"}`, nil)
-				return &AppDescriber{
+				m.EXPECT().StackMetadata(context.Background()).Return(`{"TemplateVersion":"v1.2.0"}`, nil)
+				m.EXPECT().StackSetMetadata(context.Background()).Return(`{"TemplateVersion":"v1.0.0"}`, nil)
+				return &AppDescriber{ctx: context.Background(),
 					app:               "phonetool",
 					stackDescriber:    m,
 					stackSetDescriber: m,
@@ -71,9 +71,9 @@ func TestAppDescriber_Version(t *testing.T) {
 		"success with legacy template": {
 			given: func(ctrl *gomock.Controller) *AppDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return("", nil)
-				m.EXPECT().StackSetMetadata().Return(`{"TemplateVersion":"v1.0.0"}`, nil)
-				return &AppDescriber{
+				m.EXPECT().StackMetadata(context.Background()).Return("", nil)
+				m.EXPECT().StackSetMetadata(context.Background()).Return(`{"TemplateVersion":"v1.0.0"}`, nil)
+				return &AppDescriber{ctx: context.Background(),
 					app:               "phonetool",
 					stackDescriber:    m,
 					stackSetDescriber: m,

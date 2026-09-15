@@ -25,13 +25,12 @@ func TestPipelineDescriber_PropagatesCancellation(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	pipelineGetter := mocks.NewMockpipelineGetter(ctrl)
-	pipelineGetter.EXPECT().GetPipelineWithContext(callerCtx, pipelineResourceName).DoAndReturn(func(ctx context.Context, _ string) (*codepipeline.Pipeline, error) {
+	pipelineGetter.EXPECT().GetPipeline(callerCtx, pipelineResourceName).DoAndReturn(func(ctx context.Context, _ string) (*codepipeline.Pipeline, error) {
 		return nil, ctx.Err()
 	})
 
 	describer := &PipelineDescriber{
-		ctx:            callerCtx,
-		contextEnabled: true,
+		ctx: callerCtx,
 		pipeline: deploy.Pipeline{
 			ResourceName: pipelineResourceName,
 		},
@@ -145,8 +144,8 @@ func TestPipelineDescriber_Describe(t *testing.T) {
 	}{
 		"happy path with resources": {
 			callMocks: func(m pipelineDescriberMocks) {
-				m.pipelineGetter.EXPECT().GetPipeline(pipelineResourceName).Return(mockPipeline, nil)
-				m.cfn.EXPECT().Resources().Return(mockResources, nil)
+				m.pipelineGetter.EXPECT().GetPipeline(context.Background(), pipelineResourceName).Return(mockPipeline, nil)
+				m.cfn.EXPECT().Resources(context.Background()).Return(mockResources, nil)
 			},
 			inShowResource: true,
 			expectedError:  nil,
@@ -158,7 +157,7 @@ func TestPipelineDescriber_Describe(t *testing.T) {
 		},
 		"happy path without resources": {
 			callMocks: func(m pipelineDescriberMocks) {
-				m.pipelineGetter.EXPECT().GetPipeline(pipelineResourceName).Return(mockPipeline, nil)
+				m.pipelineGetter.EXPECT().GetPipeline(context.Background(), pipelineResourceName).Return(mockPipeline, nil)
 			},
 			inShowResource: false,
 			expectedError:  nil,
@@ -170,7 +169,7 @@ func TestPipelineDescriber_Describe(t *testing.T) {
 		},
 		"wraps get pipeline error": {
 			callMocks: func(m pipelineDescriberMocks) {
-				m.pipelineGetter.EXPECT().GetPipeline(pipelineResourceName).Return(nil, mockError)
+				m.pipelineGetter.EXPECT().GetPipeline(context.Background(), pipelineResourceName).Return(nil, mockError)
 			},
 			inShowResource: false,
 			expectedError:  fmt.Errorf("get pipeline: %w", mockError),
@@ -178,8 +177,8 @@ func TestPipelineDescriber_Describe(t *testing.T) {
 		},
 		"wraps stack resources error": {
 			callMocks: func(m pipelineDescriberMocks) {
-				m.pipelineGetter.EXPECT().GetPipeline(pipelineResourceName).Return(mockPipeline, nil)
-				m.cfn.EXPECT().Resources().Return(nil, mockError)
+				m.pipelineGetter.EXPECT().GetPipeline(context.Background(), pipelineResourceName).Return(mockPipeline, nil)
+				m.cfn.EXPECT().Resources(context.Background()).Return(nil, mockError)
 			},
 			inShowResource: true,
 			expectedError:  fmt.Errorf("retrieve pipeline resources: %w", mockError),
@@ -207,7 +206,7 @@ func TestPipelineDescriber_Describe(t *testing.T) {
 				IsLegacy:     false,
 			}
 
-			describer := &PipelineDescriber{
+			describer := &PipelineDescriber{ctx: context.Background(),
 				pipeline:      mockDeployedPipeline,
 				showResources: tc.inShowResource,
 				pipelineSvc:   mockPipelineGetter,

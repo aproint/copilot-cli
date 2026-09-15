@@ -37,44 +37,44 @@ func (m *MockVPCGetter) EXPECT() *MockVPCGetterMockRecorder {
 	return m.recorder
 }
 
-// SecurityGroupsWithContext mocks base method.
-func (m *MockVPCGetter) SecurityGroupsWithContext(ctx context.Context, filters ...ec2.Filter) ([]string, error) {
+// SecurityGroups mocks base method.
+func (m *MockVPCGetter) SecurityGroups(ctx context.Context, filters ...ec2.Filter) ([]string, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx}
 	for _, a := range filters {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "SecurityGroupsWithContext", varargs...)
+	ret := m.ctrl.Call(m, "SecurityGroups", varargs...)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SecurityGroupsWithContext indicates an expected call of SecurityGroupsWithContext.
-func (mr *MockVPCGetterMockRecorder) SecurityGroupsWithContext(ctx interface{}, filters ...interface{}) *gomock.Call {
+// SecurityGroups indicates an expected call of SecurityGroups.
+func (mr *MockVPCGetterMockRecorder) SecurityGroups(ctx interface{}, filters ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx}, filters...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityGroupsWithContext", reflect.TypeOf((*MockVPCGetter)(nil).SecurityGroupsWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecurityGroups", reflect.TypeOf((*MockVPCGetter)(nil).SecurityGroups), varargs...)
 }
 
-// SubnetIDsWithContext mocks base method.
-func (m *MockVPCGetter) SubnetIDsWithContext(ctx context.Context, filters ...ec2.Filter) ([]string, error) {
+// SubnetIDs mocks base method.
+func (m *MockVPCGetter) SubnetIDs(ctx context.Context, filters ...ec2.Filter) ([]string, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx}
 	for _, a := range filters {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "SubnetIDsWithContext", varargs...)
+	ret := m.ctrl.Call(m, "SubnetIDs", varargs...)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SubnetIDsWithContext indicates an expected call of SubnetIDsWithContext.
-func (mr *MockVPCGetterMockRecorder) SubnetIDsWithContext(ctx interface{}, filters ...interface{}) *gomock.Call {
+// SubnetIDs indicates an expected call of SubnetIDs.
+func (mr *MockVPCGetterMockRecorder) SubnetIDs(ctx interface{}, filters ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx}, filters...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubnetIDsWithContext", reflect.TypeOf((*MockVPCGetter)(nil).SubnetIDsWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubnetIDs", reflect.TypeOf((*MockVPCGetter)(nil).SubnetIDs), varargs...)
 }
 
 // MockClusterGetter is a mock of ClusterGetter interface.
@@ -100,19 +100,19 @@ func (m *MockClusterGetter) EXPECT() *MockClusterGetterMockRecorder {
 	return m.recorder
 }
 
-// ClusterARNWithContext mocks base method.
-func (m *MockClusterGetter) ClusterARNWithContext(ctx context.Context, app, env string) (string, error) {
+// ClusterARN mocks base method.
+func (m *MockClusterGetter) ClusterARN(ctx context.Context, app, env string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ClusterARNWithContext", ctx, app, env)
+	ret := m.ctrl.Call(m, "ClusterARN", ctx, app, env)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ClusterARNWithContext indicates an expected call of ClusterARNWithContext.
-func (mr *MockClusterGetterMockRecorder) ClusterARNWithContext(ctx, app, env interface{}) *gomock.Call {
+// ClusterARN indicates an expected call of ClusterARN.
+func (mr *MockClusterGetterMockRecorder) ClusterARN(ctx, app, env interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterARNWithContext", reflect.TypeOf((*MockClusterGetter)(nil).ClusterARNWithContext), ctx, app, env)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterARN", reflect.TypeOf((*MockClusterGetter)(nil).ClusterARN), ctx, app, env)
 }
 
 // MockDefaultClusterGetter is a mock of DefaultClusterGetter interface.
@@ -138,19 +138,19 @@ func (m *MockDefaultClusterGetter) EXPECT() *MockDefaultClusterGetterMockRecorde
 	return m.recorder
 }
 
-// DefaultClusterWithContext mocks base method.
-func (m *MockDefaultClusterGetter) DefaultClusterWithContext(ctx context.Context) (string, error) {
+// DefaultCluster mocks base method.
+func (m *MockDefaultClusterGetter) DefaultCluster(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DefaultClusterWithContext", ctx)
+	ret := m.ctrl.Call(m, "DefaultCluster", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DefaultClusterWithContext indicates an expected call of DefaultClusterWithContext.
-func (mr *MockDefaultClusterGetterMockRecorder) DefaultClusterWithContext(ctx interface{}) *gomock.Call {
+// DefaultCluster indicates an expected call of DefaultCluster.
+func (mr *MockDefaultClusterGetterMockRecorder) DefaultCluster(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultClusterWithContext", reflect.TypeOf((*MockDefaultClusterGetter)(nil).DefaultClusterWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultCluster", reflect.TypeOf((*MockDefaultClusterGetter)(nil).DefaultCluster), ctx)
 }
 
 // MockenvironmentDescriber is a mock of environmentDescriber interface.
@@ -214,18 +214,18 @@ func (m *MockNonZeroExitCodeGetter) EXPECT() *MockNonZeroExitCodeGetterMockRecor
 	return m.recorder
 }
 
-// HasNonZeroExitCodeWithContext mocks base method.
-func (m *MockNonZeroExitCodeGetter) HasNonZeroExitCodeWithContext(arg0 context.Context, arg1 []string, arg2 string) error {
+// HasNonZeroExitCode mocks base method.
+func (m *MockNonZeroExitCodeGetter) HasNonZeroExitCode(arg0 context.Context, arg1 []string, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasNonZeroExitCodeWithContext", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "HasNonZeroExitCode", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// HasNonZeroExitCodeWithContext indicates an expected call of HasNonZeroExitCodeWithContext.
-func (mr *MockNonZeroExitCodeGetterMockRecorder) HasNonZeroExitCodeWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
+// HasNonZeroExitCode indicates an expected call of HasNonZeroExitCode.
+func (mr *MockNonZeroExitCodeGetterMockRecorder) HasNonZeroExitCode(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasNonZeroExitCodeWithContext", reflect.TypeOf((*MockNonZeroExitCodeGetter)(nil).HasNonZeroExitCodeWithContext), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasNonZeroExitCode", reflect.TypeOf((*MockNonZeroExitCodeGetter)(nil).HasNonZeroExitCode), arg0, arg1, arg2)
 }
 
 // MockRunner is a mock of Runner interface.
@@ -251,17 +251,17 @@ func (m *MockRunner) EXPECT() *MockRunnerMockRecorder {
 	return m.recorder
 }
 
-// RunTaskWithContext mocks base method.
-func (m *MockRunner) RunTaskWithContext(ctx context.Context, input ecs.RunTaskInput) ([]*ecs.Task, error) {
+// RunTask mocks base method.
+func (m *MockRunner) RunTask(ctx context.Context, input ecs.RunTaskInput) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunTaskWithContext", ctx, input)
+	ret := m.ctrl.Call(m, "RunTask", ctx, input)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// RunTaskWithContext indicates an expected call of RunTaskWithContext.
-func (mr *MockRunnerMockRecorder) RunTaskWithContext(ctx, input interface{}) *gomock.Call {
+// RunTask indicates an expected call of RunTask.
+func (mr *MockRunnerMockRecorder) RunTask(ctx, input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunTaskWithContext", reflect.TypeOf((*MockRunner)(nil).RunTaskWithContext), ctx, input)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunTask", reflect.TypeOf((*MockRunner)(nil).RunTask), ctx, input)
 }

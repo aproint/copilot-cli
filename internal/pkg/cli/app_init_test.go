@@ -24,10 +24,10 @@ import (
 )
 
 type initAppMocks struct {
-	mockRoute53Svc   *mocks.MockcontextDomainHostedZoneGetter
+	mockRoute53Svc   *mocks.MockdomainHostedZoneGetter
 	mockStore        *mocks.Mockstore
 	mockPolicyLister *mocks.MockcontextPolicyLister
-	mockRoleManager  *mocks.MockcontextRoleTagsLister
+	mockRoleManager  *mocks.MockroleTagsLister
 	mockProg         *mocks.Mockprogress
 }
 
@@ -51,13 +51,13 @@ func TestInitAppOpts_ValidateDoesNotCallRemoteServices(t *testing.T) {
 	defer ctrl.Finish()
 	store := mocks.NewMockstore(ctrl)
 	policies := mocks.NewMockcontextPolicyLister(ctrl)
-	roles := mocks.NewMockcontextRoleTagsLister(ctrl)
-	route53 := mocks.NewMockcontextDomainHostedZoneGetter(ctrl)
+	roles := mocks.NewMockroleTagsLister(ctrl)
+	route53 := mocks.NewMockdomainHostedZoneGetter(ctrl)
 	store.EXPECT().GetApplication(gomock.Any(), gomock.Any()).Times(0)
-	policies.EXPECT().ListPolicyNamesContext(gomock.Any()).Times(0)
-	roles.EXPECT().ListRoleTagsContext(gomock.Any(), gomock.Any()).Times(0)
-	route53.EXPECT().ValidateDomainOwnershipContext(gomock.Any(), gomock.Any()).Times(0)
-	route53.EXPECT().PublicDomainHostedZoneIDContext(gomock.Any(), gomock.Any()).Times(0)
+	policies.EXPECT().ListPolicyNames(gomock.Any()).Times(0)
+	roles.EXPECT().ListRoleTags(gomock.Any(), gomock.Any()).Times(0)
+	route53.EXPECT().ValidateDomainOwnership(gomock.Any(), gomock.Any()).Times(0)
+	route53.EXPECT().PublicDomainHostedZoneID(gomock.Any(), gomock.Any()).Times(0)
 	opts := &initAppOpts{
 		initAppVars: initAppVars{
 			name:                "myapp",
@@ -70,7 +70,7 @@ func TestInitAppOpts_ValidateDoesNotCallRemoteServices(t *testing.T) {
 		route53:        route53,
 	}
 
-	require.NoError(t, opts.Validate())
+	require.NoError(t, opts.Validate(context.Background()))
 }
 
 func TestInitAppOpts_Validate(t *testing.T) {
@@ -92,7 +92,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.mockRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
+				m.mockRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
 			},
 		},
 		"valid app name without application in SSM and with IAM adminrole with copliot tag": {
@@ -101,7 +101,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.mockRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(
+				m.mockRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(
 					map[string]string{
 						"copilot-application": "metrics",
 					}, nil)
@@ -114,7 +114,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.mockRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(
+				m.mockRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(
 					map[string]string{
 						"mock-application": "metrics",
 					}, nil)
@@ -127,7 +127,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 				m.mockStore.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.mockRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(nil, nil)
+				m.mockRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(nil, nil)
 			},
 			wantedError: errors.New("IAM admin role \"metrics-adminrole\" already exists in this account"),
 		},
@@ -175,21 +175,21 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			mock: func(m *initAppMocks) {
 				m.mockProg.EXPECT().Start(gomock.Any())
 				m.mockProg.EXPECT().Stop(gomock.Any()).AnyTimes()
-				m.mockRoute53Svc.EXPECT().ValidateDomainOwnershipContext(ctx, "something.com").Return(errors.New("some error"))
-				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneIDContext(ctx, "something.com").Return("mockHostedZoneID", nil)
+				m.mockRoute53Svc.EXPECT().ValidateDomainOwnership(ctx, "something.com").Return(errors.New("some error"))
+				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneID(ctx, "something.com").Return("mockHostedZoneID", nil)
 			},
 		},
 		"wrap error from ListPolicies": {
 			inPBPolicyName: "nonexistentPolicyName",
 			mock: func(m *initAppMocks) {
-				m.mockPolicyLister.EXPECT().ListPolicyNamesContext(ctx).Return(nil, errors.New("some error"))
+				m.mockPolicyLister.EXPECT().ListPolicyNames(ctx).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("list permissions boundary policies: some error"),
 		},
 		"invalid permissions boundary policy name": {
 			inPBPolicyName: "nonexistentPolicyName",
 			mock: func(m *initAppMocks) {
-				m.mockPolicyLister.EXPECT().ListPolicyNamesContext(ctx).Return(
+				m.mockPolicyLister.EXPECT().ListPolicyNames(ctx).Return(
 					[]string{"existentPolicyName"}, nil)
 			},
 			wantedError: errors.New("IAM policy \"nonexistentPolicyName\" not found in this account"),
@@ -199,8 +199,8 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			mock: func(m *initAppMocks) {
 				m.mockProg.EXPECT().Start(gomock.Any())
 				m.mockProg.EXPECT().Stop(gomock.Any()).AnyTimes()
-				m.mockRoute53Svc.EXPECT().ValidateDomainOwnershipContext(ctx, "badMockDomain.com").Return(nil)
-				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneIDContext(ctx, "badMockDomain.com").Return("", &route53.ErrDomainHostedZoneNotFound{})
+				m.mockRoute53Svc.EXPECT().ValidateDomainOwnership(ctx, "badMockDomain.com").Return(nil)
+				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneID(ctx, "badMockDomain.com").Return("", &route53.ErrDomainHostedZoneNotFound{})
 			},
 			wantedError: fmt.Errorf("get public hosted zone ID for domain badMockDomain.com: %w", &route53.ErrDomainHostedZoneNotFound{}),
 		},
@@ -209,8 +209,8 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			mock: func(m *initAppMocks) {
 				m.mockProg.EXPECT().Start(gomock.Any())
 				m.mockProg.EXPECT().Stop(gomock.Any()).AnyTimes()
-				m.mockRoute53Svc.EXPECT().ValidateDomainOwnershipContext(ctx, "mockDomain.com").Return(&route53.ErrUnmatchedNSRecords{})
-				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneIDContext(ctx, "mockDomain.com").Return("", errors.New("some error"))
+				m.mockRoute53Svc.EXPECT().ValidateDomainOwnership(ctx, "mockDomain.com").Return(&route53.ErrUnmatchedNSRecords{})
+				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneID(ctx, "mockDomain.com").Return("", errors.New("some error"))
 			},
 			wantedError: errors.New("get public hosted zone ID for domain mockDomain.com: some error"),
 		},
@@ -220,10 +220,10 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			mock: func(m *initAppMocks) {
 				m.mockProg.EXPECT().Start(`Validating ownership of "mockDomain.com"`)
 				m.mockProg.EXPECT().Stop("")
-				m.mockRoute53Svc.EXPECT().ValidateDomainOwnershipContext(ctx, "mockDomain.com").Return(nil)
-				m.mockPolicyLister.EXPECT().ListPolicyNamesContext(ctx).Return(
+				m.mockRoute53Svc.EXPECT().ValidateDomainOwnership(ctx, "mockDomain.com").Return(nil)
+				m.mockPolicyLister.EXPECT().ListPolicyNames(ctx).Return(
 					[]string{"myPermissionsBoundaryPolicy"}, nil)
-				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneIDContext(ctx, "mockDomain.com").Return("mockHostedZoneID", nil)
+				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneID(ctx, "mockDomain.com").Return("mockHostedZoneID", nil)
 			},
 		},
 		"valid domain name containing multiple dots": {
@@ -231,8 +231,8 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			mock: func(m *initAppMocks) {
 				m.mockProg.EXPECT().Start(gomock.Any())
 				m.mockProg.EXPECT().Stop(gomock.Any()).AnyTimes()
-				m.mockRoute53Svc.EXPECT().ValidateDomainOwnershipContext(ctx, "hello.dog.com").Return(nil)
-				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneIDContext(ctx, "hello.dog.com").Return("mockHostedZoneID", nil)
+				m.mockRoute53Svc.EXPECT().ValidateDomainOwnership(ctx, "hello.dog.com").Return(nil)
+				m.mockRoute53Svc.EXPECT().PublicDomainHostedZoneID(ctx, "hello.dog.com").Return("mockHostedZoneID", nil)
 			},
 		},
 	}
@@ -245,9 +245,9 @@ func TestInitAppOpts_Validate(t *testing.T) {
 
 			m := &initAppMocks{
 				mockStore:        mocks.NewMockstore(ctrl),
-				mockRoute53Svc:   mocks.NewMockcontextDomainHostedZoneGetter(ctrl),
+				mockRoute53Svc:   mocks.NewMockdomainHostedZoneGetter(ctrl),
 				mockPolicyLister: mocks.NewMockcontextPolicyLister(ctrl),
-				mockRoleManager:  mocks.NewMockcontextRoleTagsLister(ctrl),
+				mockRoleManager:  mocks.NewMockroleTagsLister(ctrl),
 				mockProg:         mocks.NewMockprogress(ctrl),
 			}
 			tc.mock(m)
@@ -266,7 +266,7 @@ func TestInitAppOpts_Validate(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 			if err == nil {
 				err = opts.validateRemote(ctx)
 			}
@@ -286,7 +286,7 @@ type initAppAskMocks struct {
 	ws                *mocks.MockwsAppManager
 	existingWorkspace func() (wsAppManager, error)
 	prompt            *mocks.Mockprompter
-	iamRoleManager    *mocks.MockcontextRoleTagsLister
+	iamRoleManager    *mocks.MockroleTagsLister
 }
 
 func TestInitAppOpts_Ask(t *testing.T) {
@@ -306,7 +306,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
 			},
 			wantedAppName: "metrics",
 		},
@@ -329,7 +329,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(
 					map[string]string{
 						"copilot-application": "metrics",
 					}, nil)
@@ -345,7 +345,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(
 					map[string]string{
 						"mock-application": "metrics",
 					}, nil)
@@ -430,7 +430,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(nil, errors.New("role not found"))
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
@@ -446,7 +446,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(
 					map[string]string{
 						"copilot-application": "metrics",
 					}, nil)
@@ -465,7 +465,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(
 					map[string]string{
 						"mock-application": "metrics",
 					}, nil)
@@ -484,7 +484,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "metrics").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "metrics",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("metrics-adminrole")).Return(nil, nil)
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("metrics-adminrole")).Return(nil, nil)
 				m.prompt.EXPECT().Confirm(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			},
@@ -547,7 +547,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("mock-app-adminrole")).Return(nil, errors.New("role not found"))
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("mock-app-adminrole")).Return(nil, errors.New("role not found"))
 			},
 			wantedAppName: "mock-app",
 		},
@@ -570,7 +570,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("mock-app-adminrole")).Return(
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("mock-app-adminrole")).Return(
 					map[string]string{
 						"copilot-application": "mock-app",
 					}, nil)
@@ -596,7 +596,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("mock-app-adminrole")).Return(
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("mock-app-adminrole")).Return(
 					map[string]string{
 						"mock-application": "mock-app",
 					}, nil)
@@ -622,7 +622,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				m.store.EXPECT().GetApplication(ctx, "mock-app").Return(nil, &config.ErrNoSuchApplication{
 					ApplicationName: "mock-app",
 				})
-				m.iamRoleManager.EXPECT().ListRoleTagsContext(ctx, gomock.Eq("mock-app-adminrole")).Return(nil, nil)
+				m.iamRoleManager.EXPECT().ListRoleTags(ctx, gomock.Eq("mock-app-adminrole")).Return(nil, nil)
 			},
 			wantedErr: "IAM admin role \"mock-app-adminrole\" already exists in this account",
 		},
@@ -638,7 +638,7 @@ func TestInitAppOpts_Ask(t *testing.T) {
 				store:          mocks.NewMockstore(ctrl),
 				ws:             mocks.NewMockwsAppManager(ctrl),
 				prompt:         mocks.NewMockprompter(ctrl),
-				iamRoleManager: mocks.NewMockcontextRoleTagsLister(ctrl),
+				iamRoleManager: mocks.NewMockroleTagsLister(ctrl),
 			}
 			tc.setupMocks(m)
 

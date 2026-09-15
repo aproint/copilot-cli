@@ -12,7 +12,6 @@ import (
 
 	"github.com/xlab/treeprint"
 
-	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/term/color"
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
@@ -27,14 +26,9 @@ type api interface {
 	RetryStageExecution(context.Context, *cp.RetryStageExecutionInput, ...func(*cp.Options)) (*cp.RetryStageExecutionOutput, error)
 }
 
-type resourceGetter interface {
-	GetResourcesByTags(resourceType string, tags map[string]string) ([]*rg.Resource, error)
-}
-
 // CodePipeline wraps the AWS CodePipeline client.
 type CodePipeline struct {
-	client   api
-	rgClient resourceGetter
+	client api
 }
 
 // Pipeline represents an existing CodePipeline resource.
@@ -103,20 +97,14 @@ func (ss StageState) AggregateStatus() string {
 }
 
 // New returns a CodePipeline client configured against the input SDK v2 configs.
-func New(cpConfig awsv2.Config, rgConfig awsv2.Config) *CodePipeline {
+func New(cfg awsv2.Config) *CodePipeline {
 	return &CodePipeline{
-		client:   cp.NewFromConfig(cpConfig),
-		rgClient: rg.New(rgConfig),
+		client: cp.NewFromConfig(cfg),
 	}
 }
 
-// GetPipeline retrieves information from a given pipeline.
-func (c *CodePipeline) GetPipeline(name string) (*Pipeline, error) {
-	return c.GetPipelineWithContext(context.Background(), name)
-}
-
-// GetPipelineWithContext retrieves information from a given pipeline using ctx.
-func (c *CodePipeline) GetPipelineWithContext(ctx context.Context, name string) (*Pipeline, error) {
+// GetPipeline retrieves information from a given pipeline using ctx.
+func (c *CodePipeline) GetPipeline(ctx context.Context, name string) (*Pipeline, error) {
 	input := &cp.GetPipelineInput{
 		Name: awsv2.String(name),
 	}
@@ -162,14 +150,9 @@ func (s *Stage) HumanString() string {
 	return fmt.Sprintf("%s\t%s\t%s\t%s\n", s.Name, s.Category, s.Provider, s.Details)
 }
 
-// RetryStageExecution tries to re-initiate a failed stage for the given pipeline.
-func (c *CodePipeline) RetryStageExecution(pipelineName, stageName string) error {
-	return c.RetryStageExecutionWithContext(context.Background(), pipelineName, stageName)
-}
-
-// RetryStageExecutionWithContext retries a failed stage using ctx.
-func (c *CodePipeline) RetryStageExecutionWithContext(ctx context.Context, pipelineName, stageName string) error {
-	executionID, err := c.pipelineExecutionIDWithContext(ctx, pipelineName)
+// RetryStageExecution retries a failed stage using ctx.
+func (c *CodePipeline) RetryStageExecution(ctx context.Context, pipelineName, stageName string) error {
+	executionID, err := c.pipelineExecutionID(ctx, pipelineName)
 	if err != nil {
 		return fmt.Errorf("retrieve pipeline execution ID: %w", err)
 	}
@@ -188,13 +171,8 @@ func (c *CodePipeline) RetryStageExecutionWithContext(ctx context.Context, pipel
 	return nil
 }
 
-// GetPipelineState retrieves status information from a given pipeline.
-func (c *CodePipeline) GetPipelineState(name string) (*PipelineState, error) {
-	return c.GetPipelineStateWithContext(context.Background(), name)
-}
-
-// GetPipelineStateWithContext retrieves status information from a given pipeline using ctx.
-func (c *CodePipeline) GetPipelineStateWithContext(ctx context.Context, name string) (*PipelineState, error) {
+// GetPipelineState retrieves status information from a given pipeline using ctx.
+func (c *CodePipeline) GetPipelineState(ctx context.Context, name string) (*PipelineState, error) {
 	input := &cp.GetPipelineStateInput{
 		Name: awsv2.String(name),
 	}
@@ -294,12 +272,7 @@ func (c *CodePipeline) getStage(s types.StageDeclaration) (*Stage, error) {
 	return stage, nil
 }
 
-// pipelineExecutionID returns the ExecutionID of the most recent execution of a pipeline.
-func (c *CodePipeline) pipelineExecutionID(pipelineName string) (string, error) {
-	return c.pipelineExecutionIDWithContext(context.Background(), pipelineName)
-}
-
-func (c *CodePipeline) pipelineExecutionIDWithContext(ctx context.Context, pipelineName string) (string, error) {
+func (c *CodePipeline) pipelineExecutionID(ctx context.Context, pipelineName string) (string, error) {
 	input := &cp.ListPipelineExecutionsInput{
 		MaxResults:   awsv2.Int32(1),
 		PipelineName: &pipelineName,

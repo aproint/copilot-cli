@@ -4,6 +4,7 @@
 package clean
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -14,7 +15,7 @@ type bucketResourceGetterDouble struct {
 	BucketNameFn func(app, env, wkld string) (string, error)
 }
 
-func (b *bucketResourceGetterDouble) BucketName(app, env, wkld string) (string, error) {
+func (b *bucketResourceGetterDouble) BucketName(_ context.Context, app, env, wkld string) (string, error) {
 	return b.BucketNameFn(app, env, wkld)
 }
 
@@ -22,7 +23,7 @@ type bucketEmptierDouble struct {
 	EmptyBucketFn func(bucket string) error
 }
 
-func (b *bucketEmptierDouble) EmptyBucket(bucket string) error {
+func (b *bucketEmptierDouble) EmptyBucket(_ context.Context, bucket string) error {
 	return b.EmptyBucketFn(bucket)
 }
 
@@ -74,7 +75,7 @@ func TestStaticSite_CleanResources(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			err := tc.cleaner.Clean()
+			err := tc.cleaner.Clean(context.Background())
 			if tc.expected != "" {
 				require.EqualError(t, err, tc.expected)
 				return

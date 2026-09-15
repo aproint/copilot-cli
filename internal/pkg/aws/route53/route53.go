@@ -49,13 +49,8 @@ func New(cfg awsv2.Config) *Route53 {
 	}
 }
 
-// PublicDomainHostedZoneID returns the public Hosted Zone ID of a domain.
-func (r53 *Route53) PublicDomainHostedZoneID(domainName string) (string, error) {
-	return r53.PublicDomainHostedZoneIDContext(context.Background(), domainName)
-}
-
 // PublicDomainHostedZoneIDContext returns the public hosted zone ID using ctx.
-func (r53 *Route53) PublicDomainHostedZoneIDContext(ctx context.Context, domainName string) (string, error) {
+func (r53 *Route53) PublicDomainHostedZoneID(ctx context.Context, domainName string) (string, error) {
 	if id, ok := r53.hostedZoneIDFor[domainName]; ok {
 		return id, nil
 	}
@@ -86,16 +81,9 @@ func (r53 *Route53) PublicDomainHostedZoneIDContext(ctx context.Context, domainN
 	}
 }
 
-// ValidateDomainOwnership returns nil if the NS records associated with the domain name matches the NS records of the
-// route53 hosted zone for the domain.
-// If there are missing NS records returns ErrUnmatchedNSRecords.
-func (r53 *Route53) ValidateDomainOwnership(domainName string) error {
-	return r53.ValidateDomainOwnershipContext(context.Background(), domainName)
-}
-
 // ValidateDomainOwnershipContext validates ownership using ctx.
-func (r53 *Route53) ValidateDomainOwnershipContext(ctx context.Context, domainName string) error {
-	hzID, err := r53.PublicDomainHostedZoneIDContext(ctx, domainName)
+func (r53 *Route53) ValidateDomainOwnership(ctx context.Context, domainName string) error {
+	hzID, err := r53.PublicDomainHostedZoneID(ctx, domainName)
 	if err != nil {
 		return err
 	}

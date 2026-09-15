@@ -90,7 +90,7 @@ func TestPackageJobOpts_Validate(t *testing.T) {
 
 			tc.setupMocks()
 
-			opts := &packageJobOpts{
+			opts := &packageJobOpts{ctx: context.Background(),
 				packageJobVars: packageJobVars{
 					name:    tc.inJobName,
 					envName: tc.inEnvName,
@@ -105,7 +105,7 @@ func TestPackageJobOpts_Validate(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			// THEN
 			if tc.wantedErrorS != "" {
@@ -198,7 +198,7 @@ func TestPackageJobOpts_Ask(t *testing.T) {
 			tc.expectSelector(mockSelector)
 			tc.expectPrompt(mockPrompt)
 
-			opts := &packageJobOpts{
+			opts := &packageJobOpts{ctx: context.Background(),
 				packageJobVars: packageJobVars{
 					name:    tc.inJobName,
 					envName: tc.inEnvName,
@@ -257,7 +257,7 @@ func TestPackageJobOpts_Execute(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			opts := &packageJobOpts{
+			opts := &packageJobOpts{ctx: context.Background(),
 				packageJobVars: tc.inVars,
 				packageCmd:     mocks.NewMockactionCommand(ctrl),
 			}
@@ -294,7 +294,7 @@ func TestPackageJobOpts_RecommendActions(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			opts := &packageJobOpts{
+			opts := &packageJobOpts{ctx: context.Background(),
 				packageCmd: mocks.NewMockactionCommand(ctrl),
 			}
 			tc.mockDependencies(ctrl, opts)

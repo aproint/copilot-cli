@@ -4,6 +4,7 @@
 package stack
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -32,7 +33,7 @@ func TestStackDescriber_Describe(t *testing.T) {
 		"return error if fail to describe stack": {
 			setupMocks: func(m stackDescriberMocks) {
 				gomock.InOrder(
-					m.cfn.EXPECT().Describe(mockStackName).Return(nil, mockErr),
+					m.cfn.EXPECT().Describe(context.Background(), mockStackName).Return(nil, mockErr),
 				)
 			},
 			wantedError: fmt.Errorf("describe stack phonetool: some error"),
@@ -40,7 +41,7 @@ func TestStackDescriber_Describe(t *testing.T) {
 		"success": {
 			setupMocks: func(m stackDescriberMocks) {
 				gomock.InOrder(
-					m.cfn.EXPECT().Describe(mockStackName).Return(&cloudformation.StackDescription{
+					m.cfn.EXPECT().Describe(context.Background(), mockStackName).Return(&cloudformation.StackDescription{
 						Parameters: []sdkcfn.Parameter{
 							{
 								ParameterKey:   aws.String("mockParamKey"),
@@ -88,7 +89,7 @@ func TestStackDescriber_Describe(t *testing.T) {
 			}
 
 			// WHEN
-			actual, err := d.Describe()
+			actual, err := d.Describe(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -113,7 +114,7 @@ func TestStackDescriber_Resources(t *testing.T) {
 		"return error if fail to get stack resources": {
 			setupMocks: func(m stackDescriberMocks) {
 				gomock.InOrder(
-					m.cfn.EXPECT().StackResources(mockStackName).Return(nil, mockErr),
+					m.cfn.EXPECT().StackResources(context.Background(), mockStackName).Return(nil, mockErr),
 				)
 			},
 			wantedError: fmt.Errorf("retrieve resources for stack phonetool: some error"),
@@ -121,7 +122,7 @@ func TestStackDescriber_Resources(t *testing.T) {
 		"success": {
 			setupMocks: func(m stackDescriberMocks) {
 				gomock.InOrder(
-					m.cfn.EXPECT().StackResources(mockStackName).Return([]*cloudformation.StackResource{
+					m.cfn.EXPECT().StackResources(context.Background(), mockStackName).Return([]*cloudformation.StackResource{
 						{
 							ResourceType:       aws.String("mockResourceType"),
 							PhysicalResourceId: aws.String("mockPhysicalID"),
@@ -158,7 +159,7 @@ func TestStackDescriber_Resources(t *testing.T) {
 			}
 
 			// WHEN
-			actual, err := d.Resources()
+			actual, err := d.Resources(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -183,7 +184,7 @@ func TestStackDescriber_Metadata(t *testing.T) {
 		"return error if fail to get stack metadata": {
 			setupMocks: func(m stackDescriberMocks) {
 				gomock.InOrder(
-					m.cfn.EXPECT().Metadata(gomock.Any()).Return("", mockErr),
+					m.cfn.EXPECT().Metadata(context.Background(), gomock.Any()).Return("", mockErr),
 				)
 			},
 			wantedError: fmt.Errorf("get metadata for stack phonetool: some error"),
@@ -191,7 +192,7 @@ func TestStackDescriber_Metadata(t *testing.T) {
 		"success": {
 			setupMocks: func(m stackDescriberMocks) {
 				gomock.InOrder(
-					m.cfn.EXPECT().Metadata(gomock.Any()).Return("mockMetadata", nil),
+					m.cfn.EXPECT().Metadata(context.Background(), gomock.Any()).Return("mockMetadata", nil),
 				)
 			},
 			wantedMetadata: "mockMetadata",
@@ -216,7 +217,7 @@ func TestStackDescriber_Metadata(t *testing.T) {
 			}
 
 			// WHEN
-			actual, err := d.StackMetadata()
+			actual, err := d.StackMetadata(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {

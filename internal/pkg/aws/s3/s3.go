@@ -72,29 +72,17 @@ func New(cfg aws.Config) *S3 {
 	}
 }
 
-// Upload uploads a file to an S3 bucket under the specified key.
-// Per s3's recommendation https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html:
-// The bucket owner, in addition to the object owner, is granted full control.
-func (s *S3) Upload(bucket, key string, data io.Reader) (string, error) {
-	return s.UploadWithContext(context.Background(), bucket, key, data)
-}
-
-// UploadWithContext uploads a file to an S3 bucket under the specified key using ctx.
-func (s *S3) UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error) {
+// Upload uploads a file to an S3 bucket under the specified key using ctx.
+func (s *S3) Upload(ctx context.Context, bucket, key string, data io.Reader) (string, error) {
 	return s.upload(ctx, bucket, key, data)
 }
 
-// EmptyBucket deletes all objects within the bucket.
-func (s *S3) EmptyBucket(bucket string) error {
-	return s.EmptyBucketWithContext(context.Background(), bucket)
-}
-
-// EmptyBucketWithContext deletes all objects within the bucket using ctx.
-func (s *S3) EmptyBucketWithContext(ctx context.Context, bucket string) error {
+// EmptyBucket deletes all objects within the bucket using ctx.
+func (s *S3) EmptyBucket(ctx context.Context, bucket string) error {
 	var listResp *s3.ListObjectVersionsOutput
 	var err error
 
-	bucketExists, err := s.bucketExistsWithContext(ctx, bucket)
+	bucketExists, err := s.bucketExists(ctx, bucket)
 	if err != nil {
 		return fmt.Errorf("unable to determine the existence of bucket %s: %w", bucket, err)
 	}
@@ -206,18 +194,13 @@ func FormatARN(partition, location string) string {
 	return fmt.Sprintf("arn:%s:s3:::%s", partition, location)
 }
 
-// BucketTree creates an ASCII tree representing the folder structure of a bucket's objects.
-func (s *S3) BucketTree(bucket string) (string, error) {
-	return s.bucketTree(context.Background(), bucket)
-}
-
-// BucketTreeWithContext creates an ASCII tree using ctx for S3 requests.
-func (s *S3) BucketTreeWithContext(ctx context.Context, bucket string) (string, error) {
+// BucketTree creates an ASCII tree using ctx for S3 requests.
+func (s *S3) BucketTree(ctx context.Context, bucket string) (string, error) {
 	return s.bucketTree(ctx, bucket)
 }
 
 func (s *S3) bucketTree(ctx context.Context, bucket string) (string, error) {
-	outputs, err := s.listObjectsWithContext(ctx, bucket, "/")
+	outputs, err := s.listObjects(ctx, bucket, "/")
 	if err != nil || outputs == nil {
 		return "", err
 	}
@@ -239,18 +222,13 @@ func (s *S3) bucketTree(ctx context.Context, bucket string) (string, error) {
 	return tree.String(), nil
 }
 
-// BucketSizeAndCount returns the total size and number of objects in an S3 bucket.
-func (s *S3) BucketSizeAndCount(bucket string) (string, int, error) {
-	return s.bucketSizeAndCount(context.Background(), bucket)
-}
-
-// BucketSizeAndCountWithContext returns the total size and object count using ctx.
-func (s *S3) BucketSizeAndCountWithContext(ctx context.Context, bucket string) (string, int, error) {
+// BucketSizeAndCount returns the total size and object count using ctx.
+func (s *S3) BucketSizeAndCount(ctx context.Context, bucket string) (string, int, error) {
 	return s.bucketSizeAndCount(ctx, bucket)
 }
 
 func (s *S3) bucketSizeAndCount(ctx context.Context, bucket string) (string, int, error) {
-	outputs, err := s.listObjectsWithContext(ctx, bucket, "")
+	outputs, err := s.listObjects(ctx, bucket, "")
 	if err != nil || outputs == nil {
 		return "", 0, err
 	}
@@ -265,12 +243,8 @@ func (s *S3) bucketSizeAndCount(ctx context.Context, bucket string) (string, int
 	return humanize.Bytes(uint64(size)), count, nil
 }
 
-func (s *S3) listObjects(bucket, delimiter string) ([]s3.ListObjectsV2Output, error) {
-	return s.listObjectsWithContext(context.Background(), bucket, delimiter)
-}
-
-func (s *S3) listObjectsWithContext(ctx context.Context, bucket, delimiter string) ([]s3.ListObjectsV2Output, error) {
-	exists, err := s.bucketExistsWithContext(ctx, bucket)
+func (s *S3) listObjects(ctx context.Context, bucket, delimiter string) ([]s3.ListObjectsV2Output, error) {
+	exists, err := s.bucketExists(ctx, bucket)
 	if err != nil || !exists {
 		return nil, err
 	}
@@ -294,11 +268,7 @@ func (s *S3) listObjectsWithContext(ctx context.Context, bucket, delimiter strin
 	return outputs, nil
 }
 
-func (s *S3) bucketExists(bucket string) (bool, error) {
-	return s.bucketExistsWithContext(context.Background(), bucket)
-}
-
-func (s *S3) bucketExistsWithContext(ctx context.Context, bucket string) (bool, error) {
+func (s *S3) bucketExists(ctx context.Context, bucket string) (bool, error) {
 	input := &s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	}

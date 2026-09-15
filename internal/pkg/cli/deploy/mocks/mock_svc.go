@@ -37,33 +37,18 @@ func (m *Mockuploader) EXPECT() *MockuploaderMockRecorder {
 }
 
 // Upload mocks base method.
-func (m *Mockuploader) Upload(bucket, key string, data io.Reader) (string, error) {
+func (m *Mockuploader) Upload(ctx context.Context, bucket, key string, data io.Reader) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Upload", bucket, key, data)
+	ret := m.ctrl.Call(m, "Upload", ctx, bucket, key, data)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Upload indicates an expected call of Upload.
-func (mr *MockuploaderMockRecorder) Upload(bucket, key, data interface{}) *gomock.Call {
+func (mr *MockuploaderMockRecorder) Upload(ctx, bucket, key, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mockuploader)(nil).Upload), bucket, key, data)
-}
-
-// UploadWithContext mocks base method.
-func (m *Mockuploader) UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadWithContext", ctx, bucket, key, data)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UploadWithContext indicates an expected call of UploadWithContext.
-func (mr *MockuploaderMockRecorder) UploadWithContext(ctx, bucket, key, data interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWithContext", reflect.TypeOf((*Mockuploader)(nil).UploadWithContext), ctx, bucket, key, data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mockuploader)(nil).Upload), ctx, bucket, key, data)
 }
 
 // MockversionGetter is a mock of versionGetter interface.
@@ -127,33 +112,33 @@ func (m *MockserviceForceUpdater) EXPECT() *MockserviceForceUpdaterMockRecorder 
 	return m.recorder
 }
 
-// ForceUpdateServiceWithContext mocks base method.
-func (m *MockserviceForceUpdater) ForceUpdateServiceWithContext(ctx context.Context, app, env, svc string) error {
+// ForceUpdateService mocks base method.
+func (m *MockserviceForceUpdater) ForceUpdateService(ctx context.Context, app, env, svc string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ForceUpdateServiceWithContext", ctx, app, env, svc)
+	ret := m.ctrl.Call(m, "ForceUpdateService", ctx, app, env, svc)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ForceUpdateServiceWithContext indicates an expected call of ForceUpdateServiceWithContext.
-func (mr *MockserviceForceUpdaterMockRecorder) ForceUpdateServiceWithContext(ctx, app, env, svc interface{}) *gomock.Call {
+// ForceUpdateService indicates an expected call of ForceUpdateService.
+func (mr *MockserviceForceUpdaterMockRecorder) ForceUpdateService(ctx, app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateServiceWithContext", reflect.TypeOf((*MockserviceForceUpdater)(nil).ForceUpdateServiceWithContext), ctx, app, env, svc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateService", reflect.TypeOf((*MockserviceForceUpdater)(nil).ForceUpdateService), ctx, app, env, svc)
 }
 
-// LastUpdatedAtWithContext mocks base method.
-func (m *MockserviceForceUpdater) LastUpdatedAtWithContext(ctx context.Context, app, env, svc string) (time.Time, error) {
+// LastUpdatedAt mocks base method.
+func (m *MockserviceForceUpdater) LastUpdatedAt(ctx context.Context, app, env, svc string) (time.Time, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LastUpdatedAtWithContext", ctx, app, env, svc)
+	ret := m.ctrl.Call(m, "LastUpdatedAt", ctx, app, env, svc)
 	ret0, _ := ret[0].(time.Time)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// LastUpdatedAtWithContext indicates an expected call of LastUpdatedAtWithContext.
-func (mr *MockserviceForceUpdaterMockRecorder) LastUpdatedAtWithContext(ctx, app, env, svc interface{}) *gomock.Call {
+// LastUpdatedAt indicates an expected call of LastUpdatedAt.
+func (mr *MockserviceForceUpdaterMockRecorder) LastUpdatedAt(ctx, app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastUpdatedAtWithContext", reflect.TypeOf((*MockserviceForceUpdater)(nil).LastUpdatedAtWithContext), ctx, app, env, svc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastUpdatedAt", reflect.TypeOf((*MockserviceForceUpdater)(nil).LastUpdatedAt), ctx, app, env, svc)
 }
 
 // MockaliasCertValidator is a mock of aliasCertValidator interface.
@@ -179,16 +164,16 @@ func (m *MockaliasCertValidator) EXPECT() *MockaliasCertValidatorMockRecorder {
 	return m.recorder
 }
 
-// ValidateCertAliasesWithContext mocks base method.
-func (m *MockaliasCertValidator) ValidateCertAliasesWithContext(ctx context.Context, aliases, certs []string) error {
+// ValidateCertAliases mocks base method.
+func (m *MockaliasCertValidator) ValidateCertAliases(ctx context.Context, aliases, certs []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateCertAliasesWithContext", ctx, aliases, certs)
+	ret := m.ctrl.Call(m, "ValidateCertAliases", ctx, aliases, certs)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ValidateCertAliasesWithContext indicates an expected call of ValidateCertAliasesWithContext.
-func (mr *MockaliasCertValidatorMockRecorder) ValidateCertAliasesWithContext(ctx, aliases, certs interface{}) *gomock.Call {
+// ValidateCertAliases indicates an expected call of ValidateCertAliases.
+func (mr *MockaliasCertValidatorMockRecorder) ValidateCertAliases(ctx, aliases, certs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCertAliasesWithContext", reflect.TypeOf((*MockaliasCertValidator)(nil).ValidateCertAliasesWithContext), ctx, aliases, certs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCertAliases", reflect.TypeOf((*MockaliasCertValidator)(nil).ValidateCertAliases), ctx, aliases, certs)
 }

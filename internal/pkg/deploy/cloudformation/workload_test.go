@@ -4,6 +4,7 @@
 package cloudformation
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -120,14 +121,14 @@ func TestCloudFormation_DeleteWorkload(t *testing.T) {
 		"should short-circuit if the stack is already deleted when retrieving the template body": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", &cloudformation.ErrStackNotFound{})
+				m.EXPECT().TemplateBody(context.Background(), gomock.Any()).Return("", &cloudformation.ErrStackNotFound{})
 				return m
 			},
 		},
 		"should return a wrapped error if retrieving the template body fails unexpectedly": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", errors.New("some error"))
+				m.EXPECT().TemplateBody(context.Background(), gomock.Any()).Return("", errors.New("some error"))
 				return m
 			},
 			wanted: errors.New(`get template body of stack "kudos-test-webhook": some error`),
@@ -135,16 +136,16 @@ func TestCloudFormation_DeleteWorkload(t *testing.T) {
 		"should short-circuit if stack is deleted while retrieving the stack ID": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", nil)
-				m.EXPECT().Describe(gomock.Any()).Return(nil, &cloudformation.ErrStackNotFound{})
+				m.EXPECT().TemplateBody(context.Background(), gomock.Any()).Return("", nil)
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(nil, &cloudformation.ErrStackNotFound{})
 				return m
 			},
 		},
 		"should return a wrapped error if retrieving the stack ID fails unexpectedly": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", nil)
-				m.EXPECT().Describe(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().TemplateBody(context.Background(), gomock.Any()).Return("", nil)
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			wanted: errors.New(`retrieve the stack ID for stack "kudos-test-webhook": some error`),
@@ -152,12 +153,12 @@ func TestCloudFormation_DeleteWorkload(t *testing.T) {
 		"should return the error as is if the deletion function fails unexpectedly": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", nil)
-				m.EXPECT().Describe(gomock.Any()).Return(&cloudformation.StackDescription{
+				m.EXPECT().TemplateBody(context.Background(), gomock.Any()).Return("", nil)
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(&cloudformation.StackDescription{
 					StackId: aws.String("stack/webhook/1111"),
 				}, nil)
-				m.EXPECT().DeleteAndWaitWithRoleARN(gomock.Any(), gomock.Any()).Return(errors.New("some error"))
-				m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{}, nil).AnyTimes()
+				m.EXPECT().DeleteAndWaitWithRoleARN(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error"))
+				m.EXPECT().DescribeStackEvents(gomock.Any(), gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{}, nil).AnyTimes()
 				return m
 			},
 			wanted: errors.New("some error"),
@@ -165,12 +166,12 @@ func TestCloudFormation_DeleteWorkload(t *testing.T) {
 		"should return the error as is if the progress renderer fails unexpectedly": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", nil)
-				m.EXPECT().Describe(gomock.Any()).Return(&cloudformation.StackDescription{
+				m.EXPECT().TemplateBody(context.Background(), gomock.Any()).Return("", nil)
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(&cloudformation.StackDescription{
 					StackId: aws.String("stack/webhook/1111"),
 				}, nil)
-				m.EXPECT().DeleteAndWaitWithRoleARN(gomock.Any(), gomock.Any()).Return(nil)
-				m.EXPECT().DescribeStackEvents(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().DeleteAndWaitWithRoleARN(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.EXPECT().DescribeStackEvents(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return m
 			},
 			wanted: errors.New("describe stack events stack/webhook/1111: some error"),
@@ -178,12 +179,12 @@ func TestCloudFormation_DeleteWorkload(t *testing.T) {
 		"should return nil if the deletion function tries to delete an already deleted stack": {
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", nil)
-				m.EXPECT().Describe(gomock.Any()).Return(&cloudformation.StackDescription{
+				m.EXPECT().TemplateBody(context.Background(), gomock.Any()).Return("", nil)
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(&cloudformation.StackDescription{
 					StackId: aws.String("stack/webhook/1111"),
 				}, nil)
-				m.EXPECT().DeleteAndWaitWithRoleARN(gomock.Any(), gomock.Any()).Return(&cloudformation.ErrStackNotFound{})
-				m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{}, nil).AnyTimes()
+				m.EXPECT().DeleteAndWaitWithRoleARN(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudformation.ErrStackNotFound{})
+				m.EXPECT().DescribeStackEvents(gomock.Any(), gomock.Any()).Return(&sdkcloudformation.DescribeStackEventsOutput{}, nil).AnyTimes()
 				return m
 			},
 		},
@@ -201,7 +202,7 @@ func TestCloudFormation_DeleteWorkload(t *testing.T) {
 			}
 
 			// WHEN
-			err := c.DeleteWorkload(in)
+			err := c.DeleteWorkload(context.Background(), in)
 
 			// THEN
 			if tc.wanted != nil {

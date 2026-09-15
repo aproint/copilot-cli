@@ -67,7 +67,7 @@ func TestDeleteEnvOpts_Validate(t *testing.T) {
 			// GIVEN
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			opts := &deleteEnvOpts{
+			opts := &deleteEnvOpts{ctx: context.Background(),
 				deleteEnvVars: deleteEnvVars{
 					name:    tc.inEnv,
 					appName: tc.inAppName,
@@ -76,7 +76,7 @@ func TestDeleteEnvOpts_Validate(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -148,7 +148,7 @@ func TestDeleteEnvOpts_Ask(t *testing.T) {
 			// GIVEN
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			opts := &deleteEnvOpts{
+			opts := &deleteEnvOpts{ctx: context.Background(),
 				deleteEnvVars: deleteEnvVars{
 					name:             tc.inEnvName,
 					appName:          tc.inAppName,
@@ -190,7 +190,7 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 				m := mocks.NewMockresourceGetter(ctrl)
 				m.EXPECT().GetResources(context.Background(), gomock.Any()).Return(nil, errors.New("some error"))
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					rg:                 m,
 					initRuntimeClients: noopInitRuntimeClients,
 				}
@@ -217,7 +217,7 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 					},
 				}, nil)
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",
@@ -237,7 +237,7 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 				}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
-				lister.EXPECT().ListDeployedPipelinesWithContext(context.Background(), "phonetool").Return([]deploy.Pipeline{
+				lister.EXPECT().ListDeployedPipelines(context.Background(), "phonetool").Return([]deploy.Pipeline{
 					{
 						ResourceName: "mockResourceName",
 						Name:         "mockName",
@@ -245,7 +245,7 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 				}, nil)
 
 				getter := mocks.NewMockpipelineGetter(ctrl)
-				getter.EXPECT().GetPipelineWithContext(context.Background(), "mockResourceName").Return(&codepipeline.Pipeline{
+				getter.EXPECT().GetPipeline(context.Background(), "mockResourceName").Return(&codepipeline.Pipeline{
 					Stages: []*codepipeline.Stage{
 						{
 							Name: "DeployTo-test",
@@ -253,7 +253,7 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 					},
 				}, nil)
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",
@@ -274,13 +274,13 @@ func TestDeleteEnvOpts_Execute(t *testing.T) {
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
-				lister.EXPECT().ListDeployedPipelinesWithContext(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
+				lister.EXPECT().ListDeployedPipelines(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
 
 				prog := mocks.NewMockprogress(ctrl)
 				prog.EXPECT().Start(gomock.Any())
 
 				deployer := mocks.NewMockenvironmentDeployer(ctrl)
-				deployer.EXPECT().TemplateWithContext(context.Background(), gomock.Any()).Return(`
+				deployer.EXPECT().Template(context.Background(), gomock.Any()).Return(`
 Resources:
   EnableLongARNFormatAction:
     Type: Custom::EnableLongARNFormatFunction
@@ -293,7 +293,7 @@ Resources:
   EnvironmentManagerRole:
     Type: AWS::IAM::Role
 `, nil)
-				deployer.EXPECT().UpdateEnvironmentTemplateWithContext(context.Background(),
+				deployer.EXPECT().UpdateEnvironmentTemplate(context.Background(),
 					"phonetool",
 					"test",
 					`
@@ -314,7 +314,7 @@ Resources:
 
 				prog.EXPECT().Stop(log.Serror("Failed to retain IAM roles for the \"test\" environment\n"))
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",
@@ -338,13 +338,13 @@ Resources:
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
-				lister.EXPECT().ListDeployedPipelinesWithContext(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
+				lister.EXPECT().ListDeployedPipelines(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
 
 				prog := mocks.NewMockprogress(ctrl)
 				prog.EXPECT().Start(gomock.Any()).Times(1)
 
 				deployer := mocks.NewMockenvironmentDeployer(ctrl)
-				deployer.EXPECT().TemplateWithContext(context.Background(), gomock.Any()).Return(`
+				deployer.EXPECT().Template(context.Background(), gomock.Any()).Return(`
 Resources:
   CloudformationExecutionRole:
     DeletionPolicy: Retain
@@ -353,16 +353,16 @@ Resources:
     DeletionPolicy: Retain`, nil)
 
 				descr := mocks.NewMockstackDescriber(ctrl)
-				descr.EXPECT().ResourcesWithContext(context.Background()).Return([]*stackdescr.Resource{}, nil)
+				descr.EXPECT().Resources(context.Background()).Return([]*stackdescr.Resource{}, nil)
 
 				rg.EXPECT().GetResources(context.Background(), gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
-				deployer.EXPECT().DeleteEnvironmentWithContext(context.Background(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error"))
+				deployer.EXPECT().DeleteEnvironment(context.Background(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error"))
 
 				prog.EXPECT().Stop(gomock.Any()).Times(1)
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",
@@ -397,13 +397,13 @@ Resources:
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
-				lister.EXPECT().ListDeployedPipelinesWithContext(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
+				lister.EXPECT().ListDeployedPipelines(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
 
 				prog := mocks.NewMockprogress(ctrl)
 				prog.EXPECT().Start(gomock.Any()).AnyTimes()
 
 				deployer := mocks.NewMockenvironmentDeployer(ctrl)
-				deployer.EXPECT().TemplateWithContext(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
+				deployer.EXPECT().Template(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
 Resources:
   CloudformationExecutionRole:
     DeletionPolicy: Retain
@@ -415,12 +415,12 @@ Resources:
 `, nil)
 
 				descr := mocks.NewMockstackDescriber(ctrl)
-				descr.EXPECT().ResourcesWithContext(context.Background()).Return([]*stackdescr.Resource{}, nil)
+				descr.EXPECT().Resources(context.Background()).Return([]*stackdescr.Resource{}, nil)
 
 				rg.EXPECT().GetResources(context.Background(), gomock.Any()).Return(&resourcegroupstaggingapi.GetResourcesOutput{
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
-				deployer.EXPECT().DeleteEnvironmentWithContext(context.Background(), "phonetool", "test", "execARN").Return(nil)
+				deployer.EXPECT().DeleteEnvironment(context.Background(), "phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
 				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
@@ -435,7 +435,7 @@ Resources:
 				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
-				envDeleter.EXPECT().RemoveEnvFromAppWithContext(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
+				envDeleter.EXPECT().RemoveEnvFromApp(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
 					App:         app,
 					EnvToDelete: &mockEnv,
 					Environments: []*config.Environment{
@@ -450,7 +450,7 @@ Resources:
 
 				prog.EXPECT().Stop(gomock.Any()).AnyTimes()
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",
@@ -485,7 +485,7 @@ Resources:
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
-				lister.EXPECT().ListDeployedPipelinesWithContext(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
+				lister.EXPECT().ListDeployedPipelines(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
 
 				iam := mocks.NewMockroleDeleter(ctrl)
 
@@ -493,7 +493,7 @@ Resources:
 				prog.EXPECT().Start(gomock.Any()).AnyTimes()
 
 				deployer := mocks.NewMockenvironmentDeployer(ctrl)
-				deployer.EXPECT().TemplateWithContext(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
+				deployer.EXPECT().Template(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
 Resources:
   CloudformationExecutionRole:
     DeletionPolicy: Retain
@@ -506,7 +506,7 @@ Resources:
 
 				rg.EXPECT().GetResources(context.Background(), gomock.Any()).Return(nil, errors.New("some error"))
 
-				deployer.EXPECT().DeleteEnvironmentWithContext(context.Background(), "phonetool", "test", "execARN").Return(nil)
+				deployer.EXPECT().DeleteEnvironment(context.Background(), "phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
 				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
@@ -521,7 +521,7 @@ Resources:
 				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
-				envDeleter.EXPECT().RemoveEnvFromAppWithContext(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
+				envDeleter.EXPECT().RemoveEnvFromApp(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
 					App:         app,
 					EnvToDelete: &mockEnv,
 					Environments: []*config.Environment{
@@ -535,12 +535,12 @@ Resources:
 				}).Return(nil)
 
 				prog.EXPECT().Stop(gomock.Any()).AnyTimes()
-				iam.EXPECT().DeleteRoleWithContext(gomock.Any(), mockEnv.ExecutionRoleARN).Return(nil)
-				iam.EXPECT().DeleteRoleWithContext(gomock.Any(), mockEnv.ManagerRoleARN).Return(nil)
+				iam.EXPECT().DeleteRole(gomock.Any(), mockEnv.ExecutionRoleARN).Return(nil)
+				iam.EXPECT().DeleteRole(gomock.Any(), mockEnv.ManagerRoleARN).Return(nil)
 
 				store.EXPECT().DeleteEnvironment(ctx, mockEnv.App, mockEnv.Name).Return(nil)
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",
@@ -574,7 +574,7 @@ Resources:
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
-				lister.EXPECT().ListDeployedPipelinesWithContext(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
+				lister.EXPECT().ListDeployedPipelines(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
 
 				iam := mocks.NewMockroleDeleter(ctrl)
 
@@ -582,7 +582,7 @@ Resources:
 				prog.EXPECT().Start(gomock.Any()).AnyTimes()
 
 				deployer := mocks.NewMockenvironmentDeployer(ctrl)
-				deployer.EXPECT().TemplateWithContext(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
+				deployer.EXPECT().Template(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
 Resources:
   CloudformationExecutionRole:
     DeletionPolicy: Retain
@@ -594,7 +594,7 @@ Resources:
 `, nil)
 				rg.EXPECT().GetResources(context.Background(), gomock.Any()).Return(nil, errors.New("some error"))
 
-				deployer.EXPECT().DeleteEnvironmentWithContext(context.Background(), "phonetool", "test", "execARN").Return(nil)
+				deployer.EXPECT().DeleteEnvironment(context.Background(), "phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
 				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
@@ -609,7 +609,7 @@ Resources:
 				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
-				envDeleter.EXPECT().RemoveEnvFromAppWithContext(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
+				envDeleter.EXPECT().RemoveEnvFromApp(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
 					App:         app,
 					EnvToDelete: &mockEnv,
 					Environments: []*config.Environment{
@@ -623,12 +623,12 @@ Resources:
 				}).Return(nil)
 
 				prog.EXPECT().Stop(gomock.Any()).AnyTimes()
-				iam.EXPECT().DeleteRoleWithContext(gomock.Any(), mockEnv.ExecutionRoleARN).Return(nil)
-				iam.EXPECT().DeleteRoleWithContext(gomock.Any(), mockEnv.ManagerRoleARN).Return(nil)
+				iam.EXPECT().DeleteRole(gomock.Any(), mockEnv.ExecutionRoleARN).Return(nil)
+				iam.EXPECT().DeleteRole(gomock.Any(), mockEnv.ManagerRoleARN).Return(nil)
 
 				store.EXPECT().DeleteEnvironment(ctx, mockEnv.App, mockEnv.Name).Return(nil)
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",
@@ -662,7 +662,7 @@ Resources:
 					ResourceTagMappingList: []types.ResourceTagMapping{}}, nil)
 
 				lister := mocks.NewMockdeployedPipelineLister(ctrl)
-				lister.EXPECT().ListDeployedPipelinesWithContext(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
+				lister.EXPECT().ListDeployedPipelines(context.Background(), "phonetool").Return([]deploy.Pipeline{}, nil)
 
 				iam := mocks.NewMockroleDeleter(ctrl)
 
@@ -670,7 +670,7 @@ Resources:
 				prog.EXPECT().Start(gomock.Any()).AnyTimes()
 
 				deployer := mocks.NewMockenvironmentDeployer(ctrl)
-				deployer.EXPECT().TemplateWithContext(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
+				deployer.EXPECT().Template(context.Background(), stack.NameForEnv("phonetool", "test")).Return(`
 Resources:
   CloudformationExecutionRole:
     DeletionPolicy: Retain
@@ -682,7 +682,7 @@ Resources:
 `, nil)
 
 				descr := mocks.NewMockstackDescriber(ctrl)
-				descr.EXPECT().ResourcesWithContext(context.Background()).Return(
+				descr.EXPECT().Resources(context.Background()).Return(
 					[]*stackdescr.Resource{
 						{
 							Type:       "AWS::S3::Bucket",
@@ -715,9 +715,9 @@ Resources:
 				}, nil)
 
 				s3 := mocks.NewMockbucketEmptier(ctrl)
-				s3.EXPECT().EmptyBucketWithContext(context.Background(), gomock.Any()).Return(nil)
+				s3.EXPECT().EmptyBucket(context.Background(), gomock.Any()).Return(nil)
 
-				deployer.EXPECT().DeleteEnvironmentWithContext(context.Background(), "phonetool", "test", "execARN").Return(nil)
+				deployer.EXPECT().DeleteEnvironment(context.Background(), "phonetool", "test", "execARN").Return(nil)
 
 				store := mocks.NewMockenvironmentStore(ctrl)
 				store.EXPECT().ListEnvironments(ctx, "phonetool").Return([]*config.Environment{
@@ -732,7 +732,7 @@ Resources:
 				store.EXPECT().GetApplication(ctx, "phonetool").Return(app, nil)
 
 				envDeleter := mocks.NewMockenvDeleterFromApp(ctrl)
-				envDeleter.EXPECT().RemoveEnvFromAppWithContext(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
+				envDeleter.EXPECT().RemoveEnvFromApp(context.Background(), &cloudformation.RemoveEnvFromAppOpts{
 					App:         app,
 					EnvToDelete: &mockEnv,
 					Environments: []*config.Environment{
@@ -746,12 +746,12 @@ Resources:
 				}).Return(nil)
 
 				prog.EXPECT().Stop(gomock.Any()).AnyTimes()
-				iam.EXPECT().DeleteRoleWithContext(gomock.Any(), mockEnv.ExecutionRoleARN).Return(nil)
-				iam.EXPECT().DeleteRoleWithContext(gomock.Any(), mockEnv.ManagerRoleARN).Return(nil)
+				iam.EXPECT().DeleteRole(gomock.Any(), mockEnv.ExecutionRoleARN).Return(nil)
+				iam.EXPECT().DeleteRole(gomock.Any(), mockEnv.ManagerRoleARN).Return(nil)
 
 				store.EXPECT().DeleteEnvironment(ctx, mockEnv.App, mockEnv.Name).Return(nil)
 
-				return &deleteEnvOpts{
+				return &deleteEnvOpts{ctx: context.Background(),
 					deleteEnvVars: deleteEnvVars{
 						appName: "phonetool",
 						name:    "test",

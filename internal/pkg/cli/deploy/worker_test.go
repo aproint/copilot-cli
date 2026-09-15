@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -136,7 +137,7 @@ func TestSvcDeployOpts_stackConfiguration_worker(t *testing.T) {
 
 			deployer := workerSvcDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						name:             mockName,
 						app:              tc.inApp,
 						env:              tc.inEnvironment,
@@ -242,7 +243,7 @@ func Test_validateTopicsExist(t *testing.T) {
 func mockWorkerServiceDeployer(opts ...func(*workerSvcDeployer)) *workerSvcDeployer {
 	deployer := &workerSvcDeployer{
 		svcDeployer: &svcDeployer{
-			workloadDeployer: &workloadDeployer{
+			workloadDeployer: &workloadDeployer{ctx: context.Background(),
 				name: "example",
 				app: &config.Application{
 					Name: "demo",

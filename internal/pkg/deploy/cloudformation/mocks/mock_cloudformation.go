@@ -176,33 +176,33 @@ func (m *MockecsClient) EXPECT() *MockecsClientMockRecorder {
 }
 
 // Service mocks base method.
-func (m *MockecsClient) Service(clusterName, serviceName string) (*ecs.Service, error) {
+func (m *MockecsClient) Service(arg0 context.Context, arg1, arg2 string) (*ecs.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Service", clusterName, serviceName)
+	ret := m.ctrl.Call(m, "Service", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*ecs.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Service indicates an expected call of Service.
-func (mr *MockecsClientMockRecorder) Service(clusterName, serviceName interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) Service(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockecsClient)(nil).Service), clusterName, serviceName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockecsClient)(nil).Service), arg0, arg1, arg2)
 }
 
 // StoppedServiceTasks mocks base method.
-func (m *MockecsClient) StoppedServiceTasks(cluster, service string) ([]*ecs.Task, error) {
+func (m *MockecsClient) StoppedServiceTasks(arg0 context.Context, arg1, arg2 string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoppedServiceTasks", cluster, service)
+	ret := m.ctrl.Call(m, "StoppedServiceTasks", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StoppedServiceTasks indicates an expected call of StoppedServiceTasks.
-func (mr *MockecsClientMockRecorder) StoppedServiceTasks(cluster, service interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) StoppedServiceTasks(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoppedServiceTasks", reflect.TypeOf((*MockecsClient)(nil).StoppedServiceTasks), cluster, service)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoppedServiceTasks", reflect.TypeOf((*MockecsClient)(nil).StoppedServiceTasks), arg0, arg1, arg2)
 }
 
 // MockcwClient is a mock of cwClient interface.
@@ -229,10 +229,10 @@ func (m *MockcwClient) EXPECT() *MockcwClientMockRecorder {
 }
 
 // AlarmStatuses mocks base method.
-func (m *MockcwClient) AlarmStatuses(opts ...cloudwatch.DescribeAlarmOpts) ([]cloudwatch.AlarmStatus, error) {
+func (m *MockcwClient) AlarmStatuses(arg0 context.Context, arg1 ...cloudwatch.DescribeAlarmOpts) ([]cloudwatch.AlarmStatus, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range opts {
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AlarmStatuses", varargs...)
@@ -242,9 +242,10 @@ func (m *MockcwClient) AlarmStatuses(opts ...cloudwatch.DescribeAlarmOpts) ([]cl
 }
 
 // AlarmStatuses indicates an expected call of AlarmStatuses.
-func (mr *MockcwClientMockRecorder) AlarmStatuses(opts ...interface{}) *gomock.Call {
+func (mr *MockcwClientMockRecorder) AlarmStatuses(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AlarmStatuses", reflect.TypeOf((*MockcwClient)(nil).AlarmStatuses), opts...)
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AlarmStatuses", reflect.TypeOf((*MockcwClient)(nil).AlarmStatuses), varargs...)
 }
 
 // MockcfnClient is a mock of cfnClient interface.
@@ -271,532 +272,282 @@ func (m *MockcfnClient) EXPECT() *MockcfnClientMockRecorder {
 }
 
 // CancelUpdateStack mocks base method.
-func (m *MockcfnClient) CancelUpdateStack(stackName string) error {
+func (m *MockcfnClient) CancelUpdateStack(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CancelUpdateStack", stackName)
+	ret := m.ctrl.Call(m, "CancelUpdateStack", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CancelUpdateStack indicates an expected call of CancelUpdateStack.
-func (mr *MockcfnClientMockRecorder) CancelUpdateStack(stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) CancelUpdateStack(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelUpdateStack", reflect.TypeOf((*MockcfnClient)(nil).CancelUpdateStack), stackName)
-}
-
-// CancelUpdateStackWithContext mocks base method.
-func (m *MockcfnClient) CancelUpdateStackWithContext(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CancelUpdateStackWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CancelUpdateStackWithContext indicates an expected call of CancelUpdateStackWithContext.
-func (mr *MockcfnClientMockRecorder) CancelUpdateStackWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelUpdateStackWithContext", reflect.TypeOf((*MockcfnClient)(nil).CancelUpdateStackWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelUpdateStack", reflect.TypeOf((*MockcfnClient)(nil).CancelUpdateStack), arg0, arg1)
 }
 
 // Create mocks base method.
-func (m *MockcfnClient) Create(arg0 *cloudformation.Stack) (string, error) {
+func (m *MockcfnClient) Create(arg0 context.Context, arg1 *cloudformation.Stack) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", arg0)
+	ret := m.ctrl.Call(m, "Create", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockcfnClientMockRecorder) Create(arg0 interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockcfnClient)(nil).Create), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockcfnClient)(nil).Create), arg0, arg1)
 }
 
 // CreateAndWait mocks base method.
-func (m *MockcfnClient) CreateAndWait(arg0 *cloudformation.Stack) error {
+func (m *MockcfnClient) CreateAndWait(arg0 context.Context, arg1 *cloudformation.Stack) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAndWait", arg0)
+	ret := m.ctrl.Call(m, "CreateAndWait", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateAndWait indicates an expected call of CreateAndWait.
-func (mr *MockcfnClientMockRecorder) CreateAndWait(arg0 interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) CreateAndWait(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAndWait", reflect.TypeOf((*MockcfnClient)(nil).CreateAndWait), arg0)
-}
-
-// CreateAndWaitWithContext mocks base method.
-func (m *MockcfnClient) CreateAndWaitWithContext(arg0 context.Context, arg1 *cloudformation.Stack) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAndWaitWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateAndWaitWithContext indicates an expected call of CreateAndWaitWithContext.
-func (mr *MockcfnClientMockRecorder) CreateAndWaitWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAndWaitWithContext", reflect.TypeOf((*MockcfnClient)(nil).CreateAndWaitWithContext), arg0, arg1)
-}
-
-// CreateWithContext mocks base method.
-func (m *MockcfnClient) CreateWithContext(arg0 context.Context, arg1 *cloudformation.Stack) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateWithContext", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateWithContext indicates an expected call of CreateWithContext.
-func (mr *MockcfnClientMockRecorder) CreateWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWithContext", reflect.TypeOf((*MockcfnClient)(nil).CreateWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAndWait", reflect.TypeOf((*MockcfnClient)(nil).CreateAndWait), arg0, arg1)
 }
 
 // Delete mocks base method.
-func (m *MockcfnClient) Delete(stackName string) error {
+func (m *MockcfnClient) Delete(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", stackName)
+	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockcfnClientMockRecorder) Delete(stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockcfnClient)(nil).Delete), stackName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockcfnClient)(nil).Delete), arg0, arg1)
 }
 
 // DeleteAndWait mocks base method.
-func (m *MockcfnClient) DeleteAndWait(stackName string) error {
+func (m *MockcfnClient) DeleteAndWait(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAndWait", stackName)
+	ret := m.ctrl.Call(m, "DeleteAndWait", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteAndWait indicates an expected call of DeleteAndWait.
-func (mr *MockcfnClientMockRecorder) DeleteAndWait(stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) DeleteAndWait(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWait", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWait), stackName)
-}
-
-// DeleteAndWaitWithContext mocks base method.
-func (m *MockcfnClient) DeleteAndWaitWithContext(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAndWaitWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAndWaitWithContext indicates an expected call of DeleteAndWaitWithContext.
-func (mr *MockcfnClientMockRecorder) DeleteAndWaitWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWaitWithContext", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWaitWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWait", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWait), arg0, arg1)
 }
 
 // DeleteAndWaitWithRoleARN mocks base method.
-func (m *MockcfnClient) DeleteAndWaitWithRoleARN(stackName, roleARN string) error {
+func (m *MockcfnClient) DeleteAndWaitWithRoleARN(ctx context.Context, stackName, roleARN string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAndWaitWithRoleARN", stackName, roleARN)
+	ret := m.ctrl.Call(m, "DeleteAndWaitWithRoleARN", ctx, stackName, roleARN)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteAndWaitWithRoleARN indicates an expected call of DeleteAndWaitWithRoleARN.
-func (mr *MockcfnClientMockRecorder) DeleteAndWaitWithRoleARN(stackName, roleARN interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) DeleteAndWaitWithRoleARN(ctx, stackName, roleARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWaitWithRoleARN", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWaitWithRoleARN), stackName, roleARN)
-}
-
-// DeleteAndWaitWithRoleARNWithContext mocks base method.
-func (m *MockcfnClient) DeleteAndWaitWithRoleARNWithContext(ctx context.Context, stackName, roleARN string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAndWaitWithRoleARNWithContext", ctx, stackName, roleARN)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAndWaitWithRoleARNWithContext indicates an expected call of DeleteAndWaitWithRoleARNWithContext.
-func (mr *MockcfnClientMockRecorder) DeleteAndWaitWithRoleARNWithContext(ctx, stackName, roleARN interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWaitWithRoleARNWithContext", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWaitWithRoleARNWithContext), ctx, stackName, roleARN)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndWaitWithRoleARN", reflect.TypeOf((*MockcfnClient)(nil).DeleteAndWaitWithRoleARN), ctx, stackName, roleARN)
 }
 
 // Describe mocks base method.
-func (m *MockcfnClient) Describe(stackName string) (*cloudformation.StackDescription, error) {
+func (m *MockcfnClient) Describe(ctx context.Context, stackName string) (*cloudformation.StackDescription, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Describe", stackName)
+	ret := m.ctrl.Call(m, "Describe", ctx, stackName)
 	ret0, _ := ret[0].(*cloudformation.StackDescription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Describe indicates an expected call of Describe.
-func (mr *MockcfnClientMockRecorder) Describe(stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) Describe(ctx, stackName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*MockcfnClient)(nil).Describe), stackName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*MockcfnClient)(nil).Describe), ctx, stackName)
 }
 
 // DescribeChangeSet mocks base method.
-func (m *MockcfnClient) DescribeChangeSet(changeSetID, stackName string) (*cloudformation.ChangeSetDescription, error) {
+func (m *MockcfnClient) DescribeChangeSet(arg0 context.Context, arg1, arg2 string) (*cloudformation.ChangeSetDescription, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeChangeSet", changeSetID, stackName)
+	ret := m.ctrl.Call(m, "DescribeChangeSet", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*cloudformation.ChangeSetDescription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeChangeSet indicates an expected call of DescribeChangeSet.
-func (mr *MockcfnClientMockRecorder) DescribeChangeSet(changeSetID, stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) DescribeChangeSet(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeChangeSet", reflect.TypeOf((*MockcfnClient)(nil).DescribeChangeSet), changeSetID, stackName)
-}
-
-// DescribeChangeSetWithContext mocks base method.
-func (m *MockcfnClient) DescribeChangeSetWithContext(arg0 context.Context, arg1, arg2 string) (*cloudformation.ChangeSetDescription, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeChangeSetWithContext", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*cloudformation.ChangeSetDescription)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeChangeSetWithContext indicates an expected call of DescribeChangeSetWithContext.
-func (mr *MockcfnClientMockRecorder) DescribeChangeSetWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeChangeSetWithContext", reflect.TypeOf((*MockcfnClient)(nil).DescribeChangeSetWithContext), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeChangeSet", reflect.TypeOf((*MockcfnClient)(nil).DescribeChangeSet), arg0, arg1, arg2)
 }
 
 // DescribeStackEvents mocks base method.
-func (m *MockcfnClient) DescribeStackEvents(arg0 *cloudformation0.DescribeStackEventsInput) (*cloudformation0.DescribeStackEventsOutput, error) {
+func (m *MockcfnClient) DescribeStackEvents(arg0 context.Context, arg1 *cloudformation0.DescribeStackEventsInput) (*cloudformation0.DescribeStackEventsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeStackEvents", arg0)
+	ret := m.ctrl.Call(m, "DescribeStackEvents", arg0, arg1)
 	ret0, _ := ret[0].(*cloudformation0.DescribeStackEventsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeStackEvents indicates an expected call of DescribeStackEvents.
-func (mr *MockcfnClientMockRecorder) DescribeStackEvents(arg0 interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) DescribeStackEvents(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackEvents", reflect.TypeOf((*MockcfnClient)(nil).DescribeStackEvents), arg0)
-}
-
-// DescribeStackEventsWithContext mocks base method.
-func (m *MockcfnClient) DescribeStackEventsWithContext(arg0 context.Context, arg1 *cloudformation0.DescribeStackEventsInput) (*cloudformation0.DescribeStackEventsOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeStackEventsWithContext", arg0, arg1)
-	ret0, _ := ret[0].(*cloudformation0.DescribeStackEventsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeStackEventsWithContext indicates an expected call of DescribeStackEventsWithContext.
-func (mr *MockcfnClientMockRecorder) DescribeStackEventsWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackEventsWithContext", reflect.TypeOf((*MockcfnClient)(nil).DescribeStackEventsWithContext), arg0, arg1)
-}
-
-// DescribeWithContext mocks base method.
-func (m *MockcfnClient) DescribeWithContext(ctx context.Context, stackName string) (*cloudformation.StackDescription, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeWithContext", ctx, stackName)
-	ret0, _ := ret[0].(*cloudformation.StackDescription)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeWithContext indicates an expected call of DescribeWithContext.
-func (mr *MockcfnClientMockRecorder) DescribeWithContext(ctx, stackName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWithContext", reflect.TypeOf((*MockcfnClient)(nil).DescribeWithContext), ctx, stackName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeStackEvents", reflect.TypeOf((*MockcfnClient)(nil).DescribeStackEvents), arg0, arg1)
 }
 
 // ErrorEvents mocks base method.
-func (m *MockcfnClient) ErrorEvents(stackName string) ([]cloudformation.StackEvent, error) {
+func (m *MockcfnClient) ErrorEvents(arg0 context.Context, arg1 string) ([]cloudformation.StackEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ErrorEvents", stackName)
+	ret := m.ctrl.Call(m, "ErrorEvents", arg0, arg1)
 	ret0, _ := ret[0].([]cloudformation.StackEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ErrorEvents indicates an expected call of ErrorEvents.
-func (mr *MockcfnClientMockRecorder) ErrorEvents(stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) ErrorEvents(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ErrorEvents", reflect.TypeOf((*MockcfnClient)(nil).ErrorEvents), stackName)
-}
-
-// ErrorEventsWithContext mocks base method.
-func (m *MockcfnClient) ErrorEventsWithContext(arg0 context.Context, arg1 string) ([]cloudformation.StackEvent, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ErrorEventsWithContext", arg0, arg1)
-	ret0, _ := ret[0].([]cloudformation.StackEvent)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ErrorEventsWithContext indicates an expected call of ErrorEventsWithContext.
-func (mr *MockcfnClientMockRecorder) ErrorEventsWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ErrorEventsWithContext", reflect.TypeOf((*MockcfnClient)(nil).ErrorEventsWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ErrorEvents", reflect.TypeOf((*MockcfnClient)(nil).ErrorEvents), arg0, arg1)
 }
 
 // Events mocks base method.
-func (m *MockcfnClient) Events(stackName string) ([]cloudformation.StackEvent, error) {
+func (m *MockcfnClient) Events(arg0 context.Context, arg1 string) ([]cloudformation.StackEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Events", stackName)
+	ret := m.ctrl.Call(m, "Events", arg0, arg1)
 	ret0, _ := ret[0].([]cloudformation.StackEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Events indicates an expected call of Events.
-func (mr *MockcfnClientMockRecorder) Events(stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) Events(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Events", reflect.TypeOf((*MockcfnClient)(nil).Events), stackName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Events", reflect.TypeOf((*MockcfnClient)(nil).Events), arg0, arg1)
 }
 
 // ListStacksWithTags mocks base method.
-func (m *MockcfnClient) ListStacksWithTags(tags map[string]string) ([]cloudformation.StackDescription, error) {
+func (m *MockcfnClient) ListStacksWithTags(ctx context.Context, tags map[string]string) ([]cloudformation.StackDescription, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListStacksWithTags", tags)
+	ret := m.ctrl.Call(m, "ListStacksWithTags", ctx, tags)
 	ret0, _ := ret[0].([]cloudformation.StackDescription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListStacksWithTags indicates an expected call of ListStacksWithTags.
-func (mr *MockcfnClientMockRecorder) ListStacksWithTags(tags interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) ListStacksWithTags(ctx, tags interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStacksWithTags", reflect.TypeOf((*MockcfnClient)(nil).ListStacksWithTags), tags)
-}
-
-// ListStacksWithTagsWithContext mocks base method.
-func (m *MockcfnClient) ListStacksWithTagsWithContext(ctx context.Context, tags map[string]string) ([]cloudformation.StackDescription, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListStacksWithTagsWithContext", ctx, tags)
-	ret0, _ := ret[0].([]cloudformation.StackDescription)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListStacksWithTagsWithContext indicates an expected call of ListStacksWithTagsWithContext.
-func (mr *MockcfnClientMockRecorder) ListStacksWithTagsWithContext(ctx, tags interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStacksWithTagsWithContext", reflect.TypeOf((*MockcfnClient)(nil).ListStacksWithTagsWithContext), ctx, tags)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListStacksWithTags", reflect.TypeOf((*MockcfnClient)(nil).ListStacksWithTags), ctx, tags)
 }
 
 // Metadata mocks base method.
-func (m *MockcfnClient) Metadata(opts cloudformation.MetadataOpts) (string, error) {
+func (m *MockcfnClient) Metadata(arg0 context.Context, arg1 cloudformation.MetadataOpts) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Metadata", opts)
+	ret := m.ctrl.Call(m, "Metadata", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Metadata indicates an expected call of Metadata.
-func (mr *MockcfnClientMockRecorder) Metadata(opts interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) Metadata(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metadata", reflect.TypeOf((*MockcfnClient)(nil).Metadata), opts)
-}
-
-// MetadataWithContext mocks base method.
-func (m *MockcfnClient) MetadataWithContext(arg0 context.Context, arg1 cloudformation.MetadataOpts) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MetadataWithContext", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// MetadataWithContext indicates an expected call of MetadataWithContext.
-func (mr *MockcfnClientMockRecorder) MetadataWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MetadataWithContext", reflect.TypeOf((*MockcfnClient)(nil).MetadataWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metadata", reflect.TypeOf((*MockcfnClient)(nil).Metadata), arg0, arg1)
 }
 
 // Outputs mocks base method.
-func (m *MockcfnClient) Outputs(stack *cloudformation.Stack) (map[string]string, error) {
+func (m *MockcfnClient) Outputs(arg0 context.Context, arg1 *cloudformation.Stack) (map[string]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Outputs", stack)
+	ret := m.ctrl.Call(m, "Outputs", arg0, arg1)
 	ret0, _ := ret[0].(map[string]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Outputs indicates an expected call of Outputs.
-func (mr *MockcfnClientMockRecorder) Outputs(stack interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) Outputs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Outputs", reflect.TypeOf((*MockcfnClient)(nil).Outputs), stack)
-}
-
-// OutputsWithContext mocks base method.
-func (m *MockcfnClient) OutputsWithContext(arg0 context.Context, arg1 *cloudformation.Stack) (map[string]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OutputsWithContext", arg0, arg1)
-	ret0, _ := ret[0].(map[string]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// OutputsWithContext indicates an expected call of OutputsWithContext.
-func (mr *MockcfnClientMockRecorder) OutputsWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputsWithContext", reflect.TypeOf((*MockcfnClient)(nil).OutputsWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Outputs", reflect.TypeOf((*MockcfnClient)(nil).Outputs), arg0, arg1)
 }
 
 // StackResources mocks base method.
-func (m *MockcfnClient) StackResources(name string) ([]*cloudformation.StackResource, error) {
+func (m *MockcfnClient) StackResources(arg0 context.Context, arg1 string) ([]*cloudformation.StackResource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackResources", name)
+	ret := m.ctrl.Call(m, "StackResources", arg0, arg1)
 	ret0, _ := ret[0].([]*cloudformation.StackResource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StackResources indicates an expected call of StackResources.
-func (mr *MockcfnClientMockRecorder) StackResources(name interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) StackResources(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResources", reflect.TypeOf((*MockcfnClient)(nil).StackResources), name)
-}
-
-// StackResourcesWithContext mocks base method.
-func (m *MockcfnClient) StackResourcesWithContext(arg0 context.Context, arg1 string) ([]*cloudformation.StackResource, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackResourcesWithContext", arg0, arg1)
-	ret0, _ := ret[0].([]*cloudformation.StackResource)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// StackResourcesWithContext indicates an expected call of StackResourcesWithContext.
-func (mr *MockcfnClientMockRecorder) StackResourcesWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResourcesWithContext", reflect.TypeOf((*MockcfnClient)(nil).StackResourcesWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResources", reflect.TypeOf((*MockcfnClient)(nil).StackResources), arg0, arg1)
 }
 
 // TemplateBody mocks base method.
-func (m *MockcfnClient) TemplateBody(stackName string) (string, error) {
+func (m *MockcfnClient) TemplateBody(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TemplateBody", stackName)
+	ret := m.ctrl.Call(m, "TemplateBody", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TemplateBody indicates an expected call of TemplateBody.
-func (mr *MockcfnClientMockRecorder) TemplateBody(stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) TemplateBody(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TemplateBody", reflect.TypeOf((*MockcfnClient)(nil).TemplateBody), stackName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TemplateBody", reflect.TypeOf((*MockcfnClient)(nil).TemplateBody), arg0, arg1)
 }
 
 // TemplateBodyFromChangeSet mocks base method.
-func (m *MockcfnClient) TemplateBodyFromChangeSet(changeSetID, stackName string) (string, error) {
+func (m *MockcfnClient) TemplateBodyFromChangeSet(arg0 context.Context, arg1, arg2 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TemplateBodyFromChangeSet", changeSetID, stackName)
+	ret := m.ctrl.Call(m, "TemplateBodyFromChangeSet", arg0, arg1, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TemplateBodyFromChangeSet indicates an expected call of TemplateBodyFromChangeSet.
-func (mr *MockcfnClientMockRecorder) TemplateBodyFromChangeSet(changeSetID, stackName interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) TemplateBodyFromChangeSet(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TemplateBodyFromChangeSet", reflect.TypeOf((*MockcfnClient)(nil).TemplateBodyFromChangeSet), changeSetID, stackName)
-}
-
-// TemplateBodyFromChangeSetWithContext mocks base method.
-func (m *MockcfnClient) TemplateBodyFromChangeSetWithContext(arg0 context.Context, arg1, arg2 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TemplateBodyFromChangeSetWithContext", arg0, arg1, arg2)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// TemplateBodyFromChangeSetWithContext indicates an expected call of TemplateBodyFromChangeSetWithContext.
-func (mr *MockcfnClientMockRecorder) TemplateBodyFromChangeSetWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TemplateBodyFromChangeSetWithContext", reflect.TypeOf((*MockcfnClient)(nil).TemplateBodyFromChangeSetWithContext), arg0, arg1, arg2)
-}
-
-// TemplateBodyWithContext mocks base method.
-func (m *MockcfnClient) TemplateBodyWithContext(arg0 context.Context, arg1 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TemplateBodyWithContext", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// TemplateBodyWithContext indicates an expected call of TemplateBodyWithContext.
-func (mr *MockcfnClientMockRecorder) TemplateBodyWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TemplateBodyWithContext", reflect.TypeOf((*MockcfnClient)(nil).TemplateBodyWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TemplateBodyFromChangeSet", reflect.TypeOf((*MockcfnClient)(nil).TemplateBodyFromChangeSet), arg0, arg1, arg2)
 }
 
 // Update mocks base method.
-func (m *MockcfnClient) Update(arg0 *cloudformation.Stack) (string, error) {
+func (m *MockcfnClient) Update(arg0 context.Context, arg1 *cloudformation.Stack) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", arg0)
+	ret := m.ctrl.Call(m, "Update", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockcfnClientMockRecorder) Update(arg0 interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) Update(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockcfnClient)(nil).Update), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockcfnClient)(nil).Update), arg0, arg1)
 }
 
 // UpdateAndWait mocks base method.
-func (m *MockcfnClient) UpdateAndWait(arg0 *cloudformation.Stack) error {
+func (m *MockcfnClient) UpdateAndWait(arg0 context.Context, arg1 *cloudformation.Stack) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateAndWait", arg0)
+	ret := m.ctrl.Call(m, "UpdateAndWait", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateAndWait indicates an expected call of UpdateAndWait.
-func (mr *MockcfnClientMockRecorder) UpdateAndWait(arg0 interface{}) *gomock.Call {
+func (mr *MockcfnClientMockRecorder) UpdateAndWait(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAndWait", reflect.TypeOf((*MockcfnClient)(nil).UpdateAndWait), arg0)
-}
-
-// UpdateAndWaitWithContext mocks base method.
-func (m *MockcfnClient) UpdateAndWaitWithContext(arg0 context.Context, arg1 *cloudformation.Stack) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateAndWaitWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateAndWaitWithContext indicates an expected call of UpdateAndWaitWithContext.
-func (mr *MockcfnClientMockRecorder) UpdateAndWaitWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAndWaitWithContext", reflect.TypeOf((*MockcfnClient)(nil).UpdateAndWaitWithContext), arg0, arg1)
-}
-
-// UpdateWithContext mocks base method.
-func (m *MockcfnClient) UpdateWithContext(arg0 context.Context, arg1 *cloudformation.Stack) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateWithContext", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateWithContext indicates an expected call of UpdateWithContext.
-func (mr *MockcfnClientMockRecorder) UpdateWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWithContext", reflect.TypeOf((*MockcfnClient)(nil).UpdateWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAndWait", reflect.TypeOf((*MockcfnClient)(nil).UpdateAndWait), arg0, arg1)
 }
 
 // WaitForCreate mocks base method.
@@ -888,31 +639,17 @@ func (m *MockcodePipelineClient) EXPECT() *MockcodePipelineClientMockRecorder {
 }
 
 // RetryStageExecution mocks base method.
-func (m *MockcodePipelineClient) RetryStageExecution(pipelineName, stageName string) error {
+func (m *MockcodePipelineClient) RetryStageExecution(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetryStageExecution", pipelineName, stageName)
+	ret := m.ctrl.Call(m, "RetryStageExecution", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RetryStageExecution indicates an expected call of RetryStageExecution.
-func (mr *MockcodePipelineClientMockRecorder) RetryStageExecution(pipelineName, stageName interface{}) *gomock.Call {
+func (mr *MockcodePipelineClientMockRecorder) RetryStageExecution(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryStageExecution", reflect.TypeOf((*MockcodePipelineClient)(nil).RetryStageExecution), pipelineName, stageName)
-}
-
-// RetryStageExecutionWithContext mocks base method.
-func (m *MockcodePipelineClient) RetryStageExecutionWithContext(arg0 context.Context, arg1, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetryStageExecutionWithContext", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RetryStageExecutionWithContext indicates an expected call of RetryStageExecutionWithContext.
-func (mr *MockcodePipelineClientMockRecorder) RetryStageExecutionWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryStageExecutionWithContext", reflect.TypeOf((*MockcodePipelineClient)(nil).RetryStageExecutionWithContext), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryStageExecution", reflect.TypeOf((*MockcodePipelineClient)(nil).RetryStageExecution), arg0, arg1, arg2)
 }
 
 // Mocks3Client is a mock of s3Client interface.
@@ -939,61 +676,32 @@ func (m *Mocks3Client) EXPECT() *Mocks3ClientMockRecorder {
 }
 
 // EmptyBucket mocks base method.
-func (m *Mocks3Client) EmptyBucket(bucket string) error {
+func (m *Mocks3Client) EmptyBucket(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EmptyBucket", bucket)
+	ret := m.ctrl.Call(m, "EmptyBucket", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // EmptyBucket indicates an expected call of EmptyBucket.
-func (mr *Mocks3ClientMockRecorder) EmptyBucket(bucket interface{}) *gomock.Call {
+func (mr *Mocks3ClientMockRecorder) EmptyBucket(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmptyBucket", reflect.TypeOf((*Mocks3Client)(nil).EmptyBucket), bucket)
-}
-
-// EmptyBucketWithContext mocks base method.
-func (m *Mocks3Client) EmptyBucketWithContext(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EmptyBucketWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// EmptyBucketWithContext indicates an expected call of EmptyBucketWithContext.
-func (mr *Mocks3ClientMockRecorder) EmptyBucketWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmptyBucketWithContext", reflect.TypeOf((*Mocks3Client)(nil).EmptyBucketWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmptyBucket", reflect.TypeOf((*Mocks3Client)(nil).EmptyBucket), arg0, arg1)
 }
 
 // Upload mocks base method.
-func (m *Mocks3Client) Upload(bucket, fileName string, data io.Reader) (string, error) {
+func (m *Mocks3Client) Upload(ctx context.Context, bucket, fileName string, data io.Reader) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Upload", bucket, fileName, data)
+	ret := m.ctrl.Call(m, "Upload", ctx, bucket, fileName, data)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Upload indicates an expected call of Upload.
-func (mr *Mocks3ClientMockRecorder) Upload(bucket, fileName, data interface{}) *gomock.Call {
+func (mr *Mocks3ClientMockRecorder) Upload(ctx, bucket, fileName, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mocks3Client)(nil).Upload), bucket, fileName, data)
-}
-
-// UploadWithContext mocks base method.
-func (m *Mocks3Client) UploadWithContext(ctx context.Context, bucket, fileName string, data io.Reader) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadWithContext", ctx, bucket, fileName, data)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UploadWithContext indicates an expected call of UploadWithContext.
-func (mr *Mocks3ClientMockRecorder) UploadWithContext(ctx, bucket, fileName, data interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWithContext", reflect.TypeOf((*Mocks3Client)(nil).UploadWithContext), ctx, bucket, fileName, data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*Mocks3Client)(nil).Upload), ctx, bucket, fileName, data)
 }
 
 // MockimageRemover is a mock of imageRemover interface.
@@ -1020,31 +728,17 @@ func (m *MockimageRemover) EXPECT() *MockimageRemoverMockRecorder {
 }
 
 // ClearRepository mocks base method.
-func (m *MockimageRemover) ClearRepository(repoName string) error {
+func (m *MockimageRemover) ClearRepository(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ClearRepository", repoName)
+	ret := m.ctrl.Call(m, "ClearRepository", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ClearRepository indicates an expected call of ClearRepository.
-func (mr *MockimageRemoverMockRecorder) ClearRepository(repoName interface{}) *gomock.Call {
+func (mr *MockimageRemoverMockRecorder) ClearRepository(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRepository", reflect.TypeOf((*MockimageRemover)(nil).ClearRepository), repoName)
-}
-
-// ClearRepositoryWithContext mocks base method.
-func (m *MockimageRemover) ClearRepositoryWithContext(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ClearRepositoryWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ClearRepositoryWithContext indicates an expected call of ClearRepositoryWithContext.
-func (mr *MockimageRemoverMockRecorder) ClearRepositoryWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRepositoryWithContext", reflect.TypeOf((*MockimageRemover)(nil).ClearRepositoryWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRepository", reflect.TypeOf((*MockimageRemover)(nil).ClearRepository), arg0, arg1)
 }
 
 // MockstackSetClient is a mock of stackSetClient interface.
@@ -1071,10 +765,10 @@ func (m *MockstackSetClient) EXPECT() *MockstackSetClientMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockstackSetClient) Create(name, template string, opts ...stackset.CreateOrUpdateOption) error {
+func (m *MockstackSetClient) Create(arg0 context.Context, arg1, arg2 string, arg3 ...stackset.CreateOrUpdateOption) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{name, template}
-	for _, a := range opts {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Create", varargs...)
@@ -1083,228 +777,120 @@ func (m *MockstackSetClient) Create(name, template string, opts ...stackset.Crea
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockstackSetClientMockRecorder) Create(name, template interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) Create(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{name, template}, opts...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockstackSetClient)(nil).Create), varargs...)
 }
 
 // CreateInstances mocks base method.
-func (m *MockstackSetClient) CreateInstances(name string, accounts, regions []string) (string, error) {
+func (m *MockstackSetClient) CreateInstances(arg0 context.Context, arg1 string, arg2, arg3 []string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateInstances", name, accounts, regions)
+	ret := m.ctrl.Call(m, "CreateInstances", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateInstances indicates an expected call of CreateInstances.
-func (mr *MockstackSetClientMockRecorder) CreateInstances(name, accounts, regions interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) CreateInstances(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstances", reflect.TypeOf((*MockstackSetClient)(nil).CreateInstances), name, accounts, regions)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstances", reflect.TypeOf((*MockstackSetClient)(nil).CreateInstances), arg0, arg1, arg2, arg3)
 }
 
 // CreateInstancesAndWait mocks base method.
-func (m *MockstackSetClient) CreateInstancesAndWait(name string, accounts, regions []string) error {
+func (m *MockstackSetClient) CreateInstancesAndWait(arg0 context.Context, arg1 string, arg2, arg3 []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateInstancesAndWait", name, accounts, regions)
+	ret := m.ctrl.Call(m, "CreateInstancesAndWait", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateInstancesAndWait indicates an expected call of CreateInstancesAndWait.
-func (mr *MockstackSetClientMockRecorder) CreateInstancesAndWait(name, accounts, regions interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) CreateInstancesAndWait(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstancesAndWait", reflect.TypeOf((*MockstackSetClient)(nil).CreateInstancesAndWait), name, accounts, regions)
-}
-
-// CreateInstancesWithContext mocks base method.
-func (m *MockstackSetClient) CreateInstancesWithContext(arg0 context.Context, arg1 string, arg2, arg3 []string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateInstancesWithContext", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateInstancesWithContext indicates an expected call of CreateInstancesWithContext.
-func (mr *MockstackSetClientMockRecorder) CreateInstancesWithContext(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstancesWithContext", reflect.TypeOf((*MockstackSetClient)(nil).CreateInstancesWithContext), arg0, arg1, arg2, arg3)
-}
-
-// CreateWithContext mocks base method.
-func (m *MockstackSetClient) CreateWithContext(arg0 context.Context, arg1, arg2 string, arg3 ...stackset.CreateOrUpdateOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CreateWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateWithContext indicates an expected call of CreateWithContext.
-func (mr *MockstackSetClientMockRecorder) CreateWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWithContext", reflect.TypeOf((*MockstackSetClient)(nil).CreateWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstancesAndWait", reflect.TypeOf((*MockstackSetClient)(nil).CreateInstancesAndWait), arg0, arg1, arg2, arg3)
 }
 
 // Delete mocks base method.
-func (m *MockstackSetClient) Delete(name string) error {
+func (m *MockstackSetClient) Delete(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", name)
+	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockstackSetClientMockRecorder) Delete(name interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockstackSetClient)(nil).Delete), name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockstackSetClient)(nil).Delete), arg0, arg1)
 }
 
 // DeleteAllInstances mocks base method.
-func (m *MockstackSetClient) DeleteAllInstances(name string) (string, error) {
+func (m *MockstackSetClient) DeleteAllInstances(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAllInstances", name)
+	ret := m.ctrl.Call(m, "DeleteAllInstances", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteAllInstances indicates an expected call of DeleteAllInstances.
-func (mr *MockstackSetClientMockRecorder) DeleteAllInstances(name interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) DeleteAllInstances(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllInstances", reflect.TypeOf((*MockstackSetClient)(nil).DeleteAllInstances), name)
-}
-
-// DeleteAllInstancesWithContext mocks base method.
-func (m *MockstackSetClient) DeleteAllInstancesWithContext(arg0 context.Context, arg1 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAllInstancesWithContext", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteAllInstancesWithContext indicates an expected call of DeleteAllInstancesWithContext.
-func (mr *MockstackSetClientMockRecorder) DeleteAllInstancesWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllInstancesWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DeleteAllInstancesWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllInstances", reflect.TypeOf((*MockstackSetClient)(nil).DeleteAllInstances), arg0, arg1)
 }
 
 // DeleteInstance mocks base method.
-func (m *MockstackSetClient) DeleteInstance(name, account, region string) (string, error) {
+func (m *MockstackSetClient) DeleteInstance(arg0 context.Context, arg1, arg2, arg3 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteInstance", name, account, region)
+	ret := m.ctrl.Call(m, "DeleteInstance", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteInstance indicates an expected call of DeleteInstance.
-func (mr *MockstackSetClientMockRecorder) DeleteInstance(name, account, region interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) DeleteInstance(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockstackSetClient)(nil).DeleteInstance), name, account, region)
-}
-
-// DeleteInstanceWithContext mocks base method.
-func (m *MockstackSetClient) DeleteInstanceWithContext(arg0 context.Context, arg1, arg2, arg3 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteInstanceWithContext", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteInstanceWithContext indicates an expected call of DeleteInstanceWithContext.
-func (mr *MockstackSetClientMockRecorder) DeleteInstanceWithContext(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstanceWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DeleteInstanceWithContext), arg0, arg1, arg2, arg3)
-}
-
-// DeleteWithContext mocks base method.
-func (m *MockstackSetClient) DeleteWithContext(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteWithContext indicates an expected call of DeleteWithContext.
-func (mr *MockstackSetClientMockRecorder) DeleteWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DeleteWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockstackSetClient)(nil).DeleteInstance), arg0, arg1, arg2, arg3)
 }
 
 // Describe mocks base method.
-func (m *MockstackSetClient) Describe(name string) (stackset.Description, error) {
+func (m *MockstackSetClient) Describe(arg0 context.Context, arg1 string) (stackset.Description, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Describe", name)
+	ret := m.ctrl.Call(m, "Describe", arg0, arg1)
 	ret0, _ := ret[0].(stackset.Description)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Describe indicates an expected call of Describe.
-func (mr *MockstackSetClientMockRecorder) Describe(name interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) Describe(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*MockstackSetClient)(nil).Describe), name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*MockstackSetClient)(nil).Describe), arg0, arg1)
 }
 
 // DescribeOperation mocks base method.
-func (m *MockstackSetClient) DescribeOperation(name, opID string) (stackset.Operation, error) {
+func (m *MockstackSetClient) DescribeOperation(arg0 context.Context, arg1, arg2 string) (stackset.Operation, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeOperation", name, opID)
+	ret := m.ctrl.Call(m, "DescribeOperation", arg0, arg1, arg2)
 	ret0, _ := ret[0].(stackset.Operation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeOperation indicates an expected call of DescribeOperation.
-func (mr *MockstackSetClientMockRecorder) DescribeOperation(name, opID interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) DescribeOperation(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeOperation", reflect.TypeOf((*MockstackSetClient)(nil).DescribeOperation), name, opID)
-}
-
-// DescribeOperationWithContext mocks base method.
-func (m *MockstackSetClient) DescribeOperationWithContext(arg0 context.Context, arg1, arg2 string) (stackset.Operation, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeOperationWithContext", arg0, arg1, arg2)
-	ret0, _ := ret[0].(stackset.Operation)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeOperationWithContext indicates an expected call of DescribeOperationWithContext.
-func (mr *MockstackSetClientMockRecorder) DescribeOperationWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeOperationWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DescribeOperationWithContext), arg0, arg1, arg2)
-}
-
-// DescribeWithContext mocks base method.
-func (m *MockstackSetClient) DescribeWithContext(arg0 context.Context, arg1 string) (stackset.Description, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeWithContext", arg0, arg1)
-	ret0, _ := ret[0].(stackset.Description)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeWithContext indicates an expected call of DescribeWithContext.
-func (mr *MockstackSetClientMockRecorder) DescribeWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWithContext", reflect.TypeOf((*MockstackSetClient)(nil).DescribeWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeOperation", reflect.TypeOf((*MockstackSetClient)(nil).DescribeOperation), arg0, arg1, arg2)
 }
 
 // InstanceSummaries mocks base method.
-func (m *MockstackSetClient) InstanceSummaries(name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
+func (m *MockstackSetClient) InstanceSummaries(arg0 context.Context, arg1 string, arg2 ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{name}
-	for _, a := range opts {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "InstanceSummaries", varargs...)
@@ -1314,37 +900,17 @@ func (m *MockstackSetClient) InstanceSummaries(name string, opts ...stackset.Ins
 }
 
 // InstanceSummaries indicates an expected call of InstanceSummaries.
-func (mr *MockstackSetClientMockRecorder) InstanceSummaries(name interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) InstanceSummaries(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{name}, opts...)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceSummaries", reflect.TypeOf((*MockstackSetClient)(nil).InstanceSummaries), varargs...)
 }
 
-// InstanceSummariesWithContext mocks base method.
-func (m *MockstackSetClient) InstanceSummariesWithContext(arg0 context.Context, arg1 string, arg2 ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "InstanceSummariesWithContext", varargs...)
-	ret0, _ := ret[0].([]stackset.InstanceSummary)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InstanceSummariesWithContext indicates an expected call of InstanceSummariesWithContext.
-func (mr *MockstackSetClientMockRecorder) InstanceSummariesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceSummariesWithContext", reflect.TypeOf((*MockstackSetClient)(nil).InstanceSummariesWithContext), varargs...)
-}
-
 // Update mocks base method.
-func (m *MockstackSetClient) Update(name, template string, opts ...stackset.CreateOrUpdateOption) (string, error) {
+func (m *MockstackSetClient) Update(arg0 context.Context, arg1, arg2 string, arg3 ...stackset.CreateOrUpdateOption) (string, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{name, template}
-	for _, a := range opts {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Update", varargs...)
@@ -1354,17 +920,17 @@ func (m *MockstackSetClient) Update(name, template string, opts ...stackset.Crea
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockstackSetClientMockRecorder) Update(name, template interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) Update(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{name, template}, opts...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockstackSetClient)(nil).Update), varargs...)
 }
 
 // UpdateAndWait mocks base method.
-func (m *MockstackSetClient) UpdateAndWait(name, template string, opts ...stackset.CreateOrUpdateOption) error {
+func (m *MockstackSetClient) UpdateAndWait(arg0 context.Context, arg1, arg2 string, arg3 ...stackset.CreateOrUpdateOption) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{name, template}
-	for _, a := range opts {
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "UpdateAndWait", varargs...)
@@ -1373,84 +939,36 @@ func (m *MockstackSetClient) UpdateAndWait(name, template string, opts ...stacks
 }
 
 // UpdateAndWait indicates an expected call of UpdateAndWait.
-func (mr *MockstackSetClientMockRecorder) UpdateAndWait(name, template interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) UpdateAndWait(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{name, template}, opts...)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAndWait", reflect.TypeOf((*MockstackSetClient)(nil).UpdateAndWait), varargs...)
 }
 
-// UpdateWithContext mocks base method.
-func (m *MockstackSetClient) UpdateWithContext(arg0 context.Context, arg1, arg2 string, arg3 ...stackset.CreateOrUpdateOption) (string, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UpdateWithContext", varargs...)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateWithContext indicates an expected call of UpdateWithContext.
-func (mr *MockstackSetClientMockRecorder) UpdateWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWithContext", reflect.TypeOf((*MockstackSetClient)(nil).UpdateWithContext), varargs...)
-}
-
 // WaitForOperation mocks base method.
-func (m *MockstackSetClient) WaitForOperation(name, opID string) error {
+func (m *MockstackSetClient) WaitForOperation(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitForOperation", name, opID)
+	ret := m.ctrl.Call(m, "WaitForOperation", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitForOperation indicates an expected call of WaitForOperation.
-func (mr *MockstackSetClientMockRecorder) WaitForOperation(name, opID interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) WaitForOperation(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForOperation", reflect.TypeOf((*MockstackSetClient)(nil).WaitForOperation), name, opID)
-}
-
-// WaitForOperationWithContext mocks base method.
-func (m *MockstackSetClient) WaitForOperationWithContext(arg0 context.Context, arg1, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitForOperationWithContext", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitForOperationWithContext indicates an expected call of WaitForOperationWithContext.
-func (mr *MockstackSetClientMockRecorder) WaitForOperationWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForOperationWithContext", reflect.TypeOf((*MockstackSetClient)(nil).WaitForOperationWithContext), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForOperation", reflect.TypeOf((*MockstackSetClient)(nil).WaitForOperation), arg0, arg1, arg2)
 }
 
 // WaitForStackSetLastOperationComplete mocks base method.
-func (m *MockstackSetClient) WaitForStackSetLastOperationComplete(name string) error {
+func (m *MockstackSetClient) WaitForStackSetLastOperationComplete(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitForStackSetLastOperationComplete", name)
+	ret := m.ctrl.Call(m, "WaitForStackSetLastOperationComplete", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitForStackSetLastOperationComplete indicates an expected call of WaitForStackSetLastOperationComplete.
-func (mr *MockstackSetClientMockRecorder) WaitForStackSetLastOperationComplete(name interface{}) *gomock.Call {
+func (mr *MockstackSetClientMockRecorder) WaitForStackSetLastOperationComplete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForStackSetLastOperationComplete", reflect.TypeOf((*MockstackSetClient)(nil).WaitForStackSetLastOperationComplete), name)
-}
-
-// WaitForStackSetLastOperationCompleteWithContext mocks base method.
-func (m *MockstackSetClient) WaitForStackSetLastOperationCompleteWithContext(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitForStackSetLastOperationCompleteWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitForStackSetLastOperationCompleteWithContext indicates an expected call of WaitForStackSetLastOperationCompleteWithContext.
-func (mr *MockstackSetClientMockRecorder) WaitForStackSetLastOperationCompleteWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForStackSetLastOperationCompleteWithContext", reflect.TypeOf((*MockstackSetClient)(nil).WaitForStackSetLastOperationCompleteWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForStackSetLastOperationComplete", reflect.TypeOf((*MockstackSetClient)(nil).WaitForStackSetLastOperationComplete), arg0, arg1)
 }

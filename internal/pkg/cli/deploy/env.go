@@ -48,21 +48,21 @@ type WorkspaceAddonsReaderPathGetter interface {
 }
 
 type appResourcesGetter interface {
-	GetAppResourcesByRegion(app *config.Application, region string) (*cfnstack.AppRegionalResources, error)
+	GetAppResourcesByRegion(context.Context, *config.Application, string) (*cfnstack.AppRegionalResources, error)
 }
 
 type environmentDeployer interface {
 	UpdateAndRenderEnvironment(context.Context, deploycfn.StackConfiguration, string, bool, ...cloudformation.StackOption) error
-	DeployedEnvironmentParametersWithContext(context.Context, string, string) ([]awscfn.Parameter, error)
-	ForceUpdateOutputIDWithContext(context.Context, string, string) (string, error)
+	DeployedEnvironmentParameters(context.Context, string, string) ([]awscfn.Parameter, error)
+	ForceUpdateOutputID(context.Context, string, string) (string, error)
 }
 
 type patcher interface {
-	EnsureManagerRoleIsAllowedToUpload(bucketName string) error
+	EnsureManagerRoleIsAllowedToUpload(context.Context, string) error
 }
 
 type prefixListGetter interface {
-	CloudFrontManagedPrefixListIDWithContext(context.Context) (string, error)
+	CloudFrontManagedPrefixListID(context.Context) (string, error)
 }
 
 type envDescriber interface {
@@ -75,7 +75,7 @@ type lbDescriber interface {
 }
 
 type stackDescriber interface {
-	Resources() ([]*stack.Resource, error)
+	Resources(context.Context) ([]*stack.Resource, error)
 }
 
 type envDeployer struct {
@@ -120,9 +120,6 @@ type NewEnvDeployerInput struct {
 // NewEnvDeployer constructs an environment deployer.
 func NewEnvDeployer(in *NewEnvDeployerInput) (*envDeployer, error) {
 	ctx := in.Ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	defaultConfig, err := in.SessionProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get default config: %w", err)
@@ -210,7 +207,7 @@ func (d *envDeployer) UploadArtifacts(ctx context.Context) (*UploadEnvArtifactsO
 	if err != nil {
 		return nil, err
 	}
-	if err := d.patcher.EnsureManagerRoleIsAllowedToUpload(resources.S3Bucket); err != nil {
+	if err := d.patcher.EnsureManagerRoleIsAllowedToUpload(ctx, resources.S3Bucket); err != nil {
 		return nil, fmt.Errorf("ensure env manager role has permissions to upload: %w", err)
 	}
 	customResourceURLs, err := d.uploadCustomResources(ctx, resources.S3Bucket)
@@ -229,7 +226,7 @@ func (d *envDeployer) UploadArtifacts(ctx context.Context) (*UploadEnvArtifactsO
 
 // DeployDiff returns the stringified diff of the template against the deployed template of the environment.
 func (d *envDeployer) DeployDiff(template string) (string, error) {
-	tmpl, err := d.tmplGetter.Template(cfnstack.NameForEnv(d.app.Name, d.env.Name))
+	tmpl, err := d.tmplGetter.Template(d.ctx, cfnstack.NameForEnv(d.app.Name, d.env.Name))
 	if err != nil {
 		var errNotFound *awscloudformation.ErrStackNotFound
 		if !errors.As(err, &errNotFound) {
@@ -285,11 +282,11 @@ func (d *envDeployer) GenerateCloudFormationTemplate(ctx context.Context, in *De
 	if err != nil {
 		return nil, err
 	}
-	oldParams, err := d.envDeployer.DeployedEnvironmentParametersWithContext(ctx, d.app.Name, d.env.Name)
+	oldParams, err := d.envDeployer.DeployedEnvironmentParameters(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("describe environment stack parameters: %w", err)
 	}
-	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputIDWithContext(ctx, d.app.Name, d.env.Name)
+	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputID(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve environment stack force update ID: %w", err)
 	}
@@ -317,11 +314,11 @@ func (d *envDeployer) DeployEnvironment(ctx context.Context, in *DeployEnvironme
 	if err != nil {
 		return err
 	}
-	oldParams, err := d.envDeployer.DeployedEnvironmentParametersWithContext(ctx, d.app.Name, d.env.Name)
+	oldParams, err := d.envDeployer.DeployedEnvironmentParameters(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return fmt.Errorf("describe environment stack parameters: %w", err)
 	}
-	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputIDWithContext(ctx, d.app.Name, d.env.Name)
+	lastForceUpdateID, err := d.envDeployer.ForceUpdateOutputID(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return fmt.Errorf("retrieve environment stack force update ID: %w", err)
 	}
@@ -342,7 +339,7 @@ func (d *envDeployer) getAppRegionalResources() (*cfnstack.AppRegionalResources,
 	if d.appRegionalResources != nil {
 		return d.appRegionalResources, nil
 	}
-	resources, err := d.appCFN.GetAppResourcesByRegion(d.app, d.env.Region)
+	resources, err := d.appCFN.GetAppResourcesByRegion(d.ctx, d.app, d.env.Region)
 	if err != nil {
 		return nil, fmt.Errorf("get app resources in region %s: %w", d.env.Region, err)
 	}
@@ -357,8 +354,8 @@ func (d *envDeployer) uploadCustomResources(ctx context.Context, bucket string) 
 	if err != nil {
 		return nil, fmt.Errorf("read custom resources for environment %s: %w", d.env.Name, err)
 	}
-	urls, err := customresource.UploadWithContext(ctx, func(ctx context.Context, key string, dat io.Reader) (url string, err error) {
-		return d.s3.UploadWithContext(ctx, bucket, key, dat)
+	urls, err := customresource.Upload(ctx, func(ctx context.Context, key string, dat io.Reader) (url string, err error) {
+		return d.s3.Upload(ctx, bucket, key, dat)
 	}, crs)
 	if err != nil {
 		return nil, fmt.Errorf("upload custom resources to bucket %s: %w", bucket, err)
@@ -389,7 +386,7 @@ func (d *envDeployer) uploadAddons(ctx context.Context, bucket string) (string, 
 	if err != nil {
 		return "", fmt.Errorf("render addons template: %w", err)
 	}
-	url, err := d.s3.UploadWithContext(ctx, bucket, artifactpath.EnvironmentAddons([]byte(tmpl)), strings.NewReader(tmpl))
+	url, err := d.s3.Upload(ctx, bucket, artifactpath.EnvironmentAddons([]byte(tmpl)), strings.NewReader(tmpl))
 	if err != nil {
 		return "", fmt.Errorf("upload addons template to bucket %s: %w", bucket, err)
 	}
@@ -465,7 +462,7 @@ func (d *envDeployer) buildAddonsInput(region, bucket, uploadURL string) (*cfnst
 // HTTPListenerRuleWithDomain because HTTPListenerRule doesn't ever redirect.
 func (d *envDeployer) lbServiceRedirects(ctx context.Context, svc string) (bool, error) {
 	stackDescriber := d.newServiceStackDescriber(svc)
-	resources, err := stackDescriber.Resources()
+	resources, err := stackDescriber.Resources(ctx)
 	if err != nil {
 		return false, fmt.Errorf("get stack resources: %w", err)
 	}
@@ -529,10 +526,6 @@ func (d *envDeployer) validateALBWorkloadsDontRedirect() error {
 	}
 	services := strings.Split(params[cfnstack.EnvParamALBWorkloadsKey], ",")
 	ctx := d.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct deployers directly. Commands always set ctx.
-		ctx = context.Background()
-	}
 	g, ctx := errgroup.WithContext(ctx)
 
 	var badServices []string
@@ -596,7 +589,7 @@ func (d *envDeployer) publicALBSourceIPs(in *DeployEnvironmentInput) []string {
 }
 
 func (d *envDeployer) cfManagedPrefixListID(ctx context.Context) (string, error) {
-	id, err := d.prefixListGetter.CloudFrontManagedPrefixListIDWithContext(ctx)
+	id, err := d.prefixListGetter.CloudFrontManagedPrefixListID(ctx)
 	if err != nil {
 		return "", fmt.Errorf("retrieve CloudFront managed prefix list id: %w", err)
 	}

@@ -101,7 +101,7 @@ func (d *backendSvcDeployer) stackConfiguration(ctx context.Context, in *StackRu
 	}
 	var opts []stack.BackendServiceOption
 	if d.backendMft.HTTP.ImportedALB != nil {
-		lb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.backendMft.HTTP.ImportedALB))
+		lb, err := d.elbGetter.LoadBalancer(ctx, aws.ToString(d.backendMft.HTTP.ImportedALB))
 		if err != nil {
 			return nil, err
 		}
@@ -158,7 +158,7 @@ func (d *backendSvcDeployer) validateImportedALBConfig(ctx context.Context) erro
 	if d.backendMft.HTTP.ImportedALB == nil {
 		return nil
 	}
-	alb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.backendMft.HTTP.ImportedALB))
+	alb, err := d.elbGetter.LoadBalancer(ctx, aws.ToString(d.backendMft.HTTP.ImportedALB))
 	if err != nil {
 		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.ToString(d.backendMft.HTTP.ImportedALB), err)
 	}
@@ -207,7 +207,7 @@ func (d *backendSvcDeployer) validateRuntimeRoutingRule(ctx context.Context, rul
 		return fmt.Errorf("convert aliases to string slice: %w", err)
 	}
 
-	if err := d.aliasCertValidator.ValidateCertAliasesWithContext(ctx, aliases, d.envConfig.HTTPConfig.Private.Certificates); err != nil {
+	if err := d.aliasCertValidator.ValidateCertAliases(ctx, aliases, d.envConfig.HTTPConfig.Private.Certificates); err != nil {
 		return fmt.Errorf("validate aliases against the imported certificate for env %s: %w", d.env.Name, err)
 	}
 	return nil

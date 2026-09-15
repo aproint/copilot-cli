@@ -41,8 +41,8 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 		"should return an error if infrastructure roles stack fails": {
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", errors.New("error creating stack"))
-				m.EXPECT().ErrorEventsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil) // No additional error descriptions.
+				m.EXPECT().Create(gomock.Any(), gomock.Any()).Return("", errors.New("error creating stack"))
+				m.EXPECT().ErrorEvents(gomock.Any(), gomock.Any()).Return(nil, nil) // No additional error descriptions.
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
@@ -54,7 +54,7 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 			region: "bad-region",
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
+				m.EXPECT().Create(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
@@ -66,12 +66,12 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 			region: "us-west-2",
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
+				m.EXPECT().Create(gomock.Any(), gomock.Any()).Return("", &cloudformation.ErrStackAlreadyExists{})
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 				return m
 			},
@@ -80,12 +80,12 @@ func TestCloudFormation_DeployApp(t *testing.T) {
 			region: "us-west-2",
 			mockStack: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any()).Return("", nil)
+				m.EXPECT().Create(gomock.Any(), gomock.Any()).Return("", nil)
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().CreateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil).
 					Do(func(_ context.Context, name, _ string, _ ...stackset.CreateOrUpdateOption) {
 						require.Equal(t, "testapp-infrastructure", name)
@@ -199,7 +199,7 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 		"error if fail to wait until stack set last operation complete": {
 			mockDeployer: func(t *testing.T, ctrl *gomock.Controller) *CloudFormation {
 				mockAppStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(errors.New("some error"))
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete(gomock.Any(), "phonetool-infrastructure").Return(errors.New("some error"))
 
 				return &CloudFormation{
 					console: mockFileWriter{Writer: &strings.Builder{}},
@@ -237,9 +237,9 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 		"success": {
 			mockDeployer: func(t *testing.T, ctrl *gomock.Controller) *CloudFormation {
 				mockAppStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(nil)
-				mockAppStackSet.EXPECT().DescribeWithContext(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
-				mockAppStackSet.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete(gomock.Any(), "phonetool-infrastructure").Return(nil)
+				mockAppStackSet.EXPECT().Describe(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
+				mockAppStackSet.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil)
 
 				return &CloudFormation{
@@ -281,13 +281,13 @@ func TestCloudFormation_UpgradeApplication(t *testing.T) {
 		"success with multiple tries and waitings": {
 			mockDeployer: func(t *testing.T, ctrl *gomock.Controller) *CloudFormation {
 				mockAppStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(nil)
-				mockAppStackSet.EXPECT().DescribeWithContext(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
-				mockAppStackSet.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete(gomock.Any(), "phonetool-infrastructure").Return(nil)
+				mockAppStackSet.EXPECT().Describe(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
+				mockAppStackSet.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", &stackset.ErrStackSetOutOfDate{})
-				mockAppStackSet.EXPECT().WaitForStackSetLastOperationCompleteWithContext(gomock.Any(), "phonetool-infrastructure").Return(nil)
-				mockAppStackSet.EXPECT().DescribeWithContext(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
-				mockAppStackSet.EXPECT().UpdateWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				mockAppStackSet.EXPECT().WaitForStackSetLastOperationComplete(gomock.Any(), "phonetool-infrastructure").Return(nil)
+				mockAppStackSet.EXPECT().Describe(gomock.Any(), "phonetool-infrastructure").Return(stackset.Description{}, nil)
+				mockAppStackSet.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil)
 
 				return &CloudFormation{
@@ -368,20 +368,20 @@ func TestCloudFormation_AddEnvToApp(t *testing.T) {
 				m := mocks.NewMockstackSetClient(ctrl)
 				body, err := yaml.Marshal(stack.DeployedAppMetadata{})
 				require.NoError(t, err)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: string(body),
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil).
-					Do(func(_, _ string, ops ...stackset.CreateOrUpdateOption) {
+					Do(func(_ context.Context, _, _ string, ops ...stackset.CreateOrUpdateOption) {
 						actual := &awscfn.UpdateStackSetInput{}
 						ops[0](actual)
 						wanted := &awscfn.UpdateStackSetInput{}
 						stackset.WithOperationID("1")(wanted)
 						require.Equal(t, actual, wanted)
 					})
-				m.EXPECT().InstanceSummaries(gomock.Any()).Return([]stackset.InstanceSummary{}, nil)
-				m.EXPECT().CreateInstances(gomock.Any(), []string{"1234"}, []string{"us-west-2"}).Return("", nil)
+				m.EXPECT().InstanceSummaries(context.Background(), gomock.Any()).Return([]stackset.InstanceSummary{}, nil)
+				m.EXPECT().CreateInstances(gomock.Any(), gomock.Any(), []string{"1234"}, []string{"us-west-2"}).Return("", nil)
 				return m
 			},
 		},
@@ -398,13 +398,13 @@ func TestCloudFormation_AddEnvToApp(t *testing.T) {
 					},
 				})
 				require.NoError(t, err)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: string(body),
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil)
-				m.EXPECT().InstanceSummaries(gomock.Any()).Return([]stackset.InstanceSummary{}, nil)
-				m.EXPECT().CreateInstances(gomock.Any(), []string{"1234"}, []string{"us-west-2"}).Return("", nil)
+				m.EXPECT().InstanceSummaries(context.Background(), gomock.Any()).Return([]stackset.InstanceSummary{}, nil)
+				m.EXPECT().CreateInstances(gomock.Any(), gomock.Any(), []string{"1234"}, []string{"us-west-2"}).Return("", nil)
 				return m
 			},
 		},
@@ -422,25 +422,25 @@ func TestCloudFormation_AddEnvToApp(t *testing.T) {
 					},
 				})
 				require.NoError(t, err)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: string(body),
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil).
-					Do(func(_, _ string, ops ...stackset.CreateOrUpdateOption) {
+					Do(func(_ context.Context, _, _ string, ops ...stackset.CreateOrUpdateOption) {
 						actual := &awscfn.UpdateStackSetInput{}
 						ops[0](actual)
 						wanted := &awscfn.UpdateStackSetInput{}
 						stackset.WithOperationID("2")(wanted)
 						require.Equal(t, actual, wanted)
 					})
-				m.EXPECT().InstanceSummaries(gomock.Any()).Return([]stackset.InstanceSummary{
+				m.EXPECT().InstanceSummaries(context.Background(), gomock.Any()).Return([]stackset.InstanceSummary{
 					{
 						Region:  "us-west-2",
 						Account: "1234",
 					},
 				}, nil)
-				m.EXPECT().CreateInstances(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				m.EXPECT().CreateInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				return m
 			},
 		},
@@ -459,7 +459,7 @@ func TestCloudFormation_AddEnvToApp(t *testing.T) {
 					return err
 				},
 			}
-			got := cf.AddEnvToApp(&AddEnvToAppOpts{
+			got := cf.AddEnvToApp(context.Background(), &AddEnvToAppOpts{
 				App:          tc.app,
 				EnvName:      tc.env.Name,
 				EnvAccountID: tc.env.AccountID,
@@ -476,92 +476,14 @@ func TestCloudFormation_AddEnvToApp(t *testing.T) {
 }
 
 func TestCloudFormation_AddPipelineResourcesToApp(t *testing.T) {
-	mockApp := config.Application{
-		Name:      "testapp",
-		AccountID: "1234",
-	}
-	testCases := map[string]struct {
-		app                 *config.Application
-		mockStackSet        func(t *testing.T, ctrl *gomock.Controller) stackSetClient
-		getRegionFromClient func(client any) (string, error)
-		expectedErr         error
-	}{
-		"with no existing account nor environment, add pipeline supporting resources": {
-			app: &mockApp,
-			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
-				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().InstanceSummaries(gomock.Any()).Return([]stackset.InstanceSummary{}, nil)
-				body, err := yaml.Marshal(stack.DeployedAppMetadata{})
-				require.NoError(t, err)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
-					Template: string(body),
-				}, nil)
-				m.EXPECT().CreateInstances(gomock.Any(), []string{"1234"}, []string{"us-west-2"}).Return("1", nil)
-				return m
-			},
-			getRegionFromClient: func(client any) (string, error) {
-				return "us-west-2", nil
-			},
-		},
-		"with existing account and existing environment in a region, should not add pipeline supporting resources": {
-			app: &mockApp,
-			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
-				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().InstanceSummaries(gomock.Any()).Return([]stackset.InstanceSummary{
-					{
-						Region:  "us-west-2",
-						Account: mockApp.AccountID,
-					},
-				}, nil)
-				body, err := yaml.Marshal(stack.DeployedAppMetadata{})
-				require.NoError(t, err)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
-					Template: string(body),
-				}, nil)
-				m.EXPECT().CreateInstances(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				return m
-			},
-			getRegionFromClient: func(client any) (string, error) {
-				return "us-west-2", nil
-			},
-		},
-	}
-
-	actual := getRegionFromClient // FIXME refactor using defer func
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			cf := CloudFormation{
-				appStackSet: tc.mockStackSet(t, ctrl),
-				renderStackSet: func(_ context.Context, input renderStackSetInput) error {
-					_, err := input.createOpFn(t.Context())
-					return err
-				},
-			}
-			getRegionFromClient = tc.getRegionFromClient
-
-			got := cf.AddPipelineResourcesToApp(tc.app, "us-west-2")
-
-			if tc.expectedErr != nil {
-				require.EqualError(t, got, tc.expectedErr.Error())
-			} else {
-				require.NoError(t, got)
-			}
-		})
-	}
-	getRegionFromClient = actual
-}
-
-func TestCloudFormation_AddPipelineResourcesToAppWithContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
 	stackSet := mocks.NewMockstackSetClient(ctrl)
 	wantedErr := errors.New("describe stack set")
-	stackSet.EXPECT().DescribeWithContext(ctx, "testapp-infrastructure").Return(stackset.Description{}, wantedErr)
+	stackSet.EXPECT().Describe(ctx, "testapp-infrastructure").Return(stackset.Description{}, wantedErr)
 	cf := CloudFormation{appStackSet: stackSet}
 
-	err := cf.AddPipelineResourcesToAppWithContext(ctx, &config.Application{
+	err := cf.AddPipelineResourcesToApp(ctx, &config.Application{
 		Name:      "testapp",
 		AccountID: "1234",
 	}, "us-west-2")
@@ -585,14 +507,14 @@ func TestCloudFormation_AddServiceToApp(t *testing.T) {
 			svcName: "TestSvc",
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: `Metadata:
   Version:
   Services: []`,
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil).
-					Do(func(_, template string, _ ...stackset.CreateOrUpdateOption) {
+					Do(func(_ context.Context, _, template string, _ ...stackset.CreateOrUpdateOption) {
 						configToDeploy, err := stack.AppConfigFrom(&template)
 						require.NoError(t, err)
 						require.ElementsMatch(t, []stack.AppResourcesWorkload{{Name: "TestSvc", WithECR: true}}, configToDeploy.Workloads)
@@ -607,15 +529,15 @@ func TestCloudFormation_AddServiceToApp(t *testing.T) {
 			svcName: "test",
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: `Metadata:
   Version: 1
   Services:
   - firsttest`,
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil).
-					Do(func(_, template string, _ ...stackset.CreateOrUpdateOption) {
+					Do(func(_ context.Context, _, template string, _ ...stackset.CreateOrUpdateOption) {
 						configToDeploy, err := stack.AppConfigFrom(&template)
 						require.NoError(t, err)
 						require.ElementsMatch(t, []stack.AppResourcesWorkload{
@@ -634,13 +556,13 @@ func TestCloudFormation_AddServiceToApp(t *testing.T) {
 			svcName: "test",
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: `Metadata:
   Version: 1
   Services:
   - test`,
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 				return m
 			},
@@ -650,7 +572,7 @@ func TestCloudFormation_AddServiceToApp(t *testing.T) {
 			svcName: "test",
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: `Metadata:
   Version: 1
   Services: "See #5140"
@@ -658,9 +580,9 @@ func TestCloudFormation_AddServiceToApp(t *testing.T) {
   - Name: firsttest
     WithECR: true`,
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil).
-					Do(func(_, template string, _ ...stackset.CreateOrUpdateOption) {
+					Do(func(_ context.Context, _, template string, _ ...stackset.CreateOrUpdateOption) {
 						configToDeploy, err := stack.AppConfigFrom(&template)
 						require.NoError(t, err)
 						require.ElementsMatch(t, []stack.AppResourcesWorkload{
@@ -689,7 +611,7 @@ func TestCloudFormation_AddServiceToApp(t *testing.T) {
 				},
 			}
 
-			got := cf.AddServiceToApp(tc.app, tc.svcName)
+			got := cf.AddServiceToApp(context.Background(), tc.app, tc.svcName)
 
 			if tc.want != nil {
 				require.EqualError(t, got, tc.want.Error())
@@ -716,16 +638,16 @@ func TestCloudFormation_RemoveServiceFromApp(t *testing.T) {
 
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(stackset.Description{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(stackset.Description{
 					Template: `Metadata:
   Version: 1
   Services:
   - firsttest
   - test`,
 				}, nil)
-				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				m.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil).
-					Do(func(_, template string, opts ...stackset.CreateOrUpdateOption) {
+					Do(func(_ context.Context, _, template string, opts ...stackset.CreateOrUpdateOption) {
 						configToDeploy, err := stack.AppConfigFrom(&template)
 						require.NoError(t, err)
 						require.ElementsMatch(t, []stack.AppResourcesWorkload{{Name: "firsttest", WithECR: true}}, configToDeploy.Workloads)
@@ -751,7 +673,7 @@ func TestCloudFormation_RemoveServiceFromApp(t *testing.T) {
 				},
 			}
 
-			got := cf.RemoveServiceFromApp(mockApp, tc.service)
+			got := cf.RemoveServiceFromApp(context.Background(), mockApp, tc.service)
 
 			require.Equal(t, tc.want, got)
 		})
@@ -776,19 +698,19 @@ func TestCloudFormation_GetRegionalAppResources(t *testing.T) {
 			},
 			createRegionalMockClient: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe("cross-region-stack").Return(mockValidAppResourceStack(), nil)
+				m.EXPECT().Describe(context.Background(), "cross-region-stack").Return(mockValidAppResourceStack(), nil)
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any()).
+				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return([]stackset.InstanceSummary{
 						{
 							StackID: "cross-region-stack",
 							Region:  "us-east-9",
 						},
 					}, nil).
-					Do(func(_ string, opt stackset.InstanceSummariesOption) {
+					Do(func(_ context.Context, _ string, opt stackset.InstanceSummariesOption) {
 						wanted := &awscfn.ListStackInstancesInput{
 							StackInstanceAccount: aws.String("12345"),
 						}
@@ -803,12 +725,12 @@ func TestCloudFormation_GetRegionalAppResources(t *testing.T) {
 			want: fmt.Errorf("describing application resources: getting outputs for stack cross-region-stack in region us-east-9: error calling cloudformation"),
 			createRegionalMockClient: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe("cross-region-stack").Return(nil, errors.New("error calling cloudformation"))
+				m.EXPECT().Describe(context.Background(), "cross-region-stack").Return(nil, errors.New("error calling cloudformation"))
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
+				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
 					{
 						StackID: "cross-region-stack",
 						Region:  "us-east-9",
@@ -822,7 +744,7 @@ func TestCloudFormation_GetRegionalAppResources(t *testing.T) {
 			want: fmt.Errorf("describing application resources: error"),
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any()).Return(nil, errors.New("error"))
+				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("error"))
 				return m
 			},
 		},
@@ -841,7 +763,7 @@ func TestCloudFormation_GetRegionalAppResources(t *testing.T) {
 			}
 
 			// WHEN
-			got, err := cf.GetRegionalAppResources(&mockApp)
+			got, err := cf.GetRegionalAppResources(context.Background(), &mockApp)
 
 			// THEN
 			if tc.want != nil {
@@ -876,7 +798,7 @@ func TestCloudFormation_GetAppResourcesByRegion(t *testing.T) {
 			region: "us-east-9",
 			createRegionalMockClient: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe("cross-region-stack").Return(mockValidAppResourceStack(), nil)
+				m.EXPECT().Describe(context.Background(), "cross-region-stack").Return(mockValidAppResourceStack(), nil)
 				return m
 			},
 			mockStackSet: func(t *testing.T, ctrl *gomock.Controller) stackSetClient {
@@ -888,7 +810,7 @@ func TestCloudFormation_GetAppResourcesByRegion(t *testing.T) {
 							Region:  "us-east-9",
 						},
 					}, nil).
-					Do(func(_ string, opts ...stackset.InstanceSummariesOption) {
+					Do(func(_ context.Context, _ string, opts ...stackset.InstanceSummariesOption) {
 						wanted := &awscfn.ListStackInstancesInput{
 							StackInstanceAccount: aws.String("12345"),
 							StackInstanceRegion:  aws.String("us-east-9"),
@@ -926,7 +848,7 @@ func TestCloudFormation_GetAppResourcesByRegion(t *testing.T) {
 			}
 
 			// WHEN
-			got, err := cf.GetAppResourcesByRegion(&mockApp, tc.region)
+			got, err := cf.GetAppResourcesByRegion(context.Background(), &mockApp, tc.region)
 
 			// THEN
 			if tc.want != nil {
@@ -941,7 +863,7 @@ func TestCloudFormation_GetAppResourcesByRegion(t *testing.T) {
 	}
 }
 
-func TestCloudFormation_GetAppResourcesWithContext(t *testing.T) {
+func TestCloudFormation_GetAppResources(t *testing.T) {
 	app := &config.Application{Name: "app", AccountID: "12345"}
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
 
@@ -949,10 +871,10 @@ func TestCloudFormation_GetAppResourcesWithContext(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		stackSet := mocks.NewMockstackSetClient(ctrl)
 		regional := mocks.NewMockcfnClient(ctrl)
-		stackSet.EXPECT().InstanceSummariesWithContext(ctx, "app-infrastructure", gomock.Any(), gomock.Any()).Return(
+		stackSet.EXPECT().InstanceSummaries(ctx, "app-infrastructure", gomock.Any(), gomock.Any()).Return(
 			[]stackset.InstanceSummary{{StackID: "cross-region-stack", Region: "us-east-9"}}, nil,
 		)
-		regional.EXPECT().DescribeWithContext(ctx, "cross-region-stack").Return(mockValidAppResourceStack(), nil)
+		regional.EXPECT().Describe(ctx, "cross-region-stack").Return(mockValidAppResourceStack(), nil)
 		cf := CloudFormation{
 			appStackSet: stackSet,
 			regionalClient: func(string) cfnClient {
@@ -960,7 +882,7 @@ func TestCloudFormation_GetAppResourcesWithContext(t *testing.T) {
 			},
 		}
 
-		got, err := cf.GetAppResourcesByRegionWithContext(ctx, app, "us-east-9")
+		got, err := cf.GetAppResourcesByRegion(ctx, app, "us-east-9")
 
 		require.NoError(t, err)
 		require.Equal(t, "us-east-9", got.Region)
@@ -970,10 +892,10 @@ func TestCloudFormation_GetAppResourcesWithContext(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		stackSet := mocks.NewMockstackSetClient(ctrl)
 		regional := mocks.NewMockcfnClient(ctrl)
-		stackSet.EXPECT().InstanceSummariesWithContext(ctx, "app-infrastructure", gomock.Any()).Return(
+		stackSet.EXPECT().InstanceSummaries(ctx, "app-infrastructure", gomock.Any()).Return(
 			[]stackset.InstanceSummary{{StackID: "cross-region-stack", Region: "us-west-2"}}, nil,
 		)
-		regional.EXPECT().DescribeWithContext(ctx, "cross-region-stack").Return(mockValidAppResourceStack(), nil)
+		regional.EXPECT().Describe(ctx, "cross-region-stack").Return(mockValidAppResourceStack(), nil)
 		cf := CloudFormation{
 			appStackSet: stackSet,
 			regionalClient: func(string) cfnClient {
@@ -981,7 +903,7 @@ func TestCloudFormation_GetAppResourcesWithContext(t *testing.T) {
 			},
 		}
 
-		got, err := cf.GetRegionalAppResourcesWithContext(ctx, app)
+		got, err := cf.GetRegionalAppResources(ctx, app)
 
 		require.NoError(t, err)
 		require.Len(t, got, 1)
@@ -1004,10 +926,10 @@ func TestCloudFormation_DelegateDNSPermissions(t *testing.T) {
 			},
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(mockAppRolesStack("stackname", map[string]string{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(mockAppRolesStack("stackname", map[string]string{
 					"AppDNSDelegatedAccounts": "1234",
 				}), nil)
-				m.EXPECT().UpdateAndWait(gomock.Any()).Return(nil)
+				m.EXPECT().UpdateAndWait(context.Background(), gomock.Any()).Return(nil)
 				return m
 			},
 		},
@@ -1021,7 +943,7 @@ func TestCloudFormation_DelegateDNSPermissions(t *testing.T) {
 			want: fmt.Errorf("getting existing application infrastructure stack: error"),
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(nil, errors.New("error"))
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(nil, errors.New("error"))
 				return m
 			},
 		},
@@ -1034,10 +956,10 @@ func TestCloudFormation_DelegateDNSPermissions(t *testing.T) {
 			want: nil,
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(mockAppRolesStack("stackname", map[string]string{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(mockAppRolesStack("stackname", map[string]string{
 					"AppDNSDelegatedAccounts": "1234",
 				}), nil)
-				m.EXPECT().UpdateAndWait(gomock.Any()).Return(&cloudformation.ErrChangeSetEmpty{})
+				m.EXPECT().UpdateAndWait(context.Background(), gomock.Any()).Return(&cloudformation.ErrChangeSetEmpty{})
 				return m
 			},
 		},
@@ -1050,10 +972,10 @@ func TestCloudFormation_DelegateDNSPermissions(t *testing.T) {
 			want: fmt.Errorf("updating application to allow DNS delegation: error"),
 			createMock: func(ctrl *gomock.Controller) cfnClient {
 				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().Describe(gomock.Any()).Return(mockAppRolesStack("stackname", map[string]string{
+				m.EXPECT().Describe(context.Background(), gomock.Any()).Return(mockAppRolesStack("stackname", map[string]string{
 					"AppDNSDelegatedAccounts": "1234",
 				}), nil)
-				m.EXPECT().UpdateAndWait(gomock.Any()).Return(errors.New("error"))
+				m.EXPECT().UpdateAndWait(context.Background(), gomock.Any()).Return(errors.New("error"))
 				return m
 			},
 		},
@@ -1069,7 +991,7 @@ func TestCloudFormation_DelegateDNSPermissions(t *testing.T) {
 			}
 
 			// WHEN
-			got := cf.DelegateDNSPermissions(tc.app, tc.accountID)
+			got := cf.DelegateDNSPermissions(context.Background(), tc.app, tc.accountID)
 
 			// THEN
 			if tc.want != nil {
@@ -1121,96 +1043,26 @@ func mockAppRolesStack(stackArn string, parameters map[string]string) *cloudform
 }
 
 func TestCloudFormation_DeleteApp(t *testing.T) {
-	tests := map[string]struct {
-		appName      string
-		createMock   func(ctrl *gomock.Controller) cfnClient
-		mockStackSet func(ctrl *gomock.Controller) stackSetClient
-
-		want error
-	}{
-		"should delete stackset and then infrastructure roles": {
-			appName: "testApp",
-			createMock: func(ctrl *gomock.Controller) cfnClient {
-				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody("testApp-infrastructure-roles").Return("", nil)
-				m.EXPECT().Describe(gomock.Any()).Return(&cloudformation.StackDescription{
-					StackId: aws.String("some stack"),
-				}, nil)
-				m.EXPECT().DeleteAndWait("testApp-infrastructure-roles").Return(&cloudformation.ErrStackNotFound{})
-				m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&awscfn.DescribeStackEventsOutput{}, nil).AnyTimes()
-				return m
-			},
-			mockStackSet: func(ctrl *gomock.Controller) stackSetClient {
-				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().DeleteAllInstances("testApp-infrastructure").Return("1", nil)
-				m.EXPECT().WaitForOperation("testApp-infrastructure", "1").Return(nil)
-				m.EXPECT().Delete("testApp-infrastructure").Return(nil)
-				return m
-			},
-		},
-		"should skip waiting for delete instance operation if the stack set is already deleted": {
-			appName: "testApp",
-			createMock: func(ctrl *gomock.Controller) cfnClient {
-				m := mocks.NewMockcfnClient(ctrl)
-				m.EXPECT().TemplateBody(gomock.Any()).Return("", nil)
-				m.EXPECT().Describe(gomock.Any()).Return(&cloudformation.StackDescription{
-					StackId: aws.String("some stack"),
-				}, nil)
-				m.EXPECT().DeleteAndWait(gomock.Any()).Return(&cloudformation.ErrStackNotFound{})
-				m.EXPECT().DescribeStackEvents(gomock.Any()).Return(&awscfn.DescribeStackEventsOutput{}, nil).AnyTimes()
-				return m
-			},
-			mockStackSet: func(ctrl *gomock.Controller) stackSetClient {
-				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().DeleteAllInstances(gomock.Any()).Return("", &stackset.ErrStackSetNotFound{})
-				m.EXPECT().Delete(gomock.Any()).Return(nil)
-				return m
-			},
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			// GIVEN
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			cf := CloudFormation{
-				cfnClient:   tc.createMock(ctrl),
-				appStackSet: tc.mockStackSet(ctrl),
-				console:     new(discardFile),
-			}
-
-			// WHEN
-			got := cf.DeleteApp(tc.appName)
-
-			// THEN
-			require.Equal(t, tc.want, got)
-		})
-	}
-}
-
-func TestCloudFormation_DeleteAppWithContext(t *testing.T) {
 	type contextKey string
 	const key contextKey = "caller"
 	ctx := context.WithValue(context.Background(), key, "delete app")
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockcfnClient(ctrl)
 	stackSet := mocks.NewMockstackSetClient(ctrl)
-	stackSet.EXPECT().DeleteAllInstancesWithContext(ctx, "testApp-infrastructure").Return("1", nil)
-	stackSet.EXPECT().WaitForOperationWithContext(ctx, "testApp-infrastructure", "1").Return(nil)
-	stackSet.EXPECT().DeleteWithContext(ctx, "testApp-infrastructure").Return(nil)
-	client.EXPECT().TemplateBodyWithContext(ctx, "testApp-infrastructure-roles").Return("", nil)
-	client.EXPECT().DescribeWithContext(ctx, "testApp-infrastructure-roles").Return(&cloudformation.StackDescription{
+	stackSet.EXPECT().DeleteAllInstances(ctx, "testApp-infrastructure").Return("1", nil)
+	stackSet.EXPECT().WaitForOperation(ctx, "testApp-infrastructure", "1").Return(nil)
+	stackSet.EXPECT().Delete(ctx, "testApp-infrastructure").Return(nil)
+	client.EXPECT().TemplateBody(ctx, "testApp-infrastructure-roles").Return("", nil)
+	client.EXPECT().Describe(ctx, "testApp-infrastructure-roles").Return(&cloudformation.StackDescription{
 		StackId: aws.String("some stack"),
 	}, nil)
-	client.EXPECT().DeleteAndWaitWithContext(gomock.Any(), "testApp-infrastructure-roles").DoAndReturn(
+	client.EXPECT().DeleteAndWait(gomock.Any(), "testApp-infrastructure-roles").DoAndReturn(
 		func(gotCtx context.Context, _ string) error {
 			require.Equal(t, "delete app", gotCtx.Value(key))
 			return &cloudformation.ErrStackNotFound{}
 		},
 	)
-	client.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).DoAndReturn(
+	client.EXPECT().DescribeStackEvents(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(gotCtx context.Context, _ *awscfn.DescribeStackEventsInput) (*awscfn.DescribeStackEventsOutput, error) {
 			require.Equal(t, "delete app", gotCtx.Value(key))
 			return &awscfn.DescribeStackEventsOutput{}, nil
@@ -1222,21 +1074,21 @@ func TestCloudFormation_DeleteAppWithContext(t *testing.T) {
 		console:     new(discardFile),
 	}
 
-	err := cf.DeleteAppWithContext(ctx, "testApp")
+	err := cf.DeleteApp(ctx, "testApp")
 
 	require.NoError(t, err)
 }
 
-func TestCloudFormation_RemoveEnvFromAppWithContext(t *testing.T) {
+func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
 	stackSet := mocks.NewMockstackSetClient(ctrl)
 	wantedErr := errors.New("list stack instances")
-	stackSet.EXPECT().InstanceSummariesWithContext(ctx, "app-infrastructure", gomock.Any(), gomock.Any()).Return(nil, wantedErr)
+	stackSet.EXPECT().InstanceSummaries(ctx, "app-infrastructure", gomock.Any(), gomock.Any()).Return(nil, wantedErr)
 	cf := CloudFormation{appStackSet: stackSet}
 	env := &config.Environment{Name: "test", AccountID: "12345", Region: "us-west-2"}
 
-	err := cf.RemoveEnvFromAppWithContext(ctx, &RemoveEnvFromAppOpts{
+	err := cf.RemoveEnvFromApp(ctx, &RemoveEnvFromAppOpts{
 		App:          &config.Application{Name: "app", AccountID: "12345"},
 		EnvToDelete:  env,
 		Environments: []*config.Environment{env},
@@ -1282,7 +1134,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			},
 			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
 				m := mocks.NewMockstackSetClient(ctrl)
-				m.EXPECT().InstanceSummariesWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 				return CloudFormation{
 					appStackSet: m,
 				}
@@ -1303,7 +1155,7 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 			},
 			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
 				mockStackSet := mocks.NewMockstackSetClient(ctrl)
-				mockStackSet.EXPECT().InstanceSummariesWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
+				mockStackSet.EXPECT().InstanceSummaries(gomock.Any(), gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
 					{
 						StackID: "stackset-instance-demo-infra",
 						Account: "1111",
@@ -1311,12 +1163,12 @@ func TestCloudFormation_RenderStackSet(t *testing.T) {
 						Status:  "RUNNING",
 					},
 				}, nil)
-				mockStackSet.EXPECT().DescribeOperationWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(stackset.Operation{
+				mockStackSet.EXPECT().DescribeOperation(gomock.Any(), gomock.Any(), gomock.Any()).Return(stackset.Operation{
 					Status: "RUNNING",
 				}, nil).AnyTimes()
 
 				mockStack := mocks.NewMockcfnClient(ctrl)
-				mockStack.EXPECT().DescribeStackEventsWithContext(gomock.Any(), gomock.Any()).
+				mockStack.EXPECT().DescribeStackEvents(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("some error")).AnyTimes()
 
 				return CloudFormation{
@@ -1364,7 +1216,7 @@ func TestCloudFormation_RenderStackSetStopsOnCallerCancellation(t *testing.T) {
 	defer ctrl.Finish()
 	m := mocks.NewMockstackSetClient(ctrl)
 	started := make(chan struct{})
-	m.EXPECT().DescribeOperationWithContext(gomock.Any(), "demo-infra", "1").DoAndReturn(
+	m.EXPECT().DescribeOperation(gomock.Any(), "demo-infra", "1").DoAndReturn(
 		func(gotCtx context.Context, _, _ string) (stackset.Operation, error) {
 			require.Equal(t, "stack-set-render", gotCtx.Value(key))
 			close(started)
@@ -1394,689 +1246,4 @@ func TestCloudFormation_RenderStackSetStopsOnCallerCancellation(t *testing.T) {
 
 	require.ErrorIs(t, err, context.Canceled)
 	require.Less(t, time.Since(startedAt), time.Second)
-}
-
-func TestCloudFormation_RemoveEnvFromApp(t *testing.T) {
-
-	testCases := map[string]struct {
-		mock   func(t *testing.T, ctrl *gomock.Controller) CloudFormation
-		inOpts RemoveEnvFromAppOpts
-
-		wantedErr error
-	}{
-		"failure describing stackset": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-				},
-			},
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
-				regionalCfn.EXPECT().Describe(gomock.Any()).Times(0)
-				s3.EXPECT().EmptyBucket(gomock.Any()).Times(0)
-				ecr.EXPECT().ClearRepository(gomock.Any()).Times(0)
-				appStackSet.EXPECT().DeleteInstance(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				appStackSet.EXPECT().WaitForOperation(gomock.Any(), gomock.Any()).Times(0)
-				cfn.EXPECT().Describe(gomock.Any()).Times(0)
-				cfn.EXPECT().UpdateAndWait(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Describe(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalS3Client: func(region string) s3Client {
-						return s3
-					},
-					regionalECRClient: func(region string) imageRemover {
-						return ecr
-					},
-					regionalClient: func(region string) cfnClient { return regionalCfn },
-				}
-			},
-			wantedErr: errors.New("some error"),
-		},
-		"success": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "5678",
-						Region:    "us-east-2",
-					},
-				},
-			},
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
-					{
-						Region:  "us-west-2",
-						StackID: "some-stack",
-					},
-				}, nil)
-				regionalCfn.EXPECT().Describe("some-stack").Return(mockValidAppResourceStack(), nil)
-				s3.EXPECT().EmptyBucket("tests3-bucket-us-west-2").Return(nil)
-				ecr.EXPECT().ClearRepository("phonetool/phonetool-svc").Return(nil)
-				appStackSet.EXPECT().DeleteInstance("phonetool-infrastructure", "1234", "us-west-2").Return("123", nil)
-				appStackSet.EXPECT().WaitForOperation("phonetool-infrastructure", "123").Return(nil)
-				cfn.EXPECT().Describe(stack.NameForAppStack("phonetool")).Return(&cloudformation.StackDescription{
-					Parameters: []awscfntypes.Parameter{
-						{
-							ParameterKey:   aws.String("AppDNSDelegatedAccounts"),
-							ParameterValue: aws.String("1234,5678"),
-						},
-					},
-				}, nil)
-				cfn.EXPECT().UpdateAndWait(gomock.Any())
-				appStackSet.EXPECT().Describe("phonetool-infrastructure").Return(stackset.Description{
-					ID:   "",
-					Name: "phonetool-infrastructure",
-					Template: `Metadata:
-  TemplateVersion: 'v1.2.0'
-  Version: 17
-  Workloads:
-    - Name: ar
-      WithECR: true
-  Accounts:
-    - 1234
-    - 5678`,
-				}, nil)
-				appStackSet.EXPECT().Update("phonetool-infrastructure", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("123", nil)
-
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalS3Client: func(region string) s3Client {
-						return s3
-					},
-					regionalECRClient: func(region string) imageRemover {
-						return ecr
-					},
-					regionalClient: func(region string) cfnClient { return regionalCfn },
-				}
-			},
-		},
-		"skips stack redeployment if we don't need to remove account": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "1234",
-						Region:    "us-east-2",
-					},
-				},
-			},
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
-					{
-						Region:  "us-west-2",
-						StackID: "some-stack",
-					},
-				}, nil)
-				regionalCfn.EXPECT().Describe("some-stack").Return(mockValidAppResourceStack(), nil)
-				s3.EXPECT().EmptyBucket("tests3-bucket-us-west-2").Return(nil)
-				ecr.EXPECT().ClearRepository("phonetool/phonetool-svc").Return(nil)
-				appStackSet.EXPECT().DeleteInstance("phonetool-infrastructure", "1234", "us-west-2").Return("123", nil)
-				appStackSet.EXPECT().WaitForOperation("phonetool-infrastructure", "123").Return(nil)
-				cfn.EXPECT().Describe(gomock.Any()).Times(0)
-				cfn.EXPECT().UpdateAndWait(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Describe(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
-
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalS3Client: func(region string) s3Client { return s3 },
-					regionalECRClient: func(region string) imageRemover {
-						return ecr
-					},
-					regionalClient: func(region string) cfnClient { return regionalCfn },
-				}
-			},
-		},
-		"skips instance delete if 'DeleteStackInstance' is false": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "5678",
-						Region:    "us-west-2",
-					},
-				},
-			},
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries(gomock.Any()).Times(0)
-				regionalCfn.EXPECT().Describe(gomock.Any()).Times(0)
-				s3.EXPECT().EmptyBucket(gomock.Any()).Times(0)
-				ecr.EXPECT().ClearRepository(gomock.Any()).Times(0)
-				appStackSet.EXPECT().DeleteInstance(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				appStackSet.EXPECT().WaitForOperation(gomock.Any(), gomock.Any()).Times(0)
-				cfn.EXPECT().Describe(stack.NameForAppStack("phonetool")).Return(&cloudformation.StackDescription{
-					Parameters: []awscfntypes.Parameter{
-						{
-							ParameterKey:   aws.String("AppDNSDelegatedAccounts"),
-							ParameterValue: aws.String("1234,5678"),
-						},
-					},
-				}, nil)
-				cfn.EXPECT().UpdateAndWait(gomock.Any())
-				appStackSet.EXPECT().Describe("phonetool-infrastructure").Return(stackset.Description{
-					ID:   "",
-					Name: "phonetool-infrastructure",
-					Template: `Metadata:
-  TemplateVersion: 'v1.2.0'
-  Version: 17
-  Workloads:
-    - Name: ar
-      WithECR: true
-  Accounts:
-    - 1234
-    - 5678`,
-				}, nil)
-				appStackSet.EXPECT().Update("phonetool-infrastructure", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("123", nil)
-
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					s3Client: s3,
-					regionalECRClient: func(region string) imageRemover {
-						return ecr
-					},
-					regionalClient: func(region string) cfnClient { return regionalCfn },
-				}
-			},
-		},
-		"error deleting instance": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "5678",
-						Region:    "us-east-2",
-					},
-				},
-			},
-			wantedErr: errors.New("some error"),
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
-					{
-						Region:  "us-west-2",
-						StackID: "some-stack",
-					},
-				}, nil)
-				regionalCfn.EXPECT().Describe("some-stack").Return(mockValidAppResourceStack(), nil)
-				s3.EXPECT().EmptyBucket("tests3-bucket-us-west-2").Return(nil)
-				ecr.EXPECT().ClearRepository("phonetool/phonetool-svc").Return(nil)
-				// Delete stackset instance
-				appStackSet.EXPECT().DeleteInstance("phonetool-infrastructure", "1234", "us-west-2").Return("", errors.New("some error"))
-				appStackSet.EXPECT().WaitForOperation(gomock.Any(), gomock.Any()).Times(0)
-				cfn.EXPECT().Describe(gomock.Any()).Times(0)
-				cfn.EXPECT().UpdateAndWait(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Describe(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalClient: func(region string) cfnClient {
-						return regionalCfn
-					},
-					regionalS3Client:  func(region string) s3Client { return s3 },
-					regionalECRClient: func(region string) imageRemover { return ecr },
-				}
-			},
-		},
-		"error updating stack": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "5678",
-						Region:    "us-east-2",
-					},
-				},
-			},
-			wantedErr: errors.New("some error"),
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
-					{
-						Region:  "us-west-2",
-						StackID: "some-stack",
-					},
-				}, nil)
-				regionalCfn.EXPECT().Describe("some-stack").Return(mockValidAppResourceStack(), nil)
-				s3.EXPECT().EmptyBucket("tests3-bucket-us-west-2").Return(nil)
-				ecr.EXPECT().ClearRepository("phonetool/phonetool-svc").Return(nil)
-				appStackSet.EXPECT().DeleteInstance("phonetool-infrastructure", "1234", "us-west-2").Return("123", nil)
-				appStackSet.EXPECT().WaitForOperation("phonetool-infrastructure", "123").Return(nil)
-				cfn.EXPECT().Describe(stack.NameForAppStack("phonetool")).Return(&cloudformation.StackDescription{
-					Parameters: []awscfntypes.Parameter{
-						{
-							ParameterKey:   aws.String("AppDNSDelegatedAccounts"),
-							ParameterValue: aws.String("1234,5678"),
-						},
-					},
-				}, nil)
-				cfn.EXPECT().UpdateAndWait(gomock.Any())
-				appStackSet.EXPECT().Describe("phonetool-infrastructure").Return(stackset.Description{
-					ID:   "",
-					Name: "phonetool-infrastructure",
-					Template: `Metadata:
-  TemplateVersion: 'v1.2.0'
-  Version: 17
-  Workloads:
-    - Name: ar
-      WithECR: true
-  Accounts:
-    - 1234
-    - 5678`,
-				}, nil)
-				appStackSet.EXPECT().Update("phonetool-infrastructure", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
-
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalClient: func(region string) cfnClient {
-						return regionalCfn
-					},
-					regionalS3Client: func(region string) s3Client {
-						return s3
-					},
-					regionalECRClient: func(region string) imageRemover {
-						return ecr
-					},
-				}
-			},
-		},
-		"error emptying bucket": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "5678",
-						Region:    "us-east-2",
-					},
-				},
-			},
-			wantedErr: errors.New("some error"),
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
-					{
-						Region:  "us-west-2",
-						StackID: "some-stack",
-					},
-				}, nil)
-				regionalCfn.EXPECT().Describe("some-stack").Return(mockValidAppResourceStack(), nil)
-				s3.EXPECT().EmptyBucket("tests3-bucket-us-west-2").Return(errors.New("some error"))
-				ecr.EXPECT().ClearRepository(gomock.Any()).Times(0)
-				appStackSet.EXPECT().DeleteInstance(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				appStackSet.EXPECT().WaitForOperation(gomock.Any(), gomock.Any()).Times(0)
-				cfn.EXPECT().Describe(gomock.Any()).Times(0)
-				cfn.EXPECT().UpdateAndWait(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Describe(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalClient: func(region string) cfnClient {
-						return regionalCfn
-					},
-					regionalS3Client: func(region string) s3Client {
-						return s3
-					},
-					regionalECRClient: func(region string) imageRemover {
-						return ecr
-					},
-				}
-			},
-		},
-		"error describing regional resources": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "5678",
-						Region:    "us-east-2",
-					},
-				},
-			},
-			wantedErr: errors.New("some error"),
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return([]stackset.InstanceSummary{
-					{
-						Region:  "us-west-2",
-						StackID: "some-stack",
-					},
-				}, nil)
-				regionalCfn.EXPECT().Describe("some-stack").Return(nil, errors.New("some error"))
-
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalClient: func(region string) cfnClient {
-						return regionalCfn
-					},
-				}
-			},
-		},
-		"regional stack is already deleted": {
-			inOpts: RemoveEnvFromAppOpts{
-				App: &config.Application{
-					Name:      "phonetool",
-					AccountID: "1234",
-					Version:   "1",
-				},
-				EnvToDelete: &config.Environment{
-					Name:      "test",
-					AccountID: "1234",
-					Region:    "us-west-2",
-				},
-				Environments: []*config.Environment{
-					{
-						Name:      "test",
-						AccountID: "1234",
-						Region:    "us-west-2",
-					},
-					{
-						Name:      "prod",
-						AccountID: "1234",
-						Region:    "us-east-2",
-					},
-				},
-			},
-			mock: func(t *testing.T, ctrl *gomock.Controller) CloudFormation {
-				cfn := mocks.NewMockcfnClient(ctrl)
-				appStackSet := mocks.NewMockstackSetClient(ctrl)
-				s3 := mocks.NewMocks3Client(ctrl)
-				ecr := mocks.NewMockimageRemover(ctrl)
-				regionalCfn := mocks.NewMockcfnClient(ctrl)
-				// Empty ECR and S3
-				appStackSet.EXPECT().InstanceSummaries("phonetool-infrastructure", gomock.Any(), gomock.Any()).Return(nil, nil)
-				// no instance summaries returned means no describe call and no EmptyBucket/ClearRepository call.
-				regionalCfn.EXPECT().Describe(gomock.Any()).Times(0)
-				s3.EXPECT().EmptyBucket(gomock.Any()).Times(0)
-				ecr.EXPECT().ClearRepository(gomock.Any()).Times(0)
-				appStackSet.EXPECT().DeleteInstance("phonetool-infrastructure", "1234", "us-west-2").Return("12345", nil)
-				appStackSet.EXPECT().WaitForOperation("phonetool-infrastructure", "12345").Return(nil)
-				cfn.EXPECT().Describe(gomock.Any()).Times(0)
-				cfn.EXPECT().UpdateAndWait(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Describe(gomock.Any()).Times(0)
-				appStackSet.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
-				return CloudFormation{
-					cfnClient: cfn,
-					region:    "us-east-1",
-
-					appStackSet: appStackSet,
-					dnsDelegatedAccountsForStack: func(in *awscfntypes.Stack) []string {
-						return []string{"1234", "5678"}
-					},
-					renderStackSet: func(_ context.Context, in renderStackSetInput) error {
-						_, err := in.createOpFn(t.Context())
-						return err
-					},
-					regionalClient: func(region string) cfnClient {
-						return regionalCfn
-					},
-					regionalS3Client: func(region string) s3Client {
-						return s3
-					},
-					regionalECRClient: func(region string) imageRemover {
-						return ecr
-					},
-				}
-			},
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			// GIVEN
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			client := tc.mock(t, ctrl)
-
-			// WHEN
-			err := client.RemoveEnvFromApp(&tc.inOpts)
-
-			// THEN
-			if tc.wantedErr != nil {
-				require.ErrorContains(t, err, tc.wantedErr.Error())
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
 }

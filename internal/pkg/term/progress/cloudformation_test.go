@@ -584,7 +584,7 @@ func TestEcsServiceResourceComponent_Render(t *testing.T) {
 	t.Run("renders only the resource renderer if there is no deployment in progress", func(t *testing.T) {
 		// GIVEN
 		buf := new(strings.Builder)
-		c := &ecsServiceResourceComponent{
+		c := &ecsServiceResourceComponent{ctx: context.Background(),
 			resourceRenderer: &mockDynamicRenderer{
 				content: "resource\n",
 			},
@@ -601,7 +601,7 @@ func TestEcsServiceResourceComponent_Render(t *testing.T) {
 	t.Run("renders both resource and deployment if deployment in progress", func(t *testing.T) {
 		// GIVEN
 		buf := new(strings.Builder)
-		c := &ecsServiceResourceComponent{
+		c := &ecsServiceResourceComponent{ctx: context.Background(),
 			resourceRenderer: &mockDynamicRenderer{
 				content: "resource\n",
 			},

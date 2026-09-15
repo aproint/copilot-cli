@@ -74,11 +74,7 @@ type deletePipelineOpts struct {
 	targetPipeline *deploy.Pipeline
 }
 
-func newDeletePipelineOpts(vars deletePipelineVars) (*deletePipelineOpts, error) {
-	return newDeletePipelineOptsWithContext(context.Background(), vars)
-}
-
-func newDeletePipelineOptsWithContext(ctx context.Context, vars deletePipelineVars) (*deletePipelineOpts, error) {
+func newDeletePipelineOpts(ctx context.Context, vars deletePipelineVars) (*deletePipelineOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -90,7 +86,7 @@ func newDeletePipelineOptsWithContext(ctx context.Context, vars deletePipelineVa
 	}
 	ssmStore := newSSMConfigStoreFromConfig(defaultConfig)
 	prompter := prompt.New()
-	codepipeline := codepipeline.New(defaultConfig, defaultConfig)
+	codepipeline := codepipeline.New(defaultConfig)
 	pipelineLister := deploy.NewPipelineStore(rg.New(defaultConfig))
 
 	opts := &deletePipelineOpts{
@@ -110,7 +106,7 @@ func newDeletePipelineOptsWithContext(ctx context.Context, vars deletePipelineVa
 }
 
 // Validate returns an error if the flag values for optional fields are invalid.
-func (o *deletePipelineOpts) Validate() error {
+func (o *deletePipelineOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -131,7 +127,7 @@ func (o *deletePipelineOpts) Ask(ctx context.Context) error {
 			return fmt.Errorf("validate pipeline name %s: %w", o.name, err)
 		}
 	} else {
-		pipeline, err := askDeployedPipelineNameWithContext(ctx, o.sel, fmt.Sprintf(fmtPipelineDeletePrompt, color.HighlightUserInput(o.appName)), o.appName)
+		pipeline, err := askDeployedPipelineName(ctx, o.sel, fmt.Sprintf(fmtPipelineDeletePrompt, color.HighlightUserInput(o.appName)), o.appName)
 		if err != nil {
 			return err
 		}
@@ -177,7 +173,7 @@ func (o *deletePipelineOpts) getTargetPipeline(ctx context.Context) (deploy.Pipe
 	if o.targetPipeline != nil {
 		return *o.targetPipeline, nil
 	}
-	pipeline, err := getDeployedPipelineInfoWithContext(ctx, o.deployedPipelineLister, o.appName, o.name)
+	pipeline, err := getDeployedPipelineInfo(ctx, o.deployedPipelineLister, o.appName, o.name)
 	if err != nil {
 		return deploy.Pipeline{}, err
 	}
@@ -185,29 +181,16 @@ func (o *deletePipelineOpts) getTargetPipeline(ctx context.Context) (deploy.Pipe
 	return pipeline, nil
 }
 
-func askDeployedPipelineName(sel codePipelineSelector, msg, appName string) (deploy.Pipeline, error) {
-	pipeline, err := sel.DeployedPipeline(msg, "", appName)
+func askDeployedPipelineName(ctx context.Context, sel codePipelineSelector, msg, appName string) (deploy.Pipeline, error) {
+	pipeline, err := sel.DeployedPipeline(ctx, msg, "", appName)
 	if err != nil {
 		return deploy.Pipeline{}, fmt.Errorf("select deployed pipelines: %w", err)
 	}
 	return pipeline, nil
 }
 
-func askDeployedPipelineNameWithContext(ctx context.Context, sel codePipelineSelector, msg, appName string) (deploy.Pipeline, error) {
-	pipeline, err := sel.DeployedPipelineWithContext(ctx, msg, "", appName)
-	if err != nil {
-		return deploy.Pipeline{}, fmt.Errorf("select deployed pipelines: %w", err)
-	}
-	return pipeline, nil
-}
-
-func getDeployedPipelineInfo(lister deployedPipelineLister, app, name string) (deploy.Pipeline, error) {
-	pipelines, err := lister.ListDeployedPipelines(app)
-	return findDeployedPipeline(pipelines, name, err)
-}
-
-func getDeployedPipelineInfoWithContext(ctx context.Context, lister deployedPipelineLister, app, name string) (deploy.Pipeline, error) {
-	pipelines, err := lister.ListDeployedPipelinesWithContext(ctx, app)
+func getDeployedPipelineInfo(ctx context.Context, lister deployedPipelineLister, app, name string) (deploy.Pipeline, error) {
+	pipelines, err := lister.ListDeployedPipelines(ctx, app)
 	return findDeployedPipeline(pipelines, name, err)
 }
 
@@ -235,7 +218,7 @@ func (o *deletePipelineOpts) askAppName(ctx context.Context) error {
 func (o *deletePipelineOpts) getSecret(ctx context.Context) error {
 	// Look for default secret name for GHv1 access token based on default pipeline name.
 	o.ghAccessTokenSecretName = o.pipelineSecretName()
-	output, err := o.secretsmanager.DescribeSecretWithContext(ctx, o.ghAccessTokenSecretName)
+	output, err := o.secretsmanager.DescribeSecret(ctx, o.ghAccessTokenSecretName)
 	if err != nil {
 		var notFoundErr *secretsmanager.ErrSecretNotFound
 		if errors.As(err, &notFoundErr) {
@@ -285,7 +268,7 @@ func (o *deletePipelineOpts) deleteSecret(ctx context.Context) error {
 		}
 	}
 
-	if err := o.secretsmanager.DeleteSecretWithContext(ctx, o.ghAccessTokenSecretName); err != nil {
+	if err := o.secretsmanager.DeleteSecret(ctx, o.ghAccessTokenSecretName); err != nil {
 		return err
 	}
 
@@ -300,7 +283,7 @@ func (o *deletePipelineOpts) deleteStack(ctx context.Context) error {
 		return err
 	}
 	o.prog.Start(fmt.Sprintf(fmtDeletePipelineStart, pipeline.Name, o.appName))
-	if err := o.pipelineDeployer.DeletePipelineWithContext(ctx, pipeline); err != nil {
+	if err := o.pipelineDeployer.DeletePipeline(ctx, pipeline); err != nil {
 		o.prog.Stop(log.Serrorf(fmtDeletePipelineFailed, pipeline.Name, o.appName, err))
 		return err
 	}
@@ -324,7 +307,7 @@ func buildPipelineDeleteCmd() *cobra.Command {
   /code $ copilot pipeline delete
 `,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeletePipelineOptsWithContext(cmd.Context(), vars)
+			opts, err := newDeletePipelineOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

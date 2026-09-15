@@ -28,10 +28,9 @@ const (
 
 // StaticSiteDescriber retrieves information about a static site service.
 type StaticSiteDescriber struct {
-	ctx            context.Context
-	contextEnabled bool
-	app            string
-	svc            string
+	ctx context.Context
+	app string
+	svc string
 
 	enableResources        bool
 	store                  DeployedEnvServicesLister
@@ -44,7 +43,6 @@ type StaticSiteDescriber struct {
 func NewStaticSiteDescriber(ctx context.Context, opt NewServiceConfig) (*StaticSiteDescriber, error) {
 	describer := &StaticSiteDescriber{
 		ctx:             ctx,
-		contextEnabled:  true,
 		app:             opt.App,
 		svc:             opt.Svc,
 		enableResources: opt.EnableResources,
@@ -107,9 +105,6 @@ func (d *StaticSiteDescriber) URI(envName string) (URI, error) {
 // Describe returns info of a static site.
 func (d *StaticSiteDescriber) Describe() (HumanJSONStringer, error) {
 	ctx := d.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for service %q: %w", d.svc, err)
@@ -131,21 +126,11 @@ func (d *StaticSiteDescriber) Describe() (HumanJSONStringer, error) {
 				URL:         uri.URI,
 			})
 		}
-		var bucketName string
-		if !d.contextEnabled {
-			bucketName, err = bucketNameDescriber.BucketName(d.app, env, d.svc)
-		} else {
-			bucketName, err = bucketNameDescriber.BucketNameWithContext(ctx, d.app, env, d.svc)
-		}
+		bucketName, err := bucketNameDescriber.BucketName(ctx, d.app, env, d.svc)
 		if err != nil {
 			return nil, fmt.Errorf("get bucket name for %q env: %w", env, err)
 		}
-		var tree string
-		if !d.contextEnabled {
-			tree, err = bucketDescriber.BucketTree(bucketName)
-		} else {
-			tree, err = bucketDescriber.BucketTreeWithContext(ctx, bucketName)
-		}
+		tree, err := bucketDescriber.BucketTree(ctx, bucketName)
 		if err != nil {
 			return nil, fmt.Errorf("get tree representation of bucket contents: %w", err)
 		}

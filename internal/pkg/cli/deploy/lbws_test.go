@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -61,7 +62,7 @@ func TestLbWebSvcDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 func mockLoadBalancedWebServiceDeployer(opts ...func(deployer *lbWebSvcDeployer)) *lbWebSvcDeployer {
 	deployer := &lbWebSvcDeployer{
 		svcDeployer: &svcDeployer{
-			workloadDeployer: &workloadDeployer{
+			workloadDeployer: &workloadDeployer{ctx: context.Background(),
 				name: "example",
 				app: &config.Application{
 					Name: "demo",

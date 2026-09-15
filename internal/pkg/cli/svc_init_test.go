@@ -66,7 +66,7 @@ func TestInitSvcOpts_ValidateDoesNotCallRemoteServices(t *testing.T) {
 		wsAppName:   "phonetool",
 	}
 
-	require.NoError(t, opts.Validate())
+	require.NoError(t, opts.Validate(context.Background()))
 }
 
 func TestInitSvcOpts_Ask_UsesCallerContextForWorkspaceValidation(t *testing.T) {
@@ -329,7 +329,7 @@ func TestSvcInitOpts_Validate(t *testing.T) {
 				err = validateInitWorkspaceApp(ctx, opts.wsAppName, opts.store)
 			}
 			if err == nil {
-				err = opts.Validate()
+				err = opts.Validate(context.Background())
 			}
 
 			// THEN
@@ -629,7 +629,7 @@ type: Request-Driven Web Service`), nil)
 			setupMocks: func(m *initSvcMocks) {
 				m.mockStore.EXPECT().GetService(ctx, mockAppName, wantedSvcName).Return(nil, &config.ErrNoSuchService{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedSvcName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedSvcName})
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(errors.New("some error"))
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(errors.New("some error"))
 			},
 			wantedErr: fmt.Errorf("check if docker engine is running: some error"),
 		},
@@ -643,7 +643,7 @@ type: Request-Driven Web Service`), nil)
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedSvcName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedSvcName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("mockImage", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(dockerengine.ErrDockerCommandNotFound)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(dockerengine.ErrDockerCommandNotFound)
 
 			},
 			wantedErr: nil,
@@ -658,7 +658,7 @@ type: Request-Driven Web Service`), nil)
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedSvcName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedSvcName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("mockImage", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(&dockerengine.ErrDockerDaemonNotResponsive{})
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(&dockerengine.ErrDockerDaemonNotResponsive{})
 
 			},
 			wantedErr: nil,
@@ -681,7 +681,7 @@ type: Request-Driven Web Service`), nil)
 					gomock.Eq(wkldInitDockerfilePathHelpPrompt),
 					gomock.Any(),
 				).Return("Use an existing image instead", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 			wantedErr: fmt.Errorf("get image location: mock error"),
 		},
@@ -704,7 +704,7 @@ type: Request-Driven Web Service`), nil)
 					gomock.Eq(wkldInitDockerfilePathHelpPrompt),
 					gomock.Any(),
 				).Return("Use an existing image instead", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 		},
 		"select Dockerfile": {
@@ -723,7 +723,7 @@ type: Request-Driven Web Service`), nil)
 					gomock.Eq(wkldInitDockerfilePathHelpPrompt),
 					gomock.Any(),
 				).Return("frontend/Dockerfile", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 			wantedErr: nil,
 		},
@@ -739,7 +739,7 @@ type: Request-Driven Web Service`), nil)
 				m.mockSel.EXPECT().Dockerfile(
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return("", errors.New("some error"))
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 			wantedErr: fmt.Errorf("select Dockerfile: some error"),
 		},
@@ -1049,8 +1049,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "sample").Return(nil, nil)
@@ -1078,8 +1078,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "sample").Return(nil, nil)
@@ -1098,8 +1098,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Times(0)
-				m.EXPECT().GetPlatform().Times(0)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Times(0)
+				m.EXPECT().GetPlatform(context.Background()).Times(0)
 			},
 			mockSvcInit: func(m *mocks.MocksvcInitializer) {
 				m.EXPECT().Service(ctx, &initialize.ServiceProps{
@@ -1129,8 +1129,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(&dockerengine.ErrDockerDaemonNotResponsive{})
-				m.EXPECT().GetPlatform().Times(0)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(&dockerengine.ErrDockerDaemonNotResponsive{})
+				m.EXPECT().GetPlatform(context.Background()).Times(0)
 			},
 			mockSvcInit: func(m *mocks.MocksvcInitializer) {
 				m.EXPECT().Service(ctx, &initialize.ServiceProps{
@@ -1175,8 +1175,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("windows", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("windows", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "sample").Return(nil, nil)
@@ -1210,8 +1210,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "arm", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "arm", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "sample").Return(nil, nil)
@@ -1240,8 +1240,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockTopicSel: func(m *mocks.MocktopicSelector) {
 				m.EXPECT().Topics(ctx,
@@ -1313,8 +1313,8 @@ network:
 		},
 		"return error if platform detection fails": {
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("", "", errors.New("some error"))
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("", "", errors.New("some error"))
 			},
 			wantedErr: errors.New("get docker engine platform: some error"),
 		},
@@ -1330,15 +1330,15 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("windows", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("windows", "amd64", nil)
 			},
 			wantedErr: errors.New("redirect docker engine platform: Windows is not supported for App Runner services"),
 		},
 		"failure": {
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "").Return(nil, errors.New("some error"))
@@ -1372,8 +1372,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "sample").Return([]*config.Environment{
@@ -1399,8 +1399,8 @@ network:
 				m.EXPECT().GetHealthCheck().Return(nil, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "sample").Return([]*config.Environment{

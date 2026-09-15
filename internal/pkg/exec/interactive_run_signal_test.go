@@ -26,7 +26,7 @@ func (r contextRunner) Run() error {
 	return r.ctx.Err()
 }
 
-func TestCmd_InteractiveRunWithContextKeepsRootInterruptNotification(t *testing.T) {
+func TestCmd_InteractiveRunKeepsRootInterruptNotification(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -49,7 +49,7 @@ func TestCmd_InteractiveRunWithContextKeepsRootInterruptNotification(t *testing.
 		},
 	}
 	go func() {
-		done <- cmd.InteractiveRunWithContext(ctx, "session-manager-plugin", nil)
+		done <- cmd.InteractiveRun(ctx, "session-manager-plugin", nil)
 	}()
 	<-started
 

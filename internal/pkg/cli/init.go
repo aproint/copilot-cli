@@ -130,7 +130,7 @@ func newInitOpts(ctx context.Context, vars initVars) (*initOpts, error) {
 		cfn:      deployer,
 		prog:     spin,
 		isSessionFromEnvVars: func(ctx context.Context) (bool, error) {
-			return sessions.AreV2CredsFromEnvVars(ctx, defaultConfig)
+			return sessions.AreCredentialsFromEnvVars(ctx, defaultConfig)
 		},
 		existingWorkspace: func() (wsAppManager, error) {
 			return workspace.Use(fs)
@@ -148,7 +148,7 @@ func newInitOpts(ctx context.Context, vars initVars) (*initOpts, error) {
 		prompt:      prompt,
 		identity:    id,
 		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
-			return describe.NewAppDescriberWithContext(ctx, appName)
+			return describe.NewAppDescriber(ctx, appName)
 		},
 		appCFN:          cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr)),
 		cfg:             defaultConfig,
@@ -281,7 +281,7 @@ func newInitOpts(ctx context.Context, vars initVars) (*initOpts, error) {
 					scheduleSelector: selector.NewStaticSelector(prompt),
 					prompt:           prompt,
 					newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
-						return describe.NewAppDescriberWithContext(ctx, appName)
+						return describe.NewAppDescriber(ctx, appName)
 					},
 					dockerEngine:      dockerengine.New(cmd),
 					wsPendingCreation: true,
@@ -324,7 +324,7 @@ func newInitOpts(ctx context.Context, vars initVars) (*initOpts, error) {
 					topicSel: snsSel,
 					prompt:   prompt,
 					newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
-						return describe.NewAppDescriberWithContext(ctx, appName)
+						return describe.NewAppDescriber(ctx, appName)
 					},
 					dockerEngine:      dockerengine.New(cmd),
 					wsPendingCreation: true,
@@ -433,7 +433,7 @@ func (o *initOpts) loadApp(ctx context.Context) error {
 	if err := o.initAppCmd.Ask(ctx); err != nil {
 		return fmt.Errorf("ask app init: %w", err)
 	}
-	if err := o.initAppCmd.Validate(); err != nil {
+	if err := o.initAppCmd.Validate(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -444,7 +444,7 @@ func (o *initOpts) loadWkld(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := o.initWlCmd.Validate(); err != nil {
+	if err := o.initWlCmd.Validate(ctx); err != nil {
 		return fmt.Errorf("validate %s: %w", o.wkldType, err)
 	}
 	if err := o.initWlCmd.Ask(ctx); err != nil {

@@ -230,7 +230,7 @@ func newInitSvcOptsWithSessionProvider(ctx context.Context, vars initSvcVars, se
 		mftReader:   ws,
 		svcLister:   ws,
 		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
-			return describe.NewAppDescriberWithContext(ctx, appName)
+			return describe.NewAppDescriber(ctx, appName)
 		},
 		initEnvDescriber: func(ctx context.Context, appName string, envName string) (envDescriber, error) {
 			envDescriber, err := describe.NewEnvDescriber(ctx, describe.NewEnvDescriberConfig{
@@ -259,7 +259,7 @@ func newInitSvcOptsWithSessionProvider(ctx context.Context, vars initSvcVars, se
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *initSvcOpts) Validate() error {
+func (o *initSvcOpts) Validate(ctx context.Context) error {
 	// If this app is pending creation, we'll skip validation.
 	if !o.wsPendingCreation {
 		if err := validateWorkspaceAppInput(o.wsAppName, o.appName); err != nil {
@@ -398,7 +398,7 @@ func (o *initSvcOpts) Execute(ctx context.Context) error {
 	}
 	// If the user passes in an image, their docker engine isn't necessarily running, and we can't do anything with the platform because we're not building the Docker image.
 	if o.image == "" && !o.manifestExists {
-		platform, err := legitimizePlatform(o.dockerEngine, o.wkldType)
+		platform, err := legitimizePlatform(ctx, o.dockerEngine, o.wkldType)
 		if err != nil {
 			return err
 		}
@@ -463,7 +463,7 @@ func (o *initSvcOpts) askSvcDetails(ctx context.Context) error {
 	if o.wkldType == manifestinfo.StaticSiteType {
 		return o.askStaticSite()
 	}
-	err := o.askDockerfile()
+	err := o.askDockerfile(ctx)
 	if err != nil {
 		return err
 	}
@@ -672,11 +672,11 @@ func (o *initSvcOpts) manifestAlreadyExists() (bool, error) {
 }
 
 // isDfSelected indicates if any Dockerfile is in use.
-func (o *initSvcOpts) askDockerfile() error {
+func (o *initSvcOpts) askDockerfile(ctx context.Context) error {
 	if o.dockerfilePath != "" || o.image != "" {
 		return nil
 	}
-	if err := o.dockerEngine.CheckDockerEngineRunning(); err != nil {
+	if err := o.dockerEngine.CheckDockerEngineRunning(ctx); err != nil {
 		var errDaemon *dockerengine.ErrDockerDaemonNotResponsive
 		switch {
 		case errors.Is(err, dockerengine.ErrDockerCommandNotFound):
@@ -768,8 +768,8 @@ func (o *initSvcOpts) askSvcPort() (err error) {
 	return nil
 }
 
-func legitimizePlatform(engine dockerEngine, wkldType string) (manifest.PlatformString, error) {
-	if err := engine.CheckDockerEngineRunning(); err != nil {
+func legitimizePlatform(ctx context.Context, engine dockerEngine, wkldType string) (manifest.PlatformString, error) {
+	if err := engine.CheckDockerEngineRunning(ctx); err != nil {
 		// This is a best-effort attempt to detect the platform for users.
 		// If docker is not available, we skip this information.
 		var errDaemon *dockerengine.ErrDockerDaemonNotResponsive
@@ -784,7 +784,7 @@ func legitimizePlatform(engine dockerEngine, wkldType string) (manifest.Platform
 			return "", fmt.Errorf("check if docker engine is running: %w", err)
 		}
 	}
-	detectedOs, detectedArch, err := engine.GetPlatform()
+	detectedOs, detectedArch, err := engine.GetPlatform(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get docker engine platform: %w", err)
 	}
@@ -848,11 +848,7 @@ func (o *initSvcOpts) askSvcPublishers(ctx context.Context) (err error) {
 	return nil
 }
 
-func validateWorkspaceApp(wsApp, inputApp string, store store) error {
-	return validateWorkspaceAppWithContext(context.Background(), wsApp, inputApp, store)
-}
-
-func validateWorkspaceAppWithContext(ctx context.Context, wsApp, inputApp string, store store) error {
+func validateWorkspaceApp(ctx context.Context, wsApp, inputApp string, store store) error {
 	if err := validateWorkspaceAppInput(wsApp, inputApp); err != nil {
 		return err
 	}
@@ -965,7 +961,7 @@ This command is also run as part of "copilot init".`,
 			if err != nil {
 				return err
 			}
-			if err := opts.Validate(); err != nil { // validate flags
+			if err := opts.Validate(cmd.Context()); err != nil { // validate flags
 				return err
 			}
 			log.Warningln("It's best to run this command in the root of your workspace.")

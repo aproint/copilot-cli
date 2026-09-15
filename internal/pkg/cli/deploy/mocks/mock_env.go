@@ -165,18 +165,18 @@ func (m *MockappResourcesGetter) EXPECT() *MockappResourcesGetterMockRecorder {
 }
 
 // GetAppResourcesByRegion mocks base method.
-func (m *MockappResourcesGetter) GetAppResourcesByRegion(app *config.Application, region string) (*stack.AppRegionalResources, error) {
+func (m *MockappResourcesGetter) GetAppResourcesByRegion(arg0 context.Context, arg1 *config.Application, arg2 string) (*stack.AppRegionalResources, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAppResourcesByRegion", app, region)
+	ret := m.ctrl.Call(m, "GetAppResourcesByRegion", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*stack.AppRegionalResources)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAppResourcesByRegion indicates an expected call of GetAppResourcesByRegion.
-func (mr *MockappResourcesGetterMockRecorder) GetAppResourcesByRegion(app, region interface{}) *gomock.Call {
+func (mr *MockappResourcesGetterMockRecorder) GetAppResourcesByRegion(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppResourcesByRegion", reflect.TypeOf((*MockappResourcesGetter)(nil).GetAppResourcesByRegion), app, region)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppResourcesByRegion", reflect.TypeOf((*MockappResourcesGetter)(nil).GetAppResourcesByRegion), arg0, arg1, arg2)
 }
 
 // MockenvironmentDeployer is a mock of environmentDeployer interface.
@@ -202,34 +202,34 @@ func (m *MockenvironmentDeployer) EXPECT() *MockenvironmentDeployerMockRecorder 
 	return m.recorder
 }
 
-// DeployedEnvironmentParametersWithContext mocks base method.
-func (m *MockenvironmentDeployer) DeployedEnvironmentParametersWithContext(arg0 context.Context, arg1, arg2 string) ([]types.Parameter, error) {
+// DeployedEnvironmentParameters mocks base method.
+func (m *MockenvironmentDeployer) DeployedEnvironmentParameters(arg0 context.Context, arg1, arg2 string) ([]types.Parameter, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeployedEnvironmentParametersWithContext", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeployedEnvironmentParameters", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]types.Parameter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DeployedEnvironmentParametersWithContext indicates an expected call of DeployedEnvironmentParametersWithContext.
-func (mr *MockenvironmentDeployerMockRecorder) DeployedEnvironmentParametersWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
+// DeployedEnvironmentParameters indicates an expected call of DeployedEnvironmentParameters.
+func (mr *MockenvironmentDeployerMockRecorder) DeployedEnvironmentParameters(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployedEnvironmentParametersWithContext", reflect.TypeOf((*MockenvironmentDeployer)(nil).DeployedEnvironmentParametersWithContext), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeployedEnvironmentParameters", reflect.TypeOf((*MockenvironmentDeployer)(nil).DeployedEnvironmentParameters), arg0, arg1, arg2)
 }
 
-// ForceUpdateOutputIDWithContext mocks base method.
-func (m *MockenvironmentDeployer) ForceUpdateOutputIDWithContext(arg0 context.Context, arg1, arg2 string) (string, error) {
+// ForceUpdateOutputID mocks base method.
+func (m *MockenvironmentDeployer) ForceUpdateOutputID(arg0 context.Context, arg1, arg2 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ForceUpdateOutputIDWithContext", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ForceUpdateOutputID", arg0, arg1, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ForceUpdateOutputIDWithContext indicates an expected call of ForceUpdateOutputIDWithContext.
-func (mr *MockenvironmentDeployerMockRecorder) ForceUpdateOutputIDWithContext(arg0, arg1, arg2 interface{}) *gomock.Call {
+// ForceUpdateOutputID indicates an expected call of ForceUpdateOutputID.
+func (mr *MockenvironmentDeployerMockRecorder) ForceUpdateOutputID(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateOutputIDWithContext", reflect.TypeOf((*MockenvironmentDeployer)(nil).ForceUpdateOutputIDWithContext), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceUpdateOutputID", reflect.TypeOf((*MockenvironmentDeployer)(nil).ForceUpdateOutputID), arg0, arg1, arg2)
 }
 
 // UpdateAndRenderEnvironment mocks base method.
@@ -275,17 +275,17 @@ func (m *Mockpatcher) EXPECT() *MockpatcherMockRecorder {
 }
 
 // EnsureManagerRoleIsAllowedToUpload mocks base method.
-func (m *Mockpatcher) EnsureManagerRoleIsAllowedToUpload(bucketName string) error {
+func (m *Mockpatcher) EnsureManagerRoleIsAllowedToUpload(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnsureManagerRoleIsAllowedToUpload", bucketName)
+	ret := m.ctrl.Call(m, "EnsureManagerRoleIsAllowedToUpload", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // EnsureManagerRoleIsAllowedToUpload indicates an expected call of EnsureManagerRoleIsAllowedToUpload.
-func (mr *MockpatcherMockRecorder) EnsureManagerRoleIsAllowedToUpload(bucketName interface{}) *gomock.Call {
+func (mr *MockpatcherMockRecorder) EnsureManagerRoleIsAllowedToUpload(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureManagerRoleIsAllowedToUpload", reflect.TypeOf((*Mockpatcher)(nil).EnsureManagerRoleIsAllowedToUpload), bucketName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureManagerRoleIsAllowedToUpload", reflect.TypeOf((*Mockpatcher)(nil).EnsureManagerRoleIsAllowedToUpload), arg0, arg1)
 }
 
 // MockprefixListGetter is a mock of prefixListGetter interface.
@@ -311,19 +311,19 @@ func (m *MockprefixListGetter) EXPECT() *MockprefixListGetterMockRecorder {
 	return m.recorder
 }
 
-// CloudFrontManagedPrefixListIDWithContext mocks base method.
-func (m *MockprefixListGetter) CloudFrontManagedPrefixListIDWithContext(arg0 context.Context) (string, error) {
+// CloudFrontManagedPrefixListID mocks base method.
+func (m *MockprefixListGetter) CloudFrontManagedPrefixListID(arg0 context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CloudFrontManagedPrefixListIDWithContext", arg0)
+	ret := m.ctrl.Call(m, "CloudFrontManagedPrefixListID", arg0)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CloudFrontManagedPrefixListIDWithContext indicates an expected call of CloudFrontManagedPrefixListIDWithContext.
-func (mr *MockprefixListGetterMockRecorder) CloudFrontManagedPrefixListIDWithContext(arg0 interface{}) *gomock.Call {
+// CloudFrontManagedPrefixListID indicates an expected call of CloudFrontManagedPrefixListID.
+func (mr *MockprefixListGetterMockRecorder) CloudFrontManagedPrefixListID(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloudFrontManagedPrefixListIDWithContext", reflect.TypeOf((*MockprefixListGetter)(nil).CloudFrontManagedPrefixListIDWithContext), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloudFrontManagedPrefixListID", reflect.TypeOf((*MockprefixListGetter)(nil).CloudFrontManagedPrefixListID), arg0)
 }
 
 // MockenvDescriber is a mock of envDescriber interface.
@@ -440,16 +440,16 @@ func (m *MockstackDescriber) EXPECT() *MockstackDescriberMockRecorder {
 }
 
 // Resources mocks base method.
-func (m *MockstackDescriber) Resources() ([]*stack0.Resource, error) {
+func (m *MockstackDescriber) Resources(arg0 context.Context) ([]*stack0.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Resources")
+	ret := m.ctrl.Call(m, "Resources", arg0)
 	ret0, _ := ret[0].([]*stack0.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Resources indicates an expected call of Resources.
-func (mr *MockstackDescriberMockRecorder) Resources() *gomock.Call {
+func (mr *MockstackDescriberMockRecorder) Resources(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Resources", reflect.TypeOf((*MockstackDescriber)(nil).Resources))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Resources", reflect.TypeOf((*MockstackDescriber)(nil).Resources), arg0)
 }

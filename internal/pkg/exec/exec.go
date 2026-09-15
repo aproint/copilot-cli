@@ -21,10 +21,8 @@ type httpClient interface {
 }
 
 type runner interface {
-	Run(name string, args []string, options ...CmdOption) error
-	RunWithContext(ctx context.Context, name string, args []string, options ...CmdOption) error
-	InteractiveRun(name string, args []string) error
-	InteractiveRunWithContext(ctx context.Context, name string, args []string) error
+	Run(ctx context.Context, name string, args []string, options ...CmdOption) error
+	InteractiveRun(ctx context.Context, name string, args []string) error
 }
 
 type cmdRunner interface {
@@ -95,15 +93,9 @@ func runWithTerminalRestore(run func() error) (err error) {
 	return run()
 }
 
-// Run starts the named command and waits until it finishes.
-func (c *Cmd) Run(name string, args []string, opts ...CmdOption) error {
-	cmd := c.command(context.Background(), name, args, opts...)
-	return cmd.Run()
-}
-
-// RunWithContext starts the named command with the given context.
+// Run starts the named command with the given context.
 // Command execution process will be killed if the context becomes done before the command completes on its own.
-func (c *Cmd) RunWithContext(ctx context.Context, name string, args []string, opts ...CmdOption) error {
+func (c *Cmd) Run(ctx context.Context, name string, args []string, opts ...CmdOption) error {
 	cmd := c.command(ctx, name, args, opts...)
 	return cmd.Run()
 }

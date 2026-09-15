@@ -15,13 +15,8 @@ import (
 
 // StackSetDescriber is the CloudFormation interface needed to describe the health of a stack set operation.
 type StackSetDescriber interface {
-	InstanceSummaries(name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
-	DescribeOperation(name, opID string) (stackset.Operation, error)
-}
-
-type contextualStackSetDescriber interface {
-	InstanceSummariesWithContext(context.Context, string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
-	DescribeOperationWithContext(context.Context, string, string) (stackset.Operation, error)
+	InstanceSummaries(context.Context, string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
+	DescribeOperation(context.Context, string, string) (stackset.Operation, error)
 }
 
 // StackSetOpEvent represents a stack set operation status update message.
@@ -33,7 +28,6 @@ type StackSetOpEvent struct {
 // StackSetStreamer is a [Streamer] emitting [StackSetOpEvent] messages for instances under modification.
 type StackSetStreamer struct {
 	ctx         context.Context
-	useContext  bool
 	stackset    StackSetDescriber
 	ssName      string
 	opID        string
@@ -52,20 +46,10 @@ type StackSetStreamer struct {
 	instanceSummariesInterval time.Duration
 }
 
-// NewStackSetStreamer creates a StackSetStreamer for the given stack set name and operation.
-func NewStackSetStreamer(cfn StackSetDescriber, ssName, opID string, opStartTime time.Time) *StackSetStreamer {
-	return newStackSetStreamer(context.Background(), false, cfn, ssName, opID, opStartTime)
-}
-
-// NewStackSetStreamerWithContext creates a StackSetStreamer that uses ctx for fetches.
-func NewStackSetStreamerWithContext(ctx context.Context, cfn StackSetDescriber, ssName, opID string, opStartTime time.Time) *StackSetStreamer {
-	return newStackSetStreamer(ctx, true, cfn, ssName, opID, opStartTime)
-}
-
-func newStackSetStreamer(ctx context.Context, useContext bool, cfn StackSetDescriber, ssName, opID string, opStartTime time.Time) *StackSetStreamer {
+// NewStackSetStreamer creates a StackSetStreamer that uses ctx for fetches.
+func NewStackSetStreamer(ctx context.Context, cfn StackSetDescriber, ssName, opID string, opStartTime time.Time) *StackSetStreamer {
 	return &StackSetStreamer{
 		ctx:                       ctx,
-		useContext:                useContext,
 		stackset:                  cfn,
 		ssName:                    ssName,
 		opID:                      opID,
@@ -96,11 +80,7 @@ func (s *StackSetStreamer) InstanceStreamers(cfnClientFor func(region string) St
 			if !instance.Status.InProgress() || instance.StackID == "" /* new instances won't immediately have an ID */ {
 				continue
 			}
-			if s.useContext {
-				streamers = append(streamers, NewStackStreamerWithContext(s.ctx, cfnClientFor(instance.Region), instance.StackID, s.opStartTime))
-			} else {
-				streamers = append(streamers, NewStackStreamer(cfnClientFor(instance.Region), instance.StackID, s.opStartTime))
-			}
+			streamers = append(streamers, NewStackStreamer(s.ctx, cfnClientFor(instance.Region), instance.StackID, s.opStartTime))
 		}
 		if len(streamers) > 0 {
 			break
@@ -160,17 +140,11 @@ func (s *StackSetStreamer) Fetch() (next time.Time, done bool, err error) {
 }
 
 func (s *StackSetStreamer) instanceSummaries() ([]stackset.InstanceSummary, error) {
-	if client, ok := s.stackset.(contextualStackSetDescriber); s.useContext && ok {
-		return client.InstanceSummariesWithContext(s.ctx, s.ssName)
-	}
-	return s.stackset.InstanceSummaries(s.ssName)
+	return s.stackset.InstanceSummaries(s.ctx, s.ssName)
 }
 
 func (s *StackSetStreamer) describeOperation() (stackset.Operation, error) {
-	if client, ok := s.stackset.(contextualStackSetDescriber); s.useContext && ok {
-		return client.DescribeOperationWithContext(s.ctx, s.ssName, s.opID)
-	}
-	return s.stackset.DescribeOperation(s.ssName, s.opID)
+	return s.stackset.DescribeOperation(s.ctx, s.ssName, s.opID)
 }
 
 // Notify publishes the stack set's operation description to subscribers only

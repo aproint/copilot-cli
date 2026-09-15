@@ -72,9 +72,6 @@ func (d *RDWebServiceDescriber) ServiceARN(env string) (string, error) {
 // Describe returns info for a request-driven web service.
 func (d *RDWebServiceDescriber) Describe() (HumanJSONStringer, error) {
 	ctx := d.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for application %s: %w", d.app, err)

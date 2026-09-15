@@ -22,14 +22,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestPackageConfigUploadAddonAssetWithContext(t *testing.T) {
+func TestPackageConfigUploadAddonAsset(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	uploader := mocks.NewMockuploader(ctrl)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	fs := afero.NewMemMapFs()
 	require.NoError(t, afero.WriteFile(fs, "/asset.txt", []byte("asset"), 0644))
 
-	uploader.EXPECT().UploadWithContext(ctx, "bucket", "key", gomock.Any()).Return(s3.URL("us-west-2", "bucket", "key"), nil)
+	uploader.EXPECT().Upload(ctx, "bucket", "key", gomock.Any()).Return(s3.URL("us-west-2", "bucket", "key"), nil)
 	config := PackageConfig{
 		Ctx:           ctx,
 		Bucket:        "bucket",
@@ -109,7 +109,7 @@ func TestPackage(t *testing.T) {
 	}{
 		"AWS::Lambda::Function, zipped file": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, indexZipS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, indexZipS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil)
 			},
 			inTemplate: `
 Resources:
@@ -144,7 +144,7 @@ Resources:
 		},
 		"AWS::Glue::Job, non-zipped file": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-east-2", bucket, "asdf"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-east-2", bucket, "asdf"), nil)
 			},
 			inTemplate: `
 Resources:
@@ -169,7 +169,7 @@ Resources:
 		},
 		"AWS::CodeCommit::Repository, directory without slash": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("ap-northeast-1", bucket, "asdf"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("ap-northeast-1", bucket, "asdf"), nil)
 			},
 			inTemplate: `
 Resources:
@@ -196,7 +196,7 @@ Resources:
 		},
 		"AWS::ApiGateway::RestApi, directory with slash": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("eu-west-1", bucket, "asdf"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("eu-west-1", bucket, "asdf"), nil)
 			},
 			inTemplate: `
 Resources:
@@ -221,8 +221,8 @@ Resources:
 		},
 		"AWS::AppSync::Resolver, multiple replacements in one resource": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("ca-central-1", bucket, "asdf"), nil)
-				m.uploader.EXPECT().Upload(bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("ca-central-1", bucket, "hjkl"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("ca-central-1", bucket, "asdf"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("ca-central-1", bucket, "hjkl"), nil)
 			},
 			inTemplate: `
 Resources:
@@ -247,8 +247,8 @@ Resources:
 		},
 		"Fn::Transform in lambda function": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil)
-				m.uploader.EXPECT().Upload(bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "hjkl"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, lambdaZipS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "hjkl"), nil)
 			},
 			inTemplate: `
 Resources:
@@ -295,7 +295,7 @@ Resources:
 		},
 		"Fn::Transform nested in a yaml mapping and sequence node": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil).Times(2)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil).Times(2)
 			},
 			inTemplate: `
 Resources:
@@ -339,7 +339,7 @@ Resources:
 		"Fn::Transform ignores top level Transform": {
 			// example from https://medium.com/swlh/using-the-cloudformation-aws-include-macro-9e3056cf75b0
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-west-2", "chris.hare", "common-tags.yaml"), nil)
+				m.uploader.EXPECT().Upload(context.Background(), bucket, indexFileS3Path, gomock.Any()).Return(s3.URL("us-west-2", "chris.hare", "common-tags.yaml"), nil)
 			},
 			inTemplate: `
 Parameters:
@@ -400,7 +400,7 @@ Resources:
 		},
 		"error on file upload error": {
 			setupMocks: func(m addonMocks) {
-				m.uploader.EXPECT().Upload(bucket, indexZipS3Path, gomock.Any()).Return("", errors.New("mockError"))
+				m.uploader.EXPECT().Upload(context.Background(), bucket, indexZipS3Path, gomock.Any()).Return("", errors.New("mockError"))
 			},
 			inTemplate: `
 Resources:
@@ -449,6 +449,7 @@ Resources:
 			require.NoError(t, yaml.Unmarshal([]byte(tc.inTemplate), stack.template))
 
 			config := PackageConfig{
+				Ctx:           context.Background(),
 				Bucket:        bucket,
 				WorkspacePath: wsPath,
 				Uploader:      mocks.uploader,
@@ -508,7 +509,7 @@ func TestEnvironmentAddonStack_PackagePackage(t *testing.T) {
 			uploader: mocks.NewMockuploader(ctrl),
 			ws:       mocks.NewMockWorkspaceAddonsReader(ctrl),
 		}
-		m.uploader.EXPECT().Upload(bucket, indexZipS3PathForEnvironmentAddon, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil)
+		m.uploader.EXPECT().Upload(context.Background(), bucket, indexZipS3PathForEnvironmentAddon, gomock.Any()).Return(s3.URL("us-west-2", bucket, "asdf"), nil)
 
 		// WHEN.
 		inTemplate := `
@@ -532,6 +533,7 @@ Resources:
 		}
 		require.NoError(t, yaml.Unmarshal([]byte(inTemplate), stack.template))
 		config := PackageConfig{
+			Ctx:           context.Background(),
 			Bucket:        bucket,
 			WorkspacePath: wsPath,
 			Uploader:      m.uploader,

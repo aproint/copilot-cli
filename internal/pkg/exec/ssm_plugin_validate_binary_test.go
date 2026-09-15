@@ -7,6 +7,7 @@ package exec
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -31,7 +32,7 @@ func TestSSMPluginCommand_ValidateBinary(t *testing.T) {
 		"return error if fail to get the latest version": {
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), "curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
 					Return(mockError)
 			},
 			wantedError: fmt.Errorf("get ssm plugin latest version: some error"),
@@ -40,9 +41,9 @@ func TestSSMPluginCommand_ValidateBinary(t *testing.T) {
 			inLatestVersion: mockLatestVersion,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), "curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
 					Return(nil)
-				mockRunner.EXPECT().Run(ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
 					Return(mockError)
 			},
 			wantedError: fmt.Errorf("get local ssm plugin version: some error"),
@@ -51,9 +52,9 @@ func TestSSMPluginCommand_ValidateBinary(t *testing.T) {
 			inLatestVersion: mockLatestVersion,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), "curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
 					Return(nil)
-				mockRunner.EXPECT().Run(ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
 					Return(errors.New("executable file not found in $PATH"))
 			},
 			wantedError: fmt.Errorf("Session Manager plugin does not exist"),
@@ -63,9 +64,9 @@ func TestSSMPluginCommand_ValidateBinary(t *testing.T) {
 			inCurrentVersion: mockCurrentVersion,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), "curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
 					Return(nil)
-				mockRunner.EXPECT().Run(ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
 					Return(nil)
 			},
 			wantedError: fmt.Errorf("Session Manager plugin is not up-to-date"),
@@ -75,9 +76,9 @@ func TestSSMPluginCommand_ValidateBinary(t *testing.T) {
 			inCurrentVersion: mockLatestVersion,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), "curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, gomock.Any()).
 					Return(nil)
-				mockRunner.EXPECT().Run(ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
+				mockRunner.EXPECT().Run(gomock.Any(), ssmPluginBinaryName, []string{"--version"}, gomock.Any()).
 					Return(nil)
 			},
 			wantedError: nil,
@@ -92,7 +93,7 @@ func TestSSMPluginCommand_ValidateBinary(t *testing.T) {
 				currentVersionBuffer: *bytes.NewBufferString(tc.inCurrentVersion),
 				latestVersionBuffer:  *bytes.NewBufferString(tc.inLatestVersion),
 			}
-			err := s.ValidateBinary()
+			err := s.ValidateBinary(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {

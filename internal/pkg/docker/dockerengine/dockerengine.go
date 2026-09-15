@@ -27,8 +27,7 @@ import (
 
 // Cmd is the interface implemented by external commands.
 type Cmd interface {
-	Run(name string, args []string, options ...exec.CmdOption) error
-	RunWithContext(ctx context.Context, name string, args []string, opts ...exec.CmdOption) error
+	Run(ctx context.Context, name string, args []string, opts ...exec.CmdOption) error
 }
 
 // Operating systems and architectures supported by docker.
@@ -203,26 +202,15 @@ func (c DockerCmdClient) Build(ctx context.Context, in *BuildArguments, w io.Wri
 	if in.DockerfileContent != "" {
 		opts = append(opts, exec.Stdin(strings.NewReader(in.DockerfileContent)))
 	}
-	if err := c.runner.RunWithContext(ctx, "docker", args, opts...); err != nil {
+	if err := c.runner.Run(ctx, "docker", args, opts...); err != nil {
 		return fmt.Errorf("building image: %w", err)
 	}
 	return nil
 }
 
-// Login will run a `docker login` command against the Service repository URI with the input uri and auth data.
-func (c DockerCmdClient) Login(uri, username, password string) error {
-	err := c.runner.Run("docker",
-		[]string{"login", "-u", username, "--password-stdin", uri},
-		exec.Stdin(strings.NewReader(password)))
-	if err != nil {
-		return fmt.Errorf("authenticate to ECR: %w", err)
-	}
-	return nil
-}
-
-// LoginWithContext runs a `docker login` command using ctx.
-func (c DockerCmdClient) LoginWithContext(ctx context.Context, uri, username, password string) error {
-	err := c.runner.RunWithContext(ctx, "docker",
+// Login runs a `docker login` command using ctx.
+func (c DockerCmdClient) Login(ctx context.Context, uri, username, password string) error {
+	err := c.runner.Run(ctx, "docker",
 		[]string{"login", "-u", username, "--password-stdin", uri},
 		exec.Stdin(strings.NewReader(password)))
 
@@ -235,7 +223,7 @@ func (c DockerCmdClient) LoginWithContext(ctx context.Context, uri, username, pa
 
 // Exec runs cmd in container with args and writes stderr/stdout to out.
 func (c DockerCmdClient) Exec(ctx context.Context, container string, out io.Writer, cmd string, args ...string) error {
-	return c.runner.RunWithContext(ctx, "docker", append([]string{
+	return c.runner.Run(ctx, "docker", append([]string{
 		"exec",
 		container,
 		cmd,
@@ -254,7 +242,7 @@ func (c DockerCmdClient) Push(ctx context.Context, uri string, w io.Writer, tags
 	}
 
 	for _, img := range images {
-		if err := c.runner.RunWithContext(ctx, "docker", append([]string{"push", img}, args...), exec.Stdout(w), exec.Stderr(w)); err != nil {
+		if err := c.runner.Run(ctx, "docker", append([]string{"push", img}, args...), exec.Stdout(w), exec.Stderr(w)); err != nil {
 			return "", fmt.Errorf("docker push %s: %w", img, err)
 		}
 	}
@@ -263,7 +251,7 @@ func (c DockerCmdClient) Push(ctx context.Context, uri string, w io.Writer, tags
 	// Pick the first tag and get the image's digest.
 	// For Main container we call  docker inspect --format '{{json (index .RepoDigests 0)}}' uri:latest
 	// For Sidecar container images we call docker inspect --format '{{json (index .RepoDigests 0)}}' uri:<sidecarname>-latest
-	if err := c.runner.RunWithContext(ctx, "docker", []string{"inspect", "--format", "'{{json (index .RepoDigests 0)}}'", imageName(uri, tags[0])}, exec.Stdout(buf)); err != nil {
+	if err := c.runner.Run(ctx, "docker", []string{"inspect", "--format", "'{{json (index .RepoDigests 0)}}'", imageName(uri, tags[0])}, exec.Stdout(buf)); err != nil {
 		return "", fmt.Errorf("inspect image digest for %s: %w", uri, err)
 	}
 	repoDigest := strings.Trim(strings.TrimSpace(buf.String()), `"'`) // remove new lines and quotes from output
@@ -353,7 +341,7 @@ func (c DockerCmdClient) Run(ctx context.Context, options *RunOptions) error {
 		stderr := logger()
 		defer stderr.Close()
 
-		if err := c.runner.RunWithContext(ctx, "docker",
+		if err := c.runner.Run(ctx, "docker",
 			options.generateRunArguments(),
 			exec.Stdout(stdout),
 			exec.Stderr(stderr),
@@ -446,7 +434,7 @@ func (d *DockerCmdClient) containerState(ctx context.Context, containerName stri
 		return ContainerState{}, nil
 	}
 	buf := &bytes.Buffer{}
-	if err := d.runner.RunWithContext(ctx, "docker", []string{"inspect", "--format", "{{json .State}}", containerID}, exec.Stdout(buf)); err != nil {
+	if err := d.runner.Run(ctx, "docker", []string{"inspect", "--format", "{{json .State}}", containerID}, exec.Stdout(buf)); err != nil {
 		return ContainerState{}, fmt.Errorf("run docker inspect: %w", err)
 	}
 	// Make sure we unmarshal a valid json string.
@@ -461,7 +449,7 @@ func (d *DockerCmdClient) containerState(ctx context.Context, containerName stri
 // containerID gets the ID of a Docker container by its name.
 func (d *DockerCmdClient) containerID(ctx context.Context, containerName string) (string, error) {
 	buf := &bytes.Buffer{}
-	if err := d.runner.RunWithContext(ctx, "docker", []string{"ps", "-a", "-q", "--filter", "name=" + containerName}, exec.Stdout(buf)); err != nil {
+	if err := d.runner.Run(ctx, "docker", []string{"ps", "-a", "-q", "--filter", "name=" + containerName}, exec.Stdout(buf)); err != nil {
 		return "", fmt.Errorf("run docker ps: %w", err)
 	}
 	return strings.TrimSpace(buf.String()), nil
@@ -470,7 +458,7 @@ func (d *DockerCmdClient) containerID(ctx context.Context, containerName string)
 // Stop calls `docker stop` to stop a running container.
 func (c DockerCmdClient) Stop(ctx context.Context, containerID string) error {
 	buf := &bytes.Buffer{}
-	if err := c.runner.RunWithContext(ctx, "docker", []string{"stop", containerID}, exec.Stdout(buf), exec.Stderr(buf)); err != nil {
+	if err := c.runner.Run(ctx, "docker", []string{"stop", containerID}, exec.Stdout(buf), exec.Stderr(buf)); err != nil {
 		return fmt.Errorf("%s: %w", strings.TrimSpace(buf.String()), err)
 	}
 	return nil
@@ -479,29 +467,19 @@ func (c DockerCmdClient) Stop(ctx context.Context, containerID string) error {
 // Rm calls `docker rm` to remove a stopped container.
 func (c DockerCmdClient) Rm(ctx context.Context, containerID string) error {
 	buf := &bytes.Buffer{}
-	if err := c.runner.RunWithContext(ctx, "docker", []string{"rm", containerID}, exec.Stdout(buf), exec.Stderr(buf)); err != nil {
+	if err := c.runner.Run(ctx, "docker", []string{"rm", containerID}, exec.Stdout(buf), exec.Stderr(buf)); err != nil {
 		return fmt.Errorf("%s: %w", strings.TrimSpace(buf.String()), err)
 	}
 	return nil
 }
 
-// CheckDockerEngineRunning will run `docker info` command to check if the docker engine is running.
-func (c DockerCmdClient) CheckDockerEngineRunning() error {
+// CheckDockerEngineRunning runs `docker info` using ctx to check if the Docker engine is running.
+func (c DockerCmdClient) CheckDockerEngineRunning(ctx context.Context) error {
 	if _, err := osexec.LookPath("docker"); err != nil {
 		return ErrDockerCommandNotFound
 	}
 	buf := &bytes.Buffer{}
-	err := c.runner.Run("docker", []string{"info", "-f", "{{json .}}"}, exec.Stdout(buf))
-	return checkDockerEngineRunningResult(buf, err)
-}
-
-// CheckDockerEngineRunningWithContext runs `docker info` using ctx to check if the Docker engine is running.
-func (c DockerCmdClient) CheckDockerEngineRunningWithContext(ctx context.Context) error {
-	if _, err := osexec.LookPath("docker"); err != nil {
-		return ErrDockerCommandNotFound
-	}
-	buf := &bytes.Buffer{}
-	err := c.runner.RunWithContext(ctx, "docker", []string{"info", "-f", "{{json .}}"}, exec.Stdout(buf))
+	err := c.runner.Run(ctx, "docker", []string{"info", "-f", "{{json .}}"}, exec.Stdout(buf))
 	return checkDockerEngineRunningResult(buf, err)
 }
 
@@ -526,23 +504,13 @@ func checkDockerEngineRunningResult(buf *bytes.Buffer, err error) error {
 	}
 }
 
-// GetPlatform will run the `docker version` command to get the OS/Arch.
-func (c DockerCmdClient) GetPlatform() (os, arch string, err error) {
+// GetPlatform runs `docker version` using ctx to get the OS/architecture.
+func (c DockerCmdClient) GetPlatform(ctx context.Context) (os, arch string, err error) {
 	if _, err := osexec.LookPath("docker"); err != nil {
 		return "", "", ErrDockerCommandNotFound
 	}
 	buf := &bytes.Buffer{}
-	err = c.runner.Run("docker", []string{"version", "-f", "'{{json .Server}}'"}, exec.Stdout(buf))
-	return parsePlatform(buf, err)
-}
-
-// GetPlatformWithContext runs `docker version` using ctx to get the OS/architecture.
-func (c DockerCmdClient) GetPlatformWithContext(ctx context.Context) (os, arch string, err error) {
-	if _, err := osexec.LookPath("docker"); err != nil {
-		return "", "", ErrDockerCommandNotFound
-	}
-	buf := &bytes.Buffer{}
-	err = c.runner.RunWithContext(ctx, "docker", []string{"version", "-f", "'{{json .Server}}'"}, exec.Stdout(buf))
+	err = c.runner.Run(ctx, "docker", []string{"version", "-f", "'{{json .Server}}'"}, exec.Stdout(buf))
 	return parsePlatform(buf, err)
 }
 

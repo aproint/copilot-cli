@@ -15,8 +15,8 @@ import (
 
 // VPCSubnetLister list VPCs and subnets.
 type VPCSubnetLister interface {
-	ListVPCsWithContext(ctx context.Context) ([]ec2.VPC, error)
-	ListVPCSubnetsWithContext(ctx context.Context, vpcID string) (*ec2.VPCSubnets, error)
+	ListVPCs(ctx context.Context) ([]ec2.VPC, error)
+	ListVPCSubnets(ctx context.Context, vpcID string) (*ec2.VPCSubnets, error)
 }
 
 // EC2Select is a selector for Ec2 resources.
@@ -35,7 +35,7 @@ func NewEC2Select(prompt Prompter, ec2Client VPCSubnetLister) *EC2Select {
 
 // VPC has the user select an available VPC.
 func (s *EC2Select) VPC(ctx context.Context, msg, help string) (string, error) {
-	vpcs, err := s.ec2Svc.ListVPCsWithContext(ctx)
+	vpcs, err := s.ec2Svc.ListVPCs(ctx)
 	if err != nil {
 		return "", fmt.Errorf("list VPC ID: %w", err)
 	}
@@ -76,7 +76,7 @@ func (s *EC2Select) Subnets(ctx context.Context, in SubnetsInput) ([]string, err
 }
 
 func (s *EC2Select) selectFromVPCSubnets(ctx context.Context, in SubnetsInput) ([]string, error) {
-	allSubnets, err := s.ec2Svc.ListVPCSubnetsWithContext(ctx, in.VPCID)
+	allSubnets, err := s.ec2Svc.ListVPCSubnets(ctx, in.VPCID)
 	if err != nil {
 		return nil, fmt.Errorf("list subnets for VPC %s: %w", in.VPCID, err)
 	}

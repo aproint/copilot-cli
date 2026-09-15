@@ -17,18 +17,15 @@ import (
 // ContainerLoginBuildPusher provides support for logging in to repositories, building images and pushing images to repositories.
 type ContainerLoginBuildPusher interface {
 	Build(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) error
-	Login(uri, username, password string) error
-	LoginWithContext(ctx context.Context, uri, username, password string) error
+	Login(ctx context.Context, uri, username, password string) error
 	Push(ctx context.Context, uri string, w io.Writer, tags ...string) (digest string, err error)
 	IsEcrCredentialHelperEnabled(uri string) bool
 }
 
 // Registry gets information of repositories.
 type Registry interface {
-	RepositoryURI(name string) (string, error)
-	RepositoryURIWithContext(ctx context.Context, name string) (string, error)
-	Auth() (string, string, error)
-	AuthWithContext(ctx context.Context) (string, string, error)
+	RepositoryURI(ctx context.Context, name string) (string, error)
+	Auth(ctx context.Context) (string, string, error)
 }
 
 // Repository builds and pushes images to a repository.
@@ -70,7 +67,7 @@ func (r *Repository) Build(ctx context.Context, args *dockerengine.BuildArgument
 // BuildAndPush builds the image from Dockerfile and pushes it to the repository with tags.
 func (r *Repository) BuildAndPush(ctx context.Context, args *dockerengine.BuildArguments, w io.Writer) (digest string, err error) {
 	if args.URI == "" {
-		uri, err := r.repositoryURIWithContext(ctx)
+		uri, err := r.repositoryURI(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -87,12 +84,11 @@ func (r *Repository) BuildAndPush(ctx context.Context, args *dockerengine.BuildA
 	return digest, nil
 }
 
-// repositoryURI() returns the uri of the repository.
-func (r *Repository) repositoryURI() (string, error) {
+func (r *Repository) repositoryURI(ctx context.Context) (string, error) {
 	if r.uri != "" {
 		return r.uri, nil
 	}
-	uri, err := r.registry.RepositoryURI(r.name)
+	uri, err := r.registry.RepositoryURI(ctx, r.name)
 	if err != nil {
 		return "", fmt.Errorf("get repository URI: %w", err)
 	}
@@ -100,53 +96,19 @@ func (r *Repository) repositoryURI() (string, error) {
 	return uri, nil
 }
 
-func (r *Repository) repositoryURIWithContext(ctx context.Context) (string, error) {
-	if r.uri != "" {
-		return r.uri, nil
-	}
-	uri, err := r.registry.RepositoryURIWithContext(ctx, r.name)
-	if err != nil {
-		return "", fmt.Errorf("get repository URI: %w", err)
-	}
-	r.uri = uri
-	return uri, nil
-}
-
-// Login authenticates with a ECR registry by performing a Docker login,
-// but only if the `credStore` attribute value is not set to `ecr-login`.
-// If the `credStore` value is `ecr-login`, no login is performed.
-// Returns uri of the repository or an error, if any occurs during the login process.
-func (r *Repository) Login() (string, error) {
-	uri, err := r.repositoryURI()
+// Login authenticates with an ECR registry using ctx.
+func (r *Repository) Login(ctx context.Context) (string, error) {
+	uri, err := r.repositoryURI(ctx)
 	if err != nil {
 		return "", fmt.Errorf("retrieve URI for repository: %w", err)
 	}
 	if !r.docker.IsEcrCredentialHelperEnabled(uri) {
-		username, password, err := r.registry.Auth()
+		username, password, err := r.registry.Auth(ctx)
 		if err != nil {
 			return "", fmt.Errorf("get auth: %w", err)
 		}
 
-		if err := r.docker.Login(uri, username, password); err != nil {
-			return "", fmt.Errorf("docker login %s: %w", uri, err)
-		}
-	}
-	return uri, nil
-}
-
-// LoginWithContext authenticates with an ECR registry using ctx.
-func (r *Repository) LoginWithContext(ctx context.Context) (string, error) {
-	uri, err := r.repositoryURIWithContext(ctx)
-	if err != nil {
-		return "", fmt.Errorf("retrieve URI for repository: %w", err)
-	}
-	if !r.docker.IsEcrCredentialHelperEnabled(uri) {
-		username, password, err := r.registry.AuthWithContext(ctx)
-		if err != nil {
-			return "", fmt.Errorf("get auth: %w", err)
-		}
-
-		if err := r.docker.LoginWithContext(ctx, uri, username, password); err != nil {
+		if err := r.docker.Login(ctx, uri, username, password); err != nil {
 			return "", fmt.Errorf("docker login %s: %w", uri, err)
 		}
 	}

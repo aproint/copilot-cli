@@ -82,7 +82,7 @@ type hostFinder interface {
 }
 
 type taggedResourceGetter interface {
-	GetResourcesByTagsWithContext(context.Context, string, map[string]string) ([]*resourcegroups.Resource, error)
+	GetResourcesByTags(context.Context, string, map[string]string) ([]*resourcegroups.Resource, error)
 }
 
 type rdsDescriber interface {
@@ -147,11 +147,7 @@ type runLocalOpts struct {
 	releaseStdout func()
 }
 
-func newRunLocalOpts(vars runLocalVars) (*runLocalOpts, error) {
-	return newRunLocalOptsWithContext(context.Background(), vars)
-}
-
-func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLocalOpts, error) {
+func newRunLocalOpts(ctx context.Context, vars runLocalVars) (*runLocalOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("run local"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -205,7 +201,7 @@ func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLoc
 		o.ecsExecutor = awsecs.New(envManagerConfig)
 		o.secretsManager = secretsmanager.New(defaultConfigEnvRegion)
 
-		resources, err := cloudformation.New(o.defaultConfig, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(o.targetApp, o.targetEnv.Region)
+		resources, err := cloudformation.New(o.defaultConfig, cloudformation.WithProgressTracker(os.Stderr)).GetAppResourcesByRegion(ctx, o.targetApp, o.targetEnv.Region)
 		if err != nil {
 			return fmt.Errorf("get application %s resources from region %s: %w", o.appName, o.envName, err)
 		}
@@ -251,7 +247,7 @@ func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLoc
 			o.filterDockerExcludes()
 		}
 
-		gitShortCommit := imageTagFromGit(o.cmd)
+		gitShortCommit := imageTagFromGit(ctx, o.cmd)
 		image := clideploy.ContainerImageIdentifier{
 			GitShortCommitTag: gitShortCommit,
 		}
@@ -263,8 +259,8 @@ func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLoc
 			Mft:                mft.Manifest(),
 			GitShortCommitTag:  gitShortCommit,
 			Builder:            o.repository,
-			Login:              o.repository.LoginWithContext,
-			CheckDockerEngine:  o.dockerEngine.CheckDockerEngineRunningWithContext,
+			Login:              o.repository.Login,
+			CheckDockerEngine:  o.dockerEngine.CheckDockerEngineRunning,
 			LabeledTermPrinter: o.labeledTermPrinter,
 		}, out); err != nil {
 			return nil, err
@@ -314,12 +310,7 @@ func newRunLocalOptsWithContext(ctx context.Context, vars runLocalVars) (*runLoc
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *runLocalOpts) Validate() error {
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
+func (o *runLocalOpts) Validate(ctx context.Context) error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
@@ -456,7 +447,7 @@ func (o *runLocalOpts) Execute(ctx context.Context) error {
 // getSSMTarget returns a AWS SSM target for a running container
 // that supports ECS Service Exec.
 func (o *runLocalOpts) getSSMTarget(ctx context.Context) (string, error) {
-	svc, err := o.ecsClient.DescribeService(o.appName, o.envName, o.wkldName)
+	svc, err := o.ecsClient.DescribeService(ctx, o.appName, o.envName, o.wkldName)
 	if err != nil {
 		return "", fmt.Errorf("describe service: %w", err)
 	}
@@ -489,7 +480,7 @@ func (o *runLocalOpts) getSSMTarget(ctx context.Context) (string, error) {
 }
 
 func (o *runLocalOpts) getTask(ctx context.Context) (orchestrator.Task, error) {
-	td, err := o.ecsClient.TaskDefinition(o.appName, o.envName, o.wkldName)
+	td, err := o.ecsClient.TaskDefinition(ctx, o.appName, o.envName, o.wkldName)
 	if err != nil {
 		return orchestrator.Task{}, fmt.Errorf("get task definition: %w", err)
 	}
@@ -571,6 +562,7 @@ func (o *runLocalOpts) prepareTask(ctx context.Context) (orchestrator.Task, erro
 	}
 
 	mft, _, err := workloadManifest(&workloadManifestInput{
+		ctx:          ctx,
 		name:         o.wkldName,
 		appName:      o.appName,
 		envName:      o.envName,
@@ -743,7 +735,7 @@ func configEnvVars(ctx context.Context, cfg awsv2.Config) (map[string]string, er
 func (o *runLocalOpts) taskRoleCredentials(ctx context.Context) (map[string]string, error) {
 	// assumeRoleMethod tries to directly call sts:AssumeRole for TaskRole using the default config.
 	assumeRoleMethod := func() (map[string]string, error) {
-		taskDef, err := o.ecsClient.TaskDefinition(o.appName, o.envName, o.wkldName)
+		taskDef, err := o.ecsClient.TaskDefinition(ctx, o.appName, o.envName, o.wkldName)
 		if err != nil {
 			return nil, err
 		}
@@ -758,7 +750,7 @@ func (o *runLocalOpts) taskRoleCredentials(ctx context.Context) (map[string]stri
 
 	// ecsExecMethod tries to use ECS Exec to retrive credentials from running container
 	ecsExecMethod := func() (map[string]string, error) {
-		svcDesc, err := o.ecsClient.DescribeService(o.appName, o.envName, o.wkldName)
+		svcDesc, err := o.ecsClient.DescribeService(ctx, o.appName, o.envName, o.wkldName)
 		if err != nil {
 			return nil, fmt.Errorf("describe ECS service for %s in environment %s: %w", o.wkldName, o.envName, err)
 		}
@@ -783,7 +775,7 @@ func (o *runLocalOpts) taskRoleCredentials(ctx context.Context) (map[string]stri
 				containerName := awsv2.ToString(container.Name)
 				go func() {
 					defer wg.Done()
-					err := o.ecsExecutor.ExecuteCommand(awsecs.ExecuteCommandInput{
+					err := o.ecsExecutor.ExecuteCommand(ctx, awsecs.ExecuteCommandInput{
 						Cluster:   svcDesc.ClusterName,
 						Command:   fmt.Sprintf("/bin/sh -c %q\n", curlContainerCredentialsCmd),
 						Task:      taskID,
@@ -1100,7 +1092,7 @@ type hostDiscoverer struct {
 }
 
 func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error) {
-	svcs, err := h.ecs.ServiceConnectServicesWithContext(ctx, h.app, h.env, h.wkld)
+	svcs, err := h.ecs.ServiceConnectServices(ctx, h.app, h.env, h.wkld)
 	if err != nil {
 		return nil, fmt.Errorf("get service connect services: %w", err)
 	}
@@ -1138,7 +1130,7 @@ func (h *hostDiscoverer) Hosts(ctx context.Context) ([]orchestrator.Host, error)
 func (h *hostDiscoverer) rdsHosts(ctx context.Context) ([]orchestrator.Host, error) {
 	var hosts []orchestrator.Host
 
-	resources, err := h.rg.GetResourcesByTagsWithContext(ctx, resourcegroups.ResourceTypeRDS, map[string]string{
+	resources, err := h.rg.GetResourcesByTags(ctx, resourcegroups.ResourceTypeRDS, map[string]string{
 		deploy.AppTagKey: h.app,
 		deploy.EnvTagKey: h.env,
 	})
@@ -1234,7 +1226,7 @@ func BuildRunLocalCmd() *cobra.Command {
 		Short: "Run the workload locally.",
 		Long:  "Run the workload locally.",
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newRunLocalOptsWithContext(cmd.Context(), vars)
+			opts, err := newRunLocalOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -132,7 +132,7 @@ func TestELBV2_TargetsHealth(t *testing.T) {
 				client: mockAPI,
 			}
 
-			got, err := elbv2Client.TargetsHealth(tc.targetGroupARN)
+			got, err := elbv2Client.TargetsHealth(context.Background(), tc.targetGroupARN)
 
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
@@ -255,7 +255,7 @@ func TestELBV2_ListenerRuleHostHeaders(t *testing.T) {
 				client: mockAPI,
 			}
 
-			got, err := elbv2Client.ListenerRulesHostHeaders(tc.inARNs)
+			got, err := elbv2Client.ListenerRulesHostHeaders(context.Background(), tc.inARNs)
 
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
@@ -547,7 +547,7 @@ func TestELBV2_LoadBalancer(t *testing.T) {
 				client: mockAPI,
 			}
 
-			actual, err := elbv2Client.LoadBalancer(tc.mockID)
+			actual, err := elbv2Client.LoadBalancer(context.Background(), tc.mockID)
 			if tc.expectedErr != "" {
 				require.EqualError(t, err, tc.expectedErr)
 			} else {

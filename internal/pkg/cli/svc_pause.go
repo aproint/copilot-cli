@@ -55,11 +55,7 @@ type svcPauseOpts struct {
 	targetEnv *config.Environment
 }
 
-func newSvcPauseOpts(vars svcPauseVars) (*svcPauseOpts, error) {
-	return newSvcPauseOptsWithContext(context.Background(), vars)
-}
-
-func newSvcPauseOptsWithContext(ctx context.Context, vars svcPauseVars) (*svcPauseOpts, error) {
+func newSvcPauseOpts(ctx context.Context, vars svcPauseVars) (*svcPauseOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc pause"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -114,7 +110,7 @@ func newSvcPauseOptsWithContext(ctx context.Context, vars svcPauseVars) (*svcPau
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *svcPauseOpts) Validate() error {
+func (o *svcPauseOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -194,7 +190,7 @@ func (o *svcPauseOpts) Execute(ctx context.Context) error {
 	log.Warningln("Your service will be unavailable while paused. You can resume the service once the pause operation is complete.")
 	o.prog.Start(fmt.Sprintf(fmtSvcPauseStart, o.svcName, o.envName))
 
-	err := o.client.PauseServiceWithContext(ctx, o.svcARN)
+	err := o.client.PauseService(ctx, o.svcARN)
 	if err != nil {
 		o.prog.Stop(log.Serrorf(fmtsvcPauseFailed, o.svcName, o.envName))
 		return err
@@ -235,7 +231,7 @@ func buildSvcPauseCmd() *cobra.Command {
   Pause running App Runner service "my-svc".
   /code $ copilot svc pause -n my-svc`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcPauseOptsWithContext(cmd.Context(), vars)
+			opts, err := newSvcPauseOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

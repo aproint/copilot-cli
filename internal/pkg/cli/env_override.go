@@ -27,11 +27,7 @@ type overrideEnvOpts struct {
 	ws wsEnvironmentReader
 }
 
-func newOverrideEnvOpts(vars overrideVars) (*overrideEnvOpts, error) {
-	return newOverrideEnvOptsWithContext(context.Background(), vars)
-}
-
-func newOverrideEnvOptsWithContext(ctx context.Context, vars overrideVars) (*overrideEnvOpts, error) {
+func newOverrideEnvOpts(ctx context.Context, vars overrideVars) (*overrideEnvOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -64,8 +60,8 @@ func newOverrideEnvOptsWithContext(ctx context.Context, vars overrideVars) (*ove
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *overrideEnvOpts) Validate() error {
-	if err := o.overrideOpts.Validate(); err != nil {
+func (o *overrideEnvOpts) Validate(ctx context.Context) error {
+	if err := o.overrideOpts.Validate(ctx); err != nil {
 		return err
 	}
 	return o.validateName()
@@ -103,7 +99,7 @@ func (o *overrideEnvOpts) validateName() error {
 }
 
 func (o *overrideEnvOpts) newEnvPackageCmd(tplBuf stringWriteCloser) (executor, error) {
-	cmd, err := newPackageEnvOptsWithContext(o.ctx, packageEnvVars{
+	cmd, err := newPackageEnvOpts(o.ctx, packageEnvVars{
 		name:    o.name,
 		appName: o.appName,
 	})
@@ -143,7 +139,7 @@ or add new resources to an environment's template.`,
   Create a new Cloud Development Kit application to override environment templates.
   /code $ copilot env override --tool cdk`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newOverrideEnvOptsWithContext(cmd.Context(), vars)
+			opts, err := newOverrideEnvOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

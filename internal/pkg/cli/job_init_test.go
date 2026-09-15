@@ -62,7 +62,7 @@ func TestInitJobOpts_ValidateDoesNotCallRemoteServices(t *testing.T) {
 		wsAppName:   "phonetool",
 	}
 
-	require.NoError(t, opts.Validate())
+	require.NoError(t, opts.Validate(context.Background()))
 }
 
 func TestInitJobOpts_Ask_UsesCallerContextForWorkspaceValidation(t *testing.T) {
@@ -232,7 +232,7 @@ func TestJobInitOpts_Validate(t *testing.T) {
 				err = validateInitWorkspaceApp(ctx, opts.wsAppName, opts.store)
 			}
 			if err == nil {
-				err = opts.Validate()
+				err = opts.Validate(context.Background())
 			}
 			// THEN
 			if tc.wantedErr != nil {
@@ -391,7 +391,7 @@ type: Scheduled Job`), nil)
 			setupMocks: func(m initJobMocks) {
 				m.mockStore.EXPECT().GetJob(ctx, mockAppName, wantedJobName).Return(nil, &config.ErrNoSuchJob{})
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(errors.New("some error"))
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(errors.New("some error"))
 			},
 
 			wantedErr: fmt.Errorf("check if docker engine is running: some error"),
@@ -406,7 +406,7 @@ type: Scheduled Job`), nil)
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("mockImage", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(dockerengine.ErrDockerCommandNotFound)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(dockerengine.ErrDockerCommandNotFound)
 			},
 
 			wantedSchedule: wantedCronSchedule,
@@ -421,7 +421,7 @@ type: Scheduled Job`), nil)
 				m.mockMftReader.EXPECT().ReadWorkloadManifest(wantedJobName).Return(nil, &workspace.ErrFileNotExists{FileName: wantedJobName})
 				m.mockPrompt.EXPECT().Get(wkldInitImagePrompt, wkldInitImagePromptHelp, gomock.Any(), gomock.Any()).
 					Return("mockImage", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(&dockerengine.ErrDockerDaemonNotResponsive{})
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(&dockerengine.ErrDockerDaemonNotResponsive{})
 			},
 
 			wantedSchedule: wantedCronSchedule,
@@ -443,7 +443,7 @@ type: Scheduled Job`), nil)
 					gomock.Eq(wkldInitDockerfilePathHelpPrompt),
 					gomock.Any(),
 				).Return("Use an existing image instead", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 
 			wantedErr: fmt.Errorf("get image location: mock error"),
@@ -466,7 +466,7 @@ type: Scheduled Job`), nil)
 					gomock.Eq(wkldInitDockerfilePathHelpPrompt),
 					gomock.Any(),
 				).Return("Use an existing image instead", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 
 			wantedSchedule: wantedCronSchedule,
@@ -487,7 +487,7 @@ type: Scheduled Job`), nil)
 					gomock.Any(),
 					gomock.Any(),
 				).Return("cuteness-aggregator/Dockerfile", nil)
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 
 			wantedSchedule: wantedCronSchedule,
@@ -508,7 +508,7 @@ type: Scheduled Job`), nil)
 					gomock.Any(),
 					gomock.Any(),
 				).Return("", errors.New("some error"))
-				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning().Return(nil)
+				m.mockDockerEngine.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
 			},
 
 			wantedErr: fmt.Errorf("select Dockerfile: some error"),
@@ -674,8 +674,8 @@ network:
 				}, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
 				m.EXPECT().Job(ctx, &initialize.JobProps{
@@ -702,8 +702,8 @@ network:
 		},
 		"fail to init job": {
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockStore: func(m *mocks.Mockstore) {
 				m.EXPECT().ListEnvironments(ctx, "").Return(nil, nil)
@@ -732,8 +732,8 @@ network:
 				}, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Times(0)
-				m.EXPECT().GetPlatform().Times(0)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Times(0)
+				m.EXPECT().GetPlatform(context.Background()).Times(0)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
 				m.EXPECT().Job(ctx, &initialize.JobProps{
@@ -776,8 +776,8 @@ network:
 				}, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(dockerengine.ErrDockerCommandNotFound)
-				m.EXPECT().GetPlatform().Times(0)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(dockerengine.ErrDockerCommandNotFound)
+				m.EXPECT().GetPlatform(context.Background()).Times(0)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
 				m.EXPECT().Job(ctx, &initialize.JobProps{
@@ -804,8 +804,8 @@ network:
 		},
 		"return error if platform detection fails": {
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("", "", errors.New("some error"))
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("", "", errors.New("some error"))
 			},
 			wantedErr: errors.New("get docker engine platform: some error"),
 		},
@@ -827,8 +827,8 @@ network:
 				}, nil)
 			},
 			mockDockerEngine: func(m *mocks.MockdockerEngine) {
-				m.EXPECT().CheckDockerEngineRunning().Return(nil)
-				m.EXPECT().GetPlatform().Return("linux", "amd64", nil)
+				m.EXPECT().CheckDockerEngineRunning(context.Background()).Return(nil)
+				m.EXPECT().GetPlatform(context.Background()).Return("linux", "amd64", nil)
 			},
 			mockJobInit: func(m *mocks.MockjobInitializer) {
 				m.EXPECT().Job(ctx, &initialize.JobProps{

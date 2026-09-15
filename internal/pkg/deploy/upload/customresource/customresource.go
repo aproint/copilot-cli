@@ -179,16 +179,8 @@ type UploadFunc func(key string, contents io.Reader) (url string, err error)
 // ContextUploadFunc is the function signature to upload contents under a key within an S3 bucket using ctx.
 type ContextUploadFunc func(ctx context.Context, key string, contents io.Reader) (url string, err error)
 
-// Upload zips all the Files for each CustomResource and uploads the zip files individually to S3.
-// Returns a map of the CustomResource FunctionName to the S3 URL where the zip file is stored.
-func Upload(upload UploadFunc, crs []*CustomResource) (map[string]string, error) {
-	return UploadWithContext(context.Background(), func(_ context.Context, key string, contents io.Reader) (string, error) {
-		return upload(key, contents)
-	}, crs)
-}
-
-// UploadWithContext zips and uploads custom resources using ctx.
-func UploadWithContext(ctx context.Context, upload ContextUploadFunc, crs []*CustomResource) (map[string]string, error) {
+// Upload zips and uploads custom resources using ctx.
+func Upload(ctx context.Context, upload ContextUploadFunc, crs []*CustomResource) (map[string]string, error) {
 	urls := make(map[string]string)
 	for _, cr := range crs {
 		if err := ctx.Err(); err != nil {

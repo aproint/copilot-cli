@@ -6,6 +6,7 @@
 package stack_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -48,7 +49,7 @@ func TestRDWS_Template(t *testing.T) {
 		require.NoError(t, err, "apply test env to manifest")
 		err = envMft.Validate()
 		require.NoError(t, err)
-		err = envMft.Load(aws.Config{})
+		err = envMft.Load(context.Background(), aws.Config{})
 		require.NoError(t, err)
 		content := envMft.Manifest()
 

@@ -81,7 +81,7 @@ func TestIAM_ListRoleTags(t *testing.T) {
 			}
 
 			// WHEN
-			actual, err := iam.ListRoleTags(tc.inRoleName)
+			actual, err := iam.ListRoleTags(context.Background(), tc.inRoleName)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -104,9 +104,9 @@ func TestIAM_ContextMethodsUseCallerContext(t *testing.T) {
 	client.EXPECT().ListPolicies(callerCtx, gomock.Any()).Return(&iam.ListPoliciesOutput{}, nil)
 	service := &IAM{client: client}
 
-	_, err := service.ListRoleTagsContext(callerCtx, "role")
+	_, err := service.ListRoleTags(callerCtx, "role")
 	require.NoError(t, err)
-	_, err = service.ListPolicyNamesContext(callerCtx)
+	_, err = service.ListPolicyNames(callerCtx)
 	require.NoError(t, err)
 }
 
@@ -207,7 +207,7 @@ func TestIAM_DeleteRole(t *testing.T) {
 			}
 
 			// WHEN
-			err := iam.DeleteRole(tc.inRoleNameOrARN)
+			err := iam.DeleteRole(context.Background(), tc.inRoleNameOrARN)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -248,7 +248,7 @@ func TestIAM_CreateECSServiceLinkedRole(t *testing.T) {
 			}
 
 			// WHEN
-			err := iam.CreateECSServiceLinkedRole()
+			err := iam.CreateECSServiceLinkedRole(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -308,7 +308,7 @@ func TestIAM_ListPolicies(t *testing.T) {
 			}
 
 			// WHEN
-			output, err := iam.ListPolicyNames()
+			output, err := iam.ListPolicyNames(context.Background())
 
 			// THEN
 			if tc.wantedErr != nil {

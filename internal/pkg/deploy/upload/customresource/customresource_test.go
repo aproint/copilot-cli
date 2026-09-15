@@ -7,7 +7,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"testing"
@@ -17,11 +16,11 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
 
-func TestUploadWithContext(t *testing.T) {
+func TestUpload(t *testing.T) {
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	crs := []*CustomResource{{name: "Func", zip: new(bytes.Buffer)}}
 
-	urls, err := UploadWithContext(ctx, func(uploadCtx context.Context, key string, _ io.Reader) (string, error) {
+	urls, err := Upload(ctx, func(uploadCtx context.Context, key string, _ io.Reader) (string, error) {
 		require.Same(t, ctx, uploadCtx)
 		require.Equal(t, crs[0].ArtifactPath(), key)
 		return "url", nil
@@ -31,11 +30,11 @@ func TestUploadWithContext(t *testing.T) {
 	require.Equal(t, map[string]string{"Func": "url"}, urls)
 }
 
-func TestUploadWithContextStopsOnCancellation(t *testing.T) {
+func TestUploadStopsOnCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := UploadWithContext(ctx, func(context.Context, string, io.Reader) (string, error) {
+	_, err := Upload(ctx, func(context.Context, string, io.Reader) (string, error) {
 		t.Fatal("upload should not be called after cancellation")
 		return "", nil
 	}, []*CustomResource{{name: "Func", zip: new(bytes.Buffer)}})
@@ -458,63 +457,5 @@ func (f *fakeS3) UploadFunc() func(string, io.Reader) (string, error) {
 			return "", fmt.Errorf("key %q does not exist in fakeS3", key)
 		}
 		return url, nil
-	}
-}
-
-func TestUpload(t *testing.T) {
-	testCases := map[string]struct {
-		s3  *fakeS3
-		crs []*CustomResource
-
-		wantedURLs map[string]string
-		wantedErr  error
-	}{
-		"should return a wrapped error if a custom resource cannot be uploaded": {
-			s3: &fakeS3{
-				err: errors.New("some err"),
-			},
-			crs: []*CustomResource{
-				{
-					name: "fn1",
-					zip:  bytes.NewBufferString("hello"),
-				},
-			},
-			wantedErr: errors.New(`upload custom resource "fn1": some err`),
-		},
-		"should zip and upload all custom resources": {
-			s3: &fakeS3{
-				objects: map[string]string{
-					"manual/scripts/custom-resources/func1/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.zip": "url1",
-					"manual/scripts/custom-resources/func2/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.zip": "url2",
-				},
-			},
-			crs: []*CustomResource{
-				{
-					name: "Func1",
-					zip:  new(bytes.Buffer),
-				},
-				{
-					name: "Func2",
-					zip:  new(bytes.Buffer),
-				},
-			},
-
-			wantedURLs: map[string]string{
-				"Func1": "url1",
-				"Func2": "url2",
-			},
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			urls, err := Upload(tc.s3.UploadFunc(), tc.crs)
-			if tc.wantedErr != nil {
-				require.EqualError(t, err, tc.wantedErr.Error(), "errors do not match")
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.wantedURLs, urls)
-			}
-		})
 	}
 }

@@ -33,11 +33,7 @@ type overrideWorkloadOpts struct {
 	validateOrAskName func(ctx context.Context) error
 }
 
-func newOverrideWorkloadOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
-	return newOverrideWorkloadOptsWithContext(context.Background(), vars)
-}
-
-func newOverrideWorkloadOptsWithContext(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
+func newOverrideWorkloadOpts(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -69,12 +65,8 @@ func newOverrideWorkloadOptsWithContext(ctx context.Context, vars overrideWorklo
 	return cmd, nil
 }
 
-func newOverrideSvcOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
-	return newOverrideSvcOptsWithContext(context.Background(), vars)
-}
-
-func newOverrideSvcOptsWithContext(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
-	cmd, err := newOverrideWorkloadOptsWithContext(ctx, vars)
+func newOverrideSvcOpts(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
+	cmd, err := newOverrideWorkloadOpts(ctx, vars)
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +76,11 @@ func newOverrideSvcOptsWithContext(ctx context.Context, vars overrideWorkloadVar
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *overrideWorkloadOpts) Validate() error {
-	if err := o.overrideOpts.Validate(); err != nil {
+func (o *overrideWorkloadOpts) Validate(ctx context.Context) error {
+	if err := o.overrideOpts.Validate(ctx); err != nil {
 		return err
 	}
-	return o.validateEnvName()
+	return o.validateEnvName(ctx)
 }
 
 // Ask prompts for and validates any required flags.
@@ -108,14 +100,9 @@ func (o *overrideWorkloadOpts) Execute(ctx context.Context) error {
 	return o.overrideOpts.Execute(ctx)
 }
 
-func (o *overrideWorkloadOpts) validateEnvName() error {
+func (o *overrideWorkloadOpts) validateEnvName(ctx context.Context) error {
 	if o.envName == "" {
 		return nil
-	}
-	ctx := o.overrideOpts.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
 	}
 	_, err := o.cfgStore.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
@@ -156,7 +143,7 @@ func (o *overrideWorkloadOpts) newSvcPackageCmd(tplBuf stringWriteCloser) (execu
 	if err != nil {
 		return nil, err
 	}
-	cmd, err := newPackageSvcOptsWithContext(o.overrideOpts.ctx, packageSvcVars{
+	cmd, err := newPackageSvcOpts(o.overrideOpts.ctx, packageSvcVars{
 		name:    o.name,
 		envName: envName,
 		appName: o.appName,
@@ -175,10 +162,6 @@ func (o *overrideWorkloadOpts) targetEnvName() (string, error) {
 		return o.envName, nil
 	}
 	ctx := o.overrideOpts.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
 	envs, err := o.cfgStore.ListEnvironments(ctx, o.appName)
 	if err != nil {
 		return "", fmt.Errorf("list environments in application %q: %v", o.appName, err)
@@ -202,7 +185,7 @@ or add new resources to the service's template.`,
   Create a new Cloud Development Kit application to override the "frontend" service template.
   /code $ copilot svc override -n frontend --tool cdk`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newOverrideSvcOptsWithContext(cmd.Context(), vars)
+			opts, err := newOverrideSvcOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

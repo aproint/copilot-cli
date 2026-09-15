@@ -4,6 +4,7 @@
 package stream
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -32,13 +33,13 @@ var ecsEventFailureKeywords = []string{"fail", "unhealthy", "error", "throttle",
 
 // ECSServiceDescriber is the interface to describe an ECS service.
 type ECSServiceDescriber interface {
-	Service(clusterName, serviceName string) (*ecs.Service, error)
-	StoppedServiceTasks(cluster, service string) ([]*ecs.Task, error)
+	Service(context.Context, string, string) (*ecs.Service, error)
+	StoppedServiceTasks(context.Context, string, string) ([]*ecs.Task, error)
 }
 
 // CloudWatchDescriber is the interface to describe CW alarms.
 type CloudWatchDescriber interface {
-	AlarmStatuses(opts ...cloudwatch.DescribeAlarmOpts) ([]cloudwatch.AlarmStatus, error)
+	AlarmStatuses(context.Context, ...cloudwatch.DescribeAlarmOpts) ([]cloudwatch.AlarmStatus, error)
 }
 
 // ECSDeployment represent an ECS rolling update deployment.
@@ -80,6 +81,7 @@ type ECSService struct {
 
 // ECSDeploymentStreamer is a Streamer for ECSService descriptions until the deployment is completed.
 type ECSDeploymentStreamer struct {
+	ctx                    context.Context
 	client                 ECSServiceDescriber
 	cw                     CloudWatchDescriber
 	clock                  clock
@@ -100,8 +102,9 @@ type ECSDeploymentStreamer struct {
 
 // NewECSDeploymentStreamer creates a new ECSDeploymentStreamer that streams service descriptions
 // since the deployment creation time and until the primary deployment is completed.
-func NewECSDeploymentStreamer(ecs ECSServiceDescriber, cw CloudWatchDescriber, cluster, service string, deploymentCreationTime time.Time) *ECSDeploymentStreamer {
+func NewECSDeploymentStreamer(ctx context.Context, ecs ECSServiceDescriber, cw CloudWatchDescriber, cluster, service string, deploymentCreationTime time.Time) *ECSDeploymentStreamer {
 	return &ECSDeploymentStreamer{
+		ctx:                    ctx,
 		client:                 ecs,
 		cw:                     cw,
 		clock:                  realClock{},
@@ -131,7 +134,7 @@ func (s *ECSDeploymentStreamer) Subscribe() <-chan ECSService {
 // If an error occurs from describe service, returns a wrapped err.
 // Otherwise, returns the time the next Fetch should be attempted.
 func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
-	out, err := s.client.Service(s.cluster, s.service)
+	out, err := s.client.Service(s.ctx, s.cluster, s.service)
 	if err != nil {
 		if isThrottleError(err) {
 			s.ecsRetries += 1
@@ -165,7 +168,7 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 			primaryDeploymentId = rollingDeploy.Id
 		}
 	}
-	stoppedSvcTasks, err := s.client.StoppedServiceTasks(s.cluster, s.service)
+	stoppedSvcTasks, err := s.client.StoppedServiceTasks(s.ctx, s.cluster, s.service)
 	if err != nil {
 		if isThrottleError(err) {
 			s.ecsRetries += 1
@@ -211,7 +214,7 @@ func (s *ECSDeploymentStreamer) Fetch() (next time.Time, done bool, err error) {
 	var alarms []cloudwatch.AlarmStatus
 	if out.DeploymentConfiguration != nil && out.DeploymentConfiguration.Alarms != nil && out.DeploymentConfiguration.Alarms.Enable {
 		alarmNames := out.DeploymentConfiguration.Alarms.AlarmNames
-		alarms, err = s.cw.AlarmStatuses(cloudwatch.WithNames(alarmNames))
+		alarms, err = s.cw.AlarmStatuses(s.ctx, cloudwatch.WithNames(alarmNames))
 		if err != nil {
 			if isThrottleError(err) {
 				s.cwRetries += 1

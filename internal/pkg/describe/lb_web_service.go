@@ -51,14 +51,12 @@ type envDescriber interface {
 }
 
 type lbDescriber interface {
-	ListenerRulesHostHeaders(ruleARNs []string) ([]string, error)
-	ListenerRulesHostHeadersWithContext(ctx context.Context, ruleARNs []string) ([]string, error)
+	ListenerRulesHostHeaders(ctx context.Context, ruleARNs []string) ([]string, error)
 }
 
 // LBWebServiceDescriber retrieves information about a load balanced web service.
 type LBWebServiceDescriber struct {
 	ctx             context.Context
-	contextEnabled  bool
 	app             string
 	svc             string
 	enableResources bool
@@ -77,7 +75,6 @@ type LBWebServiceDescriber struct {
 func NewLBWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*LBWebServiceDescriber, error) {
 	describer := &LBWebServiceDescriber{
 		ctx:                  ctx,
-		contextEnabled:       true,
 		app:                  opt.App,
 		svc:                  opt.Svc,
 		enableResources:      opt.EnableResources,
@@ -139,7 +136,7 @@ func NewLBWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*LBWeb
 		if err != nil {
 			return nil, err
 		}
-		return cloudwatch.New(cfg, cfg), nil
+		return cloudwatch.New(cfg), nil
 	}
 	return describer, nil
 }
@@ -147,9 +144,6 @@ func NewLBWebServiceDescriber(ctx context.Context, opt NewServiceConfig) (*LBWeb
 // Describe returns info of a web service.
 func (d *LBWebServiceDescriber) Describe() (HumanJSONStringer, error) {
 	ctx := d.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for application %s: %w", d.app, err)
@@ -206,7 +200,7 @@ func (d *LBWebServiceDescriber) Describe() (HumanJSONStringer, error) {
 			if err != nil {
 				return nil, err
 			}
-			alarms, err := describeAlarms(ctx, d.contextEnabled, cwAlarmDescr, alarmNames)
+			alarms, err := describeAlarms(ctx, cwAlarmDescr, alarmNames)
 			if err != nil {
 				return nil, fmt.Errorf("retrieve alarm descriptions: %w", err)
 			}

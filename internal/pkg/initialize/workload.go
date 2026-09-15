@@ -40,8 +40,8 @@ type Store interface {
 
 // WorkloadAdder contains the methods needed to add jobs and services to an existing application.
 type WorkloadAdder interface {
-	AddJobToApp(app *config.Application, jobName string, opts ...cloudformation.AddWorkloadToAppOpt) error
-	AddServiceToApp(app *config.Application, serviceName string, opts ...cloudformation.AddWorkloadToAppOpt) error
+	AddJobToApp(context.Context, *config.Application, string, ...cloudformation.AddWorkloadToAppOpt) error
+	AddServiceToApp(context.Context, *config.Application, string, ...cloudformation.AddWorkloadToAppOpt) error
 }
 
 // Workspace contains the methods needed to manipulate a Copilot workspace.
@@ -128,15 +128,15 @@ func (w *WorkloadInitializer) Job(ctx context.Context, i *JobProps) (string, err
 	return w.initJob(ctx, i)
 }
 
-func (w *WorkloadInitializer) addWlToApp(app *config.Application, props WorkloadProps, wlType string) error {
+func (w *WorkloadInitializer) addWlToApp(ctx context.Context, app *config.Application, props WorkloadProps, wlType string) error {
 	switch wlType {
 	case svcWlType:
 		if props.Type == manifestinfo.StaticSiteType {
-			return w.Deployer.AddServiceToApp(app, props.Name, cloudformation.AddWorkloadToAppOptWithoutECR)
+			return w.Deployer.AddServiceToApp(ctx, app, props.Name, cloudformation.AddWorkloadToAppOptWithoutECR)
 		}
-		return w.Deployer.AddServiceToApp(app, props.Name)
+		return w.Deployer.AddServiceToApp(ctx, app, props.Name)
 	case jobWlType:
-		return w.Deployer.AddJobToApp(app, props.Name)
+		return w.Deployer.AddJobToApp(ctx, app, props.Name)
 	default:
 		return fmt.Errorf(fmtErrUnrecognizedWlType, wlType)
 	}
@@ -276,7 +276,7 @@ func (w *WorkloadInitializer) addWlToAppAndSSM(ctx context.Context, app *config.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := w.addWlToApp(app, props, wlType); err != nil {
+	if err := w.addWlToApp(ctx, app, props, wlType); err != nil {
 		return fmt.Errorf("add %s %s to application %s: %w", wlType, props.Name, props.App, err)
 	}
 

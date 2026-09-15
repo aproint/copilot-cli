@@ -22,8 +22,7 @@ import (
 )
 
 type pipelineGetter interface {
-	GetPipeline(pipelineName string) (*codepipeline.Pipeline, error)
-	GetPipelineWithContext(ctx context.Context, pipelineName string) (*codepipeline.Pipeline, error)
+	GetPipeline(ctx context.Context, pipelineName string) (*codepipeline.Pipeline, error)
 }
 
 // Pipeline contains serialized parameters for a pipeline.
@@ -37,33 +36,26 @@ type Pipeline struct {
 
 // PipelineDescriber retrieves information about a deployed pipeline.
 type PipelineDescriber struct {
-	ctx            context.Context
-	contextEnabled bool
-	pipeline       deploy.Pipeline
-	showResources  bool
+	ctx           context.Context
+	pipeline      deploy.Pipeline
+	showResources bool
 
 	pipelineSvc pipelineGetter
 	cfn         stackDescriber
 }
 
-// NewPipelineDescriber instantiates a new pipeline describer
-func NewPipelineDescriber(pipeline deploy.Pipeline, showResources bool) (*PipelineDescriber, error) {
-	return NewPipelineDescriberWithContext(context.Background(), pipeline, showResources)
-}
-
-// NewPipelineDescriberWithContext instantiates a new pipeline describer using ctx.
-func NewPipelineDescriberWithContext(ctx context.Context, pipeline deploy.Pipeline, showResources bool) (*PipelineDescriber, error) {
+// NewPipelineDescriber instantiates a new pipeline describer using ctx.
+func NewPipelineDescriber(ctx context.Context, pipeline deploy.Pipeline, showResources bool) (*PipelineDescriber, error) {
 	v2Config, err := sessions.ImmutableProvider().DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	pipelineSvc := codepipeline.New(v2Config, v2Config)
+	pipelineSvc := codepipeline.New(v2Config)
 
 	return &PipelineDescriber{
-		ctx:            ctx,
-		contextEnabled: true,
-		pipeline:       pipeline,
+		ctx:      ctx,
+		pipeline: pipeline,
 
 		pipelineSvc:   pipelineSvc,
 		showResources: showResources,
@@ -73,19 +65,13 @@ func NewPipelineDescriberWithContext(ctx context.Context, pipeline deploy.Pipeli
 
 // Describe returns description of a pipeline.
 func (d *PipelineDescriber) Describe() (HumanJSONStringer, error) {
-	var cp *codepipeline.Pipeline
-	var err error
-	if !d.contextEnabled {
-		cp, err = d.pipelineSvc.GetPipeline(d.pipeline.ResourceName)
-	} else {
-		cp, err = d.pipelineSvc.GetPipelineWithContext(d.ctx, d.pipeline.ResourceName)
-	}
+	cp, err := d.pipelineSvc.GetPipeline(d.ctx, d.pipeline.ResourceName)
 	if err != nil {
 		return nil, fmt.Errorf("get pipeline: %w", err)
 	}
 	var resources []*describestack.Resource
 	if d.showResources {
-		stackResources, err := loadStackResources(d.ctx, d.contextEnabled, d.cfn)
+		stackResources, err := loadStackResources(d.ctx, d.cfn)
 		if err != nil && !IsStackNotExistsErr(err) {
 			return nil, fmt.Errorf("retrieve pipeline resources: %w", err)
 		}

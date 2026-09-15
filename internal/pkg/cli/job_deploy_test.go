@@ -90,7 +90,7 @@ func TestJobDeployOpts_Validate(t *testing.T) {
 			mockStore := mocks.NewMockstore(ctrl)
 			tc.mockWs(mockWs)
 			tc.mockStore(mockStore)
-			opts := deployJobOpts{
+			opts := deployJobOpts{ctx: context.Background(),
 				deployWkldVars: deployWkldVars{
 					appName: tc.inAppName,
 					name:    tc.inJobName,
@@ -101,7 +101,7 @@ func TestJobDeployOpts_Validate(t *testing.T) {
 			}
 
 			// WHEN
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			// THEN
 			if tc.wantedError != nil {
@@ -163,7 +163,7 @@ func TestJobDeployOpts_Ask(t *testing.T) {
 			mockSel := mocks.NewMockwsSelector(ctrl)
 
 			tc.wantedCalls(mockSel)
-			opts := deployJobOpts{
+			opts := deployJobOpts{ctx: context.Background(),
 				deployWkldVars: deployWkldVars{
 					appName:  tc.inAppName,
 					name:     tc.inJobName,
@@ -460,7 +460,7 @@ func TestJobDeployOpts_Execute(t *testing.T) {
 			}
 			tc.mock(m)
 
-			opts := deployJobOpts{
+			opts := deployJobOpts{ctx: context.Background(),
 				deployWkldVars: deployWkldVars{
 					appName:            mockAppName,
 					name:               mockJobName,

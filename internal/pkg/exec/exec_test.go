@@ -17,28 +17,6 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-func TestCmd_Run(t *testing.T) {
-	t.Run("should delegate to exec and call Run", func(t *testing.T) {
-		// GIVEN
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		cmd := &Cmd{
-			command: func(ctx context.Context, name string, args []string, opts ...CmdOption) cmdRunner {
-				require.Equal(t, "ls", name)
-				m := NewMockcmdRunner(ctrl)
-				m.EXPECT().Run().Return(nil)
-				return m
-			},
-		}
-
-		// WHEN
-		err := cmd.Run("ls", nil)
-
-		// THEN
-		require.NoError(t, err)
-	})
-}
-
 func TestRunWithTerminalRestore(t *testing.T) {
 	originalGetState := getTerminalState
 	originalRestore := restoreTerminal
@@ -66,7 +44,7 @@ func TestRunWithTerminalRestore(t *testing.T) {
 	require.ErrorIs(t, err, restoreErr)
 }
 
-func TestCmd_RunWithContext(t *testing.T) {
+func TestCmd_Run(t *testing.T) {
 	t.Run("should delegate to exec and call Run", func(t *testing.T) {
 		// GIVEN
 		ctrl := gomock.NewController(t)
@@ -83,14 +61,14 @@ func TestCmd_RunWithContext(t *testing.T) {
 		// WHEN
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
-		err := cmd.RunWithContext(ctx, "ls", nil)
+		err := cmd.Run(ctx, "ls", nil)
 
 		// THEN
 		require.NoError(t, err)
 	})
 }
 
-func TestCmd_InteractiveRunWithContextUsesCallerContextAndTerminalStreams(t *testing.T) {
+func TestCmd_InteractiveRunUsesCallerContextAndTerminalStreams(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -113,6 +91,6 @@ func TestCmd_InteractiveRunWithContextUsesCallerContextAndTerminalStreams(t *tes
 		},
 	}
 
-	err := cmd.InteractiveRunWithContext(ctx, "session-manager-plugin", []string{"session"})
+	err := cmd.InteractiveRun(ctx, "session-manager-plugin", []string{"session"})
 	require.NoError(t, err)
 }

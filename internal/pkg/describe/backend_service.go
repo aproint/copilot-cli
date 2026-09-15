@@ -33,7 +33,6 @@ const (
 // BackendServiceDescriber retrieves information about a backend service.
 type BackendServiceDescriber struct {
 	ctx             context.Context
-	contextEnabled  bool
 	app             string
 	svc             string
 	enableResources bool
@@ -52,7 +51,6 @@ type BackendServiceDescriber struct {
 func NewBackendServiceDescriber(ctx context.Context, opt NewServiceConfig) (*BackendServiceDescriber, error) {
 	describer := &BackendServiceDescriber{
 		ctx:                  ctx,
-		contextEnabled:       true,
 		app:                  opt.App,
 		svc:                  opt.Svc,
 		enableResources:      opt.EnableResources,
@@ -99,7 +97,7 @@ func NewBackendServiceDescriber(ctx context.Context, opt NewServiceConfig) (*Bac
 		if err != nil {
 			return nil, err
 		}
-		return cloudwatch.New(cfg, cfg), nil
+		return cloudwatch.New(cfg), nil
 	}
 	describer.initEnvDescribers = func(env string) (envDescriber, error) {
 		if describer, ok := describer.envStackDescriber[env]; ok {
@@ -122,9 +120,6 @@ func NewBackendServiceDescriber(ctx context.Context, opt NewServiceConfig) (*Bac
 // Describe returns info of a backend service.
 func (d *BackendServiceDescriber) Describe() (HumanJSONStringer, error) {
 	ctx := d.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	environments, err := d.store.ListEnvironmentsDeployedTo(ctx, d.app, d.svc)
 	if err != nil {
 		return nil, fmt.Errorf("list deployed environments for application %s: %w", d.app, err)
@@ -193,7 +188,7 @@ func (d *BackendServiceDescriber) Describe() (HumanJSONStringer, error) {
 			if err != nil {
 				return nil, err
 			}
-			alarmDescs, err := describeAlarms(ctx, d.contextEnabled, cwAlarmDescr, alarmNames)
+			alarmDescs, err := describeAlarms(ctx, cwAlarmDescr, alarmNames)
 			if err != nil {
 				return nil, fmt.Errorf("retrieve alarm descriptions: %w", err)
 			}

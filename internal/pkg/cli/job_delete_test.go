@@ -92,7 +92,7 @@ func TestDeleteJobOpts_Validate(t *testing.T) {
 
 			test.setupMocks(mockstore)
 
-			opts := deleteJobOpts{
+			opts := deleteJobOpts{ctx: context.Background(),
 				deleteJobVars: deleteJobVars{
 					appName: test.inAppName,
 					name:    test.inName,
@@ -101,7 +101,7 @@ func TestDeleteJobOpts_Validate(t *testing.T) {
 				store: mockstore,
 			}
 
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			if test.want != nil {
 				require.EqualError(t, err, test.want.Error())
@@ -267,7 +267,7 @@ func TestDeleteJobOpts_Ask(t *testing.T) {
 			test.mockPrompt(mockPrompter)
 			test.mockSel(mockSel)
 
-			opts := deleteJobOpts{
+			opts := deleteJobOpts{ctx: context.Background(),
 				deleteJobVars: deleteJobVars{
 					skipConfirmation: test.skipConfirmation,
 					appName:          test.appName,
@@ -337,18 +337,18 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
-					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
+					mocks.jobCFN.EXPECT().DeleteWorkload(context.Background(), gomock.Any()).Return(nil),
 					// delete orphan tasks
 					mocks.spinner.EXPECT().Start(fmt.Sprintf(fmtJobTasksStopStart, mockJobName, mockEnvName)),
-					mocks.ecs.EXPECT().StopWorkloadTasks(mockAppName, mockEnvName, mockJobName).Return(nil),
+					mocks.ecs.EXPECT().StopWorkloadTasks(context.Background(), mockAppName, mockEnvName, mockJobName).Return(nil),
 					mocks.spinner.EXPECT().Stop(log.Ssuccessf(fmtJobTasksStopComplete, mockJobName, mockEnvName)),
 
 					mocks.sessProvider.EXPECT().DefaultConfigWithRegion(gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// emptyECRRepos
-					mocks.ecr.EXPECT().ClearRepository(mockRepo).Return(nil),
+					mocks.ecr.EXPECT().ClearRepository(context.Background(), mockRepo).Return(nil),
 					// removeJobFromApp
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
-					mocks.appCFN.EXPECT().RemoveJobFromApp(mockApp, mockJobName).Return(nil),
+					mocks.appCFN.EXPECT().RemoveJobFromApp(context.Background(), mockApp, mockJobName).Return(nil),
 
 					// deleteSSMParam
 					mocks.store.EXPECT().DeleteJob(ctx, mockAppName, mockJobName).Return(nil),
@@ -369,17 +369,17 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
-					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
+					mocks.jobCFN.EXPECT().DeleteWorkload(context.Background(), gomock.Any()).Return(nil),
 					// delete orphan tasks
 					mocks.spinner.EXPECT().Start(fmt.Sprintf(fmtJobTasksStopStart, mockJobName, mockEnvName)),
-					mocks.ecs.EXPECT().StopWorkloadTasks(mockAppName, mockEnvName, mockJobName).Return(nil),
+					mocks.ecs.EXPECT().StopWorkloadTasks(context.Background(), mockAppName, mockEnvName, mockJobName).Return(nil),
 					mocks.spinner.EXPECT().Stop(log.Ssuccessf(fmtJobTasksStopComplete, mockJobName, mockEnvName)),
 
 					// It should **not** emptyECRRepos
-					mocks.ecr.EXPECT().ClearRepository(gomock.Any()).Return(nil).Times(0),
+					mocks.ecr.EXPECT().ClearRepository(context.Background(), gomock.Any()).Return(nil).Times(0),
 
 					// It should **not** removeJobFromApp
-					mocks.appCFN.EXPECT().RemoveJobFromApp(gomock.Any(), gomock.Any()).Return(nil).Times(0),
+					mocks.appCFN.EXPECT().RemoveJobFromApp(context.Background(), gomock.Any(), gomock.Any()).Return(nil).Times(0),
 
 					// It should **not** deleteSSMParam
 					mocks.store.EXPECT().DeleteJob(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(0),
@@ -397,7 +397,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					// deleteStacks
-					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(testError),
+					mocks.jobCFN.EXPECT().DeleteWorkload(context.Background(), gomock.Any()).Return(testError),
 				)
 			},
 			wantedError: fmt.Errorf("delete job stack: %w", testError),
@@ -412,10 +412,10 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 					mocks.store.EXPECT().GetEnvironment(ctx, mockAppName, mockEnvName).Times(1).Return(mockEnv, nil),
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{Region: "mockRegion"}, nil),
 					// deleteStacks
-					mocks.jobCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
+					mocks.jobCFN.EXPECT().DeleteWorkload(context.Background(), gomock.Any()).Return(nil),
 					// delete orphan tasks
 					mocks.spinner.EXPECT().Start(fmt.Sprintf(fmtJobTasksStopStart, mockJobName, mockEnvName)),
-					mocks.ecs.EXPECT().StopWorkloadTasks(mockAppName, mockEnvName, mockJobName).Return(testError),
+					mocks.ecs.EXPECT().StopWorkloadTasks(context.Background(), mockAppName, mockEnvName, mockJobName).Return(testError),
 					mocks.spinner.EXPECT().Stop(log.Serrorf(fmtJobTasksStopFailed, mockJobName, mockEnvName, fmt.Errorf("some error"))),
 				)
 			},
@@ -460,7 +460,7 @@ func TestDeleteJobOpts_Execute(t *testing.T) {
 
 			test.setupMocks(mocks)
 
-			opts := deleteJobOpts{
+			opts := deleteJobOpts{ctx: context.Background(),
 				deleteJobVars: deleteJobVars{
 					appName: test.inAppName,
 					name:    test.inJobName,

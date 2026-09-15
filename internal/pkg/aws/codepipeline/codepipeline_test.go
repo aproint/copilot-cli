@@ -20,7 +20,6 @@ import (
 
 type codepipelineMocks struct {
 	cp *mocks.Mockapi
-	rg *mocks.MockresourceGetter
 }
 
 func TestCodePipeline_GetPipeline(t *testing.T) {
@@ -235,20 +234,17 @@ func TestCodePipeline_GetPipeline(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockClient := mocks.NewMockapi(ctrl)
-			mockrgClient := mocks.NewMockresourceGetter(ctrl)
 			mocks := codepipelineMocks{
 				cp: mockClient,
-				rg: mockrgClient,
 			}
 			tc.callMocks(mocks)
 
 			cp := CodePipeline{
-				client:   mockClient,
-				rgClient: mockrgClient,
+				client: mockClient,
 			}
 
 			// WHEN
-			actualOut, err := cp.GetPipeline(tc.inPipelineName)
+			actualOut, err := cp.GetPipeline(context.Background(), tc.inPipelineName)
 
 			// THEN
 			require.Equal(t, tc.expectedError, err)
@@ -420,7 +416,7 @@ func TestCodePipeline_GetPipelineState(t *testing.T) {
 			}
 
 			// WHEN
-			actualOut, err := cp.GetPipelineState(tc.inPipelineName)
+			actualOut, err := cp.GetPipelineState(context.Background(), tc.inPipelineName)
 
 			// THEN
 			require.Equal(t, tc.expectedError, err)
@@ -568,20 +564,17 @@ func TestCodePipeline_RetryStageExecution(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockClient := mocks.NewMockapi(ctrl)
-			mockrgClient := mocks.NewMockresourceGetter(ctrl)
 			mocks := codepipelineMocks{
 				cp: mockClient,
-				rg: mockrgClient,
 			}
 			tc.callMocks(mocks)
 
 			cp := CodePipeline{
-				client:   mockClient,
-				rgClient: mockrgClient,
+				client: mockClient,
 			}
 
 			// WHEN
-			actualErr := cp.RetryStageExecution(mockPipelineName, mockStageName)
+			actualErr := cp.RetryStageExecution(context.Background(), mockPipelineName, mockStageName)
 
 			// THEN
 			if actualErr != nil {
@@ -603,5 +596,5 @@ func TestCodePipeline_RetryStageExecutionPropagatesContext(t *testing.T) {
 	api.EXPECT().RetryStageExecution(ctx, gomock.Any()).Return(&codepipeline.RetryStageExecutionOutput{}, nil)
 
 	client := CodePipeline{client: api}
-	require.NoError(t, client.RetryStageExecutionWithContext(ctx, "pipeline", "Source"))
+	require.NoError(t, client.RetryStageExecution(ctx, "pipeline", "Source"))
 }

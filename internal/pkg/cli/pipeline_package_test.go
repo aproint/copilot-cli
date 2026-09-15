@@ -211,7 +211,7 @@ func TestPipelinePackageOpts_Execute(t *testing.T) {
 					}, nil),
 
 					// getArtifactBuckets
-					m.deployer.EXPECT().GetRegionalAppResourcesWithContext(ctx, gomock.Any()).Return(mockResources, someError),
+					m.deployer.EXPECT().GetRegionalAppResources(ctx, gomock.Any()).Return(mockResources, someError),
 				)
 			},
 			expectedError: fmt.Errorf("get cross-regional resources: some error"),
@@ -233,10 +233,10 @@ func TestPipelinePackageOpts_Execute(t *testing.T) {
 					}, nil),
 
 					// getArtifactBuckets
-					m.deployer.EXPECT().GetRegionalAppResourcesWithContext(ctx, gomock.Any()).Return(mockResources, nil),
+					m.deployer.EXPECT().GetRegionalAppResources(ctx, gomock.Any()).Return(mockResources, nil),
 
 					// check if the pipeline has been deployed using a legacy naming.
-					m.deployedPipelineLister.EXPECT().ListDeployedPipelinesWithContext(ctx, appName).Return([]deploy.Pipeline{}, nil),
+					m.deployedPipelineLister.EXPECT().ListDeployedPipelines(ctx, appName).Return([]deploy.Pipeline{}, nil),
 					m.ws.EXPECT().PipelineOverridesPath(pipelineName).Return("path"),
 					m.pipelineStackConfig.EXPECT().Template().Return("", someError),
 				)

@@ -36,7 +36,7 @@ func TestCmd_InteractiveRun(t *testing.T) {
 		}
 
 		// WHEN
-		err := cmd.InteractiveRun("hello", nil)
+		err := cmd.InteractiveRun(context.Background(), "hello", nil)
 
 		// THEN
 		require.NoError(t, err)

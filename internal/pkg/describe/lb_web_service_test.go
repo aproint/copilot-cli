@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -242,7 +243,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 					}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(mockParams, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm1, alarm2}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm1, alarm2}).Return(nil, errors.New("some error")),
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm1, alarm2}).Return(nil, errors.New("some error")),
 				)
 			},
 			wantedError: fmt.Errorf("retrieve alarm descriptions: some error"),
@@ -445,7 +446,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 					}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(mockParams, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm1}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm1}).Return([]*cloudwatch.AlarmDescription{
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm1}).Return([]*cloudwatch.AlarmDescription{
 						{
 							Name:        alarm1,
 							Description: desc1,
@@ -484,7 +485,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 					}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(mockProdParams, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm2}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm2}).Return([]*cloudwatch.AlarmDescription{
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm2}).Return([]*cloudwatch.AlarmDescription{
 						{
 							Name:        alarm2,
 							Description: desc2,
@@ -641,7 +642,7 @@ func TestLBWebServiceDescriber_Describe(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &LBWebServiceDescriber{
+			d := &LBWebServiceDescriber{ctx: context.Background(),
 				app:                      testApp,
 				svc:                      testSvc,
 				enableResources:          tc.shouldOutputResources,

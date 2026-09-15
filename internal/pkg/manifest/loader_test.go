@@ -4,6 +4,7 @@
 package manifest
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -41,7 +42,7 @@ func TestDynamicWorkloadManifest_Load(t *testing.T) {
 			inMft: newMockMftWithTags(),
 
 			setupMocks: func(m dynamicManifestMock) {
-				m.mockSubnetGetter.EXPECT().SubnetIDs(gomock.Any()).Return(nil, errors.New("some error"))
+				m.mockSubnetGetter.EXPECT().SubnetIDs(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 
 			wantedError: fmt.Errorf("get subnet IDs: some error"),
@@ -50,7 +51,7 @@ func TestDynamicWorkloadManifest_Load(t *testing.T) {
 			inMft: newMockMftWithTags(),
 
 			setupMocks: func(m dynamicManifestMock) {
-				m.mockSubnetGetter.EXPECT().SubnetIDs(ec2.FilterForTags("foo", "bar")).Return([]string{"id1", "id2"}, nil)
+				m.mockSubnetGetter.EXPECT().SubnetIDs(gomock.Any(), ec2.FilterForTags("foo", "bar")).Return([]string{"id1", "id2"}, nil)
 			},
 
 			wantedSubnetIDs: []string{"id1", "id2"},
@@ -79,7 +80,7 @@ func TestDynamicWorkloadManifest_Load(t *testing.T) {
 					return m.mockSubnetGetter
 				},
 			}
-			err := dyn.Load(aws.Config{})
+			err := dyn.Load(context.Background(), aws.Config{})
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
 			} else {

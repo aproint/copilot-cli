@@ -102,7 +102,7 @@ func TestPackageSvcOpts_Ask(t *testing.T) {
 				ws:    mocks.NewMockwsWlDirReader(ctrl),
 			}
 			tc.setupMocks(m)
-			opts := &packageSvcOpts{
+			opts := &packageSvcOpts{ctx: context.Background(),
 				packageSvcVars: packageSvcVars{
 					name:    tc.inSvcName,
 					envName: tc.inEnvName,
@@ -348,7 +348,7 @@ count: 1`
 				mockVersionGetter:    mocks.NewMockversionGetter(ctrl),
 			}
 			tc.setupMocks(m)
-			opts := &packageSvcOpts{
+			opts := &packageSvcOpts{ctx: context.Background(),
 				packageSvcVars: tc.inVars,
 
 				templateWriter:   mockWriteCloser{w: stackBuf},

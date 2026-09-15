@@ -27,8 +27,7 @@ const (
 )
 
 type logGetter interface {
-	LogEvents(opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error)
-	LogEventsWithContext(ctx context.Context, opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error)
+	LogEvents(ctx context.Context, opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error)
 }
 
 type serviceARNGetter interface {
@@ -67,14 +66,9 @@ type workloadLogger struct {
 	now          func() time.Time
 }
 
-// WriteLogEvents writes service logs.
-func (s *workloadLogger) writeEventLogs(logEventsOpts cloudwatchlogs.LogEventsOpts, onEvent func(io.Writer, []HumanJSONStringer) error, follow bool) error {
-	return s.writeEventLogsWithContext(context.Background(), logEventsOpts, onEvent, follow)
-}
-
-func (s *workloadLogger) writeEventLogsWithContext(ctx context.Context, logEventsOpts cloudwatchlogs.LogEventsOpts, onEvent func(io.Writer, []HumanJSONStringer) error, follow bool) error {
+func (s *workloadLogger) writeEventLogs(ctx context.Context, logEventsOpts cloudwatchlogs.LogEventsOpts, onEvent func(io.Writer, []HumanJSONStringer) error, follow bool) error {
 	for {
-		logEventsOutput, err := s.eventsGetter.LogEventsWithContext(ctx, logEventsOpts)
+		logEventsOutput, err := s.eventsGetter.LogEvents(ctx, logEventsOpts)
 		if err != nil {
 			return fmt.Errorf("get log events for log group %s: %w", logEventsOpts.LogGroup, err)
 		}
@@ -128,13 +122,8 @@ type ECSServiceLogger struct {
 	*workloadLogger
 }
 
-// WriteLogEvents writes service logs.
-func (s *ECSServiceLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
-	return s.WriteLogEventsWithContext(context.Background(), opts)
-}
-
-// WriteLogEventsWithContext writes service logs using ctx.
-func (s *ECSServiceLogger) WriteLogEventsWithContext(ctx context.Context, opts WriteLogEventsOpts) error {
+// WriteLogEvents writes service logs using ctx.
+func (s *ECSServiceLogger) WriteLogEvents(ctx context.Context, opts WriteLogEventsOpts) error {
 	logGroup := fmt.Sprintf(fmtWkldLogGroupName, s.app, s.env, s.name)
 	if opts.LogGroup != "" {
 		logGroup = opts.LogGroup
@@ -148,7 +137,7 @@ func (s *ECSServiceLogger) WriteLogEventsWithContext(ctx context.Context, opts W
 		LogStreamLimit:         opts.LogStreamLimit,
 		LogStreamPrefixFilters: s.logStreamPrefixes(opts.TaskIDs, opts.ContainerName),
 	}
-	return s.workloadLogger.writeEventLogsWithContext(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
+	return s.workloadLogger.writeEventLogs(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
 }
 
 func (s *ECSServiceLogger) logStreamPrefixes(taskIDs []string, container string) []string {
@@ -164,9 +153,6 @@ type NewAppRunnerServiceLoggerOpts struct {
 // NewAppRunnerServiceLogger returns an AppRunnerServiceLogger for the service under env and app.
 func NewAppRunnerServiceLogger(opts *NewAppRunnerServiceLoggerOpts) (*AppRunnerServiceLogger, error) {
 	ctx := opts.Ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	serviceDescriber, err := describe.NewRDWebServiceDescriber(ctx, describe.NewServiceConfig{
 		App:         opts.App,
 		Svc:         opts.Name,
@@ -187,13 +173,8 @@ type AppRunnerServiceLogger struct {
 	serviceARNGetter serviceARNGetter
 }
 
-// WriteLogEvents writes service logs.
-func (s *AppRunnerServiceLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
-	return s.WriteLogEventsWithContext(context.Background(), opts)
-}
-
-// WriteLogEventsWithContext writes service logs using ctx.
-func (s *AppRunnerServiceLogger) WriteLogEventsWithContext(ctx context.Context, opts WriteLogEventsOpts) error {
+// WriteLogEvents writes service logs using ctx.
+func (s *AppRunnerServiceLogger) WriteLogEvents(ctx context.Context, opts WriteLogEventsOpts) error {
 	var logGroup string
 	switch strings.ToLower(opts.LogGroup) {
 	case "system":
@@ -225,7 +206,7 @@ func (s *AppRunnerServiceLogger) WriteLogEventsWithContext(ctx context.Context, 
 		StreamLastEventTime: nil,
 		LogStreamLimit:      opts.LogStreamLimit,
 	}
-	return s.workloadLogger.writeEventLogsWithContext(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
+	return s.workloadLogger.writeEventLogs(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
 }
 
 // NewJobLogger returns an JobLogger for the job under env and app.
@@ -240,13 +221,8 @@ type JobLogger struct {
 	*workloadLogger
 }
 
-// WriteLogEvents writes job logs.
-func (s *JobLogger) WriteLogEvents(opts WriteLogEventsOpts) error {
-	return s.WriteLogEventsWithContext(context.Background(), opts)
-}
-
-// WriteLogEventsWithContext writes job logs using ctx.
-func (s *JobLogger) WriteLogEventsWithContext(ctx context.Context, opts WriteLogEventsOpts) error {
+// WriteLogEvents writes job logs using ctx.
+func (s *JobLogger) WriteLogEvents(ctx context.Context, opts WriteLogEventsOpts) error {
 	logStreamLimit := opts.LogStreamLimit
 	if opts.IncludeStateMachineLogs {
 		logStreamLimit *= 2
@@ -264,7 +240,7 @@ func (s *JobLogger) WriteLogEventsWithContext(ctx context.Context, opts WriteLog
 		LogStreamLimit:         logStreamLimit,
 		LogStreamPrefixFilters: s.logStreamPrefixes(opts.TaskIDs, opts.IncludeStateMachineLogs),
 	}
-	return s.workloadLogger.writeEventLogsWithContext(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
+	return s.workloadLogger.writeEventLogs(ctx, logEventsOpts, opts.OnEvents, opts.Follow)
 }
 
 //	The log stream prefixes for a job should be:

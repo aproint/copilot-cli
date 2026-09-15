@@ -4,16 +4,18 @@
 package manifest
 
 import (
+	"context"
+
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 type subnetIDsGetter interface {
-	SubnetIDs(filters ...ec2.Filter) ([]string, error)
+	SubnetIDs(context.Context, ...ec2.Filter) ([]string, error)
 }
 
 type loader interface {
-	load() error
+	load(context.Context) error
 }
 
 // DynamicWorkloadManifest represents a dynamically populated workload manifest.
@@ -55,19 +57,19 @@ func (s *DynamicWorkloadManifest) RequiredEnvironmentFeatures() []string {
 }
 
 // Load dynamically populates all fields in the manifest.
-func (s *DynamicWorkloadManifest) Load(cfg aws.Config) error {
+func (s *DynamicWorkloadManifest) Load(ctx context.Context, cfg aws.Config) error {
 	loaders := []loader{
 		&dynamicSubnets{
 			cfg:    s.mft.subnets(),
 			client: s.newSubnetIDsGetter(cfg),
 		},
 	}
-	return loadAll(loaders)
+	return loadAll(ctx, loaders)
 }
 
-func loadAll(loaders []loader) error {
+func loadAll(ctx context.Context, loaders []loader) error {
 	for _, loader := range loaders {
-		if err := loader.load(); err != nil {
+		if err := loader.load(ctx); err != nil {
 			return err
 		}
 	}

@@ -206,63 +206,33 @@ func (m *MockecsClient) EXPECT() *MockecsClientMockRecorder {
 }
 
 // Service mocks base method.
-func (m *MockecsClient) Service(app, env, svc string) (*ecs.Service, error) {
+func (m *MockecsClient) Service(ctx context.Context, app, env, svc string) (*ecs.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Service", app, env, svc)
+	ret := m.ctrl.Call(m, "Service", ctx, app, env, svc)
 	ret0, _ := ret[0].(*ecs.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Service indicates an expected call of Service.
-func (mr *MockecsClientMockRecorder) Service(app, env, svc interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) Service(ctx, app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockecsClient)(nil).Service), app, env, svc)
-}
-
-// ServiceWithContext mocks base method.
-func (m *MockecsClient) ServiceWithContext(ctx context.Context, app, env, svc string) (*ecs.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ServiceWithContext", ctx, app, env, svc)
-	ret0, _ := ret[0].(*ecs.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ServiceWithContext indicates an expected call of ServiceWithContext.
-func (mr *MockecsClientMockRecorder) ServiceWithContext(ctx, app, env, svc interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceWithContext", reflect.TypeOf((*MockecsClient)(nil).ServiceWithContext), ctx, app, env, svc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockecsClient)(nil).Service), ctx, app, env, svc)
 }
 
 // TaskDefinition mocks base method.
-func (m *MockecsClient) TaskDefinition(app, env, svc string) (*ecs.TaskDefinition, error) {
+func (m *MockecsClient) TaskDefinition(ctx context.Context, app, env, svc string) (*ecs.TaskDefinition, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TaskDefinition", app, env, svc)
+	ret := m.ctrl.Call(m, "TaskDefinition", ctx, app, env, svc)
 	ret0, _ := ret[0].(*ecs.TaskDefinition)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TaskDefinition indicates an expected call of TaskDefinition.
-func (mr *MockecsClientMockRecorder) TaskDefinition(app, env, svc interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) TaskDefinition(ctx, app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinition", reflect.TypeOf((*MockecsClient)(nil).TaskDefinition), app, env, svc)
-}
-
-// TaskDefinitionWithContext mocks base method.
-func (m *MockecsClient) TaskDefinitionWithContext(ctx context.Context, app, env, svc string) (*ecs.TaskDefinition, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TaskDefinitionWithContext", ctx, app, env, svc)
-	ret0, _ := ret[0].(*ecs.TaskDefinition)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// TaskDefinitionWithContext indicates an expected call of TaskDefinitionWithContext.
-func (mr *MockecsClientMockRecorder) TaskDefinitionWithContext(ctx, app, env, svc interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinitionWithContext", reflect.TypeOf((*MockecsClient)(nil).TaskDefinitionWithContext), ctx, app, env, svc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinition", reflect.TypeOf((*MockecsClient)(nil).TaskDefinition), ctx, app, env, svc)
 }
 
 // MockapprunnerClient is a mock of apprunnerClient interface.
@@ -289,63 +259,33 @@ func (m *MockapprunnerClient) EXPECT() *MockapprunnerClientMockRecorder {
 }
 
 // DescribeService mocks base method.
-func (m *MockapprunnerClient) DescribeService(svcARN string) (*apprunner.Service, error) {
+func (m *MockapprunnerClient) DescribeService(ctx context.Context, svcARN string) (*apprunner.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeService", svcARN)
+	ret := m.ctrl.Call(m, "DescribeService", ctx, svcARN)
 	ret0, _ := ret[0].(*apprunner.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeService indicates an expected call of DescribeService.
-func (mr *MockapprunnerClientMockRecorder) DescribeService(svcARN interface{}) *gomock.Call {
+func (mr *MockapprunnerClientMockRecorder) DescribeService(ctx, svcARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeService", reflect.TypeOf((*MockapprunnerClient)(nil).DescribeService), svcARN)
-}
-
-// DescribeServiceWithContext mocks base method.
-func (m *MockapprunnerClient) DescribeServiceWithContext(ctx context.Context, svcARN string) (*apprunner.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeServiceWithContext", ctx, svcARN)
-	ret0, _ := ret[0].(*apprunner.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeServiceWithContext indicates an expected call of DescribeServiceWithContext.
-func (mr *MockapprunnerClientMockRecorder) DescribeServiceWithContext(ctx, svcARN interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeServiceWithContext", reflect.TypeOf((*MockapprunnerClient)(nil).DescribeServiceWithContext), ctx, svcARN)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeService", reflect.TypeOf((*MockapprunnerClient)(nil).DescribeService), ctx, svcARN)
 }
 
 // PrivateURL mocks base method.
-func (m *MockapprunnerClient) PrivateURL(vicARN string) (string, error) {
+func (m *MockapprunnerClient) PrivateURL(ctx context.Context, vicARN string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrivateURL", vicARN)
+	ret := m.ctrl.Call(m, "PrivateURL", ctx, vicARN)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PrivateURL indicates an expected call of PrivateURL.
-func (mr *MockapprunnerClientMockRecorder) PrivateURL(vicARN interface{}) *gomock.Call {
+func (mr *MockapprunnerClientMockRecorder) PrivateURL(ctx, vicARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrivateURL", reflect.TypeOf((*MockapprunnerClient)(nil).PrivateURL), vicARN)
-}
-
-// PrivateURLWithContext mocks base method.
-func (m *MockapprunnerClient) PrivateURLWithContext(ctx context.Context, vicARN string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrivateURLWithContext", ctx, vicARN)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PrivateURLWithContext indicates an expected call of PrivateURLWithContext.
-func (mr *MockapprunnerClientMockRecorder) PrivateURLWithContext(ctx, vicARN interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrivateURLWithContext", reflect.TypeOf((*MockapprunnerClient)(nil).PrivateURLWithContext), ctx, vicARN)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrivateURL", reflect.TypeOf((*MockapprunnerClient)(nil).PrivateURL), ctx, vicARN)
 }
 
 // MockworkloadDescriber is a mock of workloadDescriber interface.
@@ -756,33 +696,18 @@ func (m *MockcwAlarmDescriber) EXPECT() *MockcwAlarmDescriberMockRecorder {
 }
 
 // AlarmDescriptions mocks base method.
-func (m *MockcwAlarmDescriber) AlarmDescriptions(arg0 []string) ([]*cloudwatch.AlarmDescription, error) {
+func (m *MockcwAlarmDescriber) AlarmDescriptions(arg0 context.Context, arg1 []string) ([]*cloudwatch.AlarmDescription, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AlarmDescriptions", arg0)
+	ret := m.ctrl.Call(m, "AlarmDescriptions", arg0, arg1)
 	ret0, _ := ret[0].([]*cloudwatch.AlarmDescription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AlarmDescriptions indicates an expected call of AlarmDescriptions.
-func (mr *MockcwAlarmDescriberMockRecorder) AlarmDescriptions(arg0 interface{}) *gomock.Call {
+func (mr *MockcwAlarmDescriberMockRecorder) AlarmDescriptions(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AlarmDescriptions", reflect.TypeOf((*MockcwAlarmDescriber)(nil).AlarmDescriptions), arg0)
-}
-
-// AlarmDescriptionsWithContext mocks base method.
-func (m *MockcwAlarmDescriber) AlarmDescriptionsWithContext(arg0 context.Context, arg1 []string) ([]*cloudwatch.AlarmDescription, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AlarmDescriptionsWithContext", arg0, arg1)
-	ret0, _ := ret[0].([]*cloudwatch.AlarmDescription)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// AlarmDescriptionsWithContext indicates an expected call of AlarmDescriptionsWithContext.
-func (mr *MockcwAlarmDescriberMockRecorder) AlarmDescriptionsWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AlarmDescriptionsWithContext", reflect.TypeOf((*MockcwAlarmDescriber)(nil).AlarmDescriptionsWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AlarmDescriptions", reflect.TypeOf((*MockcwAlarmDescriber)(nil).AlarmDescriptions), arg0, arg1)
 }
 
 // MockbucketDescriber is a mock of bucketDescriber interface.
@@ -809,33 +734,18 @@ func (m *MockbucketDescriber) EXPECT() *MockbucketDescriberMockRecorder {
 }
 
 // BucketTree mocks base method.
-func (m *MockbucketDescriber) BucketTree(bucket string) (string, error) {
+func (m *MockbucketDescriber) BucketTree(ctx context.Context, bucket string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BucketTree", bucket)
+	ret := m.ctrl.Call(m, "BucketTree", ctx, bucket)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // BucketTree indicates an expected call of BucketTree.
-func (mr *MockbucketDescriberMockRecorder) BucketTree(bucket interface{}) *gomock.Call {
+func (mr *MockbucketDescriberMockRecorder) BucketTree(ctx, bucket interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketTree", reflect.TypeOf((*MockbucketDescriber)(nil).BucketTree), bucket)
-}
-
-// BucketTreeWithContext mocks base method.
-func (m *MockbucketDescriber) BucketTreeWithContext(ctx context.Context, bucket string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BucketTreeWithContext", ctx, bucket)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// BucketTreeWithContext indicates an expected call of BucketTreeWithContext.
-func (mr *MockbucketDescriberMockRecorder) BucketTreeWithContext(ctx, bucket interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketTreeWithContext", reflect.TypeOf((*MockbucketDescriber)(nil).BucketTreeWithContext), ctx, bucket)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketTree", reflect.TypeOf((*MockbucketDescriber)(nil).BucketTree), ctx, bucket)
 }
 
 // MockbucketDataGetter is a mock of bucketDataGetter interface.
@@ -862,9 +772,9 @@ func (m *MockbucketDataGetter) EXPECT() *MockbucketDataGetterMockRecorder {
 }
 
 // BucketSizeAndCount mocks base method.
-func (m *MockbucketDataGetter) BucketSizeAndCount(bucket string) (string, int, error) {
+func (m *MockbucketDataGetter) BucketSizeAndCount(ctx context.Context, bucket string) (string, int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BucketSizeAndCount", bucket)
+	ret := m.ctrl.Call(m, "BucketSizeAndCount", ctx, bucket)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(int)
 	ret2, _ := ret[2].(error)
@@ -872,25 +782,9 @@ func (m *MockbucketDataGetter) BucketSizeAndCount(bucket string) (string, int, e
 }
 
 // BucketSizeAndCount indicates an expected call of BucketSizeAndCount.
-func (mr *MockbucketDataGetterMockRecorder) BucketSizeAndCount(bucket interface{}) *gomock.Call {
+func (mr *MockbucketDataGetterMockRecorder) BucketSizeAndCount(ctx, bucket interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketSizeAndCount", reflect.TypeOf((*MockbucketDataGetter)(nil).BucketSizeAndCount), bucket)
-}
-
-// BucketSizeAndCountWithContext mocks base method.
-func (m *MockbucketDataGetter) BucketSizeAndCountWithContext(ctx context.Context, bucket string) (string, int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BucketSizeAndCountWithContext", ctx, bucket)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(int)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// BucketSizeAndCountWithContext indicates an expected call of BucketSizeAndCountWithContext.
-func (mr *MockbucketDataGetterMockRecorder) BucketSizeAndCountWithContext(ctx, bucket interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketSizeAndCountWithContext", reflect.TypeOf((*MockbucketDataGetter)(nil).BucketSizeAndCountWithContext), ctx, bucket)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketSizeAndCount", reflect.TypeOf((*MockbucketDataGetter)(nil).BucketSizeAndCount), ctx, bucket)
 }
 
 // MockbucketNameGetter is a mock of bucketNameGetter interface.
@@ -917,31 +811,16 @@ func (m *MockbucketNameGetter) EXPECT() *MockbucketNameGetterMockRecorder {
 }
 
 // BucketName mocks base method.
-func (m *MockbucketNameGetter) BucketName(app, env, svc string) (string, error) {
+func (m *MockbucketNameGetter) BucketName(ctx context.Context, app, env, svc string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BucketName", app, env, svc)
+	ret := m.ctrl.Call(m, "BucketName", ctx, app, env, svc)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // BucketName indicates an expected call of BucketName.
-func (mr *MockbucketNameGetterMockRecorder) BucketName(app, env, svc interface{}) *gomock.Call {
+func (mr *MockbucketNameGetterMockRecorder) BucketName(ctx, app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketName", reflect.TypeOf((*MockbucketNameGetter)(nil).BucketName), app, env, svc)
-}
-
-// BucketNameWithContext mocks base method.
-func (m *MockbucketNameGetter) BucketNameWithContext(ctx context.Context, app, env, svc string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BucketNameWithContext", ctx, app, env, svc)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// BucketNameWithContext indicates an expected call of BucketNameWithContext.
-func (mr *MockbucketNameGetterMockRecorder) BucketNameWithContext(ctx, app, env, svc interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketNameWithContext", reflect.TypeOf((*MockbucketNameGetter)(nil).BucketNameWithContext), ctx, app, env, svc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BucketName", reflect.TypeOf((*MockbucketNameGetter)(nil).BucketName), ctx, app, env, svc)
 }

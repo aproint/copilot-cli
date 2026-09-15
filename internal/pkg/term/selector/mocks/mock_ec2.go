@@ -35,32 +35,32 @@ func (m *MockVPCSubnetLister) EXPECT() *MockVPCSubnetListerMockRecorder {
 	return m.recorder
 }
 
-// ListVPCSubnetsWithContext mocks base method.
-func (m *MockVPCSubnetLister) ListVPCSubnetsWithContext(ctx context.Context, vpcID string) (*ec2.VPCSubnets, error) {
+// ListVPCSubnets mocks base method.
+func (m *MockVPCSubnetLister) ListVPCSubnets(ctx context.Context, vpcID string) (*ec2.VPCSubnets, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListVPCSubnetsWithContext", ctx, vpcID)
+	ret := m.ctrl.Call(m, "ListVPCSubnets", ctx, vpcID)
 	ret0, _ := ret[0].(*ec2.VPCSubnets)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListVPCSubnetsWithContext indicates an expected call of ListVPCSubnetsWithContext.
-func (mr *MockVPCSubnetListerMockRecorder) ListVPCSubnetsWithContext(ctx, vpcID interface{}) *gomock.Call {
+// ListVPCSubnets indicates an expected call of ListVPCSubnets.
+func (mr *MockVPCSubnetListerMockRecorder) ListVPCSubnets(ctx, vpcID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVPCSubnetsWithContext", reflect.TypeOf((*MockVPCSubnetLister)(nil).ListVPCSubnetsWithContext), ctx, vpcID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVPCSubnets", reflect.TypeOf((*MockVPCSubnetLister)(nil).ListVPCSubnets), ctx, vpcID)
 }
 
-// ListVPCsWithContext mocks base method.
-func (m *MockVPCSubnetLister) ListVPCsWithContext(ctx context.Context) ([]ec2.VPC, error) {
+// ListVPCs mocks base method.
+func (m *MockVPCSubnetLister) ListVPCs(ctx context.Context) ([]ec2.VPC, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListVPCsWithContext", ctx)
+	ret := m.ctrl.Call(m, "ListVPCs", ctx)
 	ret0, _ := ret[0].([]ec2.VPC)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListVPCsWithContext indicates an expected call of ListVPCsWithContext.
-func (mr *MockVPCSubnetListerMockRecorder) ListVPCsWithContext(ctx interface{}) *gomock.Call {
+// ListVPCs indicates an expected call of ListVPCs.
+func (mr *MockVPCSubnetListerMockRecorder) ListVPCs(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVPCsWithContext", reflect.TypeOf((*MockVPCSubnetLister)(nil).ListVPCsWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVPCs", reflect.TypeOf((*MockVPCSubnetLister)(nil).ListVPCs), ctx)
 }

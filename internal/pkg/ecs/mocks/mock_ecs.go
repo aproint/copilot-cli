@@ -37,33 +37,18 @@ func (m *MockresourceGetter) EXPECT() *MockresourceGetterMockRecorder {
 }
 
 // GetResourcesByTags mocks base method.
-func (m *MockresourceGetter) GetResourcesByTags(resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
+func (m *MockresourceGetter) GetResourcesByTags(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetResourcesByTags", resourceType, tags)
+	ret := m.ctrl.Call(m, "GetResourcesByTags", ctx, resourceType, tags)
 	ret0, _ := ret[0].([]*resourcegroups.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetResourcesByTags indicates an expected call of GetResourcesByTags.
-func (mr *MockresourceGetterMockRecorder) GetResourcesByTags(resourceType, tags interface{}) *gomock.Call {
+func (mr *MockresourceGetterMockRecorder) GetResourcesByTags(ctx, resourceType, tags interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcesByTags", reflect.TypeOf((*MockresourceGetter)(nil).GetResourcesByTags), resourceType, tags)
-}
-
-// GetResourcesByTagsWithContext mocks base method.
-func (m *MockresourceGetter) GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetResourcesByTagsWithContext", ctx, resourceType, tags)
-	ret0, _ := ret[0].([]*resourcegroups.Resource)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetResourcesByTagsWithContext indicates an expected call of GetResourcesByTagsWithContext.
-func (mr *MockresourceGetterMockRecorder) GetResourcesByTagsWithContext(ctx, resourceType, tags interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcesByTagsWithContext", reflect.TypeOf((*MockresourceGetter)(nil).GetResourcesByTagsWithContext), ctx, resourceType, tags)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcesByTags", reflect.TypeOf((*MockresourceGetter)(nil).GetResourcesByTags), ctx, resourceType, tags)
 }
 
 // MockecsClient is a mock of ecsClient interface.
@@ -90,9 +75,9 @@ func (m *MockecsClient) EXPECT() *MockecsClientMockRecorder {
 }
 
 // ActiveClusters mocks base method.
-func (m *MockecsClient) ActiveClusters(arns ...string) ([]string, error) {
+func (m *MockecsClient) ActiveClusters(ctx context.Context, arns ...string) ([]string, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
+	varargs := []interface{}{ctx}
 	for _, a := range arns {
 		varargs = append(varargs, a)
 	}
@@ -103,35 +88,16 @@ func (m *MockecsClient) ActiveClusters(arns ...string) ([]string, error) {
 }
 
 // ActiveClusters indicates an expected call of ActiveClusters.
-func (mr *MockecsClientMockRecorder) ActiveClusters(arns ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveClusters", reflect.TypeOf((*MockecsClient)(nil).ActiveClusters), arns...)
-}
-
-// ActiveClustersWithContext mocks base method.
-func (m *MockecsClient) ActiveClustersWithContext(ctx context.Context, arns ...string) ([]string, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx}
-	for _, a := range arns {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ActiveClustersWithContext", varargs...)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ActiveClustersWithContext indicates an expected call of ActiveClustersWithContext.
-func (mr *MockecsClientMockRecorder) ActiveClustersWithContext(ctx interface{}, arns ...interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) ActiveClusters(ctx interface{}, arns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx}, arns...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveClustersWithContext", reflect.TypeOf((*MockecsClient)(nil).ActiveClustersWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveClusters", reflect.TypeOf((*MockecsClient)(nil).ActiveClusters), varargs...)
 }
 
 // ActiveServices mocks base method.
-func (m *MockecsClient) ActiveServices(clusterName string, serviceARNs ...string) ([]string, error) {
+func (m *MockecsClient) ActiveServices(ctx context.Context, clusterName string, serviceARNs ...string) ([]string, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{clusterName}
+	varargs := []interface{}{ctx, clusterName}
 	for _, a := range serviceARNs {
 		varargs = append(varargs, a)
 	}
@@ -142,276 +108,136 @@ func (m *MockecsClient) ActiveServices(clusterName string, serviceARNs ...string
 }
 
 // ActiveServices indicates an expected call of ActiveServices.
-func (mr *MockecsClientMockRecorder) ActiveServices(clusterName interface{}, serviceARNs ...interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) ActiveServices(ctx, clusterName interface{}, serviceARNs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{clusterName}, serviceARNs...)
+	varargs := append([]interface{}{ctx, clusterName}, serviceARNs...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveServices", reflect.TypeOf((*MockecsClient)(nil).ActiveServices), varargs...)
 }
 
-// ActiveServicesWithContext mocks base method.
-func (m *MockecsClient) ActiveServicesWithContext(ctx context.Context, clusterName string, serviceARNs ...string) ([]string, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterName}
-	for _, a := range serviceARNs {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ActiveServicesWithContext", varargs...)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ActiveServicesWithContext indicates an expected call of ActiveServicesWithContext.
-func (mr *MockecsClientMockRecorder) ActiveServicesWithContext(ctx, clusterName interface{}, serviceARNs ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterName}, serviceARNs...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveServicesWithContext", reflect.TypeOf((*MockecsClient)(nil).ActiveServicesWithContext), varargs...)
-}
-
 // DefaultCluster mocks base method.
-func (m *MockecsClient) DefaultCluster() (string, error) {
+func (m *MockecsClient) DefaultCluster(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DefaultCluster")
+	ret := m.ctrl.Call(m, "DefaultCluster", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DefaultCluster indicates an expected call of DefaultCluster.
-func (mr *MockecsClientMockRecorder) DefaultCluster() *gomock.Call {
+func (mr *MockecsClientMockRecorder) DefaultCluster(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultCluster", reflect.TypeOf((*MockecsClient)(nil).DefaultCluster))
-}
-
-// DefaultClusterWithContext mocks base method.
-func (m *MockecsClient) DefaultClusterWithContext(ctx context.Context) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DefaultClusterWithContext", ctx)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DefaultClusterWithContext indicates an expected call of DefaultClusterWithContext.
-func (mr *MockecsClientMockRecorder) DefaultClusterWithContext(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultClusterWithContext", reflect.TypeOf((*MockecsClient)(nil).DefaultClusterWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultCluster", reflect.TypeOf((*MockecsClient)(nil).DefaultCluster), ctx)
 }
 
 // DescribeTasks mocks base method.
-func (m *MockecsClient) DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error) {
+func (m *MockecsClient) DescribeTasks(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeTasks", cluster, taskARNs)
+	ret := m.ctrl.Call(m, "DescribeTasks", ctx, cluster, taskARNs)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeTasks indicates an expected call of DescribeTasks.
-func (mr *MockecsClientMockRecorder) DescribeTasks(cluster, taskARNs interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) DescribeTasks(ctx, cluster, taskARNs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasks", reflect.TypeOf((*MockecsClient)(nil).DescribeTasks), cluster, taskARNs)
-}
-
-// DescribeTasksWithContext mocks base method.
-func (m *MockecsClient) DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeTasksWithContext", ctx, cluster, taskARNs)
-	ret0, _ := ret[0].([]*ecs.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeTasksWithContext indicates an expected call of DescribeTasksWithContext.
-func (mr *MockecsClientMockRecorder) DescribeTasksWithContext(ctx, cluster, taskARNs interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).DescribeTasksWithContext), ctx, cluster, taskARNs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasks", reflect.TypeOf((*MockecsClient)(nil).DescribeTasks), ctx, cluster, taskARNs)
 }
 
 // ListServicesByNamespace mocks base method.
-func (m *MockecsClient) ListServicesByNamespace(namespace string) ([]string, error) {
+func (m *MockecsClient) ListServicesByNamespace(ctx context.Context, namespace string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServicesByNamespace", namespace)
+	ret := m.ctrl.Call(m, "ListServicesByNamespace", ctx, namespace)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListServicesByNamespace indicates an expected call of ListServicesByNamespace.
-func (mr *MockecsClientMockRecorder) ListServicesByNamespace(namespace interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) ListServicesByNamespace(ctx, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServicesByNamespace", reflect.TypeOf((*MockecsClient)(nil).ListServicesByNamespace), namespace)
-}
-
-// ListServicesByNamespaceWithContext mocks base method.
-func (m *MockecsClient) ListServicesByNamespaceWithContext(ctx context.Context, namespace string) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServicesByNamespaceWithContext", ctx, namespace)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListServicesByNamespaceWithContext indicates an expected call of ListServicesByNamespaceWithContext.
-func (mr *MockecsClientMockRecorder) ListServicesByNamespaceWithContext(ctx, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServicesByNamespaceWithContext", reflect.TypeOf((*MockecsClient)(nil).ListServicesByNamespaceWithContext), ctx, namespace)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServicesByNamespace", reflect.TypeOf((*MockecsClient)(nil).ListServicesByNamespace), ctx, namespace)
 }
 
 // NetworkConfiguration mocks base method.
-func (m *MockecsClient) NetworkConfiguration(cluster, serviceName string) (*ecs.NetworkConfiguration, error) {
+func (m *MockecsClient) NetworkConfiguration(ctx context.Context, cluster, serviceName string) (*ecs.NetworkConfiguration, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NetworkConfiguration", cluster, serviceName)
+	ret := m.ctrl.Call(m, "NetworkConfiguration", ctx, cluster, serviceName)
 	ret0, _ := ret[0].(*ecs.NetworkConfiguration)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NetworkConfiguration indicates an expected call of NetworkConfiguration.
-func (mr *MockecsClientMockRecorder) NetworkConfiguration(cluster, serviceName interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) NetworkConfiguration(ctx, cluster, serviceName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfiguration", reflect.TypeOf((*MockecsClient)(nil).NetworkConfiguration), cluster, serviceName)
-}
-
-// NetworkConfigurationWithContext mocks base method.
-func (m *MockecsClient) NetworkConfigurationWithContext(ctx context.Context, cluster, serviceName string) (*ecs.NetworkConfiguration, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NetworkConfigurationWithContext", ctx, cluster, serviceName)
-	ret0, _ := ret[0].(*ecs.NetworkConfiguration)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// NetworkConfigurationWithContext indicates an expected call of NetworkConfigurationWithContext.
-func (mr *MockecsClientMockRecorder) NetworkConfigurationWithContext(ctx, cluster, serviceName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfigurationWithContext", reflect.TypeOf((*MockecsClient)(nil).NetworkConfigurationWithContext), ctx, cluster, serviceName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfiguration", reflect.TypeOf((*MockecsClient)(nil).NetworkConfiguration), ctx, cluster, serviceName)
 }
 
 // RunningTasks mocks base method.
-func (m *MockecsClient) RunningTasks(cluster string) ([]*ecs.Task, error) {
+func (m *MockecsClient) RunningTasks(ctx context.Context, cluster string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunningTasks", cluster)
+	ret := m.ctrl.Call(m, "RunningTasks", ctx, cluster)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RunningTasks indicates an expected call of RunningTasks.
-func (mr *MockecsClientMockRecorder) RunningTasks(cluster interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) RunningTasks(ctx, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasks", reflect.TypeOf((*MockecsClient)(nil).RunningTasks), cluster)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasks", reflect.TypeOf((*MockecsClient)(nil).RunningTasks), ctx, cluster)
 }
 
 // RunningTasksInFamily mocks base method.
-func (m *MockecsClient) RunningTasksInFamily(cluster, family string) ([]*ecs.Task, error) {
+func (m *MockecsClient) RunningTasksInFamily(ctx context.Context, cluster, family string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunningTasksInFamily", cluster, family)
+	ret := m.ctrl.Call(m, "RunningTasksInFamily", ctx, cluster, family)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RunningTasksInFamily indicates an expected call of RunningTasksInFamily.
-func (mr *MockecsClientMockRecorder) RunningTasksInFamily(cluster, family interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) RunningTasksInFamily(ctx, cluster, family interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasksInFamily", reflect.TypeOf((*MockecsClient)(nil).RunningTasksInFamily), cluster, family)
-}
-
-// RunningTasksInFamilyWithContext mocks base method.
-func (m *MockecsClient) RunningTasksInFamilyWithContext(ctx context.Context, cluster, family string) ([]*ecs.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunningTasksInFamilyWithContext", ctx, cluster, family)
-	ret0, _ := ret[0].([]*ecs.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RunningTasksInFamilyWithContext indicates an expected call of RunningTasksInFamilyWithContext.
-func (mr *MockecsClientMockRecorder) RunningTasksInFamilyWithContext(ctx, cluster, family interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasksInFamilyWithContext", reflect.TypeOf((*MockecsClient)(nil).RunningTasksInFamilyWithContext), ctx, cluster, family)
-}
-
-// RunningTasksWithContext mocks base method.
-func (m *MockecsClient) RunningTasksWithContext(ctx context.Context, cluster string) ([]*ecs.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunningTasksWithContext", ctx, cluster)
-	ret0, _ := ret[0].([]*ecs.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RunningTasksWithContext indicates an expected call of RunningTasksWithContext.
-func (mr *MockecsClientMockRecorder) RunningTasksWithContext(ctx, cluster interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).RunningTasksWithContext), ctx, cluster)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasksInFamily", reflect.TypeOf((*MockecsClient)(nil).RunningTasksInFamily), ctx, cluster, family)
 }
 
 // Service mocks base method.
-func (m *MockecsClient) Service(clusterName, serviceName string) (*ecs.Service, error) {
+func (m *MockecsClient) Service(ctx context.Context, clusterName, serviceName string) (*ecs.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Service", clusterName, serviceName)
+	ret := m.ctrl.Call(m, "Service", ctx, clusterName, serviceName)
 	ret0, _ := ret[0].(*ecs.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Service indicates an expected call of Service.
-func (mr *MockecsClientMockRecorder) Service(clusterName, serviceName interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) Service(ctx, clusterName, serviceName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockecsClient)(nil).Service), clusterName, serviceName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockecsClient)(nil).Service), ctx, clusterName, serviceName)
 }
 
 // ServiceRunningTasks mocks base method.
-func (m *MockecsClient) ServiceRunningTasks(clusterName, serviceName string) ([]*ecs.Task, error) {
+func (m *MockecsClient) ServiceRunningTasks(ctx context.Context, clusterName, serviceName string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ServiceRunningTasks", clusterName, serviceName)
+	ret := m.ctrl.Call(m, "ServiceRunningTasks", ctx, clusterName, serviceName)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ServiceRunningTasks indicates an expected call of ServiceRunningTasks.
-func (mr *MockecsClientMockRecorder) ServiceRunningTasks(clusterName, serviceName interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) ServiceRunningTasks(ctx, clusterName, serviceName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceRunningTasks", reflect.TypeOf((*MockecsClient)(nil).ServiceRunningTasks), clusterName, serviceName)
-}
-
-// ServiceRunningTasksWithContext mocks base method.
-func (m *MockecsClient) ServiceRunningTasksWithContext(ctx context.Context, clusterName, serviceName string) ([]*ecs.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ServiceRunningTasksWithContext", ctx, clusterName, serviceName)
-	ret0, _ := ret[0].([]*ecs.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ServiceRunningTasksWithContext indicates an expected call of ServiceRunningTasksWithContext.
-func (mr *MockecsClientMockRecorder) ServiceRunningTasksWithContext(ctx, clusterName, serviceName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceRunningTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).ServiceRunningTasksWithContext), ctx, clusterName, serviceName)
-}
-
-// ServiceWithContext mocks base method.
-func (m *MockecsClient) ServiceWithContext(ctx context.Context, clusterName, serviceName string) (*ecs.Service, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ServiceWithContext", ctx, clusterName, serviceName)
-	ret0, _ := ret[0].(*ecs.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ServiceWithContext indicates an expected call of ServiceWithContext.
-func (mr *MockecsClientMockRecorder) ServiceWithContext(ctx, clusterName, serviceName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceWithContext", reflect.TypeOf((*MockecsClient)(nil).ServiceWithContext), ctx, clusterName, serviceName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceRunningTasks", reflect.TypeOf((*MockecsClient)(nil).ServiceRunningTasks), ctx, clusterName, serviceName)
 }
 
 // Services mocks base method.
-func (m *MockecsClient) Services(cluster string, services ...string) ([]*ecs.Service, error) {
+func (m *MockecsClient) Services(ctx context.Context, cluster string, services ...string) ([]*ecs.Service, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{cluster}
+	varargs := []interface{}{ctx, cluster}
 	for _, a := range services {
 		varargs = append(varargs, a)
 	}
@@ -422,36 +248,16 @@ func (m *MockecsClient) Services(cluster string, services ...string) ([]*ecs.Ser
 }
 
 // Services indicates an expected call of Services.
-func (mr *MockecsClientMockRecorder) Services(cluster interface{}, services ...interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) Services(ctx, cluster interface{}, services ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{cluster}, services...)
+	varargs := append([]interface{}{ctx, cluster}, services...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Services", reflect.TypeOf((*MockecsClient)(nil).Services), varargs...)
 }
 
-// ServicesWithContext mocks base method.
-func (m *MockecsClient) ServicesWithContext(ctx context.Context, cluster string, services ...string) ([]*ecs.Service, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, cluster}
-	for _, a := range services {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ServicesWithContext", varargs...)
-	ret0, _ := ret[0].([]*ecs.Service)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ServicesWithContext indicates an expected call of ServicesWithContext.
-func (mr *MockecsClientMockRecorder) ServicesWithContext(ctx, cluster interface{}, services ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, cluster}, services...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServicesWithContext", reflect.TypeOf((*MockecsClient)(nil).ServicesWithContext), varargs...)
-}
-
 // StopTasks mocks base method.
-func (m *MockecsClient) StopTasks(tasks []string, opts ...ecs.StopTasksOpts) error {
+func (m *MockecsClient) StopTasks(ctx context.Context, tasks []string, opts ...ecs.StopTasksOpts) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{tasks}
+	varargs := []interface{}{ctx, tasks}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
@@ -461,95 +267,46 @@ func (m *MockecsClient) StopTasks(tasks []string, opts ...ecs.StopTasksOpts) err
 }
 
 // StopTasks indicates an expected call of StopTasks.
-func (mr *MockecsClientMockRecorder) StopTasks(tasks interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) StopTasks(ctx, tasks interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{tasks}, opts...)
+	varargs := append([]interface{}{ctx, tasks}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopTasks", reflect.TypeOf((*MockecsClient)(nil).StopTasks), varargs...)
 }
 
-// StopTasksWithContext mocks base method.
-func (m *MockecsClient) StopTasksWithContext(ctx context.Context, tasks []string, opts ...ecs.StopTasksOpts) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, tasks}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "StopTasksWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// StopTasksWithContext indicates an expected call of StopTasksWithContext.
-func (mr *MockecsClientMockRecorder) StopTasksWithContext(ctx, tasks interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, tasks}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).StopTasksWithContext), varargs...)
-}
-
 // StoppedServiceTasks mocks base method.
-func (m *MockecsClient) StoppedServiceTasks(cluster, service string) ([]*ecs.Task, error) {
+func (m *MockecsClient) StoppedServiceTasks(ctx context.Context, cluster, service string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoppedServiceTasks", cluster, service)
+	ret := m.ctrl.Call(m, "StoppedServiceTasks", ctx, cluster, service)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StoppedServiceTasks indicates an expected call of StoppedServiceTasks.
-func (mr *MockecsClientMockRecorder) StoppedServiceTasks(cluster, service interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) StoppedServiceTasks(ctx, cluster, service interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoppedServiceTasks", reflect.TypeOf((*MockecsClient)(nil).StoppedServiceTasks), cluster, service)
-}
-
-// StoppedServiceTasksWithContext mocks base method.
-func (m *MockecsClient) StoppedServiceTasksWithContext(ctx context.Context, cluster, service string) ([]*ecs.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoppedServiceTasksWithContext", ctx, cluster, service)
-	ret0, _ := ret[0].([]*ecs.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// StoppedServiceTasksWithContext indicates an expected call of StoppedServiceTasksWithContext.
-func (mr *MockecsClientMockRecorder) StoppedServiceTasksWithContext(ctx, cluster, service interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoppedServiceTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).StoppedServiceTasksWithContext), ctx, cluster, service)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoppedServiceTasks", reflect.TypeOf((*MockecsClient)(nil).StoppedServiceTasks), ctx, cluster, service)
 }
 
 // TaskDefinition mocks base method.
-func (m *MockecsClient) TaskDefinition(taskDefName string) (*ecs.TaskDefinition, error) {
+func (m *MockecsClient) TaskDefinition(ctx context.Context, taskDefName string) (*ecs.TaskDefinition, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TaskDefinition", taskDefName)
+	ret := m.ctrl.Call(m, "TaskDefinition", ctx, taskDefName)
 	ret0, _ := ret[0].(*ecs.TaskDefinition)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TaskDefinition indicates an expected call of TaskDefinition.
-func (mr *MockecsClientMockRecorder) TaskDefinition(taskDefName interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) TaskDefinition(ctx, taskDefName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinition", reflect.TypeOf((*MockecsClient)(nil).TaskDefinition), taskDefName)
-}
-
-// TaskDefinitionWithContext mocks base method.
-func (m *MockecsClient) TaskDefinitionWithContext(ctx context.Context, taskDefName string) (*ecs.TaskDefinition, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TaskDefinitionWithContext", ctx, taskDefName)
-	ret0, _ := ret[0].(*ecs.TaskDefinition)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// TaskDefinitionWithContext indicates an expected call of TaskDefinitionWithContext.
-func (mr *MockecsClientMockRecorder) TaskDefinitionWithContext(ctx, taskDefName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinitionWithContext", reflect.TypeOf((*MockecsClient)(nil).TaskDefinitionWithContext), ctx, taskDefName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinition", reflect.TypeOf((*MockecsClient)(nil).TaskDefinition), ctx, taskDefName)
 }
 
 // UpdateService mocks base method.
-func (m *MockecsClient) UpdateService(clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error {
+func (m *MockecsClient) UpdateService(ctx context.Context, clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{clusterName, serviceName}
+	varargs := []interface{}{ctx, clusterName, serviceName}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
@@ -559,29 +316,10 @@ func (m *MockecsClient) UpdateService(clusterName, serviceName string, opts ...e
 }
 
 // UpdateService indicates an expected call of UpdateService.
-func (mr *MockecsClientMockRecorder) UpdateService(clusterName, serviceName interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{clusterName, serviceName}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateService", reflect.TypeOf((*MockecsClient)(nil).UpdateService), varargs...)
-}
-
-// UpdateServiceWithContext mocks base method.
-func (m *MockecsClient) UpdateServiceWithContext(ctx context.Context, clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterName, serviceName}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UpdateServiceWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateServiceWithContext indicates an expected call of UpdateServiceWithContext.
-func (mr *MockecsClientMockRecorder) UpdateServiceWithContext(ctx, clusterName, serviceName interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockecsClientMockRecorder) UpdateService(ctx, clusterName, serviceName interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, clusterName, serviceName}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceWithContext", reflect.TypeOf((*MockecsClient)(nil).UpdateServiceWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateService", reflect.TypeOf((*MockecsClient)(nil).UpdateService), varargs...)
 }
 
 // MockstepFunctionsClient is a mock of stepFunctionsClient interface.
@@ -608,31 +346,16 @@ func (m *MockstepFunctionsClient) EXPECT() *MockstepFunctionsClientMockRecorder 
 }
 
 // StateMachineDefinition mocks base method.
-func (m *MockstepFunctionsClient) StateMachineDefinition(stateMachineARN string) (string, error) {
+func (m *MockstepFunctionsClient) StateMachineDefinition(ctx context.Context, stateMachineARN string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StateMachineDefinition", stateMachineARN)
+	ret := m.ctrl.Call(m, "StateMachineDefinition", ctx, stateMachineARN)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StateMachineDefinition indicates an expected call of StateMachineDefinition.
-func (mr *MockstepFunctionsClientMockRecorder) StateMachineDefinition(stateMachineARN interface{}) *gomock.Call {
+func (mr *MockstepFunctionsClientMockRecorder) StateMachineDefinition(ctx, stateMachineARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateMachineDefinition", reflect.TypeOf((*MockstepFunctionsClient)(nil).StateMachineDefinition), stateMachineARN)
-}
-
-// StateMachineDefinitionWithContext mocks base method.
-func (m *MockstepFunctionsClient) StateMachineDefinitionWithContext(ctx context.Context, stateMachineARN string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StateMachineDefinitionWithContext", ctx, stateMachineARN)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// StateMachineDefinitionWithContext indicates an expected call of StateMachineDefinitionWithContext.
-func (mr *MockstepFunctionsClientMockRecorder) StateMachineDefinitionWithContext(ctx, stateMachineARN interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateMachineDefinitionWithContext", reflect.TypeOf((*MockstepFunctionsClient)(nil).StateMachineDefinitionWithContext), ctx, stateMachineARN)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateMachineDefinition", reflect.TypeOf((*MockstepFunctionsClient)(nil).StateMachineDefinition), ctx, stateMachineARN)
 }

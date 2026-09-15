@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -39,7 +40,7 @@ func TestECSServiceDescriber_EnvVars(t *testing.T) {
 	}{
 		"returns error if fails to get task definition": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
-				m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
+				m.mockECSClient.EXPECT().TaskDefinition(context.Background(), testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
 			},
 
 			wantedError: errors.New("describe task definition for service svc: some error"),
@@ -47,7 +48,7 @@ func TestECSServiceDescriber_EnvVars(t *testing.T) {
 		"get environment variables": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
+					m.mockECSClient.EXPECT().TaskDefinition(context.Background(), testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
 						ContainerDefinitions: []ecsapi.ContainerDefinition{
 							{
 								Name: aws.String("container"),
@@ -96,7 +97,7 @@ func TestECSServiceDescriber_EnvVars(t *testing.T) {
 			tc.setupMocks(mocks)
 
 			d := &ecsServiceDescriber{
-				WorkloadStackDescriber: &WorkloadStackDescriber{
+				WorkloadStackDescriber: &WorkloadStackDescriber{ctx: context.Background(),
 					app:  testApp,
 					name: testSvc,
 					env:  testEnv,
@@ -133,7 +134,7 @@ func TestECSServiceDescriber_RollbackAlarmNames(t *testing.T) {
 	}{
 		"returns error if fails to get service": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
-				m.mockECSClient.EXPECT().Service(testApp, testEnv, testSvc).Return(&awsecs.Service{
+				m.mockECSClient.EXPECT().Service(context.Background(), testApp, testEnv, testSvc).Return(&awsecs.Service{
 					DeploymentConfiguration: &ecsapi.DeploymentConfiguration{
 						Alarms: nil,
 					},
@@ -145,7 +146,7 @@ func TestECSServiceDescriber_RollbackAlarmNames(t *testing.T) {
 		"returns nil if no alarms in the svc config": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().Service(testApp, testEnv, testSvc).Return(&awsecs.Service{
+					m.mockECSClient.EXPECT().Service(context.Background(), testApp, testEnv, testSvc).Return(&awsecs.Service{
 						DeploymentConfiguration: &ecsapi.DeploymentConfiguration{
 							Alarms: nil,
 						},
@@ -156,7 +157,7 @@ func TestECSServiceDescriber_RollbackAlarmNames(t *testing.T) {
 		"successfully returns alarm names": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().Service(testApp, testEnv, testSvc).Return(&awsecs.Service{
+					m.mockECSClient.EXPECT().Service(context.Background(), testApp, testEnv, testSvc).Return(&awsecs.Service{
 						DeploymentConfiguration: &ecsapi.DeploymentConfiguration{
 							Alarms: &ecsapi.DeploymentAlarms{
 								AlarmNames: []string{"alarm1", "alarm2"},
@@ -185,7 +186,7 @@ func TestECSServiceDescriber_RollbackAlarmNames(t *testing.T) {
 			tc.setupMocks(mocks)
 
 			d := &ecsServiceDescriber{
-				WorkloadStackDescriber: &WorkloadStackDescriber{
+				WorkloadStackDescriber: &WorkloadStackDescriber{ctx: context.Background(),
 					app:  testApp,
 					name: testSvc,
 					env:  testEnv,
@@ -221,14 +222,14 @@ func TestECSServiceDescriber_ServiceConnectDNSNames(t *testing.T) {
 	}{
 		"returns error if fails to get ECS service": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
-				m.mockECSClient.EXPECT().Service(testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
+				m.mockECSClient.EXPECT().Service(context.Background(), testApp, testEnv, testSvc).Return(nil, errors.New("some error"))
 			},
 
 			wantedError: errors.New("get service svc: some error"),
 		},
 		"success": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
-				m.mockECSClient.EXPECT().Service(testApp, testEnv, testSvc).Return(&awsecs.Service{
+				m.mockECSClient.EXPECT().Service(context.Background(), testApp, testEnv, testSvc).Return(&awsecs.Service{
 					Deployments: []ecsapi.Deployment{
 						{
 							ServiceConnectConfiguration: &ecsapi.ServiceConnectConfiguration{
@@ -263,7 +264,7 @@ func TestECSServiceDescriber_ServiceConnectDNSNames(t *testing.T) {
 			tc.setupMocks(mocks)
 
 			d := &ecsServiceDescriber{
-				WorkloadStackDescriber: &WorkloadStackDescriber{
+				WorkloadStackDescriber: &WorkloadStackDescriber{ctx: context.Background(),
 					app:  testApp,
 					name: testSvc,
 					env:  testEnv,
@@ -300,7 +301,7 @@ func TestECSServiceDescriber_Secrets(t *testing.T) {
 		"returns error if fails to get task definition": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(nil, errors.New("some error")),
+					m.mockECSClient.EXPECT().TaskDefinition(context.Background(), testApp, testEnv, testSvc).Return(nil, errors.New("some error")),
 				)
 			},
 
@@ -309,7 +310,7 @@ func TestECSServiceDescriber_Secrets(t *testing.T) {
 		"successfully gets secrets": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
+					m.mockECSClient.EXPECT().TaskDefinition(context.Background(), testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
 						ContainerDefinitions: []ecsapi.ContainerDefinition{
 							{
 								Name: aws.String("container"),
@@ -357,7 +358,7 @@ func TestECSServiceDescriber_Secrets(t *testing.T) {
 			tc.setupMocks(mocks)
 
 			d := &ecsServiceDescriber{
-				WorkloadStackDescriber: &WorkloadStackDescriber{
+				WorkloadStackDescriber: &WorkloadStackDescriber{ctx: context.Background(),
 					app:  testApp,
 					name: testSvc,
 					env:  testEnv,
@@ -394,7 +395,7 @@ func TestECSServiceDescriber_Platform(t *testing.T) {
 		"returns error if fails to get task definition": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(nil, errors.New("some error")),
+					m.mockECSClient.EXPECT().TaskDefinition(context.Background(), testApp, testEnv, testSvc).Return(nil, errors.New("some error")),
 				)
 			},
 			wantedError: fmt.Errorf("describe task definition for service svc: some error"),
@@ -402,7 +403,7 @@ func TestECSServiceDescriber_Platform(t *testing.T) {
 		"successfully returns platform that's returned from api call": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
+					m.mockECSClient.EXPECT().TaskDefinition(context.Background(), testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{
 						RuntimePlatform: &ecsapi.RuntimePlatform{
 							CpuArchitecture:       ecsapi.CPUArchitectureArm64,
 							OperatingSystemFamily: ecsapi.OSFamilyLinux,
@@ -417,7 +418,7 @@ func TestECSServiceDescriber_Platform(t *testing.T) {
 		"successfully returns default platform when none returned from api call": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockECSClient.EXPECT().TaskDefinition(testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{}, nil))
+					m.mockECSClient.EXPECT().TaskDefinition(context.Background(), testApp, testEnv, testSvc).Return(&ecs.TaskDefinition{}, nil))
 			},
 			wantedPlatform: &awsecs.ContainerPlatform{
 				OperatingSystem: "LINUX",
@@ -440,7 +441,7 @@ func TestECSServiceDescriber_Platform(t *testing.T) {
 			tc.setupMocks(mocks)
 
 			d := &ecsServiceDescriber{
-				WorkloadStackDescriber: &WorkloadStackDescriber{
+				WorkloadStackDescriber: &WorkloadStackDescriber{ctx: context.Background(),
 					app:  testApp,
 					name: testSvc,
 					env:  testEnv,
@@ -479,44 +480,44 @@ func TestAppRunnerServiceDescriber_ServiceURL(t *testing.T) {
 	}{
 		"get ingress connection error": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return(nil, mockErr)
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return(nil, mockErr)
 			},
 			expectedErr: "some error",
 		},
 		"get private url error": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 					{
 						Type:       apprunnerVPCIngressConnectionType,
 						PhysicalID: mockVICARN,
 					},
 				}, nil)
-				m.apprunnerClient.EXPECT().PrivateURL(mockVICARN).Return("", mockErr)
+				m.apprunnerClient.EXPECT().PrivateURL(context.Background(), mockVICARN).Return("", mockErr)
 			},
 			expectedErr: "some error",
 		},
 		"private service, success": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 					{
 						Type:       apprunnerVPCIngressConnectionType,
 						PhysicalID: mockVICARN,
 					},
 				}, nil)
-				m.apprunnerClient.EXPECT().PrivateURL(mockVICARN).Return("example.com", nil)
+				m.apprunnerClient.EXPECT().PrivateURL(context.Background(), mockVICARN).Return("example.com", nil)
 			},
 			expected: "https://example.com",
 		},
 		"public service, resources fails": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return(nil, nil)
-				m.stackDescriber.EXPECT().Resources().Return(nil, mockErr)
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return(nil, nil)
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return(nil, mockErr)
 			},
 			expectedErr: "some error",
 		},
 		"public service, no app runner resource": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 					{
 						Type:       "random",
 						PhysicalID: "random",
@@ -527,25 +528,25 @@ func TestAppRunnerServiceDescriber_ServiceURL(t *testing.T) {
 		},
 		"public service, describe service fails": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 					{
 						Type:       apprunnerServiceType,
 						PhysicalID: mockServiceARN,
 					},
 				}, nil)
-				m.apprunnerClient.EXPECT().DescribeService(mockServiceARN).Return(nil, mockErr)
+				m.apprunnerClient.EXPECT().DescribeService(context.Background(), mockServiceARN).Return(nil, mockErr)
 			},
 			expectedErr: "describe service: some error",
 		},
 		"public service, success": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 					{
 						Type:       apprunnerServiceType,
 						PhysicalID: mockServiceARN,
 					},
 				}, nil)
-				m.apprunnerClient.EXPECT().DescribeService(mockServiceARN).Return(&apprunner.Service{
+				m.apprunnerClient.EXPECT().DescribeService(context.Background(), mockServiceARN).Return(&apprunner.Service{
 					ServiceURL: "example.com",
 				}, nil)
 			},
@@ -565,7 +566,7 @@ func TestAppRunnerServiceDescriber_ServiceURL(t *testing.T) {
 			tc.setupMocks(m)
 
 			d := &appRunnerServiceDescriber{
-				WorkloadStackDescriber: &WorkloadStackDescriber{
+				WorkloadStackDescriber: &WorkloadStackDescriber{ctx: context.Background(),
 					cfn: m.stackDescriber,
 				},
 				apprunnerClient: m.apprunnerClient,
@@ -592,19 +593,19 @@ func TestAppRunnerServiceDescriber_IsPrivate(t *testing.T) {
 	}{
 		"get resources error": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return(nil, mockErr)
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return(nil, mockErr)
 			},
 			expectedErr: "some error",
 		},
 		"is not private": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return(nil, nil)
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return(nil, nil)
 			},
 			expected: false,
 		},
 		"is private": {
 			setupMocks: func(m apprunnerMocks) {
-				m.stackDescriber.EXPECT().Resources().Return([]*stack.Resource{
+				m.stackDescriber.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 					{
 						Type:       apprunnerVPCIngressConnectionType,
 						PhysicalID: "arn",
@@ -626,7 +627,7 @@ func TestAppRunnerServiceDescriber_IsPrivate(t *testing.T) {
 			tc.setupMocks(m)
 
 			d := &appRunnerServiceDescriber{
-				WorkloadStackDescriber: &WorkloadStackDescriber{
+				WorkloadStackDescriber: &WorkloadStackDescriber{ctx: context.Background(),
 					cfn: m.stackDescriber,
 				},
 			}

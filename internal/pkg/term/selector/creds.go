@@ -126,7 +126,7 @@ func defaultCreds(ctx context.Context, session SessionProvider) (accessKeyID, se
 	if err != nil {
 		return
 	}
-	v, err := sessions.V2Creds(ctx, defaultConfig)
+	v, err := sessions.Credentials(ctx, defaultConfig)
 	if err != nil {
 		return
 	}

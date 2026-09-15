@@ -134,7 +134,7 @@ func TestEnvDescriber_Describe(t *testing.T) {
 					}, nil),
 					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
-					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{}, mockError),
+					m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{}, mockError),
 				)
 			},
 			wantedError: fmt.Errorf("retrieve environment stack: some error"),
@@ -153,11 +153,11 @@ func TestEnvDescriber_Describe(t *testing.T) {
 					}, nil),
 					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
-					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+					m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 						Tags:    stackTags,
 						Outputs: stackOutputs,
 					}, nil),
-					m.stackDescriber.EXPECT().Resources().Return(nil, mockError),
+					m.stackDescriber.EXPECT().Resources(context.Background()).Return(nil, mockError),
 				)
 			},
 			wantedError: fmt.Errorf("retrieve environment resources: some error"),
@@ -176,7 +176,7 @@ func TestEnvDescriber_Describe(t *testing.T) {
 					}, nil),
 					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
-					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+					m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 						Tags:    stackTags,
 						Outputs: stackOutputs,
 					}, nil),
@@ -208,11 +208,11 @@ func TestEnvDescriber_Describe(t *testing.T) {
 					}, nil),
 					m.deployStoreSvc.EXPECT().ListDeployedJobs(ctx, testApp, testEnv.Name).
 						Return([]string{"testJob1", "testJob2"}, nil),
-					m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+					m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 						Tags:    stackTags,
 						Outputs: stackOutputs,
 					}, nil),
-					m.stackDescriber.EXPECT().Resources().Return([]*stack.Resource{
+					m.stackDescriber.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 						mockResource1,
 						mockResource2,
 					}, nil),
@@ -284,7 +284,7 @@ func TestEnvDescriber_Manifest(t *testing.T) {
 		"should return an error when the template Metadata cannot be retrieved": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return("", errors.New("some error"))
+				m.EXPECT().StackMetadata(context.Background()).Return("", errors.New("some error"))
 				return &EnvDescriber{
 					ctx: context.Background(),
 					cfn: m,
@@ -295,7 +295,7 @@ func TestEnvDescriber_Manifest(t *testing.T) {
 		"should unmarshal from SSM when the stack template does not have any Metadata.Manifest": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return(`
+				m.EXPECT().StackMetadata(context.Background()).Return(`
 Metadata:
   Version: 1.9.0
 `, nil)
@@ -313,7 +313,7 @@ type: Environment`),
 		"should prioritize stack template's Metadata over SSM": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return(`{"Version":"1.9.0","Manifest":"\nname: prod\ntype: Environment"}`, nil)
+				m.EXPECT().StackMetadata(context.Background()).Return(`{"Version":"1.9.0","Manifest":"\nname: prod\ntype: Environment"}`, nil)
 				return &EnvDescriber{
 					ctx: context.Background(),
 					env: &config.Environment{
@@ -358,7 +358,7 @@ func TestEnvDescriber_Version(t *testing.T) {
 		"should return version.LegacyEnvTemplate version if legacy template": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return("", nil)
+				m.EXPECT().StackMetadata(context.Background()).Return("", nil)
 				return &EnvDescriber{
 					ctx: context.Background(),
 					app: "phonetool",
@@ -371,7 +371,7 @@ func TestEnvDescriber_Version(t *testing.T) {
 		"should read the version from the Metadata field": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().StackMetadata().Return(`{"Version":"1.0.0"}`, nil)
+				m.EXPECT().StackMetadata(context.Background()).Return(`{"Version":"1.0.0"}`, nil)
 				return &EnvDescriber{
 					ctx: context.Background(),
 					app: "phonetool",
@@ -415,7 +415,7 @@ func TestEnvDescriber_ServiceDiscoveryEndpoint(t *testing.T) {
 		"should return app.local if legacy, unupgraded environment": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().Describe().Return(stack.StackDescription{Parameters: map[string]string{}}, nil)
+				m.EXPECT().Describe(context.Background()).Return(stack.StackDescription{Parameters: map[string]string{}}, nil)
 				return &EnvDescriber{
 					ctx: context.Background(),
 					app: "phonetool",
@@ -428,7 +428,7 @@ func TestEnvDescriber_ServiceDiscoveryEndpoint(t *testing.T) {
 		"should return the new env template if the parameter is set": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().Describe().Return(stack.StackDescription{
+				m.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: map[string]string{
 						cfnstack.EnvParamServiceDiscoveryEndpoint: "test.phonetool.local",
 					}}, nil)
@@ -444,7 +444,7 @@ func TestEnvDescriber_ServiceDiscoveryEndpoint(t *testing.T) {
 		"should return the old env template if the parameter is empty": {
 			given: func(ctrl *gomock.Controller) *EnvDescriber {
 				m := mocks.NewMockstackDescriber(ctrl)
-				m.EXPECT().Describe().Return(stack.StackDescription{
+				m.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: map[string]string{
 						cfnstack.EnvParamServiceDiscoveryEndpoint: "",
 					}}, nil)
@@ -488,13 +488,13 @@ func TestEnvDescriber_Features(t *testing.T) {
 	}{
 		"error describing stack": {
 			setupMock: func(m *envDescriberMocks) {
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{}, errors.New("some error"))
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{}, errors.New("some error"))
 			},
 			wantedErr: errors.New("some error"),
 		},
 		"return outdated features": {
 			setupMock: func(m *envDescriberMocks) {
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: map[string]string{
 						"AppName":                   "mock-app",
 						"EnvironmentName":           "mock-env",
@@ -522,7 +522,7 @@ func TestEnvDescriber_Features(t *testing.T) {
 				for _, f := range template.AvailableEnvFeatures() {
 					mockParams[f] = ""
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},
@@ -577,7 +577,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 	}{
 		"error describing stack": {
 			setupMock: func(m *envDescriberMocks) {
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{}, errors.New("some error"))
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{}, errors.New("some error"))
 			},
 			wantedErr: fmt.Errorf("describe stack: some error"),
 		},
@@ -587,7 +587,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 					"AppName":         mockAppName,
 					"EnvironmentName": mockEnvName,
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},
@@ -599,7 +599,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 					"EnvironmentName": mockEnvName,
 					"ALBWorkloads":    "",
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},
@@ -611,7 +611,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 					"EnvironmentName": mockEnvName,
 					"ALBWorkloads":    mockALBWorkloads,
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},
@@ -625,7 +625,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 					"ALBWorkloads":    mockALBWorkloads,
 					"Aliases":         "mock-invalid-aliases",
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},
@@ -639,7 +639,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 					"ALBWorkloads":    mockALBWorkloads,
 					"Aliases":         "",
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},
@@ -653,7 +653,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 					"ALBWorkloads":    mockALBWorkloads,
 					"Aliases":         mockInvalidAliasesJsonString,
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},
@@ -667,7 +667,7 @@ func TestEnvDescriber_ValidateCFServiceDomainAliases(t *testing.T) {
 					"ALBWorkloads":    mockALBWorkloads,
 					"Aliases":         mockAliasesJsonString,
 				}
-				m.stackDescriber.EXPECT().Describe().Return(stack.StackDescription{
+				m.stackDescriber.EXPECT().Describe(context.Background()).Return(stack.StackDescription{
 					Parameters: mockParams,
 				}, nil)
 			},

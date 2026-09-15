@@ -163,9 +163,6 @@ func (d *workerSvcDeployer) stackConfiguration(in *StackRuntimeConfiguration) (*
 	}
 	var topics []deploy.Topic
 	ctx := d.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	topics, err = d.topicLister.ListSNSTopics(ctx, d.app.Name, d.env.Name)
 	if err != nil {
 		return nil, fmt.Errorf("get SNS topics for app %s and environment %s: %w", d.app.Name, d.env.Name, err)

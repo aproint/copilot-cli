@@ -53,14 +53,14 @@ func TestInitOpts_Run(t *testing.T) {
 			inWlType: "Load Balanced Web Service",
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(errors.New("my error"))
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Times(0)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Times(0)
 			},
 			wantedError: "ask app init: my error",
 		},
 		"returns validation error for application": {
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(errors.New("my error"))
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(errors.New("my error"))
 			},
 			wantedError: "my error",
 		},
@@ -68,8 +68,8 @@ func TestInitOpts_Run(t *testing.T) {
 			inWlType: "Backend Service",
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Times(1).Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Times(1).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(errors.New("my error"))
 			},
 			wantedError: "ask Backend Service: my error",
@@ -78,8 +78,8 @@ func TestInitOpts_Run(t *testing.T) {
 			inWlType: "Load Balanced Web Service",
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(errors.New("my error"))
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(errors.New("my error"))
 			},
 			wantedError: "validate Load Balanced Web Service: my error",
 		},
@@ -87,9 +87,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(errors.New("my error"))
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
 			},
@@ -99,9 +99,9 @@ func TestInitOpts_Run(t *testing.T) {
 			inWlType: "Load Balanced Web Service",
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(errors.New("my error"))
 			},
@@ -111,9 +111,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.sel.(*climocks.MockconfigSelector).EXPECT().Environment(ctx, initExistingEnvSelectPrompt, initExistingEnvSelectHelp, mockAppName, prompt.Option{Value: envPromptCreateNew}).Return(envPromptCreateNew, nil)
@@ -133,9 +133,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
@@ -149,9 +149,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
@@ -174,9 +174,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
@@ -193,9 +193,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.prompt.(*climocks.Mockprompter).EXPECT().Confirm(initShouldDeployPrompt, initShouldDeployHelpPrompt, gomock.Any()).
@@ -239,9 +239,9 @@ func TestInitOpts_Run(t *testing.T) {
 					},
 				}, gomock.Any())
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 
@@ -259,9 +259,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 
@@ -274,9 +274,9 @@ func TestInitOpts_Run(t *testing.T) {
 			expect: func(opts *initOpts) {
 				opts.prompt.(*climocks.Mockprompter).EXPECT().SelectOption(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(manifestinfo.LoadBalancedWebServiceType, nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 			},
@@ -288,9 +288,9 @@ func TestInitOpts_Run(t *testing.T) {
 			inAppName:      mockAppName,
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
@@ -308,9 +308,9 @@ func TestInitOpts_Run(t *testing.T) {
 			inAppName:      mockAppName,
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)
@@ -328,9 +328,9 @@ func TestInitOpts_Run(t *testing.T) {
 			inAppName:      mockAppName,
 			expect: func(opts *initOpts) {
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Ask(gomock.Any()).Return(nil)
-				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate().Return(nil)
+				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Validate(context.Background()).Return(nil)
 				opts.initAppCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initWlCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Return(nil)
 				opts.initEnvCmd.(*climocks.MockactionCommand).EXPECT().Execute(gomock.Any()).Times(0)

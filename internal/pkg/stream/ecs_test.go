@@ -4,6 +4,7 @@
 package stream
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -28,21 +29,21 @@ type mockCW struct {
 	err error
 }
 
-func (m mockECS) Service(clusterName, serviceName string) (*ecs.Service, error) {
+func (m mockECS) Service(context.Context, string, string) (*ecs.Service, error) {
 	return m.out, m.err
 }
-func (m mockECS) StoppedServiceTasks(clusterName, serviceName string) ([]*ecs.Task, error) {
+func (m mockECS) StoppedServiceTasks(context.Context, string, string) ([]*ecs.Task, error) {
 	return m.tasks, m.taskError
 }
 
-func (m mockCW) AlarmStatuses(opts ...cloudwatch.DescribeAlarmOpts) ([]cloudwatch.AlarmStatus, error) {
+func (m mockCW) AlarmStatuses(context.Context, ...cloudwatch.DescribeAlarmOpts) ([]cloudwatch.AlarmStatus, error) {
 	return m.out, m.err
 }
 
 func TestECSDeploymentStreamer_Subscribe(t *testing.T) {
 	t.Run("allow new subscriptions if stack streamer is still active", func(t *testing.T) {
 		// GIVEN
-		streamer := &ECSDeploymentStreamer{}
+		streamer := &ECSDeploymentStreamer{ctx: context.Background()}
 
 		// WHEN
 		_ = streamer.Subscribe()
@@ -53,7 +54,7 @@ func TestECSDeploymentStreamer_Subscribe(t *testing.T) {
 	})
 	t.Run("new subscriptions on a finished stack streamer should return closed channels", func(t *testing.T) {
 		// GIVEN
-		streamer := &ECSDeploymentStreamer{isDone: true}
+		streamer := &ECSDeploymentStreamer{ctx: context.Background(), isDone: true}
 
 		// WHEN
 		ch := streamer.Subscribe()
@@ -71,7 +72,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 			err: errors.New("some error"),
 		}
 		cw := mockCW{}
-		streamer := NewECSDeploymentStreamer(m, cw, "my-cluster", "my-svc", time.Now())
+		streamer := NewECSDeploymentStreamer(context.Background(), m, cw, "my-cluster", "my-svc", time.Now())
 
 		// WHEN
 		_, _, err := streamer.Fetch()
@@ -95,7 +96,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 		cw := mockCW{
 			err: errors.New("some error"),
 		}
-		streamer := NewECSDeploymentStreamer(m, cw, "my-cluster", "my-svc", time.Now())
+		streamer := NewECSDeploymentStreamer(context.Background(), m, cw, "my-cluster", "my-svc", time.Now())
 
 		// WHEN
 		_, _, err := streamer.Fetch()
@@ -126,7 +127,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 			taskError: errors.New("some error"),
 		}
 		cw := mockCW{}
-		streamer := NewECSDeploymentStreamer(m, cw, "my-cluster", "my-svc", time.Now())
+		streamer := NewECSDeploymentStreamer(context.Background(), m, cw, "my-cluster", "my-svc", time.Now())
 
 		// WHEN
 		_, _, err := streamer.Fetch()
@@ -231,7 +232,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 				},
 			},
 		}
-		streamer := NewECSDeploymentStreamer(m, cw, "my-cluster", "my-svc", startDate)
+		streamer := NewECSDeploymentStreamer(context.Background(), m, cw, "my-cluster", "my-svc", startDate)
 
 		// WHEN
 		_, done, err := streamer.Fetch()
@@ -330,7 +331,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 			},
 		}
 		cw := mockCW{}
-		streamer := NewECSDeploymentStreamer(m, cw, "my-cluster", "my-svc", startDate)
+		streamer := NewECSDeploymentStreamer(context.Background(), m, cw, "my-cluster", "my-svc", startDate)
 
 		// WHEN
 		_, done, err := streamer.Fetch()
@@ -433,7 +434,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 				},
 			},
 		}
-		streamer := &ECSDeploymentStreamer{
+		streamer := &ECSDeploymentStreamer{ctx: context.Background(),
 			client:                 m,
 			clock:                  fakeClock{startDate},
 			rand:                   func(n int) int { return n },
@@ -477,7 +478,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 				},
 			},
 		}
-		streamer := &ECSDeploymentStreamer{
+		streamer := &ECSDeploymentStreamer{ctx: context.Background(),
 			client:                 m,
 			clock:                  fakeClock{startDate},
 			rand:                   func(n int) int { return n },
@@ -509,7 +510,7 @@ func TestECSDeploymentStreamer_Fetch(t *testing.T) {
 				},
 			},
 		}
-		streamer := &ECSDeploymentStreamer{
+		streamer := &ECSDeploymentStreamer{ctx: context.Background(),
 			client:                 m,
 			clock:                  fakeClock{startDate},
 			rand:                   func(n int) int { return n },
@@ -545,7 +546,7 @@ func TestECSDeploymentStreamer_Notify(t *testing.T) {
 		},
 	}
 	sub := make(chan ECSService, 2)
-	streamer := &ECSDeploymentStreamer{
+	streamer := &ECSDeploymentStreamer{ctx: context.Background(),
 		subscribers:   []chan ECSService{sub},
 		eventsToFlush: wantedEvents,
 		clock:         fakeClock{fakeNow: time.Now()},
@@ -566,7 +567,7 @@ func TestECSDeploymentStreamer_Notify(t *testing.T) {
 
 func TestECSDeploymentStreamer_Close(t *testing.T) {
 	// GIVEN
-	streamer := &ECSDeploymentStreamer{}
+	streamer := &ECSDeploymentStreamer{ctx: context.Background()}
 	c := streamer.Subscribe()
 
 	// WHEN

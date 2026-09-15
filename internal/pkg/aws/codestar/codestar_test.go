@@ -103,7 +103,7 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		}
 
 		// WHEN
-		ARN, err := connection.GetConnectionARN("someConnectionName")
+		ARN, err := connection.GetConnectionARN(context.Background(), "someConnectionName")
 
 		// THEN
 		require.EqualError(t, err, "get list of connections in AWS account: some error")
@@ -129,7 +129,7 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		}
 
 		// WHEN
-		ARN, err := connection.GetConnectionARN(connectionName)
+		ARN, err := connection.GetConnectionARN(context.Background(), connectionName)
 
 		// THEN
 		require.Equal(t, "", ARN)
@@ -164,7 +164,7 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		}
 
 		// WHEN
-		ARN, err := connection.GetConnectionARN(connectionName)
+		ARN, err := connection.GetConnectionARN(context.Background(), connectionName)
 
 		// THEN
 		require.Equal(t, "thisCheesyFakeARN", ARN)
@@ -208,7 +208,7 @@ func TestCodeStar_GetConnectionARN(t *testing.T) {
 		}
 
 		// WHEN
-		ARN, err := connection.GetConnectionARN(connectionName)
+		ARN, err := connection.GetConnectionARN(context.Background(), connectionName)
 
 		// THEN
 		require.Equal(t, "thisOne", ARN)
@@ -232,7 +232,7 @@ func TestCodeStar_GetConnectionARNPropagatesContextAcrossPages(t *testing.T) {
 		}}}, nil)
 
 	client := CodeStar{client: api}
-	arn, err := client.GetConnectionARNWithContext(ctx, "connection")
+	arn, err := client.GetConnectionARN(ctx, "connection")
 	require.NoError(t, err)
 	require.Equal(t, "arn", arn)
 }

@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	ec2 "github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
@@ -35,10 +36,10 @@ func (m *MocksubnetIDsGetter) EXPECT() *MocksubnetIDsGetterMockRecorder {
 }
 
 // SubnetIDs mocks base method.
-func (m *MocksubnetIDsGetter) SubnetIDs(filters ...ec2.Filter) ([]string, error) {
+func (m *MocksubnetIDsGetter) SubnetIDs(arg0 context.Context, arg1 ...ec2.Filter) ([]string, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range filters {
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "SubnetIDs", varargs...)
@@ -48,9 +49,10 @@ func (m *MocksubnetIDsGetter) SubnetIDs(filters ...ec2.Filter) ([]string, error)
 }
 
 // SubnetIDs indicates an expected call of SubnetIDs.
-func (mr *MocksubnetIDsGetterMockRecorder) SubnetIDs(filters ...interface{}) *gomock.Call {
+func (mr *MocksubnetIDsGetterMockRecorder) SubnetIDs(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubnetIDs", reflect.TypeOf((*MocksubnetIDsGetter)(nil).SubnetIDs), filters...)
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubnetIDs", reflect.TypeOf((*MocksubnetIDsGetter)(nil).SubnetIDs), varargs...)
 }
 
 // Mockloader is a mock of loader interface.
@@ -77,15 +79,15 @@ func (m *Mockloader) EXPECT() *MockloaderMockRecorder {
 }
 
 // load mocks base method.
-func (m *Mockloader) load() error {
+func (m *Mockloader) load(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "load")
+	ret := m.ctrl.Call(m, "load", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // load indicates an expected call of load.
-func (mr *MockloaderMockRecorder) load() *gomock.Call {
+func (mr *MockloaderMockRecorder) load(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "load", reflect.TypeOf((*Mockloader)(nil).load))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "load", reflect.TypeOf((*Mockloader)(nil).load), arg0)
 }

@@ -15,14 +15,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCmd_InteractiveRunWithContextTerminatesProcessOnCancellation(t *testing.T) {
+func TestCmd_InteractiveRunTerminatesProcessOnCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	tempDir := t.TempDir()
 	readyFile := filepath.Join(tempDir, "ready")
 	cleanupFile := filepath.Join(tempDir, "cleanup")
 	done := make(chan error, 1)
 	go func() {
-		done <- NewCmd().InteractiveRunWithContext(ctx, os.Args[0], []string{
+		done <- NewCmd().InteractiveRun(ctx, os.Args[0], []string{
 			"-test.run=^TestInteractiveRunHelperProcess$", "--", readyFile, cleanupFile,
 		})
 	}()

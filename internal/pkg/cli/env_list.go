@@ -38,11 +38,7 @@ type listEnvOpts struct {
 	w io.Writer
 }
 
-func newListEnvOpts(vars listEnvVars) (*listEnvOpts, error) {
-	return newListEnvOptsWithContext(context.Background(), vars)
-}
-
-func newListEnvOptsWithContext(ctx context.Context, vars listEnvVars) (*listEnvOpts, error) {
+func newListEnvOpts(ctx context.Context, vars listEnvVars) (*listEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env ls"))
 	return newListEnvOptsWithSessionProvider(ctx, vars, sessProvider)
 }
@@ -132,7 +128,7 @@ func buildEnvListCmd() *cobra.Command {
   Lists all the environments for the frontend application.
   /code $ copilot env ls -a frontend`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListEnvOptsWithContext(cmd.Context(), vars)
+			opts, err := newListEnvOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

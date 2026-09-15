@@ -41,11 +41,7 @@ type svcStatusOpts struct {
 	initStatusDescriber func(context.Context, *svcStatusOpts) error
 }
 
-func newSvcStatusOpts(vars svcStatusVars) (*svcStatusOpts, error) {
-	return newSvcStatusOptsWithContext(context.Background(), vars)
-}
-
-func newSvcStatusOptsWithContext(ctx context.Context, vars svcStatusVars) (*svcStatusOpts, error) {
+func newSvcStatusOpts(ctx context.Context, vars svcStatusVars) (*svcStatusOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc status"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -108,7 +104,7 @@ func newSvcStatusOptsWithContext(ctx context.Context, vars svcStatusVars) (*svcS
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *svcStatusOpts) Validate() error {
+func (o *svcStatusOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -191,7 +187,7 @@ func buildSvcStatusCmd() *cobra.Command {
   Shows status of the deployed service "my-svc"
   /code $ copilot svc status -n my-svc`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcStatusOptsWithContext(cmd.Context(), vars)
+			opts, err := newSvcStatusOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -4,13 +4,15 @@
 // cleantest provides stubs for cli.wkldCleaner.
 package cleantest
 
+import "context"
+
 import "errors"
 
 // Succeeds stubs cli.wkldCleaner and simulates success.
 type Succeeds struct{}
 
 // Clean succeeds.
-func (*Succeeds) Clean() error {
+func (*Succeeds) Clean(context.Context) error {
 	return nil
 }
 
@@ -18,6 +20,6 @@ func (*Succeeds) Clean() error {
 type Fails struct{}
 
 // Clean fails.
-func (*Fails) Clean() error {
+func (*Fails) Clean(context.Context) error {
 	return errors.New("an error")
 }

@@ -23,8 +23,7 @@ import (
 )
 
 type uploader interface {
-	Upload(bucket, key string, data io.Reader) (string, error)
-	UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error)
+	Upload(ctx context.Context, bucket, key string, data io.Reader) (string, error)
 }
 
 type versionGetter interface {
@@ -32,12 +31,12 @@ type versionGetter interface {
 }
 
 type serviceForceUpdater interface {
-	ForceUpdateServiceWithContext(ctx context.Context, app, env, svc string) error
-	LastUpdatedAtWithContext(ctx context.Context, app, env, svc string) (time.Time, error)
+	ForceUpdateService(ctx context.Context, app, env, svc string) error
+	LastUpdatedAt(ctx context.Context, app, env, svc string) (time.Time, error)
 }
 
 type aliasCertValidator interface {
-	ValidateCertAliasesWithContext(ctx context.Context, aliases []string, certs []string) error
+	ValidateCertAliases(ctx context.Context, aliases []string, certs []string) error
 }
 
 type svcDeployer struct {
@@ -80,7 +79,7 @@ func (d *svcDeployer) deploy(ctx context.Context, deployOptions Options, stackCo
 	}
 	// Force update the service if --force is set and the service is not updated by the CFN.
 	if deployOptions.ForceNewUpdate {
-		lastUpdatedAt, err := stackConfigOutput.svcUpdater.LastUpdatedAtWithContext(ctx, d.app.Name, d.env.Name, d.name)
+		lastUpdatedAt, err := stackConfigOutput.svcUpdater.LastUpdatedAt(ctx, d.app.Name, d.env.Name, d.name)
 		if err != nil {
 			return fmt.Errorf("get the last updated deployment time for %s: %w", d.name, err)
 		}

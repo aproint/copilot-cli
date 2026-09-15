@@ -21,8 +21,7 @@ const (
 )
 
 type resourceGetter interface {
-	GetResourcesByTags(resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
-	GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
+	GetResourcesByTags(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
 }
 
 // Client retrieves Copilot S3 service information from AWS.
@@ -37,29 +36,14 @@ func New(rgConfig awsv2.Config) *Client {
 	}
 }
 
-// BucketName returns the bucket name given the Copilot app, env, and Static Site service name.
-func (c Client) BucketName(app, env, svc string) (string, error) {
-	return c.bucketName(context.Background(), app, env, svc, false)
-}
-
-// BucketNameWithContext returns the bucket name using ctx.
-func (c Client) BucketNameWithContext(ctx context.Context, app, env, svc string) (string, error) {
-	return c.bucketName(ctx, app, env, svc, true)
-}
-
-func (c Client) bucketName(ctx context.Context, app, env, svc string, useContext bool) (string, error) {
+// BucketName returns the bucket name using ctx.
+func (c Client) BucketName(ctx context.Context, app, env, svc string) (string, error) {
 	tags := tags(map[string]string{
 		deploy.AppTagKey:     app,
 		deploy.EnvTagKey:     env,
 		deploy.ServiceTagKey: svc,
 	})
-	var buckets []*resourcegroups.Resource
-	var err error
-	if useContext {
-		buckets, err = c.rgGetter.GetResourcesByTagsWithContext(ctx, bucketType, tags)
-	} else {
-		buckets, err = c.rgGetter.GetResourcesByTags(bucketType, tags)
-	}
+	buckets, err := c.rgGetter.GetResourcesByTags(ctx, bucketType, tags)
 	if err != nil {
 		return "", fmt.Errorf("get S3 bucket with tags %s: %w", tags.String(), err)
 	}

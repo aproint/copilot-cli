@@ -88,7 +88,7 @@ func TestStackSet_Create(t *testing.T) {
 			}
 
 			// WHEN
-			err := client.Create(testName, testTemplate,
+			err := client.Create(context.Background(), testName, testTemplate,
 				WithDescription(testDescription),
 				WithAdministrationRoleARN(testAdministrationRole),
 				WithExecutionRoleName(testExecutionRole),
@@ -146,7 +146,7 @@ func TestStackSet_Describe(t *testing.T) {
 			}
 
 			// WHEN
-			descr, err := client.Describe(testName)
+			descr, err := client.Describe(context.Background(), testName)
 
 			// THEN
 			require.Equal(t, tc.wantedDescr, descr)
@@ -203,7 +203,7 @@ func TestStackSet_DescribeOperation(t *testing.T) {
 			}
 
 			// WHEN
-			op, err := client.DescribeOperation(testName, testOpID)
+			op, err := client.DescribeOperation(context.Background(), testName, testOpID)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -318,7 +318,7 @@ func TestStackSet_Update(t *testing.T) {
 			}
 
 			// WHEN
-			opID, err := client.Update(testName, testTemplate,
+			opID, err := client.Update(context.Background(), testName, testTemplate,
 				WithOperationID(testOperationID),
 				WithDescription(testDescription),
 				WithAdministrationRoleARN(testAdministrationRole),
@@ -401,7 +401,7 @@ func TestStackSet_UpdateAndWait(t *testing.T) {
 			}
 
 			// WHEN
-			err := client.UpdateAndWait(testName, testTemplate)
+			err := client.UpdateAndWait(context.Background(), testName, testTemplate)
 
 			// THEN
 			require.Equal(t, tc.wantedError, err)
@@ -461,7 +461,7 @@ func TestStackSet_DeleteInstance(t *testing.T) {
 			}
 
 			// WHEN
-			opID, err := client.DeleteInstance(testName, tc.inputAccount, tc.inputRegion)
+			opID, err := client.DeleteInstance(context.Background(), testName, tc.inputAccount, tc.inputRegion)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -536,7 +536,7 @@ func TestStackSet_WaitForStackSetLastOperationComplete(t *testing.T) {
 			}
 
 			// WHEN
-			err := client.WaitForStackSetLastOperationComplete(testName)
+			err := client.WaitForStackSetLastOperationComplete(context.Background(), testName)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -618,7 +618,7 @@ func TestStackSet_DeleteAllInstances(t *testing.T) {
 			}
 
 			// WHEN
-			opID, err := client.DeleteAllInstances(testName)
+			opID, err := client.DeleteAllInstances(context.Background(), testName)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -663,7 +663,7 @@ func TestStackSet_Delete(t *testing.T) {
 			}
 
 			// WHEN
-			err := client.Delete(testName)
+			err := client.Delete(context.Background(), testName)
 
 			// THEN
 			require.Equal(t, tc.wantedError, err)
@@ -671,7 +671,7 @@ func TestStackSet_Delete(t *testing.T) {
 	}
 }
 
-func TestStackSetDeleteMethodsUseContext(t *testing.T) {
+func TestStackSetDeleteMethods(t *testing.T) {
 	t.Run("instance", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		api := mocks.NewMockapi(ctrl)
@@ -681,7 +681,7 @@ func TestStackSetDeleteMethodsUseContext(t *testing.T) {
 		}, nil)
 
 		client := &StackSet{client: api}
-		opID, err := client.DeleteInstanceWithContext(ctx, testName, "1111", "us-east-1")
+		opID, err := client.DeleteInstance(ctx, testName, "1111", "us-east-1")
 		require.NoError(t, err)
 		require.Equal(t, "operation", opID)
 	})
@@ -698,7 +698,7 @@ func TestStackSetDeleteMethodsUseContext(t *testing.T) {
 		}, nil)
 
 		client := &StackSet{client: api}
-		opID, err := client.DeleteAllInstancesWithContext(ctx, testName)
+		opID, err := client.DeleteAllInstances(ctx, testName)
 		require.NoError(t, err)
 		require.Equal(t, "operation", opID)
 	})
@@ -710,7 +710,7 @@ func TestStackSetDeleteMethodsUseContext(t *testing.T) {
 		api.EXPECT().DeleteStackSet(ctx, gomock.Any()).Return(&cloudformation.DeleteStackSetOutput{}, nil)
 
 		client := &StackSet{client: api}
-		require.NoError(t, client.DeleteWithContext(ctx, testName))
+		require.NoError(t, client.Delete(ctx, testName))
 	})
 }
 
@@ -763,7 +763,7 @@ func TestStackSet_CreateInstances(t *testing.T) {
 			}
 
 			// WHEN
-			opID, err := client.CreateInstances(testName, testAccounts, testRegions)
+			opID, err := client.CreateInstances(context.Background(), testName, testAccounts, testRegions)
 
 			// THEN
 			if tc.wantedError != nil {
@@ -889,7 +889,7 @@ func TestStackSet_InstanceSummaries(t *testing.T) {
 			}
 
 			// WHEN
-			summaries, err := client.InstanceSummaries(
+			summaries, err := client.InstanceSummaries(context.Background(),
 				testName,
 				FilterSummariesByAccountID(testAccountID),
 				FilterSummariesByRegion(testRegion))
@@ -901,7 +901,7 @@ func TestStackSet_InstanceSummaries(t *testing.T) {
 	}
 }
 
-func TestStackSet_InstanceSummariesWithContextUsesContextForEveryPage(t *testing.T) {
+func TestStackSet_InstanceSummariesUsesContextForEveryPage(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "stack-set-pages")
 	ctrl := gomock.NewController(t)
@@ -915,7 +915,7 @@ func TestStackSet_InstanceSummariesWithContextUsesContextForEveryPage(t *testing
 	)
 	client := StackSet{client: m}
 
-	_, err := client.InstanceSummariesWithContext(ctx, testName)
+	_, err := client.InstanceSummaries(ctx, testName)
 
 	require.NoError(t, err)
 }
@@ -985,7 +985,7 @@ func TestStackSet_WaitForOperation(t *testing.T) {
 			}
 
 			// WHEN
-			err := client.WaitForOperation(testName, testOpID)
+			err := client.WaitForOperation(context.Background(), testName, testOpID)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -997,7 +997,7 @@ func TestStackSet_WaitForOperation(t *testing.T) {
 	}
 }
 
-func TestStackSet_WaitForOperationWithContextStopsDuringPollingDelay(t *testing.T) {
+func TestStackSet_WaitForOperationStopsDuringPollingDelay(t *testing.T) {
 	type contextKey string
 	ctx, cancel := context.WithCancel(context.WithValue(context.Background(), contextKey("sentinel"), "stack-set-operation"))
 	ctrl := gomock.NewController(t)
@@ -1014,7 +1014,7 @@ func TestStackSet_WaitForOperationWithContextStopsDuringPollingDelay(t *testing.
 	client := StackSet{client: m}
 	started := time.Now()
 
-	err := client.WaitForOperationWithContext(ctx, testName, "1")
+	err := client.WaitForOperation(ctx, testName, "1")
 
 	require.ErrorIs(t, err, context.Canceled)
 	require.Less(t, time.Since(started), time.Second)

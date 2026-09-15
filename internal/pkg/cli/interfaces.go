@@ -40,17 +40,13 @@ import (
 
 type cmd interface {
 	// Validate returns an error if a flag's value is invalid.
-	Validate() error
+	Validate(context.Context) error
 
 	// Ask prompts for flag values that are required but not passed in.
 	Ask(context.Context) error
 
 	// Execute runs the command after collecting all required options.
 	Execute(context.Context) error
-}
-
-type contextValidator interface {
-	ValidateWithContext(context.Context) error
 }
 
 // actionCommand is the interface that every command that creates a resource implements.
@@ -165,15 +161,12 @@ type secretsManager interface {
 }
 
 type secretCreator interface {
-	CreateSecret(secretName, secretString string) (string, error)
-	CreateSecretWithContext(context.Context, string, string) (string, error)
+	CreateSecret(context.Context, string, string) (string, error)
 }
 
 type secretDeleter interface {
-	DescribeSecret(secretName string) (*secretsmanager.DescribeSecretOutput, error)
-	DescribeSecretWithContext(context.Context, string) (*secretsmanager.DescribeSecretOutput, error)
-	DeleteSecret(secretName string) error
-	DeleteSecretWithContext(context.Context, string) error
+	DescribeSecret(context.Context, string) (*secretsmanager.DescribeSecretOutput, error)
+	DeleteSecret(context.Context, string) error
 }
 
 type imageBuilderPusher interface {
@@ -182,8 +175,7 @@ type imageBuilderPusher interface {
 }
 
 type repositoryLogin interface {
-	Login() (string, error)
-	LoginWithContext(context.Context) (string, error)
+	Login(context.Context) (string, error)
 }
 
 type repositoryService interface {
@@ -192,52 +184,33 @@ type repositoryService interface {
 }
 
 type ecsClient interface {
-	TaskDefinition(app, env, svc string) (*awsecs.TaskDefinition, error)
-	ServiceConnectServices(app, env, svc string) ([]*awsecs.Service, error)
-	ServiceConnectServicesWithContext(ctx context.Context, app, env, svc string) ([]*awsecs.Service, error)
-	DescribeService(app, env, svc string) (*ecs.ServiceDesc, error)
+	TaskDefinition(context.Context, string, string, string) (*awsecs.TaskDefinition, error)
+	ServiceConnectServices(ctx context.Context, app, env, svc string) ([]*awsecs.Service, error)
+	DescribeService(context.Context, string, string, string) (*ecs.ServiceDesc, error)
 }
 
 type logEventsWriter interface {
-	WriteLogEventsWithContext(ctx context.Context, opts logging.WriteLogEventsOpts) error
+	WriteLogEvents(ctx context.Context, opts logging.WriteLogEventsOpts) error
 }
 
 type execRunner interface {
-	Run(name string, args []string, options ...exec.CmdOption) error
-	RunWithContext(context.Context, string, []string, ...exec.CmdOption) error
+	Run(context.Context, string, []string, ...exec.CmdOption) error
 }
 
 type eventsWriter interface {
-	WriteEventsUntilStopped() error
-	WriteEventsUntilStoppedWithContext(context.Context) error
+	WriteEventsUntilStopped(context.Context) error
 }
 
 type defaultSessionProvider interface {
 	DefaultConfig(ctx context.Context) (awsv2.Config, error)
 }
 
-type regionalSessionProvider interface {
-	DefaultConfigWithRegion(ctx context.Context, region string) (awsv2.Config, error)
-}
-
-type sessionFromRoleProvider interface {
-	ConfigFromRole(ctx context.Context, roleARN string, region string) (awsv2.Config, error)
-}
-
-type sessionFromStaticProvider interface {
-	ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (awsv2.Config, error)
-}
-
-type sessionFromProfileProvider interface {
-	ConfigFromProfile(ctx context.Context, name string) (awsv2.Config, error)
-}
-
 type sessionProvider interface {
 	defaultSessionProvider
-	regionalSessionProvider
-	sessionFromRoleProvider
-	sessionFromProfileProvider
-	sessionFromStaticProvider
+	DefaultConfigWithRegion(ctx context.Context, region string) (awsv2.Config, error)
+	ConfigFromRole(ctx context.Context, roleARN string, region string) (awsv2.Config, error)
+	ConfigFromProfile(ctx context.Context, name string) (awsv2.Config, error)
+	ConfigFromStaticCreds(accessKeyID, secretAccessKey, sessionToken string) (awsv2.Config, error)
 }
 
 type describer interface {
@@ -375,132 +348,101 @@ type wsWriter interface {
 }
 
 type uploader interface {
-	Upload(bucket, key string, data io.Reader) (string, error)
-	UploadWithContext(ctx context.Context, bucket, key string, data io.Reader) (string, error)
+	Upload(ctx context.Context, bucket, key string, data io.Reader) (string, error)
 }
 
 type bucketEmptier interface {
-	EmptyBucket(bucket string) error
-	EmptyBucketWithContext(ctx context.Context, bucket string) error
+	EmptyBucket(ctx context.Context, bucket string) error
 }
 
 type stackDescriber interface {
-	Resources() ([]*stackdescr.Resource, error)
-	ResourcesWithContext(context.Context) ([]*stackdescr.Resource, error)
+	Resources(context.Context) ([]*stackdescr.Resource, error)
 }
 
 // Interfaces for deploying resources through CloudFormation. Facilitates mocking.
 type environmentDeployer interface {
 	CreateAndRenderEnvironment(context.Context, cloudformation.StackConfiguration, string) error
-	DeleteEnvironment(appName, envName, cfnExecRoleARN string) error
-	DeleteEnvironmentWithContext(context.Context, string, string, string) error
+	DeleteEnvironment(context.Context, string, string, string) error
 	GetEnvironment(ctx context.Context, appName, envName string) (*config.Environment, error)
-	Template(stackName string) (string, error)
-	TemplateWithContext(context.Context, string) (string, error)
-	UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN string) error
-	UpdateEnvironmentTemplateWithContext(context.Context, string, string, string, string) error
+	Template(context.Context, string) (string, error)
+	UpdateEnvironmentTemplate(context.Context, string, string, string, string) error
 }
 
 type wlDeleter interface {
-	DeleteWorkload(in deploy.DeleteWorkloadInput) error
+	DeleteWorkload(context.Context, deploy.DeleteWorkloadInput) error
 }
 
 type svcRemoverFromApp interface {
-	RemoveServiceFromApp(app *config.Application, svcName string) error
+	RemoveServiceFromApp(context.Context, *config.Application, string) error
 }
 
 type jobRemoverFromApp interface {
-	RemoveJobFromApp(app *config.Application, jobName string) error
+	RemoveJobFromApp(context.Context, *config.Application, string) error
 }
 
 type imageRemover interface {
-	ClearRepository(repoName string) error
-	ClearRepositoryWithContext(ctx context.Context, repoName string) error // implemented by ECR Service
+	ClearRepository(ctx context.Context, repoName string) error // implemented by ECR Service
 }
 
 type pipelineDeployer interface {
-	CreatePipeline(bucketName string, stackConfig cloudformation.StackConfiguration) error
-	CreatePipelineWithContext(context.Context, string, cloudformation.StackConfiguration) error
-	UpdatePipeline(bucketName string, stackConfig cloudformation.StackConfiguration) error
-	UpdatePipelineWithContext(context.Context, string, cloudformation.StackConfiguration) error
-	PipelineExists(stackConfig cloudformation.StackConfiguration) (bool, error)
-	PipelineExistsWithContext(context.Context, cloudformation.StackConfiguration) (bool, error)
-	DeletePipeline(pipeline deploy.Pipeline) error
-	DeletePipelineWithContext(context.Context, deploy.Pipeline) error
-	AddPipelineResourcesToApp(app *config.Application, region string) error
-	AddPipelineResourcesToAppWithContext(context.Context, *config.Application, string) error
-	Template(stackName string) (string, error)
-	TemplateWithContext(context.Context, string) (string, error)
+	CreatePipeline(context.Context, string, cloudformation.StackConfiguration) error
+	UpdatePipeline(context.Context, string, cloudformation.StackConfiguration) error
+	PipelineExists(context.Context, cloudformation.StackConfiguration) (bool, error)
+	DeletePipeline(context.Context, deploy.Pipeline) error
+	AddPipelineResourcesToApp(context.Context, *config.Application, string) error
+	Template(context.Context, string) (string, error)
 	appResourcesGetter
 	// TODO: Add StreamPipelineCreation method
 }
 
 type appDeployer interface {
 	DeployApp(context.Context, *deploy.CreateAppInput) error
-	AddServiceToApp(app *config.Application, svcName string, opts ...cloudformation.AddWorkloadToAppOpt) error
-	AddJobToApp(app *config.Application, jobName string, opts ...cloudformation.AddWorkloadToAppOpt) error
-	AddEnvToApp(opts *cloudformation.AddEnvToAppOpts) error
-	DelegateDNSPermissions(app *config.Application, accountID string) error
-	DeleteApp(name string) error
-	DeleteAppWithContext(context.Context, string) error
+	AddServiceToApp(context.Context, *config.Application, string, ...cloudformation.AddWorkloadToAppOpt) error
+	AddJobToApp(context.Context, *config.Application, string, ...cloudformation.AddWorkloadToAppOpt) error
+	AddEnvToApp(context.Context, *cloudformation.AddEnvToAppOpts) error
+	DelegateDNSPermissions(context.Context, *config.Application, string) error
+	DeleteApp(context.Context, string) error
 }
 
 type appResourcesGetter interface {
-	GetAppResourcesByRegion(app *config.Application, region string) (*stack.AppRegionalResources, error)
-	GetAppResourcesByRegionWithContext(context.Context, *config.Application, string) (*stack.AppRegionalResources, error)
-	GetRegionalAppResources(app *config.Application) ([]*stack.AppRegionalResources, error)
-	GetRegionalAppResourcesWithContext(context.Context, *config.Application) ([]*stack.AppRegionalResources, error)
+	GetAppResourcesByRegion(context.Context, *config.Application, string) (*stack.AppRegionalResources, error)
+	GetRegionalAppResources(context.Context, *config.Application) ([]*stack.AppRegionalResources, error)
 }
 
 type envDeleterFromApp interface {
 	appResourcesGetter
-	RemoveEnvFromApp(opts *cloudformation.RemoveEnvFromAppOpts) error
-	RemoveEnvFromAppWithContext(context.Context, *cloudformation.RemoveEnvFromAppOpts) error
+	RemoveEnvFromApp(context.Context, *cloudformation.RemoveEnvFromAppOpts) error
 }
 
 type taskDeployer interface {
-	DeployTask(input *deploy.CreateTaskResourcesInput, opts ...awscloudformation.StackOption) error
-	DeployTaskWithContext(ctx context.Context, input *deploy.CreateTaskResourcesInput, opts ...awscloudformation.StackOption) error
-	GetTaskStack(taskName string) (*deploy.TaskStackInfo, error)
-	GetTaskStackWithContext(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error)
+	DeployTask(ctx context.Context, input *deploy.CreateTaskResourcesInput, opts ...awscloudformation.StackOption) error
+	GetTaskStack(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error)
 }
 
 type taskStackManager interface {
-	DeleteTask(task deploy.TaskStackInfo) error
-	DeleteTaskWithContext(ctx context.Context, task deploy.TaskStackInfo) error
-	GetTaskStack(taskName string) (*deploy.TaskStackInfo, error)
-	GetTaskStackWithContext(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error)
+	DeleteTask(ctx context.Context, task deploy.TaskStackInfo) error
+	GetTaskStack(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error)
 }
 
 type taskRunner interface {
-	Run() ([]*task.Task, error)
-	RunWithContext(context.Context) ([]*task.Task, error)
-	CheckNonZeroExitCode([]*task.Task) error
-	CheckNonZeroExitCodeWithContext(context.Context, []*task.Task) error
+	Run(context.Context) ([]*task.Task, error)
+	CheckNonZeroExitCode(context.Context, []*task.Task) error
 }
 
 type defaultClusterGetter interface {
-	HasDefaultCluster() (bool, error)
-	HasDefaultClusterWithContext(context.Context) (bool, error)
+	HasDefaultCluster(context.Context) (bool, error)
 }
 
 type deployer interface {
 	environmentDeployer
 	appDeployer
 	pipelineDeployer
-	ListTaskStacks(appName, envName string) ([]deploy.TaskStackInfo, error)
-	ListTaskStacksWithContext(context.Context, string, string) ([]deploy.TaskStackInfo, error)
+	ListTaskStacks(context.Context, string, string) ([]deploy.TaskStackInfo, error)
 }
 
 type domainHostedZoneGetter interface {
-	PublicDomainHostedZoneID(domainName string) (string, error)
-	PublicDomainHostedZoneIDContext(context.Context, string) (string, error)
-	ValidateDomainOwnership(domainName string) error
-}
-
-type contextDomainHostedZoneGetter interface {
-	PublicDomainHostedZoneIDContext(ctx context.Context, domainName string) (string, error)
-	ValidateDomainOwnershipContext(ctx context.Context, domainName string) error
+	PublicDomainHostedZoneID(context.Context, string) (string, error)
+	ValidateDomainOwnership(context.Context, string) error
 }
 
 type dockerfileParser interface {
@@ -532,13 +474,11 @@ type appUpgrader interface {
 }
 
 type pipelineGetter interface {
-	GetPipeline(pipelineName string) (*codepipeline.Pipeline, error)
-	GetPipelineWithContext(ctx context.Context, pipelineName string) (*codepipeline.Pipeline, error)
+	GetPipeline(ctx context.Context, pipelineName string) (*codepipeline.Pipeline, error)
 }
 
 type deployedPipelineLister interface {
-	ListDeployedPipelines(appName string) ([]deploy.Pipeline, error)
-	ListDeployedPipelinesWithContext(ctx context.Context, appName string) ([]deploy.Pipeline, error)
+	ListDeployedPipelines(ctx context.Context, appName string) ([]deploy.Pipeline, error)
 }
 
 type executor interface {
@@ -591,8 +531,7 @@ type wsEnvironmentSelector interface {
 
 type codePipelineSelector interface {
 	appSelector
-	DeployedPipeline(prompt, help, app string) (deploy.Pipeline, error)
-	DeployedPipelineWithContext(ctx context.Context, prompt, help, app string) (deploy.Pipeline, error)
+	DeployedPipeline(ctx context.Context, prompt, help, app string) (deploy.Pipeline, error)
 }
 
 type wsSelector interface {
@@ -612,8 +551,7 @@ type scheduleSelector interface {
 }
 
 type cfTaskSelector interface {
-	Task(prompt, help string, opts ...selector.GetDeployedTaskOpts) (string, error)
-	TaskWithContext(ctx context.Context, prompt, help string, opts ...selector.GetDeployedTaskOpts) (string, error)
+	Task(ctx context.Context, prompt, help string, opts ...selector.GetDeployedTaskOpts) (string, error)
 }
 
 type dockerfileSelector interface {
@@ -634,12 +572,12 @@ type credsSelector interface {
 }
 
 type ec2Client interface {
-	HasDNSSupportWithContext(ctx context.Context, vpcID string) (bool, error)
-	ListAZsWithContext(ctx context.Context) ([]ec2.AZ, error)
+	HasDNSSupport(ctx context.Context, vpcID string) (bool, error)
+	ListAZs(ctx context.Context) ([]ec2.AZ, error)
 }
 
 type serviceResumer interface {
-	ResumeServiceWithContext(context.Context, string) error
+	ResumeService(context.Context, string) error
 }
 
 type jobInitializer interface {
@@ -655,8 +593,7 @@ type wkldInitializerWithoutManifest interface {
 }
 
 type roleDeleter interface {
-	DeleteRole(string) error
-	DeleteRoleWithContext(context.Context, string) error
+	DeleteRole(context.Context, string) error
 }
 
 type policyLister interface {
@@ -664,12 +601,11 @@ type policyLister interface {
 }
 
 type contextPolicyLister interface {
-	ListPolicyNamesContext(context.Context) ([]string, error)
+	ListPolicyNames(context.Context) ([]string, error)
 }
 
 type serviceDescriber interface {
-	DescribeService(app, env, svc string) (*ecs.ServiceDesc, error)
-	DescribeServiceWithContext(ctx context.Context, app, env, svc string) (*ecs.ServiceDesc, error)
+	DescribeService(ctx context.Context, app, env, svc string) (*ecs.ServiceDesc, error)
 }
 
 type apprunnerServiceDescriber interface {
@@ -677,65 +613,53 @@ type apprunnerServiceDescriber interface {
 }
 
 type ecsCommandExecutor interface {
-	ExecuteCommand(in awsecs.ExecuteCommandInput) error
-	ExecuteCommandWithContext(ctx context.Context, in awsecs.ExecuteCommandInput) error
+	ExecuteCommand(ctx context.Context, in awsecs.ExecuteCommandInput) error
 }
 
 type ssmPluginManager interface {
-	ValidateBinary() error
-	InstallLatestBinary() error
+	ValidateBinary(context.Context) error
+	InstallLatestBinary(context.Context) error
 }
 
 type taskStopper interface {
-	StopOneOffTasks(app, env, family string) error
-	StopOneOffTasksWithContext(ctx context.Context, app, env, family string) error
-	StopDefaultClusterTasks(familyName string) error
-	StopDefaultClusterTasksWithContext(ctx context.Context, familyName string) error
-	StopWorkloadTasks(app, env, workload string) error
+	StopOneOffTasks(ctx context.Context, app, env, family string) error
+	StopDefaultClusterTasks(ctx context.Context, familyName string) error
+	StopWorkloadTasks(context.Context, string, string, string) error
 }
 
 type serviceLinkedRoleCreator interface {
-	CreateECSServiceLinkedRole() error
-	CreateECSServiceLinkedRoleWithContext(context.Context) error
+	CreateECSServiceLinkedRole(context.Context) error
 }
 
 type roleTagsLister interface {
-	ListRoleTags(string) (map[string]string, error)
-}
-
-type contextRoleTagsLister interface {
-	ListRoleTagsContext(context.Context, string) (map[string]string, error)
+	ListRoleTags(context.Context, string) (map[string]string, error)
 }
 
 type roleManager interface {
 	roleTagsLister
-	contextRoleTagsLister
 	roleDeleter
 	serviceLinkedRoleCreator
 }
 
 type stackExistChecker interface {
-	Exists(string) (bool, error)
+	Exists(context.Context, string) (bool, error)
 }
 
 type runningTaskSelector interface {
-	RunningTask(prompt, help string, opts ...selector.TaskOpts) (*awsecs.Task, error)
-	RunningTaskWithContext(ctx context.Context, prompt, help string, opts ...selector.TaskOpts) (*awsecs.Task, error)
+	RunningTask(ctx context.Context, prompt, help string, opts ...selector.TaskOpts) (*awsecs.Task, error)
 }
 
 type dockerEngine interface {
-	CheckDockerEngineRunning() error
-	GetPlatform() (string, string, error)
+	CheckDockerEngineRunning(context.Context) error
+	GetPlatform(context.Context) (string, string, error)
 }
 
 type codestar interface {
-	GetConnectionARN(string) (string, error)
-	GetConnectionARNWithContext(context.Context, string) (string, error)
+	GetConnectionARN(context.Context, string) (string, error)
 }
 
 type publicIPGetter interface {
-	PublicIP(ENI string) (string, error)
-	PublicIPWithContext(ctx context.Context, ENI string) (string, error)
+	PublicIP(ctx context.Context, ENI string) (string, error)
 }
 
 type cliStringer interface {
@@ -743,12 +667,11 @@ type cliStringer interface {
 }
 
 type secretPutter interface {
-	PutSecret(in ssm.PutSecretInput) (*ssm.PutSecretOutput, error)
-	PutSecretWithContext(context.Context, ssm.PutSecretInput) (*ssm.PutSecretOutput, error)
+	PutSecret(context.Context, ssm.PutSecretInput) (*ssm.PutSecretOutput, error)
 }
 
 type servicePauser interface {
-	PauseServiceWithContext(ctx context.Context, svcARN string) error
+	PauseService(ctx context.Context, svcARN string) error
 }
 
 type interpolator interface {
@@ -769,7 +692,7 @@ type templateDiffer interface {
 }
 
 type dockerEngineRunner interface {
-	CheckDockerEngineRunningWithContext(context.Context) error
+	CheckDockerEngineRunning(context.Context) error
 	Run(context.Context, *dockerengine.RunOptions) error
 	IsContainerRunning(context.Context, string) (bool, error)
 	Stop(context.Context, string) error
@@ -789,8 +712,7 @@ type workloadStackGenerator interface {
 }
 
 type runner interface {
-	Run() error
-	RunWithContext(context.Context) error
+	Run(context.Context) error
 }
 
 type envDeployer interface {

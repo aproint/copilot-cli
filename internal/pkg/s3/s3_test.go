@@ -4,6 +4,7 @@
 package s3
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -43,7 +44,7 @@ func TestClient_Service(t *testing.T) {
 		"error if fail to get bucket resource": {
 			setupMocks: func(m clientMocks) {
 				gomock.InOrder(
-					m.resourceGetter.EXPECT().GetResourcesByTags(bucketType, getRgInput).
+					m.resourceGetter.EXPECT().GetResourcesByTags(context.Background(), bucketType, getRgInput).
 						Return(nil, mockError),
 				)
 			},
@@ -52,7 +53,7 @@ func TestClient_Service(t *testing.T) {
 		"error if got 0 bucket": {
 			setupMocks: func(m clientMocks) {
 				gomock.InOrder(
-					m.resourceGetter.EXPECT().GetResourcesByTags(bucketType, getRgInput).
+					m.resourceGetter.EXPECT().GetResourcesByTags(context.Background(), bucketType, getRgInput).
 						Return([]*resourcegroups.Resource{}, nil),
 				)
 			},
@@ -61,7 +62,7 @@ func TestClient_Service(t *testing.T) {
 		"error if got more than 1 bucket": {
 			setupMocks: func(m clientMocks) {
 				gomock.InOrder(
-					m.resourceGetter.EXPECT().GetResourcesByTags(bucketType, getRgInput).
+					m.resourceGetter.EXPECT().GetResourcesByTags(context.Background(), bucketType, getRgInput).
 						Return([]*resourcegroups.Resource{
 							{}, {},
 						}, nil),
@@ -72,7 +73,7 @@ func TestClient_Service(t *testing.T) {
 		"fail to parse ARN": {
 			setupMocks: func(m clientMocks) {
 				gomock.InOrder(
-					m.resourceGetter.EXPECT().GetResourcesByTags(bucketType, getRgInput).
+					m.resourceGetter.EXPECT().GetResourcesByTags(context.Background(), bucketType, getRgInput).
 						Return([]*resourcegroups.Resource{
 							{ARN: mockBadARN},
 						}, nil),
@@ -83,7 +84,7 @@ func TestClient_Service(t *testing.T) {
 		"success": {
 			setupMocks: func(m clientMocks) {
 				gomock.InOrder(
-					m.resourceGetter.EXPECT().GetResourcesByTags(bucketType, getRgInput).
+					m.resourceGetter.EXPECT().GetResourcesByTags(context.Background(), bucketType, getRgInput).
 						Return([]*resourcegroups.Resource{
 							{ARN: mockARN},
 						}, nil),
@@ -111,7 +112,7 @@ func TestClient_Service(t *testing.T) {
 			}
 
 			// WHEN
-			get, err := client.BucketName(mockApp, mockEnv, mockSvc)
+			get, err := client.BucketName(context.Background(), mockApp, mockEnv, mockSvc)
 
 			// THEN
 			if test.wantedError != nil {

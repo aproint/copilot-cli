@@ -41,7 +41,7 @@ func (cf CloudFormation) uploadStackTemplateToS3(ctx context.Context, bucket str
 	if err != nil {
 		return "", fmt.Errorf("generate template: %w", err)
 	}
-	url, err := cf.s3Client.UploadWithContext(ctx, bucket, artifactpath.CFNTemplate(stack.StackName(), []byte(tmpl)), strings.NewReader(tmpl))
+	url, err := cf.s3Client.Upload(ctx, bucket, artifactpath.CFNTemplate(stack.StackName(), []byte(tmpl)), strings.NewReader(tmpl))
 	if err != nil {
 		return "", err
 	}
@@ -63,14 +63,15 @@ func (cf CloudFormation) handleStackError(ctx context.Context, stackName string,
 }
 
 // DeleteWorkload removes the CloudFormation stack of a deployed workload.
-func (cf CloudFormation) DeleteWorkload(in deploy.DeleteWorkloadInput) error {
+func (cf CloudFormation) DeleteWorkload(ctx context.Context, in deploy.DeleteWorkloadInput) error {
 	stackName := fmt.Sprintf("%s-%s-%s", in.AppName, in.EnvName, in.Name)
 	description := fmt.Sprintf("Delete stack %s", stackName)
 	return cf.deleteAndRenderStack(deleteAndRenderInput{
+		ctx:         ctx,
 		stackName:   stackName,
 		description: description,
-		deleteFn: func(context.Context) error {
-			return cf.cfnClient.DeleteAndWaitWithRoleARN(stackName, in.ExecutionRoleARN)
+		deleteFn: func(ctx context.Context) error {
+			return cf.cfnClient.DeleteAndWaitWithRoleARN(ctx, stackName, in.ExecutionRoleARN)
 		},
 	})
 }

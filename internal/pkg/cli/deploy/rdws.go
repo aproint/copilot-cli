@@ -49,7 +49,7 @@ func NewRDWSDeployer(in *WorkloadDeployerInput) (*rdwsDeployer, error) {
 	if err != nil {
 		return nil, err
 	}
-	versionGetter, err := describe.NewAppDescriber(in.App.Name)
+	versionGetter, err := describe.NewAppDescriber(in.Ctx, in.App.Name)
 	if err != nil {
 		return nil, fmt.Errorf("new app describer for application %s: %w", in.App.Name, err)
 	}

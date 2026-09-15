@@ -147,13 +147,8 @@ func extractResource(label string) (*Resource, error) {
 	}, nil
 }
 
-// PublicIP returns the public ip associated with the network interface.
-func (c *EC2) PublicIP(eni string) (string, error) {
-	return c.PublicIPWithContext(context.Background(), eni)
-}
-
-// PublicIPWithContext returns the public IP associated with the network interface using ctx.
-func (c *EC2) PublicIPWithContext(ctx context.Context, eni string) (string, error) {
+// PublicIP returns the public IP associated with the network interface using ctx.
+func (c *EC2) PublicIP(ctx context.Context, eni string) (string, error) {
 	response, err := c.client.DescribeNetworkInterfaces(ctx, &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []string{eni},
 	})
@@ -171,13 +166,8 @@ func (c *EC2) PublicIPWithContext(ctx context.Context, eni string) (string, erro
 	return awsv2.ToString(association.PublicIp), nil
 }
 
-// ListVPCs returns names and IDs (or just IDs, if Name tag does not exist) of all VPCs.
-func (c *EC2) ListVPCs() ([]VPC, error) {
-	return c.ListVPCsWithContext(context.Background())
-}
-
-// ListVPCsWithContext returns names and IDs of all VPCs using ctx for every page.
-func (c *EC2) ListVPCsWithContext(ctx context.Context) ([]VPC, error) {
+// ListVPCs returns names and IDs of all VPCs using ctx for every page.
+func (c *EC2) ListVPCs(ctx context.Context) ([]VPC, error) {
 	var ec2vpcs []types.Vpc
 	response, err := c.client.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{})
 	if err != nil {
@@ -215,13 +205,8 @@ func (c *EC2) ListVPCsWithContext(ctx context.Context) ([]VPC, error) {
 	return vpcs, nil
 }
 
-// ListAZs returns the list of opted-in and available availability zones.
-func (c *EC2) ListAZs() ([]AZ, error) {
-	return c.ListAZsWithContext(context.Background())
-}
-
-// ListAZsWithContext returns opted-in and available availability zones using ctx.
-func (c *EC2) ListAZsWithContext(ctx context.Context) ([]AZ, error) {
+// ListAZs returns opted-in and available availability zones using ctx.
+func (c *EC2) ListAZs(ctx context.Context) ([]AZ, error) {
 	resp, err := c.client.DescribeAvailabilityZones(ctx, &ec2.DescribeAvailabilityZonesInput{
 		Filters: []types.Filter{
 			{
@@ -247,13 +232,8 @@ func (c *EC2) ListAZsWithContext(ctx context.Context) ([]AZ, error) {
 	return out, nil
 }
 
-// HasDNSSupport returns if DNS resolution is enabled for the VPC.
-func (c *EC2) HasDNSSupport(vpcID string) (bool, error) {
-	return c.HasDNSSupportWithContext(context.Background(), vpcID)
-}
-
-// HasDNSSupportWithContext returns whether DNS resolution is enabled for the VPC using ctx.
-func (c *EC2) HasDNSSupportWithContext(ctx context.Context, vpcID string) (bool, error) {
+// HasDNSSupport returns whether DNS resolution is enabled for the VPC using ctx.
+func (c *EC2) HasDNSSupport(ctx context.Context, vpcID string) (bool, error) {
 	resp, err := c.client.DescribeVpcAttribute(ctx, &ec2.DescribeVpcAttributeInput{
 		VpcId:     awsv2.String(vpcID),
 		Attribute: types.VpcAttributeNameEnableDnsSupport,
@@ -270,15 +250,8 @@ type VPCSubnets struct {
 	Private []Subnet
 }
 
-// ListVPCSubnets lists all subnets with a given VPC ID. Note that public subnets
-// are subnets associated with an internet gateway through a route table.
-// And the rest of the subnets are private.
-func (c *EC2) ListVPCSubnets(vpcID string) (*VPCSubnets, error) {
-	return c.ListVPCSubnetsWithContext(context.Background(), vpcID)
-}
-
-// ListVPCSubnetsWithContext lists all subnets in a VPC using ctx for every request.
-func (c *EC2) ListVPCSubnetsWithContext(ctx context.Context, vpcID string) (*VPCSubnets, error) {
+// ListVPCSubnets lists all subnets in a VPC using ctx for every request.
+func (c *EC2) ListVPCSubnets(ctx context.Context, vpcID string) (*VPCSubnets, error) {
 	vpcFilter := Filter{
 		Name:   "vpc-id",
 		Values: []string{vpcID},
@@ -320,13 +293,8 @@ func (c *EC2) ListVPCSubnetsWithContext(ctx context.Context, vpcID string) (*VPC
 	}, nil
 }
 
-// SubnetIDs finds the subnet IDs with optional filters.
-func (c *EC2) SubnetIDs(filters ...Filter) ([]string, error) {
-	return c.SubnetIDsWithContext(context.Background(), filters...)
-}
-
-// SubnetIDsWithContext finds subnet IDs with optional filters using ctx.
-func (c *EC2) SubnetIDsWithContext(ctx context.Context, filters ...Filter) ([]string, error) {
+// SubnetIDs finds subnet IDs with optional filters using ctx.
+func (c *EC2) SubnetIDs(ctx context.Context, filters ...Filter) ([]string, error) {
 	subnets, err := c.subnets(ctx, filters...)
 	if err != nil {
 		return nil, err
@@ -339,13 +307,8 @@ func (c *EC2) SubnetIDsWithContext(ctx context.Context, filters ...Filter) ([]st
 	return subnetIDs, nil
 }
 
-// SecurityGroups finds the security group IDs with optional filters.
-func (c *EC2) SecurityGroups(filters ...Filter) ([]string, error) {
-	return c.SecurityGroupsWithContext(context.Background(), filters...)
-}
-
-// SecurityGroupsWithContext finds security group IDs with optional filters using ctx.
-func (c *EC2) SecurityGroupsWithContext(ctx context.Context, filters ...Filter) ([]string, error) {
+// SecurityGroups finds security group IDs with optional filters using ctx.
+func (c *EC2) SecurityGroups(ctx context.Context, filters ...Filter) ([]string, error) {
 	inputFilters := toEC2Filter(filters)
 
 	response, err := c.client.DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{
@@ -516,13 +479,8 @@ func (c *EC2) managedPrefixList(ctx context.Context, prefixListName string) (*ec
 	return prefixListOutput, nil
 }
 
-// CloudFrontManagedPrefixListID returns the PrefixListId of the associated cloudfront prefix list as a *string.
-func (c *EC2) CloudFrontManagedPrefixListID() (string, error) {
-	return c.CloudFrontManagedPrefixListIDWithContext(context.Background())
-}
-
-// CloudFrontManagedPrefixListIDWithContext returns the CloudFront managed prefix list ID using ctx.
-func (c *EC2) CloudFrontManagedPrefixListIDWithContext(ctx context.Context) (string, error) {
+// CloudFrontManagedPrefixListID returns the CloudFront managed prefix list ID using ctx.
+func (c *EC2) CloudFrontManagedPrefixListID(ctx context.Context) (string, error) {
 	prefixListsOutput, err := c.managedPrefixList(ctx, cloudFrontPrefixListName)
 
 	if err != nil {

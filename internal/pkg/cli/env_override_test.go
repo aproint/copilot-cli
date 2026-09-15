@@ -46,8 +46,8 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				defer ctrl.Finish()
 
 				vars := overrideVars{appName: tc.appName}
-				cmd := &overrideEnvOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overrideEnvOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}
@@ -56,7 +56,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -113,8 +113,8 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				defer ctrl.Finish()
 
 				vars := overrideVars{name: tc.name, appName: "demo", cdkLang: "typescript"}
-				cmd := &overrideEnvOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overrideEnvOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}
@@ -123,7 +123,7 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -156,15 +156,15 @@ func TestOverrideEnv_Validate(t *testing.T) {
 				mockSSM.EXPECT().GetApplication(ctx, gomock.Any()).Return(nil, nil)
 
 				vars := overrideVars{appName: "demo", cdkLang: tc.lang}
-				cmd := &overrideEnvOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overrideEnvOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 					},
 				}
 
 				// WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -186,8 +186,8 @@ func TestOverrideEnv_Ask(t *testing.T) {
 		ws.EXPECT().ListEnvironments().Return([]string{"test", "prod"}, nil)
 
 		vars := overrideVars{name: "", appName: "demo", iacTool: "cdk", skipResources: true}
-		cmd := &overrideEnvOpts{
-			overrideOpts: &overrideOpts{
+		cmd := &overrideEnvOpts{ctx: context.Background(),
+			overrideOpts: &overrideOpts{ctx: context.Background(),
 				overrideVars: vars,
 				cfgStore:     mocks.NewMockstore(ctrl),
 				packageCmd: func(_ stringWriteCloser) (executor, error) {
@@ -238,8 +238,8 @@ func TestOverrideEnv_Ask(t *testing.T) {
 				mockCfnPrompt.EXPECT().Resources(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 				vars := overrideVars{appName: "demo", name: "test", iacTool: tc.iacTool}
-				cmd := &overrideEnvOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overrideEnvOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 						cfnPrompt:    mockCfnPrompt,
@@ -328,8 +328,8 @@ func TestOverrideEnv_Ask(t *testing.T) {
 				mockSSM := mocks.NewMockstore(ctrl)
 
 				vars := overrideVars{appName: "demo", name: "test", iacTool: "cdk", skipResources: tc.skip}
-				cmd := &overrideEnvOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overrideEnvOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 						spinner:      &spinnerTestDouble{},
@@ -404,8 +404,8 @@ func TestOverrideEnv_Execute(t *testing.T) {
 				defer ctrl.Finish()
 
 				vars := overrideVars{appName: "demo", name: "test", iacTool: "cdk", resources: tc.resources}
-				cmd := &overrideEnvOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overrideEnvOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}

@@ -98,7 +98,7 @@ func TestStaticSiteDeployer_UploadArtifacts(t *testing.T) {
 
 			deployer := &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						customResources: func(fs template.Reader) ([]*customresource.CustomResource, error) {
 							return nil, nil
 						},
@@ -147,7 +147,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"error getting service discovery endpoint": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						endpointGetter: &endpointGetterDouble{
 							ServiceDiscoveryEndpointFn: ReturnsValues("", errors.New("some error")),
 						},
@@ -159,7 +159,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"error getting env version": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						env: &config.Environment{
 							Name: "mockEnv",
 						},
@@ -177,7 +177,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"error getting app version": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{
 							Name: "mockApp",
 						},
@@ -200,7 +200,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"error bc app version out of date": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{},
 						env: &config.Environment{},
 						endpointGetter: &endpointGetterDouble{
@@ -221,7 +221,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"error bc alias specified no domain imported and no imported cert": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app:       &config.Application{},
 						env:       &config.Environment{},
 						envConfig: &manifest.Environment{},
@@ -250,7 +250,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"error bc invalid alias": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{
 							Name:   "mockApp",
 							Domain: "example.com",
@@ -284,7 +284,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"error creating stack": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{},
 						env: &config.Environment{},
 						endpointGetter: &endpointGetterDouble{
@@ -309,7 +309,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"success": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{},
 						env: &config.Environment{},
 						endpointGetter: &endpointGetterDouble{
@@ -333,7 +333,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"success with app alias": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{
 							Name:   "mockApp",
 							Domain: "example.com",
@@ -369,7 +369,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"success with cert alias": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{
 							Name: "mockApp",
 						},
@@ -405,7 +405,7 @@ func TestStaticSiteDeployer_stackConfiguration(t *testing.T) {
 		"success with overrider": {
 			deployer: &staticSiteDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						app: &config.Application{
 							Name:   "mockApp",
 							Domain: "example.com",

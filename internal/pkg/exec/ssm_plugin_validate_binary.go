@@ -7,18 +7,19 @@
 package exec
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
 
 // ValidateBinary validates if the ssm plugin exists and needs update.
-func (s SSMPluginCommand) ValidateBinary() error {
+func (s SSMPluginCommand) ValidateBinary(ctx context.Context) error {
 	var latestVersion, currentVersion string
-	if err := s.runner.Run("curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, Stdout(&s.latestVersionBuffer)); err != nil {
+	if err := s.runner.Run(ctx, "curl", []string{"-s", ssmPluginBinaryLatestVersionURL}, Stdout(&s.latestVersionBuffer)); err != nil {
 		return fmt.Errorf("get ssm plugin latest version: %w", err)
 	}
 	latestVersion = strings.TrimSpace(s.latestVersionBuffer.String())
-	if err := s.runner.Run(ssmPluginBinaryName, []string{"--version"}, Stdout(&s.currentVersionBuffer)); err != nil {
+	if err := s.runner.Run(ctx, ssmPluginBinaryName, []string{"--version"}, Stdout(&s.currentVersionBuffer)); err != nil {
 		if !strings.Contains(err.Error(), executableNotExistErrMessage) {
 			return fmt.Errorf("get local ssm plugin version: %w", err)
 		}

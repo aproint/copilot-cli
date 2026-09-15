@@ -280,29 +280,15 @@ func (m *MockssmSessionStarter) EXPECT() *MockssmSessionStarterMockRecorder {
 }
 
 // StartSession mocks base method.
-func (m *MockssmSessionStarter) StartSession(ssmSession *types.Session) error {
+func (m *MockssmSessionStarter) StartSession(ctx context.Context, ssmSession *types.Session) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartSession", ssmSession)
+	ret := m.ctrl.Call(m, "StartSession", ctx, ssmSession)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // StartSession indicates an expected call of StartSession.
-func (mr *MockssmSessionStarterMockRecorder) StartSession(ssmSession interface{}) *gomock.Call {
+func (mr *MockssmSessionStarterMockRecorder) StartSession(ctx, ssmSession interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartSession", reflect.TypeOf((*MockssmSessionStarter)(nil).StartSession), ssmSession)
-}
-
-// StartSessionWithContext mocks base method.
-func (m *MockssmSessionStarter) StartSessionWithContext(ctx context.Context, ssmSession *types.Session) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartSessionWithContext", ctx, ssmSession)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// StartSessionWithContext indicates an expected call of StartSessionWithContext.
-func (mr *MockssmSessionStarterMockRecorder) StartSessionWithContext(ctx, ssmSession interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartSessionWithContext", reflect.TypeOf((*MockssmSessionStarter)(nil).StartSessionWithContext), ctx, ssmSession)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartSession", reflect.TypeOf((*MockssmSessionStarter)(nil).StartSession), ctx, ssmSession)
 }

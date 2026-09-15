@@ -83,11 +83,7 @@ type packageEnvOpts struct {
 	templateVersion string
 }
 
-func newPackageEnvOpts(vars packageEnvVars) (*packageEnvOpts, error) {
-	return newPackageEnvOptsWithContext(context.Background(), vars)
-}
-
-func newPackageEnvOptsWithContext(ctx context.Context, vars packageEnvVars) (*packageEnvOpts, error) {
+func newPackageEnvOpts(ctx context.Context, vars packageEnvVars) (*packageEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env package"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -153,7 +149,7 @@ func newPackageEnvOptsWithContext(ctx context.Context, vars packageEnvVars) (*pa
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *packageEnvOpts) Validate() error {
+func (o *packageEnvOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -355,7 +351,7 @@ func buildEnvPkgCmd() *cobra.Command {
   test.env.yml      test.env.params.json
   /endcodeblock`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPackageEnvOptsWithContext(cmd.Context(), vars)
+			opts, err := newPackageEnvOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

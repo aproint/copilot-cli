@@ -44,7 +44,7 @@ var (
 )
 
 type elbGetter interface {
-	LoadBalancerWithContext(ctx context.Context, nameOrARN string) (*elbv2.LoadBalancer, error)
+	LoadBalancer(ctx context.Context, nameOrARN string) (*elbv2.LoadBalancer, error)
 }
 
 type lbWebSvcDeployer struct {
@@ -65,7 +65,7 @@ func NewLBWSDeployer(in *WorkloadDeployerInput) (*lbWebSvcDeployer, error) {
 	if err != nil {
 		return nil, err
 	}
-	versionGetter, err := describe.NewAppDescriber(in.App.Name)
+	versionGetter, err := describe.NewAppDescriber(in.Ctx, in.App.Name)
 	if err != nil {
 		return nil, fmt.Errorf("new app describer for application %s: %w", in.App.Name, err)
 	}
@@ -145,7 +145,7 @@ func (d *lbWebSvcDeployer) stackConfiguration(ctx context.Context, in *StackRunt
 	}
 	var opts []stack.LoadBalancedWebServiceOption
 	if d.lbMft.HTTPOrBool.ImportedALB != nil {
-		lb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
+		lb, err := d.elbGetter.LoadBalancer(ctx, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +206,7 @@ func (d *lbWebSvcDeployer) validateImportedALBConfig(ctx context.Context) error 
 	if d.lbMft.HTTPOrBool.ImportedALB == nil {
 		return nil
 	}
-	alb, err := d.elbGetter.LoadBalancerWithContext(ctx, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
+	alb, err := d.elbGetter.LoadBalancer(ctx, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB))
 	if err != nil {
 		return fmt.Errorf(`retrieve load balancer %q: %w`, aws.ToString(d.lbMft.HTTPOrBool.ImportedALB), err)
 	}
@@ -265,13 +265,13 @@ func (d *lbWebSvcDeployer) validateRuntimeRoutingRule(ctx context.Context, rule 
 
 		if hasALBCerts {
 			albCertValidator := d.newAliasCertValidator(nil)
-			if err := albCertValidator.ValidateCertAliasesWithContext(ctx, aliases, d.envConfig.HTTPConfig.Public.Certificates); err != nil {
+			if err := albCertValidator.ValidateCertAliases(ctx, aliases, d.envConfig.HTTPConfig.Public.Certificates); err != nil {
 				return fmt.Errorf("validate aliases against the imported public ALB certificate for env %s: %w", d.env.Name, err)
 			}
 		}
 		if hasCDNCerts {
 			cfCertValidator := d.newAliasCertValidator(aws.String(cloudfront.CertRegion))
-			if err := cfCertValidator.ValidateCertAliasesWithContext(ctx, aliases, []string{*d.envConfig.CDNConfig.Config.Certificate}); err != nil {
+			if err := cfCertValidator.ValidateCertAliases(ctx, aliases, []string{*d.envConfig.CDNConfig.Config.Certificate}); err != nil {
 				return fmt.Errorf("validate aliases against the imported CDN certificate for env %s: %w", d.env.Name, err)
 			}
 		}

@@ -4,10 +4,12 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
 	"testing"
+
+	"github.com/aproint/copilot-cli/internal/pkg/aws/cloudwatch"
 
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
 
@@ -108,7 +110,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 						Architecture:    "X86_64",
 					}, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm1}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm1}).Return(nil, errors.New("some error")),
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm1}).Return(nil, errors.New("some error")),
 				)
 			},
 			wantedError: fmt.Errorf("retrieve alarm descriptions: some error"),
@@ -214,7 +216,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 						Architecture:    "X86_64",
 					}, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm1}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm1}).Return([]*cloudwatch.AlarmDescription{
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm1}).Return([]*cloudwatch.AlarmDescription{
 						{
 							Name:        alarm1,
 							Description: desc1,
@@ -244,7 +246,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 						Architecture:    "ARM64",
 					}, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm2}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm2}).Return([]*cloudwatch.AlarmDescription{
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm2}).Return([]*cloudwatch.AlarmDescription{
 						{
 							Name:        alarm2,
 							Description: desc2,
@@ -432,7 +434,7 @@ func TestWorkerServiceDescriber_Describe(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &WorkerServiceDescriber{
+			d := &WorkerServiceDescriber{ctx: context.Background(),
 				app:              testApp,
 				svc:              testSvc,
 				enableResources:  tc.shouldOutputResources,

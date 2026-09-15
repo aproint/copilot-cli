@@ -44,11 +44,7 @@ type jobRunOpts struct {
 	newEnvCompatibilityChecker func(ctx context.Context) (versionCompatibilityChecker, error)
 }
 
-func newJobRunOpts(vars jobRunVars) (*jobRunOpts, error) {
-	return newJobRunOptsWithContext(context.Background(), vars)
-}
-
-func newJobRunOptsWithContext(ctx context.Context, vars jobRunVars) (*jobRunOpts, error) {
+func newJobRunOpts(ctx context.Context, vars jobRunVars) (*jobRunOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job deploy"))
 
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
@@ -102,7 +98,7 @@ func newJobRunOptsWithContext(ctx context.Context, vars jobRunVars) (*jobRunOpts
 
 // Validate is a no-op for this command.
 // it's a no-op because all 3 flags are required, and `Validate` only validate optional flags.
-func (o *jobRunOpts) Validate() error {
+func (o *jobRunOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -129,7 +125,7 @@ func (o *jobRunOpts) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := runner.RunWithContext(ctx); err != nil {
+	if err := runner.Run(ctx); err != nil {
 		return fmt.Errorf("execute job %q: %w", o.jobName, err)
 	}
 	log.Successf("Invoked job %q successfully\n", o.jobName)
@@ -220,7 +216,7 @@ func buildJobRunCmd() *cobra.Command {
   Run a job named "report-gen" in an application named "report" within a "test" environment
   /code $ copilot job run -a report -n report-gen -e test`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newJobRunOptsWithContext(cmd.Context(), vars)
+			opts, err := newJobRunOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

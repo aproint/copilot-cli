@@ -214,11 +214,7 @@ type artifactBucket struct {
 	Environments []string
 }
 
-func newInitPipelineOpts(vars initPipelineVars) (*initPipelineOpts, error) {
-	return newInitPipelineOptsWithContext(context.Background(), vars)
-}
-
-func newInitPipelineOptsWithContext(ctx context.Context, vars initPipelineVars) (*initPipelineOpts, error) {
+func newInitPipelineOpts(ctx context.Context, vars initPipelineVars) (*initPipelineOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -255,14 +251,14 @@ func newInitPipelineOptsWithContext(ctx context.Context, vars initPipelineVars) 
 }
 
 // Validate returns an error if the optional flag values passed by the user are invalid.
-func (o *initPipelineOpts) Validate() error {
+func (o *initPipelineOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
 // Ask prompts for required fields that are not passed in and validates them.
 func (o *initPipelineOpts) Ask(ctx context.Context) error {
 	// This command must be executed in the app's workspace because the pipeline manifest and buildspec will be created and stored.
-	if err := validateWorkspaceAppWithContext(ctx, o.wsAppName, o.appName, o.store); err != nil {
+	if err := validateWorkspaceApp(ctx, o.wsAppName, o.appName, o.store); err != nil {
 		return err
 	}
 	o.appName = o.wsAppName
@@ -344,7 +340,7 @@ func (o *initPipelineOpts) validateDuplicatePipeline(ctx context.Context) error 
 		allPipelines = append(allPipelines, pipeline.Name)
 	}
 
-	deployedPipelines, err := o.pipelineLister.ListDeployedPipelinesWithContext(ctx, o.appName)
+	deployedPipelines, err := o.pipelineLister.ListDeployedPipelines(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("list deployed pipelines for app %s: %w", o.appName, err)
 	}
@@ -490,7 +486,7 @@ func (o *initPipelineOpts) parseRepoDetails(ctx context.Context) error {
 // getBranch fetches the user's current branch as a best-guess of which branch they want their pipeline to follow. If err, insert default branch name.
 func (o *initPipelineOpts) getBranch(ctx context.Context) error {
 	// Fetches local git branch.
-	err := o.runner.RunWithContext(ctx, "git", []string{"rev-parse", "--abbrev-ref", "HEAD"}, exec.Stdout(&o.buffer))
+	err := o.runner.Run(ctx, "git", []string{"rev-parse", "--abbrev-ref", "HEAD"}, exec.Stdout(&o.buffer))
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -564,7 +560,7 @@ func (o *initPipelineOpts) parseBitbucketRepoDetails() error {
 
 func (o *initPipelineOpts) selectURL(ctx context.Context) error {
 	// Fetches and parses all remote repositories.
-	err := o.runner.RunWithContext(ctx, "git", []string{"remote", "-v"}, exec.Stdout(&o.buffer))
+	err := o.runner.Run(ctx, "git", []string{"remote", "-v"}, exec.Stdout(&o.buffer))
 	if err != nil {
 		return fmt.Errorf("get remote repository info: %w; make sure you have installed Git and are in a Git repository", err)
 	}
@@ -720,7 +716,7 @@ func (url bbRepoURL) parse() (bbRepoDetails, error) {
 
 func (o *initPipelineOpts) storeGitHubAccessToken(ctx context.Context) error {
 	secretName := o.secretName()
-	_, err := o.secretsmanager.CreateSecretWithContext(ctx, secretName, o.githubAccessToken)
+	_, err := o.secretsmanager.CreateSecret(ctx, secretName, o.githubAccessToken)
 
 	if err != nil {
 		var existsErr *secretsmanager.ErrSecretAlreadyExists
@@ -855,7 +851,7 @@ func (o *initPipelineOpts) artifactBuckets(ctx context.Context) ([]artifactBucke
 	if err != nil {
 		return nil, fmt.Errorf("get application %s: %w", o.appName, err)
 	}
-	regionalResources, err := o.cfnClient.GetRegionalAppResourcesWithContext(ctx, app)
+	regionalResources, err := o.cfnClient.GetRegionalAppResources(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("get regional application resources: %w", err)
 	}
@@ -893,11 +889,11 @@ func buildPipelineInitCmd() *cobra.Command {
   /code  --git-branch main \
   /code  --environments "stage,prod"`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newInitPipelineOptsWithContext(cmd.Context(), vars)
+			opts, err := newInitPipelineOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}
-			if err := opts.Validate(); err != nil {
+			if err := opts.Validate(cmd.Context()); err != nil {
 				return err
 			}
 			if err := opts.Ask(cmd.Context()); err != nil {

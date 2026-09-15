@@ -99,7 +99,7 @@ func TestSecretsManager_CreateSecret(t *testing.T) {
 				return []types.Tag{}
 			}
 
-			_, err := sm.CreateSecret(tc.inSecretName, tc.inSecretString)
+			_, err := sm.CreateSecret(context.Background(), tc.inSecretName, tc.inSecretString)
 
 			// THEN
 			require.Equal(t, tc.expectedError, err)
@@ -152,7 +152,7 @@ func TestSecretsManager_DeleteSecret(t *testing.T) {
 			tc.callMock(mockSecretsManager)
 
 			// WHEN
-			err := sm.DeleteSecret(tc.inSecretName)
+			err := sm.DeleteSecret(context.Background(), tc.inSecretName)
 
 			// THEN
 			require.Equal(t, tc.expectedError, err)
@@ -239,7 +239,7 @@ func TestSecretsManager_DescribeSecret(t *testing.T) {
 				return []types.Tag{}
 			}
 
-			resp, err := sm.DescribeSecret(tc.inSecretName)
+			resp, err := sm.DescribeSecret(context.Background(), tc.inSecretName)
 
 			// THEN
 			if tc.expectedError != nil {
@@ -314,9 +314,9 @@ func TestSecretsManager_MutationsPropagateContext(t *testing.T) {
 	api.EXPECT().DeleteSecret(ctx, gomock.Any()).Return(&secretsmanager.DeleteSecretOutput{}, nil)
 
 	client := SecretsManager{secretsManager: api}
-	_, err := client.CreateSecretWithContext(ctx, "secret", "value")
+	_, err := client.CreateSecret(ctx, "secret", "value")
 	require.NoError(t, err)
-	_, err = client.DescribeSecretWithContext(ctx, "secret")
+	_, err = client.DescribeSecret(ctx, "secret")
 	require.NoError(t, err)
-	require.NoError(t, client.DeleteSecretWithContext(ctx, "secret"))
+	require.NoError(t, client.DeleteSecret(ctx, "secret"))
 }

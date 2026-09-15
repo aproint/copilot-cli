@@ -37,13 +37,8 @@ func New(cfg awsv2.Config) *ACM {
 	}
 }
 
-// ValidateCertAliases validates if aliases are all valid against the provided ACM certificates.
-func (a *ACM) ValidateCertAliases(aliases []string, certs []string) error {
-	return a.ValidateCertAliasesWithContext(context.Background(), aliases, certs)
-}
-
-// ValidateCertAliasesWithContext validates aliases using a timeout derived from ctx.
-func (a *ACM) ValidateCertAliasesWithContext(ctx context.Context, aliases []string, certs []string) error {
+// ValidateCertAliases validates aliases using a timeout derived from ctx.
+func (a *ACM) ValidateCertAliases(ctx context.Context, aliases []string, certs []string) error {
 	validAliases := make(map[string]bool)
 	domainsOfCert := make(map[string][]string)
 	ctx, cancelWait := context.WithTimeout(ctx, waitForFindValidAliasesTimeout)

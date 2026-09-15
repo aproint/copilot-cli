@@ -4,6 +4,7 @@
 package clean
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -11,11 +12,11 @@ import (
 )
 
 type bucketResourceGetter interface {
-	BucketName(app, env, wkld string) (string, error)
+	BucketName(context.Context, string, string, string) (string, error)
 }
 
 type bucketEmptier interface {
-	EmptyBucket(string) error
+	EmptyBucket(context.Context, string) error
 }
 
 // StaticSiteCleaner is used to clean up resources created for a static site.
@@ -38,8 +39,8 @@ func StaticSite(app, env, svc string, rg bucketResourceGetter, emptier bucketEmp
 
 // Clean looks for the S3 bucket for the service. If no bucket is found,
 // it returns no error. If a bucket is found, it is emptied.
-func (s *StaticSiteCleaner) Clean() error {
-	bucket, err := s.bucketResourceGetter.BucketName(s.app, s.env, s.svc)
+func (s *StaticSiteCleaner) Clean(ctx context.Context) error {
+	bucket, err := s.bucketResourceGetter.BucketName(ctx, s.app, s.env, s.svc)
 	if err != nil {
 		var notFound *s3.ErrNotFound
 		if errors.As(err, &notFound) {
@@ -49,7 +50,7 @@ func (s *StaticSiteCleaner) Clean() error {
 		return fmt.Errorf("get bucket name: %w", err)
 	}
 
-	if err := s.bucketEmptier.EmptyBucket(bucket); err != nil {
+	if err := s.bucketEmptier.EmptyBucket(ctx, bucket); err != nil {
 		return fmt.Errorf("empty bucket: %w", err)
 	}
 	return nil

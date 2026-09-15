@@ -5,13 +5,14 @@
 package exec
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
 // InstallLatestBinary installs the latest ssm plugin.
-func (s SSMPluginCommand) InstallLatestBinary() error {
+func (s SSMPluginCommand) InstallLatestBinary(ctx context.Context) error {
 	if s.tempDir == "" {
 		dir, err := os.MkdirTemp("", "ssmplugin")
 		if err != nil {
@@ -23,11 +24,11 @@ func (s SSMPluginCommand) InstallLatestBinary() error {
 	if err := download(s.http, filepath.Join(s.tempDir, "sessionmanager-bundle.zip"), ssmPluginBinaryURL); err != nil {
 		return fmt.Errorf("download ssm plugin: %w", err)
 	}
-	if err := s.runner.Run("unzip", []string{"-o", filepath.Join(s.tempDir, "sessionmanager-bundle.zip"),
+	if err := s.runner.Run(ctx, "unzip", []string{"-o", filepath.Join(s.tempDir, "sessionmanager-bundle.zip"),
 		"-d", s.tempDir}); err != nil {
 		return err
 	}
-	if err := s.runner.Run("sudo", []string{filepath.Join(s.tempDir, "sessionmanager-bundle", "install"), "-i",
+	if err := s.runner.Run(ctx, "sudo", []string{filepath.Join(s.tempDir, "sessionmanager-bundle", "install"), "-i",
 		"/usr/local/sessionmanagerplugin", "-b",
 		"/usr/local/bin/session-manager-plugin"}); err != nil {
 		return err

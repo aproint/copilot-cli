@@ -167,14 +167,14 @@ type deployedWorkloadsRetriever interface {
 
 // taskStackDescriber wraps cloudformation client methods to describe task stacks
 type taskStackDescriber interface {
-	ListDefaultTaskStacks() ([]deploy.TaskStackInfo, error)
-	ListTaskStacks(appName, envName string) ([]deploy.TaskStackInfo, error)
+	ListDefaultTaskStacksWithContext(ctx context.Context) ([]deploy.TaskStackInfo, error)
+	ListTaskStacksWithContext(ctx context.Context, appName, envName string) ([]deploy.TaskStackInfo, error)
 }
 
 // taskLister wraps methods of listing tasks.
 type taskLister interface {
-	ListActiveAppEnvTasks(opts ecs.ListActiveAppEnvTasksOpts) ([]*awsecs.Task, error)
-	ListActiveDefaultClusterTasks(filter ecs.ListTasksFilter) ([]*awsecs.Task, error)
+	ListActiveAppEnvTasksWithContext(ctx context.Context, opts ecs.ListActiveAppEnvTasksOpts) ([]*awsecs.Task, error)
+	ListActiveDefaultClusterTasksWithContext(ctx context.Context, filter ecs.ListTasksFilter) ([]*awsecs.Task, error)
 }
 
 // AppEnvSelector prompts users to select the name of an application or environment.
@@ -402,6 +402,11 @@ func WithTaskID(id string) TaskOpts {
 // RunningTask has the user select a running task. Callers can provide either app and env names,
 // or use default cluster.
 func (s *TaskSelector) RunningTask(msg, help string, opts ...TaskOpts) (*awsecs.Task, error) {
+	return s.RunningTaskWithContext(context.Background(), msg, help, opts...)
+}
+
+// RunningTaskWithContext has the user select a running task loaded using ctx.
+func (s *TaskSelector) RunningTaskWithContext(ctx context.Context, msg, help string, opts ...TaskOpts) (*awsecs.Task, error) {
 	var tasks []*awsecs.Task
 	var err error
 	for _, opt := range opts {
@@ -413,13 +418,13 @@ func (s *TaskSelector) RunningTask(msg, help string, opts ...TaskOpts) (*awsecs.
 		CopilotOnly: true,
 	}
 	if s.defaultCluster {
-		tasks, err = s.lister.ListActiveDefaultClusterTasks(filter)
+		tasks, err = s.lister.ListActiveDefaultClusterTasksWithContext(ctx, filter)
 		if err != nil {
 			return nil, fmt.Errorf("list active tasks for default cluster: %w", err)
 		}
 	}
 	if s.app != "" && s.env != "" {
-		tasks, err = s.lister.ListActiveAppEnvTasks(ecs.ListActiveAppEnvTasksOpts{
+		tasks, err = s.lister.ListActiveAppEnvTasksWithContext(ctx, ecs.ListActiveAppEnvTasksOpts{
 			App:             s.app,
 			Env:             s.env,
 			ListTasksFilter: filter,
@@ -532,6 +537,11 @@ func (s *DeployedService) String() string {
 // Task has the user select a task. Callers can provide an environment, an app, or a "use default cluster" option
 // to filter the returned tasks.
 func (s *CFTaskSelector) Task(msg, help string, opts ...GetDeployedTaskOpts) (string, error) {
+	return s.TaskWithContext(context.Background(), msg, help, opts...)
+}
+
+// TaskWithContext has the user select a task loaded using ctx.
+func (s *CFTaskSelector) TaskWithContext(ctx context.Context, msg, help string, opts ...GetDeployedTaskOpts) (string, error) {
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -546,14 +556,14 @@ func (s *CFTaskSelector) Task(msg, help string, opts ...GetDeployedTaskOpts) (st
 	var tasks []deploy.TaskStackInfo
 	var err error
 	if s.defaultCluster {
-		defaultTasks, err := s.cfStore.ListDefaultTaskStacks()
+		defaultTasks, err := s.cfStore.ListDefaultTaskStacksWithContext(ctx)
 		if err != nil {
 			return "", fmt.Errorf("get tasks in default cluster: %w", err)
 		}
 		tasks = append(tasks, defaultTasks...)
 	}
 	if s.env != "" && s.app != "" {
-		envTasks, err := s.cfStore.ListTaskStacks(s.app, s.env)
+		envTasks, err := s.cfStore.ListTaskStacksWithContext(ctx, s.app, s.env)
 		if err != nil {
 			return "", fmt.Errorf("get tasks in environment %s: %w", s.env, err)
 		}

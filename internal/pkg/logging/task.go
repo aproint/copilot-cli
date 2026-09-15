@@ -5,6 +5,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -26,6 +27,7 @@ const (
 // TasksDescriber describes ECS tasks.
 type TasksDescriber interface {
 	DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error)
+	DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error)
 }
 
 // TaskClient retrieves the logs of Amazon ECS tasks.
@@ -39,7 +41,7 @@ type TaskClient struct {
 	taskDescriber TasksDescriber
 
 	// Replaced in tests.
-	sleep func()
+	sleep func(context.Context) error
 }
 
 // NewTaskClient returns a TaskClient that can retrieve logs from the given tasks under the groupName.
@@ -52,25 +54,40 @@ func NewTaskClient(cfg aws.Config, groupName string, tasks []*task.Task) *TaskCl
 		eventsLogger:  cloudwatchlogs.New(cfg),
 		eventsWriter:  log.OutputWriter,
 
-		sleep: func() {
-			time.Sleep(cloudwatchlogs.SleepDuration)
+		sleep: func(ctx context.Context) error {
+			timer := time.NewTimer(cloudwatchlogs.SleepDuration)
+			defer timer.Stop()
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-timer.C:
+				return nil
+			}
 		},
 	}
 }
 
 // WriteEventsUntilStopped writes tasks' events to a writer until all tasks have stopped.
 func (t *TaskClient) WriteEventsUntilStopped() error {
+	return t.WriteEventsUntilStoppedWithContext(context.Background())
+}
+
+// WriteEventsUntilStoppedWithContext writes task events until all tasks stop or ctx is canceled.
+func (t *TaskClient) WriteEventsUntilStoppedWithContext(ctx context.Context) error {
 	in := cloudwatchlogs.LogEventsOpts{
 		LogGroup: fmt.Sprintf(fmtTaskLogGroupName, t.groupName),
 	}
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		logStreams, err := t.logStreamNamesFromTasks(t.tasks)
 		if err != nil {
 			return err
 		}
 		in.LogStreamPrefixFilters = logStreams
 		for i := 0; i < numCWLogsCallsPerRound; i++ {
-			logEventsOutput, err := t.eventsLogger.LogEvents(in)
+			logEventsOutput, err := t.eventsLogger.LogEventsWithContext(ctx, in)
 			if err != nil {
 				return fmt.Errorf("get task log events: %w", err)
 			}
@@ -79,9 +96,11 @@ func (t *TaskClient) WriteEventsUntilStopped() error {
 			}
 			in.StreamLastEventTime = logEventsOutput.StreamLastEventTime
 
-			t.sleep()
+			if err := t.sleep(ctx); err != nil {
+				return err
+			}
 		}
-		stopped, err := t.allTasksStopped()
+		stopped, err := t.allTasksStopped(ctx)
 		if err != nil {
 			return err
 		}
@@ -91,7 +110,7 @@ func (t *TaskClient) WriteEventsUntilStopped() error {
 	}
 }
 
-func (t *TaskClient) allTasksStopped() (bool, error) {
+func (t *TaskClient) allTasksStopped(ctx context.Context) (bool, error) {
 	taskARNs := make([]string, len(t.tasks))
 	for idx, task := range t.tasks {
 		taskARNs[idx] = task.TaskARN
@@ -100,7 +119,7 @@ func (t *TaskClient) allTasksStopped() (bool, error) {
 	// NOTE: all tasks are deployed to the same cluster and there are at least one tasks being deployed
 	cluster := t.tasks[0].ClusterARN
 
-	tasksResp, err := t.taskDescriber.DescribeTasks(cluster, taskARNs)
+	tasksResp, err := t.taskDescriber.DescribeTasksWithContext(ctx, cluster, taskARNs)
 	if err != nil {
 		return false, fmt.Errorf("describe tasks: %w", err)
 	}

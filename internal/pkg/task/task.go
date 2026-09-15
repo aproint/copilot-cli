@@ -5,6 +5,7 @@
 package task
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -19,18 +20,18 @@ import (
 
 // VPCGetter wraps methods of getting VPC info.
 type VPCGetter interface {
-	SubnetIDs(filters ...ec2.Filter) ([]string, error)
-	SecurityGroups(filters ...ec2.Filter) ([]string, error)
+	SubnetIDsWithContext(ctx context.Context, filters ...ec2.Filter) ([]string, error)
+	SecurityGroupsWithContext(ctx context.Context, filters ...ec2.Filter) ([]string, error)
 }
 
 // ClusterGetter wraps the method of getting a cluster ARN.
 type ClusterGetter interface {
-	ClusterARN(app, env string) (string, error)
+	ClusterARNWithContext(ctx context.Context, app, env string) (string, error)
 }
 
 // DefaultClusterGetter wraps the method of getting a default cluster ARN.
 type DefaultClusterGetter interface {
-	DefaultCluster() (string, error)
+	DefaultClusterWithContext(ctx context.Context) (string, error)
 }
 
 type environmentDescriber interface {
@@ -39,12 +40,12 @@ type environmentDescriber interface {
 
 // NonZeroExitCodeGetter wraps the method of getting a non-zero exit code of a task.
 type NonZeroExitCodeGetter interface {
-	HasNonZeroExitCode([]string, string) error
+	HasNonZeroExitCodeWithContext(context.Context, []string, string) error
 }
 
 // Runner wraps the method of running tasks.
 type Runner interface {
-	RunTask(input ecs.RunTaskInput) ([]*ecs.Task, error)
+	RunTaskWithContext(ctx context.Context, input ecs.RunTaskInput) ([]*ecs.Task, error)
 }
 
 // Task represents a one-off workload that runs until completed or an error occurs.

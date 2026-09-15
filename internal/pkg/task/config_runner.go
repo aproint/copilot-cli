@@ -4,6 +4,7 @@
 package task
 
 import (
+	"context"
 	"fmt"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ec2"
 	"github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
@@ -46,12 +47,17 @@ type ConfigRunner struct {
 // If subnets are not provided, it uses the default subnets.
 // If cluster is not provided, it uses the default cluster.
 func (r *ConfigRunner) Run() ([]*Task, error) {
+	return r.RunWithContext(context.Background())
+}
+
+// RunWithContext runs tasks using ctx.
+func (r *ConfigRunner) RunWithContext(ctx context.Context) ([]*Task, error) {
 	if err := r.validateDependencies(); err != nil {
 		return nil, err
 	}
 
 	if r.Cluster == "" {
-		cluster, err := r.ClusterGetter.DefaultCluster()
+		cluster, err := r.ClusterGetter.DefaultClusterWithContext(ctx)
 		if err != nil {
 			return nil, &errGetDefaultCluster{
 				parentErr: err,
@@ -61,7 +67,7 @@ func (r *ConfigRunner) Run() ([]*Task, error) {
 	}
 
 	if r.Subnets == nil {
-		subnets, err := r.VPCGetter.SubnetIDs(ec2.FilterForDefaultVPCSubnets)
+		subnets, err := r.VPCGetter.SubnetIDsWithContext(ctx, ec2.FilterForDefaultVPCSubnets)
 		if err != nil {
 			return nil, fmt.Errorf(fmtErrDefaultSubnets, err)
 		}
@@ -75,7 +81,7 @@ func (r *ConfigRunner) Run() ([]*Task, error) {
 		platformVersion = "1.0.0"
 	}
 
-	ecsTasks, err := r.Starter.RunTask(ecs.RunTaskInput{
+	ecsTasks, err := r.Starter.RunTaskWithContext(ctx, ecs.RunTaskInput{
 		Cluster:         r.Cluster,
 		Count:           r.Count,
 		Subnets:         r.Subnets,
@@ -109,9 +115,14 @@ func (r *ConfigRunner) validateDependencies() error {
 
 // CheckNonZeroExitCode returns the status of the containers part of the given tasks.
 func (r *ConfigRunner) CheckNonZeroExitCode(tasks []*Task) error {
+	return r.CheckNonZeroExitCodeWithContext(context.Background(), tasks)
+}
+
+// CheckNonZeroExitCodeWithContext checks task exit codes using ctx.
+func (r *ConfigRunner) CheckNonZeroExitCodeWithContext(ctx context.Context, tasks []*Task) error {
 	taskARNs := make([]string, len(tasks))
 	for idx, task := range tasks {
 		taskARNs[idx] = task.TaskARN
 	}
-	return r.NonZeroExitCodeGetter.HasNonZeroExitCode(taskARNs, r.Cluster)
+	return r.NonZeroExitCodeGetter.HasNonZeroExitCodeWithContext(ctx, taskARNs, r.Cluster)
 }

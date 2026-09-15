@@ -57,8 +57,12 @@ type svcExecOpts struct {
 }
 
 func newSvcExecOpts(vars execVars) (*svcExecOpts, error) {
+	return newSvcExecOptsWithContext(context.Background(), vars)
+}
+
+func newSvcExecOptsWithContext(ctx context.Context, vars execVars) (*svcExecOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc exec"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +119,7 @@ func (o *svcExecOpts) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	svcDesc, err := o.newSvcDescriber(cfg).DescribeService(o.appName, o.envName, o.name)
+	svcDesc, err := o.newSvcDescriber(cfg).DescribeServiceWithContext(ctx, o.appName, o.envName, o.name)
 	if err != nil {
 		return fmt.Errorf("describe ECS service for %s in environment %s: %w", o.name, o.envName, err)
 	}
@@ -126,7 +130,7 @@ func (o *svcExecOpts) Execute(ctx context.Context) error {
 	container := o.selectContainer()
 	log.Infof("Execute %s in container %s in task %s.\n", color.HighlightCode(o.command),
 		color.HighlightUserInput(container), color.HighlightResource(taskID))
-	if err = o.newCommandExecutor(cfg).ExecuteCommand(awsecs.ExecuteCommandInput{
+	if err = o.newCommandExecutor(cfg).ExecuteCommandWithContext(ctx, awsecs.ExecuteCommandInput{
 		Cluster:   svcDesc.ClusterName,
 		Command:   o.command,
 		Container: container,
@@ -183,7 +187,7 @@ func (o *svcExecOpts) envConfig(ctx context.Context) (aws.Config, error) {
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("get environment %s: %w", o.envName, err)
 	}
-	return o.sessProvider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+	return o.sessProvider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 }
 
 func (o *svcExecOpts) selectTask(tasks []*awsecs.Task) (string, error) {
@@ -281,7 +285,7 @@ func buildSvcExecCmd() *cobra.Command {
   Runs the 'ls' command in the task prefixed with ID "8c38184" within the "backend" service.
   /code $ copilot svc exec -a my-app -e test --name backend --task-id 8c38184 --command "ls"`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcExecOpts(vars)
+			opts, err := newSvcExecOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

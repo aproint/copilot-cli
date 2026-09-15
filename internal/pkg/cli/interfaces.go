@@ -49,6 +49,10 @@ type cmd interface {
 	Execute(context.Context) error
 }
 
+type contextValidator interface {
+	ValidateWithContext(context.Context) error
+}
+
 // actionCommand is the interface that every command that creates a resource implements.
 type actionCommand interface {
 	cmd
@@ -201,6 +205,7 @@ type execRunner interface {
 
 type eventsWriter interface {
 	WriteEventsUntilStopped() error
+	WriteEventsUntilStoppedWithContext(context.Context) error
 }
 
 type defaultSessionProvider interface {
@@ -372,6 +377,7 @@ type uploader interface {
 
 type bucketEmptier interface {
 	EmptyBucket(bucket string) error
+	EmptyBucketWithContext(ctx context.Context, bucket string) error
 }
 
 type stackDescriber interface {
@@ -400,7 +406,8 @@ type jobRemoverFromApp interface {
 }
 
 type imageRemover interface {
-	ClearRepository(repoName string) error // implemented by ECR Service
+	ClearRepository(repoName string) error
+	ClearRepositoryWithContext(ctx context.Context, repoName string) error // implemented by ECR Service
 }
 
 type pipelineDeployer interface {
@@ -435,21 +442,28 @@ type envDeleterFromApp interface {
 
 type taskDeployer interface {
 	DeployTask(input *deploy.CreateTaskResourcesInput, opts ...awscloudformation.StackOption) error
+	DeployTaskWithContext(ctx context.Context, input *deploy.CreateTaskResourcesInput, opts ...awscloudformation.StackOption) error
 	GetTaskStack(taskName string) (*deploy.TaskStackInfo, error)
+	GetTaskStackWithContext(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error)
 }
 
 type taskStackManager interface {
 	DeleteTask(task deploy.TaskStackInfo) error
+	DeleteTaskWithContext(ctx context.Context, task deploy.TaskStackInfo) error
 	GetTaskStack(taskName string) (*deploy.TaskStackInfo, error)
+	GetTaskStackWithContext(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error)
 }
 
 type taskRunner interface {
 	Run() ([]*task.Task, error)
+	RunWithContext(context.Context) ([]*task.Task, error)
 	CheckNonZeroExitCode([]*task.Task) error
+	CheckNonZeroExitCodeWithContext(context.Context, []*task.Task) error
 }
 
 type defaultClusterGetter interface {
 	HasDefaultCluster() (bool, error)
+	HasDefaultClusterWithContext(context.Context) (bool, error)
 }
 
 type deployer interface {
@@ -579,6 +593,7 @@ type scheduleSelector interface {
 
 type cfTaskSelector interface {
 	Task(prompt, help string, opts ...selector.GetDeployedTaskOpts) (string, error)
+	TaskWithContext(ctx context.Context, prompt, help string, opts ...selector.GetDeployedTaskOpts) (string, error)
 }
 
 type dockerfileSelector interface {
@@ -642,6 +657,7 @@ type apprunnerServiceDescriber interface {
 
 type ecsCommandExecutor interface {
 	ExecuteCommand(in awsecs.ExecuteCommandInput) error
+	ExecuteCommandWithContext(ctx context.Context, in awsecs.ExecuteCommandInput) error
 }
 
 type ssmPluginManager interface {
@@ -651,7 +667,9 @@ type ssmPluginManager interface {
 
 type taskStopper interface {
 	StopOneOffTasks(app, env, family string) error
+	StopOneOffTasksWithContext(ctx context.Context, app, env, family string) error
 	StopDefaultClusterTasks(familyName string) error
+	StopDefaultClusterTasksWithContext(ctx context.Context, familyName string) error
 	StopWorkloadTasks(app, env, workload string) error
 }
 
@@ -679,6 +697,7 @@ type stackExistChecker interface {
 
 type runningTaskSelector interface {
 	RunningTask(prompt, help string, opts ...selector.TaskOpts) (*awsecs.Task, error)
+	RunningTaskWithContext(ctx context.Context, prompt, help string, opts ...selector.TaskOpts) (*awsecs.Task, error)
 }
 
 type dockerEngine interface {
@@ -692,6 +711,7 @@ type codestar interface {
 
 type publicIPGetter interface {
 	PublicIP(ENI string) (string, error)
+	PublicIPWithContext(ctx context.Context, ENI string) (string, error)
 }
 
 type cliStringer interface {

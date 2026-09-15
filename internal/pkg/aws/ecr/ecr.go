@@ -107,8 +107,13 @@ func (i Image) imageIdentifier() types.ImageIdentifier {
 // ListImages calls the ECR DescribeImages API and returns a list of
 // Image metadata for images in the input ECR repository name.
 func (c ECR) ListImages(repoName string) ([]Image, error) {
+	return c.ListImagesWithContext(context.Background(), repoName)
+}
+
+// ListImagesWithContext returns images in a repository using ctx for every page.
+func (c ECR) ListImagesWithContext(ctx context.Context, repoName string) ([]Image, error) {
 	var images []Image
-	resp, err := c.client.DescribeImages(context.Background(), &ecr.DescribeImagesInput{
+	resp, err := c.client.DescribeImages(ctx, &ecr.DescribeImagesInput{
 		RepositoryName: awsv2.String(repoName),
 	})
 	if err != nil {
@@ -120,7 +125,10 @@ func (c ECR) ListImages(repoName string) ([]Image, error) {
 		})
 	}
 	for resp.NextToken != nil {
-		resp, err = c.client.DescribeImages(context.Background(), &ecr.DescribeImagesInput{
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		resp, err = c.client.DescribeImages(ctx, &ecr.DescribeImagesInput{
 			RepositoryName: awsv2.String(repoName),
 			NextToken:      resp.NextToken,
 		})
@@ -138,6 +146,11 @@ func (c ECR) ListImages(repoName string) ([]Image, error) {
 
 // DeleteImages calls the ECR BatchDeleteImage API with the input image list and repository name.
 func (c ECR) DeleteImages(images []Image, repoName string) error {
+	return c.DeleteImagesWithContext(context.Background(), images, repoName)
+}
+
+// DeleteImagesWithContext deletes images using ctx.
+func (c ECR) DeleteImagesWithContext(ctx context.Context, images []Image, repoName string) error {
 	if len(images) == 0 {
 		return nil
 	}
@@ -152,7 +165,10 @@ func (c ECR) DeleteImages(images []Image, repoName string) error {
 	}
 	imageIdentifiersBatch = append(imageIdentifiersBatch, imageIdentifiers)
 	for _, identifiers := range imageIdentifiersBatch {
-		resp, err := c.client.BatchDeleteImage(context.Background(), &ecr.BatchDeleteImageInput{
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		resp, err := c.client.BatchDeleteImage(ctx, &ecr.BatchDeleteImageInput{
 			RepositoryName: awsv2.String(repoName),
 			ImageIds:       identifiers,
 		})
@@ -172,11 +188,16 @@ func (c ECR) DeleteImages(images []Image, repoName string) error {
 // ClearRepository orchestrates a ListImages call followed by a DeleteImages
 // call to delete all images from the input ECR repository name.
 func (c ECR) ClearRepository(repoName string) error {
-	images, err := c.ListImages(repoName)
+	return c.ClearRepositoryWithContext(context.Background(), repoName)
+}
+
+// ClearRepositoryWithContext removes every image from a repository using ctx.
+func (c ECR) ClearRepositoryWithContext(ctx context.Context, repoName string) error {
+	images, err := c.ListImagesWithContext(ctx, repoName)
 
 	if err == nil {
 		// TODO: add retry handling in case images are added to a repository after a call to ListImages
-		return c.DeleteImages(images, repoName)
+		return c.DeleteImagesWithContext(ctx, images, repoName)
 	}
 	if isRepoNotFoundErr(errors.Unwrap(err)) {
 		return nil

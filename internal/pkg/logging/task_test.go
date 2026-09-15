@@ -4,6 +4,7 @@
 package logging
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -75,7 +76,7 @@ func TestEventsWriter_WriteEventsUntilStopped(t *testing.T) {
 		"error getting log events": {
 			tasks: goodTasks,
 			setUpMocks: func(m writeEventMocks) {
-				m.logGetter.EXPECT().LogEvents(gomock.Any()).
+				m.logGetter.EXPECT().LogEventsWithContext(gomock.Any(), gomock.Any()).
 					Return(&cloudwatchlogs.LogEventsOutput{}, errors.New("error getting log events"))
 			},
 			wantedError: errors.New("get task log events: error getting log events"),
@@ -83,11 +84,11 @@ func TestEventsWriter_WriteEventsUntilStopped(t *testing.T) {
 		"error describing tasks": {
 			tasks: goodTasks,
 			setUpMocks: func(m writeEventMocks) {
-				m.logGetter.EXPECT().LogEvents(gomock.Any()).
+				m.logGetter.EXPECT().LogEventsWithContext(gomock.Any(), gomock.Any()).
 					Return(&cloudwatchlogs.LogEventsOutput{
 						Events: []*cloudwatchlogs.Event{},
 					}, nil).AnyTimes()
-				m.describer.EXPECT().DescribeTasks("cluster", []string{taskARN1, taskARN2, taskARN3}).
+				m.describer.EXPECT().DescribeTasksWithContext(gomock.Any(), "cluster", []string{taskARN1, taskARN2, taskARN3}).
 					Return(nil, errors.New("error describing tasks"))
 			},
 			wantedError: errors.New("describe tasks: error describing tasks"),
@@ -95,14 +96,14 @@ func TestEventsWriter_WriteEventsUntilStopped(t *testing.T) {
 		"success": {
 			tasks: goodTasks,
 			setUpMocks: func(m writeEventMocks) {
-				m.logGetter.EXPECT().LogEvents(gomock.Any()).Do(func(param cloudwatchlogs.LogEventsOpts) {
+				m.logGetter.EXPECT().LogEventsWithContext(gomock.Any(), gomock.Any()).Do(func(_ context.Context, param cloudwatchlogs.LogEventsOpts) {
 					require.Equal(t, param.LogGroup, "/copilot/my-log-group")
 					require.Equal(t, param.LogStreamPrefixFilters, []string{"copilot-task/my-log-group/task1", "copilot-task/my-log-group/task2", "copilot-task/my-log-group/task3"})
 				}).
 					Return(&cloudwatchlogs.LogEventsOutput{
 						Events: []*cloudwatchlogs.Event{},
 					}, nil).Times(numCWLogsCallsPerRound)
-				m.describer.EXPECT().DescribeTasks("cluster", []string{taskARN1, taskARN2, taskARN3}).
+				m.describer.EXPECT().DescribeTasksWithContext(gomock.Any(), "cluster", []string{taskARN1, taskARN2, taskARN3}).
 					Return([]*ecs.Task{
 						{
 							TaskArn:    aws.String(taskARN1),
@@ -140,7 +141,7 @@ func TestEventsWriter_WriteEventsUntilStopped(t *testing.T) {
 				eventsLogger:  mocks.logGetter,
 				taskDescriber: mocks.describer,
 
-				sleep: func() {}, // no-op.
+				sleep: func(context.Context) error { return nil }, // no-op.
 			}
 
 			err := ew.WriteEventsUntilStopped()

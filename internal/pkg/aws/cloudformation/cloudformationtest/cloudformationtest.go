@@ -107,6 +107,11 @@ func (d *Double) DeleteAndWaitWithRoleARN(stackName, roleARN string) error {
 	return d.DeleteAndWaitWithRoleARNFn(stackName, roleARN)
 }
 
+// DeleteAndWaitWithRoleARNWithContext calls the stubbed function.
+func (d *Double) DeleteAndWaitWithRoleARNWithContext(_ context.Context, stackName, roleARN string) error {
+	return d.DeleteAndWaitWithRoleARN(stackName, roleARN)
+}
+
 // Describe calls the stubbed function.
 func (d *Double) Describe(name string) (*cfn.StackDescription, error) {
 	return d.DescribeFn(name)
@@ -183,6 +188,11 @@ func (d *Double) ErrorEventsWithContext(_ context.Context, stackName string) ([]
 // ListStacksWithTags calls the stubbed function.
 func (d *Double) ListStacksWithTags(tags map[string]string) ([]cfn.StackDescription, error) {
 	return d.ListStacksWithTagsFn(tags)
+}
+
+// ListStacksWithTagsWithContext calls the stubbed function.
+func (d *Double) ListStacksWithTagsWithContext(_ context.Context, tags map[string]string) ([]cfn.StackDescription, error) {
+	return d.ListStacksWithTags(tags)
 }
 
 // DescribeStackEvents calls the stubbed function.

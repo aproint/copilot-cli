@@ -107,7 +107,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 		"successfully gets task stacks while excluding wrongly tagged stack": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(map[string]string{
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), map[string]string{
 					"copilot-application": "appname",
 					"copilot-environment": "test",
 					"copilot-task":        "",
@@ -127,7 +127,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 		"error listing stacks": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: "some error",
 		},
@@ -165,7 +165,7 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 		"successfully gets task stacks while excluding wrongly tagged stack": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(map[string]string{
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), map[string]string{
 					"copilot-task": "",
 				}).Return([]cloudformation.StackDescription{
 					*mockDescription1,
@@ -183,7 +183,7 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 		"error listing stacks": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTags(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: "some error",
 		},

@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	ecs "github.com/aproint/copilot-cli/internal/pkg/aws/ecs"
@@ -49,6 +50,21 @@ func (mr *MockECSServiceDescriberMockRecorder) NetworkConfiguration(cluster, ser
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfiguration", reflect.TypeOf((*MockECSServiceDescriber)(nil).NetworkConfiguration), cluster, serviceName)
 }
 
+// NetworkConfigurationWithContext mocks base method.
+func (m *MockECSServiceDescriber) NetworkConfigurationWithContext(ctx context.Context, cluster, serviceName string) (*ecs.NetworkConfiguration, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NetworkConfigurationWithContext", ctx, cluster, serviceName)
+	ret0, _ := ret[0].(*ecs.NetworkConfiguration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NetworkConfigurationWithContext indicates an expected call of NetworkConfigurationWithContext.
+func (mr *MockECSServiceDescriberMockRecorder) NetworkConfigurationWithContext(ctx, cluster, serviceName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfigurationWithContext", reflect.TypeOf((*MockECSServiceDescriber)(nil).NetworkConfigurationWithContext), ctx, cluster, serviceName)
+}
+
 // Service mocks base method.
 func (m *MockECSServiceDescriber) Service(clusterName, serviceName string) (*ecs.Service, error) {
 	m.ctrl.T.Helper()
@@ -64,6 +80,21 @@ func (mr *MockECSServiceDescriberMockRecorder) Service(clusterName, serviceName 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockECSServiceDescriber)(nil).Service), clusterName, serviceName)
 }
 
+// ServiceWithContext mocks base method.
+func (m *MockECSServiceDescriber) ServiceWithContext(ctx context.Context, clusterName, serviceName string) (*ecs.Service, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServiceWithContext", ctx, clusterName, serviceName)
+	ret0, _ := ret[0].(*ecs.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServiceWithContext indicates an expected call of ServiceWithContext.
+func (mr *MockECSServiceDescriberMockRecorder) ServiceWithContext(ctx, clusterName, serviceName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceWithContext", reflect.TypeOf((*MockECSServiceDescriber)(nil).ServiceWithContext), ctx, clusterName, serviceName)
+}
+
 // TaskDefinition mocks base method.
 func (m *MockECSServiceDescriber) TaskDefinition(taskDefName string) (*ecs.TaskDefinition, error) {
 	m.ctrl.T.Helper()
@@ -77,6 +108,21 @@ func (m *MockECSServiceDescriber) TaskDefinition(taskDefName string) (*ecs.TaskD
 func (mr *MockECSServiceDescriberMockRecorder) TaskDefinition(taskDefName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinition", reflect.TypeOf((*MockECSServiceDescriber)(nil).TaskDefinition), taskDefName)
+}
+
+// TaskDefinitionWithContext mocks base method.
+func (m *MockECSServiceDescriber) TaskDefinitionWithContext(ctx context.Context, taskDefName string) (*ecs.TaskDefinition, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TaskDefinitionWithContext", ctx, taskDefName)
+	ret0, _ := ret[0].(*ecs.TaskDefinition)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TaskDefinitionWithContext indicates an expected call of TaskDefinitionWithContext.
+func (mr *MockECSServiceDescriberMockRecorder) TaskDefinitionWithContext(ctx, taskDefName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinitionWithContext", reflect.TypeOf((*MockECSServiceDescriber)(nil).TaskDefinitionWithContext), ctx, taskDefName)
 }
 
 // MockServiceDescriber is a mock of ServiceDescriber interface.
@@ -117,6 +163,21 @@ func (mr *MockServiceDescriberMockRecorder) ClusterARN(app, env interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterARN", reflect.TypeOf((*MockServiceDescriber)(nil).ClusterARN), app, env)
 }
 
+// ClusterARNWithContext mocks base method.
+func (m *MockServiceDescriber) ClusterARNWithContext(ctx context.Context, app, env string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClusterARNWithContext", ctx, app, env)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClusterARNWithContext indicates an expected call of ClusterARNWithContext.
+func (mr *MockServiceDescriberMockRecorder) ClusterARNWithContext(ctx, app, env interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterARNWithContext", reflect.TypeOf((*MockServiceDescriber)(nil).ClusterARNWithContext), ctx, app, env)
+}
+
 // NetworkConfiguration mocks base method.
 func (m *MockServiceDescriber) NetworkConfiguration(app, env, svc string) (*ecs.NetworkConfiguration, error) {
 	m.ctrl.T.Helper()
@@ -132,6 +193,21 @@ func (mr *MockServiceDescriberMockRecorder) NetworkConfiguration(app, env, svc i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfiguration", reflect.TypeOf((*MockServiceDescriber)(nil).NetworkConfiguration), app, env, svc)
 }
 
+// NetworkConfigurationWithContext mocks base method.
+func (m *MockServiceDescriber) NetworkConfigurationWithContext(ctx context.Context, app, env, svc string) (*ecs.NetworkConfiguration, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NetworkConfigurationWithContext", ctx, app, env, svc)
+	ret0, _ := ret[0].(*ecs.NetworkConfiguration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NetworkConfigurationWithContext indicates an expected call of NetworkConfigurationWithContext.
+func (mr *MockServiceDescriberMockRecorder) NetworkConfigurationWithContext(ctx, app, env, svc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfigurationWithContext", reflect.TypeOf((*MockServiceDescriber)(nil).NetworkConfigurationWithContext), ctx, app, env, svc)
+}
+
 // TaskDefinition mocks base method.
 func (m *MockServiceDescriber) TaskDefinition(app, env, svc string) (*ecs.TaskDefinition, error) {
 	m.ctrl.T.Helper()
@@ -145,6 +221,21 @@ func (m *MockServiceDescriber) TaskDefinition(app, env, svc string) (*ecs.TaskDe
 func (mr *MockServiceDescriberMockRecorder) TaskDefinition(app, env, svc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinition", reflect.TypeOf((*MockServiceDescriber)(nil).TaskDefinition), app, env, svc)
+}
+
+// TaskDefinitionWithContext mocks base method.
+func (m *MockServiceDescriber) TaskDefinitionWithContext(ctx context.Context, app, env, svc string) (*ecs.TaskDefinition, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TaskDefinitionWithContext", ctx, app, env, svc)
+	ret0, _ := ret[0].(*ecs.TaskDefinition)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TaskDefinitionWithContext indicates an expected call of TaskDefinitionWithContext.
+func (mr *MockServiceDescriberMockRecorder) TaskDefinitionWithContext(ctx, app, env, svc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinitionWithContext", reflect.TypeOf((*MockServiceDescriber)(nil).TaskDefinitionWithContext), ctx, app, env, svc)
 }
 
 // MockJobDescriber is a mock of JobDescriber interface.
@@ -185,6 +276,21 @@ func (mr *MockJobDescriberMockRecorder) ClusterARN(app, env interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterARN", reflect.TypeOf((*MockJobDescriber)(nil).ClusterARN), app, env)
 }
 
+// ClusterARNWithContext mocks base method.
+func (m *MockJobDescriber) ClusterARNWithContext(ctx context.Context, app, env string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClusterARNWithContext", ctx, app, env)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClusterARNWithContext indicates an expected call of ClusterARNWithContext.
+func (mr *MockJobDescriberMockRecorder) ClusterARNWithContext(ctx, app, env interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterARNWithContext", reflect.TypeOf((*MockJobDescriber)(nil).ClusterARNWithContext), ctx, app, env)
+}
+
 // NetworkConfigurationForJob mocks base method.
 func (m *MockJobDescriber) NetworkConfigurationForJob(app, env, job string) (*ecs.NetworkConfiguration, error) {
 	m.ctrl.T.Helper()
@@ -200,6 +306,21 @@ func (mr *MockJobDescriberMockRecorder) NetworkConfigurationForJob(app, env, job
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfigurationForJob", reflect.TypeOf((*MockJobDescriber)(nil).NetworkConfigurationForJob), app, env, job)
 }
 
+// NetworkConfigurationForJobWithContext mocks base method.
+func (m *MockJobDescriber) NetworkConfigurationForJobWithContext(ctx context.Context, app, env, job string) (*ecs.NetworkConfiguration, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NetworkConfigurationForJobWithContext", ctx, app, env, job)
+	ret0, _ := ret[0].(*ecs.NetworkConfiguration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NetworkConfigurationForJobWithContext indicates an expected call of NetworkConfigurationForJobWithContext.
+func (mr *MockJobDescriberMockRecorder) NetworkConfigurationForJobWithContext(ctx, app, env, job interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfigurationForJobWithContext", reflect.TypeOf((*MockJobDescriber)(nil).NetworkConfigurationForJobWithContext), ctx, app, env, job)
+}
+
 // TaskDefinition mocks base method.
 func (m *MockJobDescriber) TaskDefinition(app, env, job string) (*ecs.TaskDefinition, error) {
 	m.ctrl.T.Helper()
@@ -213,4 +334,19 @@ func (m *MockJobDescriber) TaskDefinition(app, env, job string) (*ecs.TaskDefini
 func (mr *MockJobDescriberMockRecorder) TaskDefinition(app, env, job interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinition", reflect.TypeOf((*MockJobDescriber)(nil).TaskDefinition), app, env, job)
+}
+
+// TaskDefinitionWithContext mocks base method.
+func (m *MockJobDescriber) TaskDefinitionWithContext(ctx context.Context, app, env, job string) (*ecs.TaskDefinition, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TaskDefinitionWithContext", ctx, app, env, job)
+	ret0, _ := ret[0].(*ecs.TaskDefinition)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TaskDefinitionWithContext indicates an expected call of TaskDefinitionWithContext.
+func (mr *MockJobDescriberMockRecorder) TaskDefinitionWithContext(ctx, app, env, job interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskDefinitionWithContext", reflect.TypeOf((*MockJobDescriber)(nil).TaskDefinitionWithContext), ctx, app, env, job)
 }

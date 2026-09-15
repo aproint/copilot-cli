@@ -18,7 +18,9 @@ type httpClient interface {
 
 type runner interface {
 	Run(name string, args []string, options ...CmdOption) error
+	RunWithContext(ctx context.Context, name string, args []string, options ...CmdOption) error
 	InteractiveRun(name string, args []string) error
+	InteractiveRunWithContext(ctx context.Context, name string, args []string) error
 }
 
 type cmdRunner interface {

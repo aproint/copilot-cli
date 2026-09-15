@@ -4,6 +4,7 @@
 package exec
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -47,7 +48,7 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 			inSession: mockSession,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().InteractiveRun(ssmPluginBinaryName,
+				mockRunner.EXPECT().InteractiveRunWithContext(gomock.Any(), ssmPluginBinaryName,
 					[]string{`{"SessionId":"mockSessionID","StreamUrl":"mockStreamURL","TokenValue":"mockTokenValue"}`, "us-west-2", "StartSession"}).Return(mockError)
 			},
 			wantedError: fmt.Errorf("start session: some error"),
@@ -56,7 +57,7 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 			inSession: mockSession,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().InteractiveRun(ssmPluginBinaryName,
+				mockRunner.EXPECT().InteractiveRunWithContext(gomock.Any(), ssmPluginBinaryName,
 					[]string{`{"SessionId":"mockSessionID","StreamUrl":"mockStreamURL","TokenValue":"mockTokenValue"}`, "us-west-2", "StartSession"}).Return(nil)
 			},
 		},
@@ -77,4 +78,17 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSSMPluginCommand_StartSessionWithContextUsesCallerContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	runner := NewMockrunner(ctrl)
+	runner.EXPECT().InteractiveRunWithContext(gomock.Eq(ctx), ssmPluginBinaryName, gomock.Any()).Return(nil)
+	command := SSMPluginCommand{runner: runner, region: "us-west-2"}
+
+	err := command.StartSessionWithContext(ctx, &types.Session{})
+	require.NoError(t, err)
 }

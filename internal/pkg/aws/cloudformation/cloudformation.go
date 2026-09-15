@@ -206,7 +206,12 @@ func (c *CloudFormation) DeleteAndWaitWithContext(ctx context.Context, stackName
 
 // DeleteAndWaitWithRoleARN is DeleteAndWait but with a role ARN that AWS CloudFormation assumes to delete the stack.
 func (c *CloudFormation) DeleteAndWaitWithRoleARN(stackName, roleARN string) error {
-	return c.deleteAndWait(context.Background(), &cloudformation.DeleteStackInput{
+	return c.DeleteAndWaitWithRoleARNWithContext(context.Background(), stackName, roleARN)
+}
+
+// DeleteAndWaitWithRoleARNWithContext deletes a stack using a role ARN and waits using ctx.
+func (c *CloudFormation) DeleteAndWaitWithRoleARNWithContext(ctx context.Context, stackName, roleARN string) error {
+	return c.deleteAndWait(ctx, &cloudformation.DeleteStackInput{
 		StackName: awsv2.String(stackName),
 		RoleARN:   awsv2.String(roleARN),
 	})
@@ -428,13 +433,21 @@ func (c *CloudFormation) ErrorEventsWithContext(ctx context.Context, stackName s
 // ListStacksWithTags returns all the stacks in the current AWS account and region with the specified matching
 // tags. If a tag key is provided but the value is empty, the method will match tags with any value for the given key.
 func (c *CloudFormation) ListStacksWithTags(tags map[string]string) ([]StackDescription, error) {
+	return c.ListStacksWithTagsWithContext(context.Background(), tags)
+}
+
+// ListStacksWithTagsWithContext returns matching stacks using ctx for every page.
+func (c *CloudFormation) ListStacksWithTagsWithContext(ctx context.Context, tags map[string]string) ([]StackDescription, error) {
 	match := makeTagMatcher(tags)
 
 	var nextToken *string
 	var summaries []StackDescription
 
 	for {
-		out, err := c.client.DescribeStacks(context.Background(), &cloudformation.DescribeStacksInput{
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		out, err := c.client.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
 			NextToken: nextToken,
 		})
 		if err != nil {

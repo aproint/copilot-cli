@@ -175,9 +175,9 @@ type runTaskOpts struct {
 	configureUploader            func(aws.Config) uploader
 
 	// Functions to generate a task run command.
-	runTaskRequestFromECSService func(client ecs.ECSServiceDescriber, cluster, service string) (*ecs.RunTaskRequest, error)
-	runTaskRequestFromService    func(client ecs.ServiceDescriber, app, env, svc string) (*ecs.RunTaskRequest, error)
-	runTaskRequestFromJob        func(client ecs.JobDescriber, app, env, job string) (*ecs.RunTaskRequest, error)
+	runTaskRequestFromECSService func(ctx context.Context, client ecs.ECSServiceDescriber, cluster, service string) (*ecs.RunTaskRequest, error)
+	runTaskRequestFromService    func(ctx context.Context, client ecs.ServiceDescriber, app, env, svc string) (*ecs.RunTaskRequest, error)
+	runTaskRequestFromJob        func(ctx context.Context, client ecs.JobDescriber, app, env, job string) (*ecs.RunTaskRequest, error)
 
 	// Cached variables.
 	ssmParamSecrets         map[string]string
@@ -187,8 +187,12 @@ type runTaskOpts struct {
 }
 
 func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
+	return newTaskRunOptsWithContext(context.Background(), vars)
+}
+
+func newTaskRunOptsWithContext(ctx context.Context, vars runTaskVars) (*runTaskOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("task run"))
-	defaultConfig, err := sessProvider.DefaultConfig(context.Background())
+	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("default config: %v", err)
 	}
@@ -253,9 +257,9 @@ func newTaskRunOpts(vars runTaskVars) (*runTaskOpts, error) {
 		return envDescriber, nil
 	}
 
-	opts.runTaskRequestFromECSService = ecs.RunTaskRequestFromECSService
-	opts.runTaskRequestFromService = ecs.RunTaskRequestFromService
-	opts.runTaskRequestFromJob = ecs.RunTaskRequestFromJob
+	opts.runTaskRequestFromECSService = ecs.RunTaskRequestFromECSServiceWithContext
+	opts.runTaskRequestFromService = ecs.RunTaskRequestFromServiceWithContext
+	opts.runTaskRequestFromJob = ecs.RunTaskRequestFromJobWithContext
 	return &opts, nil
 }
 
@@ -327,13 +331,13 @@ func (o *runTaskOpts) configureSessAndEnv(ctx context.Context) error {
 			return err
 		}
 
-		cfg, err = o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err = o.provider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return fmt.Errorf("get config from role %s and region %s: %w", env.ManagerRoleARN, env.Region, err)
 		}
 	} else {
 		var err error
-		cfg, err = o.provider.DefaultConfig(context.Background())
+		cfg, err = o.provider.DefaultConfig(ctx)
 		if err != nil {
 			return fmt.Errorf("get default config: %w", err)
 		}
@@ -346,6 +350,11 @@ func (o *runTaskOpts) configureSessAndEnv(ctx context.Context) error {
 
 // Validate returns an error if the flag values passed by the user are invalid.
 func (o *runTaskOpts) Validate() error {
+	return o.ValidateWithContext(context.Background())
+}
+
+// ValidateWithContext validates task run flags using ctx for remote lookups.
+func (o *runTaskOpts) ValidateWithContext(ctx context.Context) error {
 	if o.generateCommandTarget != "" {
 		if o.nFlag >= 2 {
 			return errors.New("cannot specify `--generate-cmd` with any other flag")
@@ -418,13 +427,13 @@ func (o *runTaskOpts) Validate() error {
 	}
 
 	if o.appName != "" {
-		if err := o.validateAppName(context.Background()); err != nil {
+		if err := o.validateAppName(ctx); err != nil {
 			return err
 		}
 	}
 
 	if o.env != "" {
-		if err := o.validateEnvName(context.Background()); err != nil {
+		if err := o.validateEnvName(ctx); err != nil {
 			return err
 		}
 	}
@@ -686,7 +695,7 @@ func (o *runTaskOpts) Execute(ctx context.Context) error {
 	}
 
 	if o.env == "" && o.cluster == "" {
-		hasDefaultCluster, err := o.defaultClusterGetter.HasDefaultCluster()
+		hasDefaultCluster, err := o.defaultClusterGetter.HasDefaultClusterWithContext(ctx)
 		if err != nil {
 			return fmt.Errorf(`find "default" cluster to deploy the task to: %v`, err)
 		}
@@ -723,7 +732,7 @@ func (o *runTaskOpts) Execute(ctx context.Context) error {
 
 	// NOTE: if image is not provided, then we build the image and push to ECR repo
 	if o.image == "" {
-		uri, err := o.repository.Login()
+		uri, err := o.repository.LoginWithContext(ctx)
 		if err != nil {
 			return fmt.Errorf("login to docker: %w", err)
 		}
@@ -734,7 +743,7 @@ func (o *runTaskOpts) Execute(ctx context.Context) error {
 		}
 		o.image = fmt.Sprintf(fmtImageURI, uri, tag)
 
-		if err := o.buildAndPushImage(uri); err != nil {
+		if err := o.buildAndPushImage(ctx, uri); err != nil {
 			return err
 		}
 
@@ -747,7 +756,7 @@ func (o *runTaskOpts) Execute(ctx context.Context) error {
 		}
 	}
 
-	tasks, err := o.runTask()
+	tasks, err := o.runTask(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "AccessDeniedException") && strings.Contains(err.Error(), "unable to pull secrets") && o.appName != "" && o.env != "" {
 			log.Error(`It looks like your task is not able to pull the secrets.
@@ -757,14 +766,14 @@ Did you tag your secrets with the "copilot-application" and "copilot-environment
 		return err
 	}
 
-	o.showPublicIPs(tasks)
+	o.showPublicIPs(ctx, tasks)
 
 	if o.follow {
 		o.configureEventsWriter(tasks)
-		if err := o.displayLogStream(); err != nil {
+		if err := o.displayLogStream(ctx); err != nil {
 			return err
 		}
-		if err := o.runner.CheckNonZeroExitCode(tasks); err != nil {
+		if err := o.runner.CheckNonZeroExitCodeWithContext(ctx, tasks); err != nil {
 			return err
 		}
 	}
@@ -791,21 +800,21 @@ func (o *runTaskOpts) runTaskCommand(ctx context.Context) (cliStringer, error) {
 		if err != nil {
 			return nil, err
 		}
-		cfg, err := o.provider.DefaultConfig(context.Background())
+		cfg, err := o.provider.DefaultConfig(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get default config: %s", err)
 		}
-		return o.runTaskCommandFromECSService(cfg, clusterName, serviceName)
+		return o.runTaskCommandFromECSService(ctx, cfg, clusterName, serviceName)
 	}
 	parts := strings.Split(o.generateCommandTarget, "/")
 	switch len(parts) {
 	case 2:
 		clusterName, serviceName := parts[0], parts[1]
-		cfg, err := o.provider.DefaultConfig(context.Background())
+		cfg, err := o.provider.DefaultConfig(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get default config: %s", err)
 		}
-		cmd, err = o.runTaskCommandFromECSService(cfg, clusterName, serviceName)
+		cmd, err = o.runTaskCommandFromECSService(ctx, cfg, clusterName, serviceName)
 		if err != nil {
 			return nil, err
 		}
@@ -815,7 +824,7 @@ func (o *runTaskOpts) runTaskCommand(ctx context.Context) (cliStringer, error) {
 		if err != nil {
 			return nil, err
 		}
-		cfg, err := o.provider.ConfigFromRole(context.Background(), env.ManagerRoleARN, env.Region)
+		cfg, err := o.provider.ConfigFromRole(ctx, env.ManagerRoleARN, env.Region)
 		if err != nil {
 			return nil, fmt.Errorf("get environment config: %s", err)
 		}
@@ -838,8 +847,8 @@ func (o *runTaskOpts) parseARN() (string, string, error) {
 	return svcARN.ClusterName(), svcARN.ServiceName(), nil
 }
 
-func (o *runTaskOpts) runTaskCommandFromECSService(cfg aws.Config, clusterName, serviceName string) (cliStringer, error) {
-	cmd, err := o.runTaskRequestFromECSService(o.configureECSServiceDescriber(cfg), clusterName, serviceName)
+func (o *runTaskOpts) runTaskCommandFromECSService(ctx context.Context, cfg aws.Config, clusterName, serviceName string) (cliStringer, error) {
+	cmd, err := o.runTaskRequestFromECSService(ctx, o.configureECSServiceDescriber(cfg), clusterName, serviceName)
 	if err != nil {
 		var errMultipleContainers *ecs.ErrMultipleContainersInTaskDef
 		if errors.As(err, &errMultipleContainers) {
@@ -862,12 +871,12 @@ func (o *runTaskOpts) runTaskCommandFromWorkload(ctx context.Context, cfg aws.Co
 		if err := o.validateEnvCompatibilityForGenerateJobCmd(ctx, appName, envName); err != nil {
 			return nil, err
 		}
-		cmd, err = o.runTaskRequestFromJob(o.configureJobDescriber(cfg), appName, envName, workloadName)
+		cmd, err = o.runTaskRequestFromJob(ctx, o.configureJobDescriber(cfg), appName, envName, workloadName)
 		if err != nil {
 			return nil, fmt.Errorf("generate task run command from job %s of application %s deployed in environment %s: %w", workloadName, appName, envName, err)
 		}
 	case workloadTypeSvc:
-		cmd, err = o.runTaskRequestFromService(o.configureServiceDescriber(cfg), appName, envName, workloadName)
+		cmd, err = o.runTaskRequestFromService(ctx, o.configureServiceDescriber(cfg), appName, envName, workloadName)
 		if err != nil {
 			return nil, fmt.Errorf("generate task run command from service %s of application %s deployed in environment %s: %w", workloadName, appName, envName, err)
 		}
@@ -899,8 +908,8 @@ func (o *runTaskOpts) workloadType(ctx context.Context, appName, workloadName st
 	return workloadTypeInvalid, fmt.Errorf("workload %s is neither a service nor a job", workloadName)
 }
 
-func (o *runTaskOpts) displayLogStream() error {
-	if err := o.eventsWriter.WriteEventsUntilStopped(); err != nil {
+func (o *runTaskOpts) displayLogStream(ctx context.Context) error {
+	if err := o.eventsWriter.WriteEventsUntilStoppedWithContext(ctx); err != nil {
 		return fmt.Errorf("write events: %w", err)
 	}
 
@@ -910,9 +919,9 @@ func (o *runTaskOpts) displayLogStream() error {
 	return nil
 }
 
-func (o *runTaskOpts) runTask() ([]*task.Task, error) {
+func (o *runTaskOpts) runTask(ctx context.Context) ([]*task.Task, error) {
 	o.spinner.Start(fmt.Sprintf("Waiting for %s to be running for %s.", english.Plural(o.count, "task", ""), o.groupName))
-	tasks, err := o.runner.Run()
+	tasks, err := o.runner.RunWithContext(ctx)
 	if err != nil {
 		o.spinner.Stop(log.Serrorf("Failed to run %s.\n\n", o.groupName))
 		return nil, fmt.Errorf("run task %s: %w", o.groupName, err)
@@ -921,13 +930,13 @@ func (o *runTaskOpts) runTask() ([]*task.Task, error) {
 	return tasks, nil
 }
 
-func (o *runTaskOpts) showPublicIPs(tasks []*task.Task) {
+func (o *runTaskOpts) showPublicIPs(ctx context.Context, tasks []*task.Task) {
 	publicIPs := make(map[string]string)
 	for _, t := range tasks {
 		if t.ENI == "" {
 			continue
 		}
-		ip, err := o.publicIPGetter.PublicIP(t.ENI) // We will just not show the ip address if an error occurs.
+		ip, err := o.publicIPGetter.PublicIPWithContext(ctx, t.ENI) // We will just not show the ip address if an error occurs.
 		if err == nil {
 			publicIPs[t.TaskARN] = ip
 		}
@@ -950,20 +959,20 @@ func (o *runTaskOpts) showPublicIPs(tasks []*task.Task) {
 
 }
 
-func (o *runTaskOpts) buildAndPushImage(uri string) error {
+func (o *runTaskOpts) buildAndPushImage(ctx context.Context, uri string) error {
 	var additionalTags []string
 	if o.imageTag != "" {
 		additionalTags = append(additionalTags, o.imageTag)
 	}
 
-	ctx := filepath.Dir(o.dockerfilePath)
+	buildContext := filepath.Dir(o.dockerfilePath)
 	if o.dockerfileContextPath != "" {
-		ctx = o.dockerfileContextPath
+		buildContext = o.dockerfileContextPath
 	}
 	buildArgs := &dockerengine.BuildArguments{
 		URI:        uri,
 		Dockerfile: o.dockerfilePath,
-		Context:    ctx,
+		Context:    buildContext,
 		Tags:       append([]string{imageTagLatest}, additionalTags...),
 		Args:       o.dockerfileBuildArgs,
 	}
@@ -972,7 +981,7 @@ func (o *runTaskOpts) buildAndPushImage(uri string) error {
 		return fmt.Errorf("generate docker build args: %w", err)
 	}
 	log.Infof("Building your container image: docker %s\n", strings.Join(buildArgsList, " "))
-	if _, err := o.repository.BuildAndPush(context.Background(), buildArgs, log.DiagnosticWriter); err != nil {
+	if _, err := o.repository.BuildAndPush(ctx, buildArgs, log.DiagnosticWriter); err != nil {
 		return fmt.Errorf("build and push image: %w", err)
 	}
 	return nil
@@ -1039,7 +1048,7 @@ func (o *runTaskOpts) deploy(ctx context.Context) error {
 		Env:                   o.env,
 		AdditionalTags:        o.resourceTags,
 	}
-	return o.deployer.DeployTask(input, deployOpts...)
+	return o.deployer.DeployTaskWithContext(ctx, input, deployOpts...)
 }
 
 // deployEnvFileIfNeeded uploads the env file if needed, ensures that an S3 bucket is available, and returns the ARN of uploaded file.
@@ -1048,14 +1057,14 @@ func (o *runTaskOpts) deployEnvFile(ctx context.Context) (string, error) {
 		return "", nil
 	}
 
-	info, err := o.deployer.GetTaskStack(o.groupName)
+	info, err := o.deployer.GetTaskStackWithContext(ctx, o.groupName)
 	if err != nil {
 		return "", fmt.Errorf("deploy env file: %w", err)
 	}
 
 	// push env file
 	o.spinner.Start(fmt.Sprintf(fmtTaskRunEnvUploadStart, color.HighlightUserInput(o.envFile)))
-	envFileARN, err := o.pushEnvFileToS3(info.BucketName)
+	envFileARN, err := o.pushEnvFileToS3(ctx, info.BucketName)
 	if err != nil {
 		o.spinner.Stop(log.Serrorf(fmtTaskRunEnvUploadFailed, color.HighlightUserInput(o.envFile)))
 		return "", err
@@ -1066,7 +1075,7 @@ func (o *runTaskOpts) deployEnvFile(ctx context.Context) (string, error) {
 }
 
 // pushEnvFileToS3 reads an env file from disk, uploads it to a unique path, and then returns the ARN of the env file.
-func (o *runTaskOpts) pushEnvFileToS3(bucket string) (string, error) {
+func (o *runTaskOpts) pushEnvFileToS3(ctx context.Context, bucket string) (string, error) {
 	content, err := afero.ReadFile(o.fs, o.envFile)
 	if err != nil {
 		return "", fmt.Errorf("read env file %s: %w", o.envFile, err)
@@ -1074,7 +1083,7 @@ func (o *runTaskOpts) pushEnvFileToS3(bucket string) (string, error) {
 	reader := bytes.NewReader(content)
 
 	uploader := o.configureUploader(o.cfg)
-	url, err := uploader.Upload(bucket, artifactpath.EnvFiles(o.envFile, content), reader)
+	url, err := uploader.UploadWithContext(ctx, bucket, artifactpath.EnvFiles(o.envFile, content), reader)
 	if err != nil {
 		return "", fmt.Errorf("put env file %s artifact to bucket %s: %w", o.envFile, bucket, err)
 	}
@@ -1182,7 +1191,7 @@ func BuildTaskRunCmd() *cobra.Command {
   Run a task with Docker build args.
   /code $ copilot task run --build-args GO_VERSION=1.19"`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newTaskRunOpts(vars)
+			opts, err := newTaskRunOptsWithContext(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

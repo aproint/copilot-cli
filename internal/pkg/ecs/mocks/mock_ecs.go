@@ -183,6 +183,21 @@ func (mr *MockecsClientMockRecorder) DefaultCluster() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultCluster", reflect.TypeOf((*MockecsClient)(nil).DefaultCluster))
 }
 
+// DefaultClusterWithContext mocks base method.
+func (m *MockecsClient) DefaultClusterWithContext(ctx context.Context) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DefaultClusterWithContext", ctx)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DefaultClusterWithContext indicates an expected call of DefaultClusterWithContext.
+func (mr *MockecsClientMockRecorder) DefaultClusterWithContext(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultClusterWithContext", reflect.TypeOf((*MockecsClient)(nil).DefaultClusterWithContext), ctx)
+}
+
 // DescribeTasks mocks base method.
 func (m *MockecsClient) DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
@@ -196,6 +211,21 @@ func (m *MockecsClient) DescribeTasks(cluster string, taskARNs []string) ([]*ecs
 func (mr *MockecsClientMockRecorder) DescribeTasks(cluster, taskARNs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasks", reflect.TypeOf((*MockecsClient)(nil).DescribeTasks), cluster, taskARNs)
+}
+
+// DescribeTasksWithContext mocks base method.
+func (m *MockecsClient) DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTasksWithContext", ctx, cluster, taskARNs)
+	ret0, _ := ret[0].([]*ecs.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTasksWithContext indicates an expected call of DescribeTasksWithContext.
+func (mr *MockecsClientMockRecorder) DescribeTasksWithContext(ctx, cluster, taskARNs interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).DescribeTasksWithContext), ctx, cluster, taskARNs)
 }
 
 // ListServicesByNamespace mocks base method.
@@ -243,6 +273,21 @@ func (mr *MockecsClientMockRecorder) NetworkConfiguration(cluster, serviceName i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfiguration", reflect.TypeOf((*MockecsClient)(nil).NetworkConfiguration), cluster, serviceName)
 }
 
+// NetworkConfigurationWithContext mocks base method.
+func (m *MockecsClient) NetworkConfigurationWithContext(ctx context.Context, cluster, serviceName string) (*ecs.NetworkConfiguration, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NetworkConfigurationWithContext", ctx, cluster, serviceName)
+	ret0, _ := ret[0].(*ecs.NetworkConfiguration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NetworkConfigurationWithContext indicates an expected call of NetworkConfigurationWithContext.
+func (mr *MockecsClientMockRecorder) NetworkConfigurationWithContext(ctx, cluster, serviceName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NetworkConfigurationWithContext", reflect.TypeOf((*MockecsClient)(nil).NetworkConfigurationWithContext), ctx, cluster, serviceName)
+}
+
 // RunningTasks mocks base method.
 func (m *MockecsClient) RunningTasks(cluster string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
@@ -271,6 +316,36 @@ func (m *MockecsClient) RunningTasksInFamily(cluster, family string) ([]*ecs.Tas
 func (mr *MockecsClientMockRecorder) RunningTasksInFamily(cluster, family interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasksInFamily", reflect.TypeOf((*MockecsClient)(nil).RunningTasksInFamily), cluster, family)
+}
+
+// RunningTasksInFamilyWithContext mocks base method.
+func (m *MockecsClient) RunningTasksInFamilyWithContext(ctx context.Context, cluster, family string) ([]*ecs.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RunningTasksInFamilyWithContext", ctx, cluster, family)
+	ret0, _ := ret[0].([]*ecs.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunningTasksInFamilyWithContext indicates an expected call of RunningTasksInFamilyWithContext.
+func (mr *MockecsClientMockRecorder) RunningTasksInFamilyWithContext(ctx, cluster, family interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasksInFamilyWithContext", reflect.TypeOf((*MockecsClient)(nil).RunningTasksInFamilyWithContext), ctx, cluster, family)
+}
+
+// RunningTasksWithContext mocks base method.
+func (m *MockecsClient) RunningTasksWithContext(ctx context.Context, cluster string) ([]*ecs.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RunningTasksWithContext", ctx, cluster)
+	ret0, _ := ret[0].([]*ecs.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunningTasksWithContext indicates an expected call of RunningTasksWithContext.
+func (mr *MockecsClientMockRecorder) RunningTasksWithContext(ctx, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunningTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).RunningTasksWithContext), ctx, cluster)
 }
 
 // Service mocks base method.
@@ -390,6 +465,25 @@ func (mr *MockecsClientMockRecorder) StopTasks(tasks interface{}, opts ...interf
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{tasks}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopTasks", reflect.TypeOf((*MockecsClient)(nil).StopTasks), varargs...)
+}
+
+// StopTasksWithContext mocks base method.
+func (m *MockecsClient) StopTasksWithContext(ctx context.Context, tasks []string, opts ...ecs.StopTasksOpts) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, tasks}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "StopTasksWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StopTasksWithContext indicates an expected call of StopTasksWithContext.
+func (mr *MockecsClientMockRecorder) StopTasksWithContext(ctx, tasks interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, tasks}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopTasksWithContext", reflect.TypeOf((*MockecsClient)(nil).StopTasksWithContext), varargs...)
 }
 
 // StoppedServiceTasks mocks base method.
@@ -526,4 +620,19 @@ func (m *MockstepFunctionsClient) StateMachineDefinition(stateMachineARN string)
 func (mr *MockstepFunctionsClientMockRecorder) StateMachineDefinition(stateMachineARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateMachineDefinition", reflect.TypeOf((*MockstepFunctionsClient)(nil).StateMachineDefinition), stateMachineARN)
+}
+
+// StateMachineDefinitionWithContext mocks base method.
+func (m *MockstepFunctionsClient) StateMachineDefinitionWithContext(ctx context.Context, stateMachineARN string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StateMachineDefinitionWithContext", ctx, stateMachineARN)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StateMachineDefinitionWithContext indicates an expected call of StateMachineDefinitionWithContext.
+func (mr *MockstepFunctionsClientMockRecorder) StateMachineDefinitionWithContext(ctx, stateMachineARN interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StateMachineDefinitionWithContext", reflect.TypeOf((*MockstepFunctionsClient)(nil).StateMachineDefinitionWithContext), ctx, stateMachineARN)
 }

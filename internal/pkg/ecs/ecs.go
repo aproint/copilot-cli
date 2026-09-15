@@ -37,21 +37,27 @@ type resourceGetter interface {
 
 type ecsClient interface {
 	DefaultCluster() (string, error)
+	DefaultClusterWithContext(ctx context.Context) (string, error)
 	Service(clusterName, serviceName string) (*ecs.Service, error)
 	ServiceWithContext(ctx context.Context, clusterName, serviceName string) (*ecs.Service, error)
 	NetworkConfiguration(cluster, serviceName string) (*ecs.NetworkConfiguration, error)
+	NetworkConfigurationWithContext(ctx context.Context, cluster, serviceName string) (*ecs.NetworkConfiguration, error)
 	RunningTasks(cluster string) ([]*ecs.Task, error)
+	RunningTasksWithContext(ctx context.Context, cluster string) ([]*ecs.Task, error)
 	RunningTasksInFamily(cluster, family string) ([]*ecs.Task, error)
+	RunningTasksInFamilyWithContext(ctx context.Context, cluster, family string) ([]*ecs.Task, error)
 	ServiceRunningTasks(clusterName, serviceName string) ([]*ecs.Task, error)
 	ServiceRunningTasksWithContext(ctx context.Context, clusterName, serviceName string) ([]*ecs.Task, error)
 	StoppedServiceTasks(cluster, service string) ([]*ecs.Task, error)
 	StoppedServiceTasksWithContext(ctx context.Context, cluster, service string) ([]*ecs.Task, error)
 	StopTasks(tasks []string, opts ...ecs.StopTasksOpts) error
+	StopTasksWithContext(ctx context.Context, tasks []string, opts ...ecs.StopTasksOpts) error
 	TaskDefinition(taskDefName string) (*ecs.TaskDefinition, error)
 	TaskDefinitionWithContext(ctx context.Context, taskDefName string) (*ecs.TaskDefinition, error)
 	UpdateService(clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error
 	UpdateServiceWithContext(ctx context.Context, clusterName, serviceName string, opts ...ecs.UpdateServiceOpts) error
 	DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error)
+	DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error)
 	ActiveClusters(arns ...string) ([]string, error)
 	ActiveClustersWithContext(ctx context.Context, arns ...string) ([]string, error)
 	ActiveServices(clusterName string, serviceARNs ...string) ([]string, error)
@@ -64,6 +70,7 @@ type ecsClient interface {
 
 type stepFunctionsClient interface {
 	StateMachineDefinition(stateMachineARN string) (string, error)
+	StateMachineDefinitionWithContext(ctx context.Context, stateMachineARN string) (string, error)
 }
 
 // EnvVar contains the value of an environment variable
@@ -105,6 +112,11 @@ func NewWithStepFunctionsConfig(cfg aws.Config) *Client {
 // ClusterARN returns the ARN of the cluster in an environment.
 func (c Client) ClusterARN(app, env string) (string, error) {
 	return c.clusterARN(app, env)
+}
+
+// ClusterARNWithContext returns the ARN of the cluster in an environment using ctx.
+func (c Client) ClusterARNWithContext(ctx context.Context, app, env string) (string, error) {
+	return c.clusterARNWithContext(ctx, app, env)
 }
 
 // ForceUpdateService forces a new update for an ECS service given Copilot service info.
@@ -269,11 +281,16 @@ type listActiveCopilotTasksOpts struct {
 
 // ListActiveAppEnvTasks returns the active Copilot tasks in the environment of an application.
 func (c Client) ListActiveAppEnvTasks(opts ListActiveAppEnvTasksOpts) ([]*ecs.Task, error) {
-	clusterARN, err := c.ClusterARN(opts.App, opts.Env)
+	return c.ListActiveAppEnvTasksWithContext(context.Background(), opts)
+}
+
+// ListActiveAppEnvTasksWithContext returns active Copilot tasks in an environment using ctx.
+func (c Client) ListActiveAppEnvTasksWithContext(ctx context.Context, opts ListActiveAppEnvTasksOpts) ([]*ecs.Task, error) {
+	clusterARN, err := c.ClusterARNWithContext(ctx, opts.App, opts.Env)
 	if err != nil {
 		return nil, err
 	}
-	return c.listActiveCopilotTasks(listActiveCopilotTasksOpts{
+	return c.listActiveCopilotTasks(ctx, listActiveCopilotTasksOpts{
 		Cluster:         clusterARN,
 		ListTasksFilter: opts.ListTasksFilter,
 	})
@@ -281,11 +298,16 @@ func (c Client) ListActiveAppEnvTasks(opts ListActiveAppEnvTasksOpts) ([]*ecs.Ta
 
 // ListActiveDefaultClusterTasks returns the active Copilot tasks in the default cluster.
 func (c Client) ListActiveDefaultClusterTasks(filter ListTasksFilter) ([]*ecs.Task, error) {
-	defaultCluster, err := c.ecsClient.DefaultCluster()
+	return c.ListActiveDefaultClusterTasksWithContext(context.Background(), filter)
+}
+
+// ListActiveDefaultClusterTasksWithContext returns active Copilot tasks in the default cluster using ctx.
+func (c Client) ListActiveDefaultClusterTasksWithContext(ctx context.Context, filter ListTasksFilter) ([]*ecs.Task, error) {
+	defaultCluster, err := c.ecsClient.DefaultClusterWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get default cluster: %w", err)
 	}
-	return c.listActiveCopilotTasks(listActiveCopilotTasksOpts{
+	return c.listActiveCopilotTasks(ctx, listActiveCopilotTasksOpts{
 		Cluster:         defaultCluster,
 		ListTasksFilter: filter,
 	})
@@ -293,22 +315,32 @@ func (c Client) ListActiveDefaultClusterTasks(filter ListTasksFilter) ([]*ecs.Ta
 
 // StopWorkloadTasks stops all tasks in the given application, enviornment, and workload.
 func (c Client) StopWorkloadTasks(app, env, workload string) error {
-	return c.stopTasks(app, env, ListTasksFilter{
+	return c.StopWorkloadTasksWithContext(context.Background(), app, env, workload)
+}
+
+// StopWorkloadTasksWithContext stops workload tasks using ctx.
+func (c Client) StopWorkloadTasksWithContext(ctx context.Context, app, env, workload string) error {
+	return c.stopTasks(ctx, app, env, ListTasksFilter{
 		TaskGroup: fmt.Sprintf(fmtWorkloadTaskDefinitionFamily, app, env, workload),
 	})
 }
 
 // StopOneOffTasks stops all one-off tasks in the given application and environment with the family name.
 func (c Client) StopOneOffTasks(app, env, family string) error {
-	return c.stopTasks(app, env, ListTasksFilter{
+	return c.StopOneOffTasksWithContext(context.Background(), app, env, family)
+}
+
+// StopOneOffTasksWithContext stops one-off tasks using ctx.
+func (c Client) StopOneOffTasksWithContext(ctx context.Context, app, env, family string) error {
+	return c.stopTasks(ctx, app, env, ListTasksFilter{
 		TaskGroup:   fmt.Sprintf(fmtTaskTaskDefinitionFamily, family),
 		CopilotOnly: true,
 	})
 }
 
 // stopTasks stops all tasks in the given application and environment in the given family.
-func (c Client) stopTasks(app, env string, filter ListTasksFilter) error {
-	tasks, err := c.ListActiveAppEnvTasks(ListActiveAppEnvTasksOpts{
+func (c Client) stopTasks(ctx context.Context, app, env string, filter ListTasksFilter) error {
+	tasks, err := c.ListActiveAppEnvTasksWithContext(ctx, ListActiveAppEnvTasksOpts{
 		App:             app,
 		Env:             env,
 		ListTasksFilter: filter,
@@ -320,17 +352,22 @@ func (c Client) stopTasks(app, env string, filter ListTasksFilter) error {
 	for n, task := range tasks {
 		taskIDs[n] = aws.ToString(task.TaskArn)
 	}
-	clusterARN, err := c.ClusterARN(app, env)
+	clusterARN, err := c.ClusterARNWithContext(ctx, app, env)
 	if err != nil {
 		return fmt.Errorf("get cluster for env %s: %w", env, err)
 	}
-	return c.ecsClient.StopTasks(taskIDs, ecs.WithStopTaskCluster(clusterARN), ecs.WithStopTaskReason(taskStopReason))
+	return c.ecsClient.StopTasksWithContext(ctx, taskIDs, ecs.WithStopTaskCluster(clusterARN), ecs.WithStopTaskReason(taskStopReason))
 }
 
 // StopDefaultClusterTasks stops all copilot tasks from the given family in the default cluster.
 func (c Client) StopDefaultClusterTasks(familyName string) error {
+	return c.StopDefaultClusterTasksWithContext(context.Background(), familyName)
+}
+
+// StopDefaultClusterTasksWithContext stops one-off tasks in the default cluster using ctx.
+func (c Client) StopDefaultClusterTasksWithContext(ctx context.Context, familyName string) error {
 	tdFamily := fmt.Sprintf(fmtTaskTaskDefinitionFamily, familyName)
-	tasks, err := c.ListActiveDefaultClusterTasks(ListTasksFilter{
+	tasks, err := c.ListActiveDefaultClusterTasksWithContext(ctx, ListTasksFilter{
 		TaskGroup:   tdFamily,
 		CopilotOnly: true,
 	})
@@ -341,7 +378,7 @@ func (c Client) StopDefaultClusterTasks(familyName string) error {
 	for n, task := range tasks {
 		taskIDs[n] = aws.ToString(task.TaskArn)
 	}
-	return c.ecsClient.StopTasks(taskIDs, ecs.WithStopTaskReason(taskStopReason))
+	return c.ecsClient.StopTasksWithContext(ctx, taskIDs, ecs.WithStopTaskReason(taskStopReason))
 }
 
 // TaskDefinition returns the task definition of the service.
@@ -366,25 +403,35 @@ func (c Client) TaskDefinitionWithContext(ctx context.Context, app, env, svc str
 
 // NetworkConfiguration returns the network configuration of the service.
 func (c Client) NetworkConfiguration(app, env, svc string) (*ecs.NetworkConfiguration, error) {
-	clusterARN, err := c.clusterARN(app, env)
+	return c.NetworkConfigurationWithContext(context.Background(), app, env, svc)
+}
+
+// NetworkConfigurationWithContext returns a service network configuration using ctx.
+func (c Client) NetworkConfigurationWithContext(ctx context.Context, app, env, svc string) (*ecs.NetworkConfiguration, error) {
+	clusterARN, err := c.clusterARNWithContext(ctx, app, env)
 	if err != nil {
 		return nil, err
 	}
-	arn, err := c.serviceARN(app, env, svc)
+	arn, err := c.serviceARNWithContext(ctx, app, env, svc)
 	if err != nil {
 		return nil, err
 	}
-	return c.ecsClient.NetworkConfiguration(clusterARN, arn.ServiceName())
+	return c.ecsClient.NetworkConfigurationWithContext(ctx, clusterARN, arn.ServiceName())
 }
 
 // NetworkConfigurationForJob returns the network configuration of the job.
 func (c Client) NetworkConfigurationForJob(app, env, job string) (*ecs.NetworkConfiguration, error) {
-	jobARN, err := c.stateMachineARN(app, env, job)
+	return c.NetworkConfigurationForJobWithContext(context.Background(), app, env, job)
+}
+
+// NetworkConfigurationForJobWithContext returns a job network configuration using ctx.
+func (c Client) NetworkConfigurationForJobWithContext(ctx context.Context, app, env, job string) (*ecs.NetworkConfiguration, error) {
+	jobARN, err := c.stateMachineARNWithContext(ctx, app, env, job)
 	if err != nil {
 		return nil, err
 	}
 
-	raw, err := c.StepFuncClient.StateMachineDefinition(jobARN)
+	raw, err := c.StepFuncClient.StateMachineDefinitionWithContext(ctx, jobARN)
 	if err != nil {
 		return nil, fmt.Errorf("get state machine definition for job %s: %w", job, err)
 	}
@@ -455,16 +502,16 @@ func (n *NetworkConfiguration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (c Client) listActiveCopilotTasks(opts listActiveCopilotTasksOpts) ([]*ecs.Task, error) {
+func (c Client) listActiveCopilotTasks(ctx context.Context, opts listActiveCopilotTasksOpts) ([]*ecs.Task, error) {
 	var tasks []*ecs.Task
 	if opts.TaskGroup != "" {
-		resp, err := c.ecsClient.RunningTasksInFamily(opts.Cluster, opts.TaskGroup)
+		resp, err := c.ecsClient.RunningTasksInFamilyWithContext(ctx, opts.Cluster, opts.TaskGroup)
 		if err != nil {
 			return nil, fmt.Errorf("list running tasks in family %s and cluster %s: %w", opts.TaskGroup, opts.Cluster, err)
 		}
 		tasks = resp
 	} else {
-		resp, err := c.ecsClient.RunningTasks(opts.Cluster)
+		resp, err := c.ecsClient.RunningTasksWithContext(ctx, opts.Cluster)
 		if err != nil {
 			return nil, fmt.Errorf("list running tasks in cluster %s: %w", opts.Cluster, err)
 		}
@@ -671,12 +718,16 @@ func (tags tags) String() string {
 }
 
 func (c Client) stateMachineARN(app, env, job string) (string, error) {
+	return c.stateMachineARNWithContext(context.Background(), app, env, job)
+}
+
+func (c Client) stateMachineARNWithContext(ctx context.Context, app, env, job string) (string, error) {
 	tags := tags(map[string]string{
 		deploy.AppTagKey:     app,
 		deploy.EnvTagKey:     env,
 		deploy.ServiceTagKey: job,
 	})
-	resources, err := c.rgGetter.GetResourcesByTags(resourcegroups.ResourceTypeStateMachine, tags)
+	resources, err := c.rgGetter.GetResourcesByTagsWithContext(ctx, resourcegroups.ResourceTypeStateMachine, tags)
 	if err != nil {
 		return "", fmt.Errorf("get state machine resource with tags %s: %w", tags.String(), err)
 	}
@@ -706,7 +757,12 @@ func (c Client) stateMachineARN(app, env, job string) (string, error) {
 
 // HasNonZeroExitCode returns an error if at least one of the tasks exited with a non-zero exit code. It assumes that all tasks are built on the same task definition.
 func (c Client) HasNonZeroExitCode(taskARNs []string, cluster string) error {
-	tasks, err := c.ecsClient.DescribeTasks(cluster, taskARNs)
+	return c.HasNonZeroExitCodeWithContext(context.Background(), taskARNs, cluster)
+}
+
+// HasNonZeroExitCodeWithContext checks task exit codes using ctx.
+func (c Client) HasNonZeroExitCodeWithContext(ctx context.Context, taskARNs []string, cluster string) error {
+	tasks, err := c.ecsClient.DescribeTasksWithContext(ctx, cluster, taskARNs)
 	if err != nil {
 		return fmt.Errorf("describe tasks %s: %w", taskARNs, err)
 	}
@@ -716,7 +772,7 @@ func (c Client) HasNonZeroExitCode(taskARNs []string, cluster string) error {
 	}
 
 	taskDefinitonARN := aws.ToString(tasks[0].TaskDefinitionArn)
-	taskDefinition, err := c.ecsClient.TaskDefinition(taskDefinitonARN)
+	taskDefinition, err := c.ecsClient.TaskDefinitionWithContext(ctx, taskDefinitonARN)
 	if err != nil {
 		return fmt.Errorf("get task definition %s: %w", taskDefinitonARN, err)
 	}

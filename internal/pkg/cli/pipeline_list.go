@@ -95,7 +95,7 @@ func newListPipelinesOptsWithContext(ctx context.Context, vars listPipelineVars)
 // Ask asks for and validates fields that are required but not passed in.
 func (o *listPipelineOpts) Ask(ctx context.Context) error {
 	if o.shouldShowLocalPipelines {
-		return validateWorkspaceApp(o.wsAppName, o.appName, o.store)
+		return validateWorkspaceAppWithContext(ctx, o.wsAppName, o.appName, o.store)
 	}
 
 	if o.appName != "" {

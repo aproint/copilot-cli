@@ -159,17 +159,17 @@ func (o *showAppOpts) description(ctx context.Context) (*describe.App, error) {
 		return nil, fmt.Errorf("list jobs in application %s: %w", o.name, err)
 	}
 	wkldDeployedtoEnvs := make(map[string][]string)
-	ctx, cancelWait := context.WithTimeout(ctx, waitForStackTimeout)
+	waitCtx, cancelWait := context.WithTimeout(ctx, waitForStackTimeout)
 	defer cancelWait()
-	g, _ := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(waitCtx)
 	var mux sync.Mutex
 	for i := range envs {
 		env := envs[i]
 		g.Go(func() error {
-			return o.populateDeployedWorkloads(ctx, o.deployStore.ListDeployedJobs, wkldDeployedtoEnvs, env.Name, &mux)
+			return o.populateDeployedWorkloads(waitCtx, o.deployStore.ListDeployedJobs, wkldDeployedtoEnvs, env.Name, &mux)
 		})
 		g.Go(func() error {
-			return o.populateDeployedWorkloads(ctx, o.deployStore.ListDeployedServices, wkldDeployedtoEnvs, env.Name, &mux)
+			return o.populateDeployedWorkloads(waitCtx, o.deployStore.ListDeployedServices, wkldDeployedtoEnvs, env.Name, &mux)
 		})
 	}
 	if err := g.Wait(); err != nil {

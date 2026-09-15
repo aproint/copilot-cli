@@ -280,7 +280,7 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 							Name: "mockEnv",
 						},
 					}, nil),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockSvc",
@@ -305,12 +305,12 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 						Name: "mockEnv2",
 					},
 				}, nil)
-				m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+				m.rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
 					AppTagKey:     "mockApp",
 					EnvTagKey:     "mockEnv1",
 					ServiceTagKey: "mockSvc",
 				}).Return([]*rg.Resource{{ARN: "mockSvcARN"}}, nil)
-				m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+				m.rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
 					AppTagKey:     "mockApp",
 					EnvTagKey:     "mockEnv2",
 					ServiceTagKey: "mockSvc",
@@ -352,6 +352,56 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 				require.NoError(t, err)
 			}
 		})
+	}
+}
+
+func TestStore_ListEnvironmentsDeployedToWaitsForConcurrentLookups(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "list-environments")
+
+	ctrl := gomock.NewController(t)
+	configStore := mocks.NewMockConfigStoreClient(ctrl)
+	rgGetter := mocks.NewMockResourceGetter(ctrl)
+	secondLookupStarted := make(chan struct{})
+	secondLookupFinished := make(chan struct{})
+
+	configStore.EXPECT().ListEnvironments(callerCtx, "mockApp").Return([]*config.Environment{
+		{Name: "first"},
+		{Name: "second"},
+	}, nil)
+	rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
+		AppTagKey:     "mockApp",
+		EnvTagKey:     "first",
+		ServiceTagKey: "mockSvc",
+	}).DoAndReturn(func(context.Context, string, map[string]string) ([]*rg.Resource, error) {
+		<-secondLookupStarted
+		return nil, context.Canceled
+	})
+	rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
+		AppTagKey:     "mockApp",
+		EnvTagKey:     "second",
+		ServiceTagKey: "mockSvc",
+	}).DoAndReturn(func(ctx context.Context, _ string, _ map[string]string) ([]*rg.Resource, error) {
+		close(secondLookupStarted)
+		<-ctx.Done()
+		close(secondLookupFinished)
+		return nil, ctx.Err()
+	})
+
+	store := &Store{
+		configStore: configStore,
+		newRgClientFromRole: func(context.Context, string, string) (ResourceGetter, error) {
+			return rgGetter, nil
+		},
+	}
+
+	_, err := store.ListEnvironmentsDeployedTo(callerCtx, "mockApp", "mockSvc")
+
+	require.ErrorIs(t, err, context.Canceled)
+	select {
+	case <-secondLookupFinished:
+	default:
+		t.Fatal("returned before all environment lookups stopped")
 	}
 }
 

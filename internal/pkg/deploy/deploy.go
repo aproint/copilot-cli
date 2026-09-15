@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"sync"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
@@ -17,6 +18,7 @@ import (
 
 	rg "github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -292,27 +294,30 @@ func (s *Store) ListEnvironmentsDeployedTo(ctx context.Context, appName string, 
 	if err != nil {
 		return nil, fmt.Errorf("list environment for app %s: %w", appName, err)
 	}
-	deployedEnv := make(chan result, len(envs))
-	defer close(deployedEnv)
-	for _, env := range envs {
-		go func(env *config.Environment) {
-			rgClient, err := s.newRgClientFromRole(ctx, env.ManagerRoleARN, env.Region)
-			if err != nil {
-				deployedEnv <- result{err: err}
-				return
-			}
-			deployedEnv <- s.deployedServices(ctx, rgClient, appName, env.Name, svcName)
-		}(env)
-	}
+	g, groupCtx := errgroup.WithContext(ctx)
+	var mux sync.Mutex
 	var envsWithDeployment []string
-	for i := 0; i < len(envs); i++ {
-		env := <-deployedEnv
-		if env.err != nil {
-			return nil, env.err
-		}
-		if env.name != "" {
-			envsWithDeployment = append(envsWithDeployment, env.name)
-		}
+	for _, env := range envs {
+		env := env
+		g.Go(func() error {
+			rgClient, err := s.newRgClientFromRole(groupCtx, env.ManagerRoleARN, env.Region)
+			if err != nil {
+				return err
+			}
+			result := s.deployedServices(groupCtx, rgClient, appName, env.Name, svcName)
+			if result.err != nil {
+				return result.err
+			}
+			if result.name != "" {
+				mux.Lock()
+				envsWithDeployment = append(envsWithDeployment, result.name)
+				mux.Unlock()
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return envsWithDeployment, nil
 }

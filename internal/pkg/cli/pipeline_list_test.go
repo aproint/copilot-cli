@@ -130,6 +130,27 @@ func TestPipelineList_Ask(t *testing.T) {
 	}
 }
 
+func TestPipelineList_AskPropagatesCancellationForLocalValidation(t *testing.T) {
+	callerCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	ctrl := gomock.NewController(t)
+	store := mocks.NewMockstore(ctrl)
+	store.EXPECT().GetApplication(callerCtx, "my-app").Return(nil, callerCtx.Err())
+
+	opts := &listPipelineOpts{
+		listPipelineVars: listPipelineVars{
+			shouldShowLocalPipelines: true,
+		},
+		store:     store,
+		wsAppName: "my-app",
+	}
+
+	err := opts.Ask(callerCtx)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
 func TestPipelineList_Execute(t *testing.T) {
 	const (
 		mockAppName                    = "coolapp"

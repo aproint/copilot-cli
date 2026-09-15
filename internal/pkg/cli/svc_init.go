@@ -849,10 +849,14 @@ func (o *initSvcOpts) askSvcPublishers(ctx context.Context) (err error) {
 }
 
 func validateWorkspaceApp(wsApp, inputApp string, store store) error {
+	return validateWorkspaceAppWithContext(context.Background(), wsApp, inputApp, store)
+}
+
+func validateWorkspaceAppWithContext(ctx context.Context, wsApp, inputApp string, store store) error {
 	if err := validateWorkspaceAppInput(wsApp, inputApp); err != nil {
 		return err
 	}
-	if _, err := store.GetApplication(context.Background(), wsApp); err != nil {
+	if _, err := store.GetApplication(ctx, wsApp); err != nil {
 		return fmt.Errorf("get application %s configuration: %w", wsApp, err)
 	}
 	return nil

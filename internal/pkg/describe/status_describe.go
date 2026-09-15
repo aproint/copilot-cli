@@ -5,6 +5,7 @@ package describe
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -265,6 +266,9 @@ func (s *ecsStatusDescriber) Describe() (HumanJSONStringer, error) {
 			targetsHealth, err = s.targetHealthGetter.TargetsHealthWithContext(s.ctx, groupARN)
 		}
 		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, err
+			}
 			continue
 		}
 		tasksTargetHealth = append(tasksTargetHealth, targetHealthForTasks(targetsHealth, svcDesc.Tasks, groupARN)...)

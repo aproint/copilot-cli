@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -33,6 +34,48 @@ type serviceStatusDescriberMocks struct {
 	targetHealthGetter    *mocks.MocktargetHealthGetter
 	s3Client              *mocks.MockbucketNameGetter
 	bucketDataGetter      *mocks.MockbucketDataGetter
+}
+
+func TestServiceStatus_DescribeReturnsTargetHealthCancellation(t *testing.T) {
+	callerCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	ctrl := gomock.NewController(t)
+	serviceDescriber := mocks.NewMockserviceDescriber(ctrl)
+	ecsServiceGetter := mocks.NewMockecsServiceGetter(ctrl)
+	alarmStatusGetter := mocks.NewMockalarmStatusGetter(ctrl)
+	aasGetter := mocks.NewMockautoscalingAlarmNamesGetter(ctrl)
+	targetHealthGetter := mocks.NewMocktargetHealthGetter(ctrl)
+
+	serviceDescriber.EXPECT().DescribeServiceWithContext(callerCtx, "mockApp", "mockEnv", "mockSvc").Return(&ecs.ServiceDesc{
+		ClusterName: "mockCluster",
+		Name:        "mockService",
+	}, nil)
+	ecsServiceGetter.EXPECT().ServiceWithContext(callerCtx, "mockCluster", "mockService").Return(&awsecs.Service{
+		LoadBalancers: []ecsapi.LoadBalancer{{TargetGroupArn: aws.String("group-1")}},
+		Deployments:   []ecsapi.Deployment{{}},
+	}, nil)
+	alarmStatusGetter.EXPECT().AlarmsWithTagsWithContext(callerCtx, gomock.Any()).Return(nil, nil)
+	aasGetter.EXPECT().ECSServiceAlarmNamesWithContext(callerCtx, "mockCluster", "mockService").Return(nil, nil)
+	alarmStatusGetter.EXPECT().AlarmStatusesWithContext(callerCtx, gomock.Any()).Return(nil, nil)
+	targetHealthGetter.EXPECT().TargetsHealthWithContext(callerCtx, "group-1").Return(nil, callerCtx.Err())
+
+	describer := &ecsStatusDescriber{
+		ctx:                callerCtx,
+		contextEnabled:     true,
+		app:                "mockApp",
+		env:                "mockEnv",
+		svc:                "mockSvc",
+		svcDescriber:       serviceDescriber,
+		ecsSvcGetter:       ecsServiceGetter,
+		cwSvcGetter:        alarmStatusGetter,
+		aasSvcGetter:       aasGetter,
+		targetHealthGetter: targetHealthGetter,
+	}
+
+	_, err := describer.Describe()
+
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestServiceStatus_Describe(t *testing.T) {

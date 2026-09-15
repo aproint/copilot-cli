@@ -158,6 +158,41 @@ func TestShowAppOpts_Ask(t *testing.T) {
 	}
 }
 
+func TestShowAppOpts_ExecuteKeepsWorkloadTimeoutOutOfLaterReads(t *testing.T) {
+	type contextKey string
+	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "app-show")
+
+	ctrl := gomock.NewController(t)
+	store := mocks.NewMockstore(ctrl)
+	deployStore := mocks.NewMockdeployedEnvironmentLister(ctrl)
+	pipelineLister := mocks.NewMockdeployedPipelineLister(ctrl)
+	mockVersionGetter := mocks.NewMockversionGetter(ctrl)
+
+	store.EXPECT().GetApplication(callerCtx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
+	store.EXPECT().ListEnvironments(callerCtx, "my-app").Return(nil, nil)
+	store.EXPECT().ListServices(callerCtx, "my-app").Return(nil, nil)
+	store.EXPECT().ListJobs(callerCtx, "my-app").Return(nil, nil)
+	pipelineLister.EXPECT().ListDeployedPipelinesWithContext(callerCtx, "my-app").Return(nil, nil)
+	mockVersionGetter.EXPECT().Version().Return("v1.0.0", nil)
+
+	opts := &showAppOpts{
+		showAppVars:    showAppVars{name: "my-app"},
+		store:          store,
+		w:              &bytes.Buffer{},
+		deployStore:    deployStore,
+		pipelineLister: pipelineLister,
+		newVersionGetter: func(ctx context.Context, app string) (versionGetter, error) {
+			require.Equal(t, callerCtx, ctx)
+			require.Equal(t, "my-app", app)
+			return mockVersionGetter, nil
+		},
+	}
+
+	err := opts.Execute(callerCtx)
+
+	require.NoError(t, err)
+}
+
 func TestShowAppOpts_Execute(t *testing.T) {
 	const (
 		mockAppName            = "my-app"

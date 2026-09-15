@@ -6,6 +6,7 @@ package customresource
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +16,32 @@ import (
 
 	"github.com/aproint/copilot-cli/internal/pkg/template"
 )
+
+func TestUploadWithContext(t *testing.T) {
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	crs := []*CustomResource{{name: "Func", zip: new(bytes.Buffer)}}
+
+	urls, err := UploadWithContext(ctx, func(uploadCtx context.Context, key string, _ io.Reader) (string, error) {
+		require.Same(t, ctx, uploadCtx)
+		require.Equal(t, crs[0].ArtifactPath(), key)
+		return "url", nil
+	}, crs)
+
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"Func": "url"}, urls)
+}
+
+func TestUploadWithContextStopsOnCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := UploadWithContext(ctx, func(context.Context, string, io.Reader) (string, error) {
+		t.Fatal("upload should not be called after cancellation")
+		return "", nil
+	}, []*CustomResource{{name: "Func", zip: new(bytes.Buffer)}})
+
+	require.ErrorIs(t, err, context.Canceled)
+}
 
 type fakeTemplateReader struct {
 	files map[string]*template.Content

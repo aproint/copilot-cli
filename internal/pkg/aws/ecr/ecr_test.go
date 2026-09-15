@@ -4,6 +4,7 @@
 package ecr
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -16,6 +17,40 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAuthWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockapi(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+	encoded := base64.StdEncoding.EncodeToString([]byte("username:password"))
+
+	client.EXPECT().GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{}).Return(&ecr.GetAuthorizationTokenOutput{
+		AuthorizationData: []types.AuthorizationData{{AuthorizationToken: awsv2.String(encoded)}},
+	}, nil)
+
+	username, password, err := (ECR{client}).AuthWithContext(ctx)
+
+	require.NoError(t, err)
+	require.Equal(t, "username", username)
+	require.Equal(t, "password", password)
+}
+
+func TestRepositoryURIWithContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mocks.NewMockapi(ctrl)
+	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
+
+	client.EXPECT().DescribeRepositories(ctx, &ecr.DescribeRepositoriesInput{
+		RepositoryNames: []string{"repository"},
+	}).Return(&ecr.DescribeRepositoriesOutput{
+		Repositories: []types.Repository{{RepositoryUri: awsv2.String("repository-uri")}},
+	}, nil)
+
+	uri, err := (ECR{client}).RepositoryURIWithContext(ctx, "repository")
+
+	require.NoError(t, err)
+	require.Equal(t, "repository-uri", uri)
+}
 
 func TestAuth(t *testing.T) {
 	mockError := errors.New("error")

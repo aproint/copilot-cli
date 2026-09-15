@@ -44,11 +44,7 @@ type showEnvOpts struct {
 	initEnvDescriber func(ctx context.Context) error
 }
 
-func newShowEnvOpts(vars showEnvVars) (*showEnvOpts, error) {
-	return newShowEnvOptsWithContext(context.Background(), vars)
-}
-
-func newShowEnvOptsWithContext(ctx context.Context, vars showEnvVars) (*showEnvOpts, error) {
+func newShowEnvOpts(ctx context.Context, vars showEnvVars) (*showEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env show"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -85,7 +81,7 @@ func newShowEnvOptsWithContext(ctx context.Context, vars showEnvVars) (*showEnvO
 }
 
 // Validate returns an error if any optional flags are invalid.
-func (o *showEnvOpts) Validate() error {
+func (o *showEnvOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -183,7 +179,7 @@ func buildEnvShowCmd() *cobra.Command {
   Print manifest file for deploying the "prod" environment.
   /code $ copilot env show -n prod --manifest`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newShowEnvOptsWithContext(cmd.Context(), vars)
+			opts, err := newShowEnvOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

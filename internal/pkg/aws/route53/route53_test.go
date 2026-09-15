@@ -232,7 +232,7 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 				hostedZoneIDFor: make(map[string]string),
 			}
 
-			gotID, gotErr := service.PublicDomainHostedZoneID(tc.domainName)
+			gotID, gotErr := service.PublicDomainHostedZoneID(context.Background(), tc.domainName)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -269,12 +269,12 @@ func TestRoute53_DomainHostedZoneID(t *testing.T) {
 		}
 
 		// Call once and make the request.
-		actual, err := service.PublicDomainHostedZoneID("example.com")
+		actual, err := service.PublicDomainHostedZoneID(context.Background(), "example.com")
 		require.NoError(t, err)
 		require.Equal(t, "Z0698117FUWMJ87C39TF", actual)
 
 		// Call again and Times should be 1.
-		actual, err = service.PublicDomainHostedZoneID("example.com")
+		actual, err = service.PublicDomainHostedZoneID(context.Background(), "example.com")
 		require.NoError(t, err)
 		require.Equal(t, "Z0698117FUWMJ87C39TF", actual)
 	})
@@ -295,7 +295,7 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		}
 
 		// WHEN
-		err := r53.ValidateDomainOwnership("example.com")
+		err := r53.ValidateDomainOwnership(context.Background(), "example.com")
 
 		// THEN
 		require.EqualError(t, err, `list resource record sets for hosted zone ID "Z0698117FUWMJ87C39TF": some error`)
@@ -318,7 +318,7 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		}
 
 		// WHEN
-		err := r53.ValidateDomainOwnership("example.com")
+		err := r53.ValidateDomainOwnership(context.Background(), "example.com")
 
 		// THEN
 		require.EqualError(t, err, `look up NS records for domain "example.com": some error`)
@@ -363,7 +363,7 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		}
 
 		// WHEN
-		err := r53.ValidateDomainOwnership("example.com")
+		err := r53.ValidateDomainOwnership(context.Background(), "example.com")
 
 		// THEN
 		var wanted *ErrUnmatchedNSRecords
@@ -420,7 +420,7 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		}
 
 		// WHEN
-		err := r53.ValidateDomainOwnership("example.com")
+		err := r53.ValidateDomainOwnership(context.Background(), "example.com")
 
 		// THEN
 		require.NoError(t, err)
@@ -473,14 +473,14 @@ func TestRoute53_ValidateDomainOwnership(t *testing.T) {
 		}
 
 		// WHEN
-		err := r53.ValidateDomainOwnership("example.com")
+		err := r53.ValidateDomainOwnership(context.Background(), "example.com")
 
 		// THEN
 		require.NoError(t, err)
 	})
 }
 
-func TestRoute53_PublicDomainHostedZoneIDContextUsesCallerContext(t *testing.T) {
+func TestRoute53_PublicDomainHostedZoneIDUsesCallerContext(t *testing.T) {
 	type contextKey string
 	callerCtx := context.WithValue(context.Background(), contextKey("caller"), "app-init")
 	ctrl := gomock.NewController(t)
@@ -494,7 +494,7 @@ func TestRoute53_PublicDomainHostedZoneIDContextUsesCallerContext(t *testing.T) 
 	}, nil)
 	service := &Route53{client: client, hostedZoneIDFor: make(map[string]string)}
 
-	id, err := service.PublicDomainHostedZoneIDContext(callerCtx, "example.com")
+	id, err := service.PublicDomainHostedZoneID(callerCtx, "example.com")
 
 	require.NoError(t, err)
 	require.Equal(t, "ZONE", id)

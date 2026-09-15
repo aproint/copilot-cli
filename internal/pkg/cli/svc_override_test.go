@@ -47,7 +47,7 @@ func TestOverrideSvc_Validate(t *testing.T) {
 
 				vars := overrideVars{appName: tc.appName}
 				cmd := &overrideWorkloadOpts{
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}
@@ -56,7 +56,7 @@ func TestOverrideSvc_Validate(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -101,7 +101,7 @@ func TestOverrideSvc_Validate(t *testing.T) {
 				vars := overrideVars{appName: "demo", cdkLang: "typescript"}
 				cmd := &overrideWorkloadOpts{
 					envName: tc.envName,
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}
@@ -110,7 +110,7 @@ func TestOverrideSvc_Validate(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -144,14 +144,14 @@ func TestOverrideSvc_Validate(t *testing.T) {
 
 				vars := overrideVars{appName: "demo", cdkLang: tc.lang}
 				cmd := &overrideWorkloadOpts{
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 					},
 				}
 
 				// WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -217,7 +217,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 
 				vars := overrideVars{name: tc.name, appName: "demo", iacTool: "cdk"}
 				cmd := &overrideWorkloadOpts{
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mocks.NewMockstore(ctrl),
 						cfnPrompt:    mockCfnPrompt,
@@ -280,7 +280,7 @@ func TestOverrideSvc_Ask(t *testing.T) {
 
 				vars := overrideVars{appName: "demo", name: "frontend", iacTool: tc.iacTool}
 				cmd := &overrideWorkloadOpts{
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 						cfnPrompt:    mockCfnPrompt,
@@ -376,7 +376,7 @@ Resources:
 
 				vars := overrideVars{appName: "demo", name: "frontend", iacTool: "cdk", skipResources: tc.skip}
 				cmd := &overrideWorkloadOpts{
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 						spinner:      &spinnerTestDouble{},
@@ -454,7 +454,7 @@ func TestOverrideSvc_Execute(t *testing.T) {
 
 				vars := overrideVars{appName: "demo", name: "frontend", iacTool: "cdk", resources: tc.resources}
 				cmd := &overrideWorkloadOpts{
-					overrideOpts: &overrideOpts{
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}

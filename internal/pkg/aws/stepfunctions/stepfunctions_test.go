@@ -5,6 +5,7 @@
 package stepfunctions
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -60,7 +61,7 @@ func TestStepFunctions_StateMachineDefinition(t *testing.T) {
 				client: mockStepFunctionsClient,
 			}
 
-			out, err := sfn.StateMachineDefinition(tc.inStateMachineARN)
+			out, err := sfn.StateMachineDefinition(context.Background(), tc.inStateMachineARN)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -112,7 +113,7 @@ func TestStepFunctions_Execute(t *testing.T) {
 				client: mockStepFunctionsClient,
 			}
 
-			err := sfn.Execute(tc.inStateMachineARN)
+			err := sfn.Execute(context.Background(), tc.inStateMachineARN)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			}

@@ -16,11 +16,7 @@ type contextRecorderCmd struct {
 	executeCtx  context.Context
 }
 
-func (c *contextRecorderCmd) Validate() error {
-	return nil
-}
-
-func (c *contextRecorderCmd) ValidateWithContext(ctx context.Context) error {
+func (c *contextRecorderCmd) Validate(ctx context.Context) error {
 	c.validateCtx = ctx
 	return nil
 }
@@ -54,7 +50,7 @@ func TestRunPassesCobraContextToCommand(t *testing.T) {
 		t.Fatalf("expected Ask to receive Cobra context")
 	}
 	if recorder.validateCtx != expectedCtx {
-		t.Fatalf("expected ValidateWithContext to receive Cobra context")
+		t.Fatalf("expected Validate to receive Cobra context")
 	}
 	if recorder.executeCtx != expectedCtx {
 		t.Fatalf("expected Execute to receive Cobra context")

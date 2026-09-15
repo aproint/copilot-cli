@@ -29,13 +29,8 @@ func New(cfg awsv2.Config) *StepFunctions {
 	}
 }
 
-// StateMachineDefinition returns the JSON-based state machine definition.
-func (s *StepFunctions) StateMachineDefinition(stateMachineARN string) (string, error) {
-	return s.StateMachineDefinitionWithContext(context.Background(), stateMachineARN)
-}
-
-// StateMachineDefinitionWithContext returns the state machine definition using ctx.
-func (s *StepFunctions) StateMachineDefinitionWithContext(ctx context.Context, stateMachineARN string) (string, error) {
+// StateMachineDefinition returns the state machine definition using ctx.
+func (s *StepFunctions) StateMachineDefinition(ctx context.Context, stateMachineARN string) (string, error) {
 	out, err := s.client.DescribeStateMachine(ctx, &sfn.DescribeStateMachineInput{
 		StateMachineArn: awsv2.String(stateMachineARN),
 	})
@@ -46,13 +41,8 @@ func (s *StepFunctions) StateMachineDefinitionWithContext(ctx context.Context, s
 	return awsv2.ToString(out.Definition), nil
 }
 
-// Execute starts a state machine execution.
-func (s *StepFunctions) Execute(arn string) error {
-	return s.ExecuteWithContext(context.Background(), arn)
-}
-
-// ExecuteWithContext starts a state machine execution using ctx.
-func (s *StepFunctions) ExecuteWithContext(ctx context.Context, arn string) error {
+// Execute starts a state machine execution using ctx.
+func (s *StepFunctions) Execute(ctx context.Context, arn string) error {
 	_, err := s.client.StartExecution(ctx, &sfn.StartExecutionInput{
 		StateMachineArn: awsv2.String(arn),
 	})

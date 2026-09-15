@@ -72,11 +72,7 @@ type secretInitOpts struct {
 	readFile               func() ([]byte, error)
 }
 
-func newSecretInitOpts(vars secretInitVars) (*secretInitOpts, error) {
-	return newSecretInitOptsWithContext(context.Background(), vars)
-}
-
-func newSecretInitOptsWithContext(ctx context.Context, vars secretInitVars) (*secretInitOpts, error) {
+func newSecretInitOpts(ctx context.Context, vars secretInitVars) (*secretInitOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("secret init"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -145,12 +141,7 @@ func newSecretInitOptsWithContext(ctx context.Context, vars secretInitVars) (*se
 }
 
 // Validate returns an error if the flag values passed by the user are invalid.
-func (o *secretInitOpts) Validate() error {
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
+func (o *secretInitOpts) Validate(ctx context.Context) error {
 	if o.inputFilePath != "" && o.name != "" {
 		return errors.New("cannot specify `--cli-input-yaml` with `--name`")
 	}
@@ -314,7 +305,7 @@ func (o *secretInitOpts) putSecretInEnv(ctx context.Context, secretName, envName
 		},
 	}
 
-	out, err := o.secretPutters[envName].PutSecretWithContext(ctx, in)
+	out, err := o.secretPutters[envName].PutSecret(ctx, in)
 	if err != nil {
 		var targetErr *ssm.ErrParameterAlreadyExists
 		if errors.As(err, &targetErr) {
@@ -493,11 +484,11 @@ Create a secret named db-password in multiple environments.
 Create secrets from input.yml. For the format of the YAML file, please see https://aproint.github.io/copilot-cli/docs/commands/secret-init/.
 /code $ copilot secret init --cli-input-yaml input.yml`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSecretInitOptsWithContext(cmd.Context(), vars)
+			opts, err := newSecretInitOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}
-			if err := opts.Validate(); err != nil {
+			if err := opts.Validate(cmd.Context()); err != nil {
 				return err
 			}
 			if err := opts.Ask(cmd.Context()); err != nil {

@@ -346,7 +346,7 @@ func TestSSM_PutSecret(t *testing.T) {
 			}
 			tc.mockClient(mockSSMClient)
 
-			got, err := client.PutSecret(tc.inPutSecretInput)
+			got, err := client.PutSecret(context.Background(), tc.inPutSecretInput)
 
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
@@ -423,6 +423,6 @@ func TestSSM_PutSecretPropagatesContext(t *testing.T) {
 	api.EXPECT().PutParameter(ctx, gomock.Any()).Return(&ssm.PutParameterOutput{}, nil)
 
 	client := SSM{client: api}
-	_, err := client.PutSecretWithContext(ctx, PutSecretInput{Name: "secret", Value: "value"})
+	_, err := client.PutSecret(ctx, PutSecretInput{Name: "secret", Value: "value"})
 	require.NoError(t, err)
 }

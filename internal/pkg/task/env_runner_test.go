@@ -40,14 +40,14 @@ func TestEnvRunner_Run(t *testing.T) {
 	})
 
 	mockClusterGetter := func(m *mocks.MockClusterGetter) {
-		m.EXPECT().ClusterARNWithContext(gomock.Any(), inApp, inEnv).Return("cluster-1", nil)
+		m.EXPECT().ClusterARN(gomock.Any(), inApp, inEnv).Return("cluster-1", nil)
 	}
 	mockVPCGetterAny := func(m *mocks.MockVPCGetter) {
-		m.EXPECT().SubnetIDsWithContext(gomock.Any(), gomock.Any()).AnyTimes()
-		m.EXPECT().SecurityGroupsWithContext(gomock.Any(), gomock.Any()).AnyTimes()
+		m.EXPECT().SubnetIDs(gomock.Any(), gomock.Any()).AnyTimes()
+		m.EXPECT().SecurityGroups(gomock.Any(), gomock.Any()).AnyTimes()
 	}
 	mockStarterNotRun := func(m *mocks.MockRunner) {
-		m.EXPECT().RunTaskWithContext(gomock.Any(), gomock.Any()).Times(0)
+		m.EXPECT().RunTask(gomock.Any(), gomock.Any()).Times(0)
 	}
 	mockEnvironmentDescriberAny := func(m *mocks.MockenvironmentDescriber) {
 		m.EXPECT().Describe().AnyTimes()
@@ -97,7 +97,7 @@ func TestEnvRunner_Run(t *testing.T) {
 	}{
 		"failed to get cluster": {
 			MockClusterGetter: func(m *mocks.MockClusterGetter) {
-				m.EXPECT().ClusterARNWithContext(gomock.Any(), inApp, inEnv).Return("", errors.New("error getting resources"))
+				m.EXPECT().ClusterARN(gomock.Any(), inApp, inEnv).Return("", errors.New("error getting resources"))
 			},
 			MockVPCGetter:            mockVPCGetterAny,
 			mockStarter:              mockStarterNotRun,
@@ -107,7 +107,7 @@ func TestEnvRunner_Run(t *testing.T) {
 		"failed to get env description": {
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().SecurityGroups(gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockStarter: mockStarterNotRun,
 			mockEnvironmentDescriber: func(m *mocks.MockenvironmentDescriber) {
@@ -118,7 +118,7 @@ func TestEnvRunner_Run(t *testing.T) {
 		"no subnet is found": {
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), gomock.Any()).AnyTimes()
+				m.EXPECT().SecurityGroups(gomock.Any(), gomock.Any()).AnyTimes()
 			},
 			mockStarter: mockStarterNotRun,
 			mockEnvironmentDescriber: func(m *mocks.MockenvironmentDescriber) {
@@ -135,7 +135,7 @@ func TestEnvRunner_Run(t *testing.T) {
 		"failed to get security groups": {
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).
 					Return(nil, errors.New("error getting security groups"))
 			},
 			mockStarter:              mockStarterNotRun,
@@ -147,7 +147,7 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter:              mockStarterNotRun,
 			mockEnvironmentDescriber: mockEnvironmentDescriberValid,
@@ -159,10 +159,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -185,10 +185,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -214,10 +214,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -244,10 +244,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -274,10 +274,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -304,10 +304,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -334,10 +334,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -362,10 +362,10 @@ func TestEnvRunner_Run(t *testing.T) {
 
 			MockClusterGetter: mockClusterGetter,
 			MockVPCGetter: func(m *mocks.MockVPCGetter) {
-				m.EXPECT().SecurityGroupsWithContext(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
+				m.EXPECT().SecurityGroups(gomock.Any(), filtersForSecurityGroup).Return([]string{"sg-1", "sg-2"}, nil)
 			},
 			mockStarter: func(m *mocks.MockRunner) {
-				m.EXPECT().RunTaskWithContext(gomock.Any(), ecs.RunTaskInput{
+				m.EXPECT().RunTask(gomock.Any(), ecs.RunTaskInput{
 					Cluster:         "cluster-1",
 					Count:           1,
 					Subnets:         []string{"subnet-0789ab", "subnet-0123cd"},
@@ -427,7 +427,7 @@ func TestEnvRunner_Run(t *testing.T) {
 				EnvironmentDescriber: mockEnvironmentDescriber,
 			}
 
-			tasks, err := task.Run()
+			tasks, err := task.Run(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
 			} else {
@@ -438,15 +438,15 @@ func TestEnvRunner_Run(t *testing.T) {
 	}
 }
 
-func TestEnvRunner_CheckNonZeroExitCodeWithContextUsesCallerContext(t *testing.T) {
+func TestEnvRunner_CheckNonZeroExitCodeUsesCallerContext(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "env-exit-code")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	clusterGetter := mocks.NewMockClusterGetter(ctrl)
-	clusterGetter.EXPECT().ClusterARNWithContext(gomock.Eq(ctx), "app", "env").Return("cluster", nil)
+	clusterGetter.EXPECT().ClusterARN(gomock.Eq(ctx), "app", "env").Return("cluster", nil)
 	exitCodeGetter := mocks.NewMockNonZeroExitCodeGetter(ctrl)
-	exitCodeGetter.EXPECT().HasNonZeroExitCodeWithContext(gomock.Eq(ctx), []string{"task-1"}, "cluster").Return(nil)
+	exitCodeGetter.EXPECT().HasNonZeroExitCode(gomock.Eq(ctx), []string{"task-1"}, "cluster").Return(nil)
 	runner := EnvRunner{
 		App:                   "app",
 		Env:                   "env",
@@ -454,7 +454,7 @@ func TestEnvRunner_CheckNonZeroExitCodeWithContextUsesCallerContext(t *testing.T
 		NonZeroExitCodeGetter: exitCodeGetter,
 	}
 
-	err := runner.CheckNonZeroExitCodeWithContext(ctx, []*Task{{TaskARN: "task-1"}})
+	err := runner.CheckNonZeroExitCode(ctx, []*Task{{TaskARN: "task-1"}})
 
 	require.NoError(t, err)
 }

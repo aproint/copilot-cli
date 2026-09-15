@@ -68,14 +68,14 @@ func TestRunLocalOpts_Validate(t *testing.T) {
 			if tc.setupMocks != nil {
 				tc.setupMocks(m)
 			}
-			opts := runLocalOpts{
+			opts := runLocalOpts{ctx: context.Background(),
 				runLocalVars: runLocalVars{
 					appName: tc.inAppName,
 				},
 				store: m.store,
 			}
 			// WHEN
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			// THEN
 			if tc.wantError != nil {
@@ -174,7 +174,7 @@ func TestRunLocalOpts_Ask(t *testing.T) {
 				sel:   mocks.NewMockdeploySelector(ctrl),
 			}
 			tc.setupMocks(m)
-			opts := runLocalOpts{
+			opts := runLocalOpts{ctx: context.Background(),
 				runLocalVars: runLocalVars{
 					appName:  tc.inputAppName,
 					wkldName: tc.inputWkldName,
@@ -513,7 +513,7 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 			inputWkldName: testWkldName,
 			inputEnvName:  testEnvName,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(nil, testError)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(nil, testError)
 			},
 			wantedError: fmt.Errorf("get task: get task definition: %w", testError),
 		},
@@ -525,7 +525,7 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 				"bad:OVERRIDE": "i fail",
 			},
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 			},
 			wantedError: errors.New(`get task: get env vars: parse env overrides: "bad:OVERRIDE" targets invalid container`),
 		},
@@ -536,11 +536,11 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 			inputTaskRole: true,
 			inputReader:   strings.NewReader("some error"),
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), "mock-arn", testRegion).Return(aws.Config{}, errors.New("some error"))
-				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
+				m.ecsClient.EXPECT().DescribeService(context.Background(), testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
@@ -559,7 +559,7 @@ func TestRunLocalOpts_Execute(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.ecsExecutor.EXPECT().ExecuteCommand(gomock.Any()).Return(nil)
+				m.ecsExecutor.EXPECT().ExecuteCommand(context.Background(), gomock.Any()).Return(nil)
 			},
 			wantedError: errors.New(`get task: retrieve task role credentials: assume role: some error
 ecs exec: all containers failed to retrieve credentials`),
@@ -570,7 +570,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return(nil, errors.New("some error"))
 			},
@@ -582,7 +582,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", errors.New("some error"))
@@ -595,7 +595,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:     testEnvName,
 			buildImagesError: errors.New("some error"),
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -608,7 +608,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -622,7 +622,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -636,7 +636,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -653,7 +653,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -666,7 +666,7 @@ ecs exec: all containers failed to retrieve credentials`),
 						},
 					}, nil
 				}
-				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(nil, errors.New("some error"))
+				m.ecsClient.EXPECT().DescribeService(context.Background(), testAppName, testEnvName, testWkldName).Return(nil, errors.New("some error"))
 			},
 			wantedError: errors.New("get proxy target container: describe service: some error"),
 		},
@@ -676,7 +676,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -689,7 +689,7 @@ ecs exec: all containers failed to retrieve credentials`),
 						},
 					}, nil
 				}
-				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
+				m.ecsClient.EXPECT().DescribeService(context.Background(), testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("asdf"),
@@ -705,7 +705,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -718,7 +718,7 @@ ecs exec: all containers failed to retrieve credentials`),
 						},
 					}, nil
 				}
-				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
+				m.ecsClient.EXPECT().DescribeService(context.Background(), testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/asdf"),
@@ -734,7 +734,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -747,7 +747,7 @@ ecs exec: all containers failed to retrieve credentials`),
 						},
 					}, nil
 				}
-				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
+				m.ecsClient.EXPECT().DescribeService(context.Background(), testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
@@ -768,7 +768,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputWkldName: testWkldName,
 			inputEnvName:  testEnvName,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -793,7 +793,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputProxy:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.envChecker.EXPECT().Version().Return("v1.32.0", nil)
 				m.hostFinder.HostsFn = func(ctx context.Context) ([]orchestrator.Host, error) {
@@ -804,7 +804,7 @@ ecs exec: all containers failed to retrieve credentials`),
 						},
 					}, nil
 				}
-				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
+				m.ecsClient.EXPECT().DescribeService(context.Background(), testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
@@ -846,9 +846,9 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputTaskRole: true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				taskRoleConfig := staticConfig("myID", "mySecret", "myToken", testRegion)
 				m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), "mock-arn", testRegion).Return(taskRoleConfig, nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
@@ -875,11 +875,11 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputTaskRole: true,
 			inputReader:   strings.NewReader(`{"AccessKeyId":"myID","SecretAccessKey":"mySecret","Token":"myToken"}`),
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), "mock-arn", testRegion).Return(aws.Config{}, errors.New("some error"))
-				m.ecsClient.EXPECT().DescribeService(testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
+				m.ecsClient.EXPECT().DescribeService(context.Background(), testAppName, testEnvName, testWkldName).Return(&ecs.ServiceDesc{
 					Tasks: []*awsecs.Task{
 						{
 							TaskArn: aws.String("arn:aws:ecs:us-west-2:123456789:task/clusterName/taskName"),
@@ -898,7 +898,7 @@ ecs exec: all containers failed to retrieve credentials`),
 						},
 					},
 				}, nil)
-				m.ecsExecutor.EXPECT().ExecuteCommand(gomock.Any()).Return(nil)
+				m.ecsExecutor.EXPECT().ExecuteCommand(context.Background(), gomock.Any()).Return(nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
 
@@ -921,7 +921,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputWkldName: testWkldName,
 			inputEnvName:  testEnvName,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -958,7 +958,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputWatch:          true,
 			inputDockerExcludes: []string{"ignoredDir/*"},
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -1002,12 +1002,12 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputWatch:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil).Times(2)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil).Times(2)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil).Times(2)
 				m.ws.EXPECT().Path().Return("")
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(alteredTaskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(alteredTaskDef, nil)
 
 				eventCh := make(chan fsnotify.Event, 1)
 				m.watcher.EventsFn = func() <-chan fsnotify.Event {
@@ -1051,7 +1051,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputWatch:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil)
@@ -1088,7 +1088,7 @@ ecs exec: all containers failed to retrieve credentials`),
 			inputEnvName:  testEnvName,
 			inputWatch:    true,
 			setupMocks: func(t *testing.T, m *runLocalExecuteMocks) {
-				m.ecsClient.EXPECT().TaskDefinition(testAppName, testEnvName, testWkldName).Return(taskDef, nil).Times(2)
+				m.ecsClient.EXPECT().TaskDefinition(context.Background(), testAppName, testEnvName, testWkldName).Return(taskDef, nil).Times(2)
 				m.ssm.EXPECT().GetSecretValue(gomock.Any(), "mysecret").Return("secretvalue", nil).Times(2)
 				m.ws.EXPECT().ReadWorkloadManifest(testWkldName).Return([]byte(""), nil).Times(2)
 				m.interpolator.EXPECT().Interpolate("").Return("", nil).Times(2)
@@ -1151,7 +1151,7 @@ ecs exec: all containers failed to retrieve credentials`),
 				envChecker:     mocks.NewMockversionCompatibilityChecker(ctrl),
 			}
 			tc.setupMocks(t, m)
-			opts := runLocalOpts{
+			opts := runLocalOpts{ctx: context.Background(),
 				runLocalVars: runLocalVars{
 					appName:      tc.inputAppName,
 					wkldName:     tc.inputWkldName,
@@ -1598,7 +1598,7 @@ func TestRunLocalOpts_getEnvVars(t *testing.T) {
 				tc.setupMocks(m)
 			}
 
-			o := &runLocalOpts{
+			o := &runLocalOpts{ctx: context.Background(),
 				runLocalVars: runLocalVars{
 					envOverrides: tc.envOverrides,
 				},
@@ -1625,7 +1625,7 @@ type taggedResourceGetterDouble struct {
 	GetResourcesByTagsFn func(string, map[string]string) ([]*resourcegroups.Resource, error)
 }
 
-func (d *taggedResourceGetterDouble) GetResourcesByTagsWithContext(_ context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
+func (d *taggedResourceGetterDouble) GetResourcesByTags(_ context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error) {
 	if d.GetResourcesByTagsFn == nil {
 		return nil, nil
 	}
@@ -1724,13 +1724,13 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 	}{
 		"error getting services": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantError: "get service connect services: some error",
 		},
 		"ignores non-primary deployments": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 			},
 			wantHosts: []orchestrator.Host{
 				{
@@ -1741,7 +1741,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"error getting rds resources": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return nil, errors.New("some error")
 				}
@@ -1750,7 +1750,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"no db instances found": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return nil, nil
 				}
@@ -1764,7 +1764,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"invalid db arn": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1777,7 +1777,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"error describing rds instances": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1793,7 +1793,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"gets rds instance": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1830,7 +1830,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"error describing db cluster": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1864,7 +1864,7 @@ func TestRunLocal_HostDiscovery(t *testing.T) {
 		},
 		"gets db cluster, skips other service resources": {
 			setupMocks: func(t *testing.T, m *testMocks) {
-				m.ecs.EXPECT().ServiceConnectServicesWithContext(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
+				m.ecs.EXPECT().ServiceConnectServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ecsServices, nil)
 				m.rg.GetResourcesByTagsFn = func(s string, m map[string]string) ([]*resourcegroups.Resource, error) {
 					return []*resourcegroups.Resource{
 						{
@@ -1995,7 +1995,7 @@ func TestRunLocal_FilterDockerExcludes(t *testing.T) {
 				ws: mocks.NewMockwsWlDirReader(ctrl),
 			}
 			tc.setupMocks(t, m)
-			opts := runLocalOpts{
+			opts := runLocalOpts{ctx: context.Background(),
 				dockerExcludes: tc.inputDockerExcludes,
 				ws:             m.ws,
 			}

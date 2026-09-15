@@ -41,13 +41,8 @@ func New(cfg awsv2.Config) *ELBV2 {
 	}
 }
 
-// ListenerRulesHostHeaders returns all the host headers for all listener rules.
-func (e *ELBV2) ListenerRulesHostHeaders(ruleARNs []string) ([]string, error) {
-	return e.ListenerRulesHostHeadersWithContext(context.Background(), ruleARNs)
-}
-
-// ListenerRulesHostHeadersWithContext returns host headers for listener rules using ctx.
-func (e *ELBV2) ListenerRulesHostHeadersWithContext(ctx context.Context, ruleARNs []string) ([]string, error) {
+// ListenerRulesHostHeaders returns host headers for listener rules using ctx.
+func (e *ELBV2) ListenerRulesHostHeaders(ctx context.Context, ruleARNs []string) ([]string, error) {
 	resp, err := e.client.DescribeRules(ctx, &elbv2.DescribeRulesInput{
 		RuleArns: ruleARNs,
 	})
@@ -116,13 +111,8 @@ func (r *Rule) HasRedirectAction() bool {
 // TargetHealth wraps up elbv2.TargetHealthDescription.
 type TargetHealth types.TargetHealthDescription
 
-// TargetsHealth returns the health status of the targets in a target group.
-func (e *ELBV2) TargetsHealth(targetGroupARN string) ([]*TargetHealth, error) {
-	return e.TargetsHealthWithContext(context.Background(), targetGroupARN)
-}
-
-// TargetsHealthWithContext returns target health using ctx.
-func (e *ELBV2) TargetsHealthWithContext(ctx context.Context, targetGroupARN string) ([]*TargetHealth, error) {
+// TargetsHealth returns target health using ctx.
+func (e *ELBV2) TargetsHealth(ctx context.Context, targetGroupARN string) ([]*TargetHealth, error) {
 	in := &elbv2.DescribeTargetHealthInput{
 		TargetGroupArn: awsv2.String(targetGroupARN),
 	}
@@ -176,13 +166,8 @@ type LoadBalancer struct {
 	SecurityGroups []string
 }
 
-// LoadBalancer returns select information about a load balancer.
-func (e *ELBV2) LoadBalancer(nameOrARN string) (*LoadBalancer, error) {
-	return e.LoadBalancerWithContext(context.Background(), nameOrARN)
-}
-
-// LoadBalancerWithContext returns load balancer information using ctx for every request.
-func (e *ELBV2) LoadBalancerWithContext(ctx context.Context, nameOrARN string) (*LoadBalancer, error) {
+// LoadBalancer returns load balancer information using ctx for every request.
+func (e *ELBV2) LoadBalancer(ctx context.Context, nameOrARN string) (*LoadBalancer, error) {
 	var input *elbv2.DescribeLoadBalancersInput
 	if arn.IsARN(nameOrARN) {
 		input = &elbv2.DescribeLoadBalancersInput{

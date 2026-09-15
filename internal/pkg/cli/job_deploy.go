@@ -65,11 +65,7 @@ type deployJobOpts struct {
 	templateVersion string
 }
 
-func newJobDeployOpts(vars deployWkldVars) (*deployJobOpts, error) {
-	return newJobDeployOptsWithContext(context.Background(), vars)
-}
-
-func newJobDeployOptsWithContext(ctx context.Context, vars deployWkldVars) (*deployJobOpts, error) {
+func newJobDeployOpts(ctx context.Context, vars deployWkldVars) (*deployJobOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job deploy"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -139,12 +135,7 @@ func newJobDeployer(ctx context.Context, o *deployJobOpts) (workloadDeployer, er
 }
 
 // Validate returns an error if the user inputs are invalid.
-func (o *deployJobOpts) Validate() error {
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
+func (o *deployJobOpts) Validate(ctx context.Context) error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
@@ -185,6 +176,7 @@ func (o *deployJobOpts) Execute(ctx context.Context) error {
 		}
 	}
 	mft, interpolated, err := workloadManifest(&workloadManifestInput{
+		ctx:          ctx,
 		name:         o.name,
 		appName:      o.appName,
 		envName:      o.envName,
@@ -294,7 +286,7 @@ After fixing the deployment, you can:
 }
 
 func (o *deployJobOpts) configureClients(ctx context.Context) error {
-	o.gitShortCommit = imageTagFromGit(o.cmd) // Best effort assign git tag.
+	o.gitShortCommit = imageTagFromGit(ctx, o.cmd) // Best effort assign git tag.
 	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return err
@@ -411,7 +403,7 @@ func buildJobDeployCmd() *cobra.Command {
   Deploys a job with additional resource tags.
   /code $ copilot job deploy --resource-tags source/revision=bb133e7,deployment/initiator=manual`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newJobDeployOptsWithContext(cmd.Context(), vars)
+			opts, err := newJobDeployOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

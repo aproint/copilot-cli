@@ -81,7 +81,7 @@ type overrideOpts struct {
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *overrideOpts) Validate() error {
+func (o *overrideOpts) Validate(ctx context.Context) error {
 	if err := o.validateAppName(); err != nil {
 		return err
 	}
@@ -128,12 +128,7 @@ func (o *overrideOpts) validateAppName() error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
-	_, err := o.cfgStore.GetApplication(ctx, o.appName)
+	_, err := o.cfgStore.GetApplication(o.ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("get application %q configuration: %v", o.appName, err)
 	}

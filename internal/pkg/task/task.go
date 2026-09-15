@@ -20,18 +20,18 @@ import (
 
 // VPCGetter wraps methods of getting VPC info.
 type VPCGetter interface {
-	SubnetIDsWithContext(ctx context.Context, filters ...ec2.Filter) ([]string, error)
-	SecurityGroupsWithContext(ctx context.Context, filters ...ec2.Filter) ([]string, error)
+	SubnetIDs(ctx context.Context, filters ...ec2.Filter) ([]string, error)
+	SecurityGroups(ctx context.Context, filters ...ec2.Filter) ([]string, error)
 }
 
 // ClusterGetter wraps the method of getting a cluster ARN.
 type ClusterGetter interface {
-	ClusterARNWithContext(ctx context.Context, app, env string) (string, error)
+	ClusterARN(ctx context.Context, app, env string) (string, error)
 }
 
 // DefaultClusterGetter wraps the method of getting a default cluster ARN.
 type DefaultClusterGetter interface {
-	DefaultClusterWithContext(ctx context.Context) (string, error)
+	DefaultCluster(ctx context.Context) (string, error)
 }
 
 type environmentDescriber interface {
@@ -40,12 +40,12 @@ type environmentDescriber interface {
 
 // NonZeroExitCodeGetter wraps the method of getting a non-zero exit code of a task.
 type NonZeroExitCodeGetter interface {
-	HasNonZeroExitCodeWithContext(context.Context, []string, string) error
+	HasNonZeroExitCode(context.Context, []string, string) error
 }
 
 // Runner wraps the method of running tasks.
 type Runner interface {
-	RunTaskWithContext(ctx context.Context, input ecs.RunTaskInput) ([]*ecs.Task, error)
+	RunTask(ctx context.Context, input ecs.RunTaskInput) ([]*ecs.Task, error)
 }
 
 // Task represents a one-off workload that runs until completed or an error occurs.

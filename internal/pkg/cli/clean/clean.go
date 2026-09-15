@@ -6,10 +6,12 @@
 // so that the corresponding CloudFormation stack delete runs successfully.
 package clean
 
+import "context"
+
 // NoOp does nothing.
 type NoOp struct{}
 
 // Clean returns nil.
-func (*NoOp) Clean() error {
+func (*NoOp) Clean(context.Context) error {
 	return nil
 }

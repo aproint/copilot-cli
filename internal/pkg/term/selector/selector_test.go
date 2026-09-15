@@ -2970,7 +2970,7 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 	}{
 		"with no workspace pipelines": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{}, nil)
+				m.cp.EXPECT().ListDeployedPipelines(ctx, mockAppName).Return([]deploy.Pipeline{}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
@@ -2978,7 +2978,7 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 		},
 		"don't prompt to select if only one workspace pipeline": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
+				m.cp.EXPECT().ListDeployedPipelines(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
@@ -2986,14 +2986,14 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 		},
 		"with multiple workspace pipelines": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.cp.EXPECT().ListDeployedPipelines(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("bad-goose", nil)
 			},
 			wantedPipeline: mockLegacyPipeline,
 		},
 		"with error selecting": {
 			setupMocks: func(m codePipelineSelectMocks) {
-				m.cp.EXPECT().ListDeployedPipelinesWithContext(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
+				m.cp.EXPECT().ListDeployedPipelines(ctx, mockAppName).Return([]deploy.Pipeline{mockPipeline, mockLegacyPipeline}, nil)
 				m.prompt.EXPECT().SelectOne(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("some error"))
 			},
 			wantedErr: errors.New("select pipeline: some error"),
@@ -3017,7 +3017,7 @@ func TestCodePipelineSelect_DeployedPipeline(t *testing.T) {
 				prompt:         mockPrompt,
 				pipelineLister: mockCodePipelinesLister,
 			}
-			got, err := sel.DeployedPipelineWithContext(ctx, "Select a pipeline", "Help text", mockAppName)
+			got, err := sel.DeployedPipeline(ctx, "Select a pipeline", "Help text", mockAppName)
 			if tc.wantedErr != nil {
 				require.EqualError(t, err, tc.wantedErr.Error())
 			} else {
@@ -3049,7 +3049,7 @@ func TestSelect_CFTask(t *testing.T) {
 			},
 			mockStore: func(m *mocks.MockconfigLister) {},
 			mockCF: func(m *mocks.MocktaskStackDescriber) {
-				m.EXPECT().ListTaskStacksWithContext(gomock.Any(), "phonetool", "prod-iad").Return([]deploy.TaskStackInfo{
+				m.EXPECT().ListTaskStacks(gomock.Any(), "phonetool", "prod-iad").Return([]deploy.TaskStackInfo{
 					{
 						StackName: "copilot-abc",
 						App:       "phonetool",
@@ -3081,7 +3081,7 @@ func TestSelect_CFTask(t *testing.T) {
 			},
 			mockStore: func(m *mocks.MockconfigLister) {},
 			mockCF: func(m *mocks.MocktaskStackDescriber) {
-				m.EXPECT().ListTaskStacksWithContext(gomock.Any(), "phonetool", "prod-iad").Return(nil, errors.New("some error"))
+				m.EXPECT().ListTaskStacks(gomock.Any(), "phonetool", "prod-iad").Return(nil, errors.New("some error"))
 			},
 			mockPrompt: func(m *mocks.MockPrompter) {},
 			wantedErr:  errors.New("get tasks in environment prod-iad: some error"),
@@ -3092,7 +3092,7 @@ func TestSelect_CFTask(t *testing.T) {
 			},
 			mockStore: func(m *mocks.MockconfigLister) {},
 			mockCF: func(m *mocks.MocktaskStackDescriber) {
-				m.EXPECT().ListDefaultTaskStacksWithContext(gomock.Any()).Return([]deploy.TaskStackInfo{
+				m.EXPECT().ListDefaultTaskStacks(gomock.Any()).Return([]deploy.TaskStackInfo{
 					{
 						StackName: "task-oneoff",
 					},
@@ -3120,7 +3120,7 @@ func TestSelect_CFTask(t *testing.T) {
 			},
 			mockStore: func(m *mocks.MockconfigLister) {},
 			mockCF: func(m *mocks.MocktaskStackDescriber) {
-				m.EXPECT().ListDefaultTaskStacksWithContext(gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListDefaultTaskStacks(gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			mockPrompt: func(m *mocks.MockPrompter) {},
 			wantedErr:  errors.New("get tasks in default cluster: some error"),
@@ -3147,7 +3147,7 @@ func TestSelect_CFTask(t *testing.T) {
 			}
 
 			// WHEN
-			choice, err := sel.Task(taskPrompt, taskHelp, tc.inOpts...)
+			choice, err := sel.Task(context.Background(), taskPrompt, taskHelp, tc.inOpts...)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -3192,7 +3192,7 @@ func TestTaskSelect_Task(t *testing.T) {
 		"return error if fail to list active cluster tasks": {
 			useDefault: true,
 			setupMocks: func(m taskSelectMocks) {
-				m.taskLister.EXPECT().ListActiveDefaultClusterTasksWithContext(gomock.Any(), ecs.ListTasksFilter{CopilotOnly: true}).Return(nil, mockErr)
+				m.taskLister.EXPECT().ListActiveDefaultClusterTasks(gomock.Any(), ecs.ListTasksFilter{CopilotOnly: true}).Return(nil, mockErr)
 			},
 			wantErr: fmt.Errorf("list active tasks for default cluster: some error"),
 		},
@@ -3200,7 +3200,7 @@ func TestTaskSelect_Task(t *testing.T) {
 			app: mockApp,
 			env: mockEnv,
 			setupMocks: func(m taskSelectMocks) {
-				m.taskLister.EXPECT().ListActiveAppEnvTasksWithContext(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
+				m.taskLister.EXPECT().ListActiveAppEnvTasks(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
 					App: mockApp,
 					Env: mockEnv,
 					ListTasksFilter: ecs.ListTasksFilter{
@@ -3214,7 +3214,7 @@ func TestTaskSelect_Task(t *testing.T) {
 			app: mockApp,
 			env: mockEnv,
 			setupMocks: func(m taskSelectMocks) {
-				m.taskLister.EXPECT().ListActiveAppEnvTasksWithContext(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
+				m.taskLister.EXPECT().ListActiveAppEnvTasks(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
 					App: mockApp,
 					Env: mockEnv,
 					ListTasksFilter: ecs.ListTasksFilter{
@@ -3228,7 +3228,7 @@ func TestTaskSelect_Task(t *testing.T) {
 			app: mockApp,
 			env: mockEnv,
 			setupMocks: func(m taskSelectMocks) {
-				m.taskLister.EXPECT().ListActiveAppEnvTasksWithContext(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
+				m.taskLister.EXPECT().ListActiveAppEnvTasks(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
 					App: mockApp,
 					Env: mockEnv,
 					ListTasksFilter: ecs.ListTasksFilter{
@@ -3246,7 +3246,7 @@ func TestTaskSelect_Task(t *testing.T) {
 			app: mockApp,
 			env: mockEnv,
 			setupMocks: func(m taskSelectMocks) {
-				m.taskLister.EXPECT().ListActiveAppEnvTasksWithContext(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
+				m.taskLister.EXPECT().ListActiveAppEnvTasks(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
 					App: mockApp,
 					Env: mockEnv,
 					ListTasksFilter: ecs.ListTasksFilter{
@@ -3260,7 +3260,7 @@ func TestTaskSelect_Task(t *testing.T) {
 			app: mockApp,
 			env: mockEnv,
 			setupMocks: func(m taskSelectMocks) {
-				m.taskLister.EXPECT().ListActiveAppEnvTasksWithContext(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
+				m.taskLister.EXPECT().ListActiveAppEnvTasks(gomock.Any(), ecs.ListActiveAppEnvTasksOpts{
 					App: mockApp,
 					Env: mockEnv,
 					ListTasksFilter: ecs.ListTasksFilter{
@@ -3296,10 +3296,10 @@ func TestTaskSelect_Task(t *testing.T) {
 			var gotTask *awsecs.Task
 			var err error
 			if tc.useDefault {
-				gotTask, err = sel.RunningTask(mockPromptText, mockHelpText,
+				gotTask, err = sel.RunningTask(context.Background(), mockPromptText, mockHelpText,
 					WithAppEnv(tc.app, tc.env), WithDefault())
 			} else {
-				gotTask, err = sel.RunningTask(mockPromptText, mockHelpText,
+				gotTask, err = sel.RunningTask(context.Background(), mockPromptText, mockHelpText,
 					WithAppEnv(tc.app, tc.env))
 			}
 			if tc.wantErr != nil {

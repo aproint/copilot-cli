@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthWithContext(t *testing.T) {
+func TestAuth(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockapi(ctrl)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
@@ -28,14 +28,14 @@ func TestAuthWithContext(t *testing.T) {
 		AuthorizationData: []types.AuthorizationData{{AuthorizationToken: awsv2.String(encoded)}},
 	}, nil)
 
-	username, password, err := (ECR{client}).AuthWithContext(ctx)
+	username, password, err := (ECR{client}).Auth(ctx)
 
 	require.NoError(t, err)
 	require.Equal(t, "username", username)
 	require.Equal(t, "password", password)
 }
 
-func TestRepositoryURIWithContext(t *testing.T) {
+func TestRepositoryURI(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockapi(ctrl)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
@@ -46,134 +46,10 @@ func TestRepositoryURIWithContext(t *testing.T) {
 		Repositories: []types.Repository{{RepositoryUri: awsv2.String("repository-uri")}},
 	}, nil)
 
-	uri, err := (ECR{client}).RepositoryURIWithContext(ctx, "repository")
+	uri, err := (ECR{client}).RepositoryURI(ctx, "repository")
 
 	require.NoError(t, err)
 	require.Equal(t, "repository-uri", uri)
-}
-
-func TestAuth(t *testing.T) {
-	mockError := errors.New("error")
-
-	mockUsername := "mockUsername"
-	mockPassword := "mockPassword"
-
-	encoded := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", mockUsername, mockPassword)))
-
-	testCases := map[string]struct {
-		mockECRClient func(m *mocks.Mockapi)
-
-		wantedUsername string
-		wantedPassword string
-		wantErr        error
-	}{
-		"should return wrapped error given error returned from GetAuthorizationToken": {
-			mockECRClient: func(m *mocks.Mockapi) {
-				m.EXPECT().GetAuthorizationToken(gomock.Any(), gomock.Any()).Return(nil, mockError)
-			},
-			wantErr: fmt.Errorf("get ECR auth: %w", mockError),
-		},
-		"should return Auth data": {
-			mockECRClient: func(m *mocks.Mockapi) {
-				m.EXPECT().GetAuthorizationToken(gomock.Any(), gomock.Any()).Return(&ecr.GetAuthorizationTokenOutput{
-					AuthorizationData: []types.AuthorizationData{
-						{
-							AuthorizationToken: awsv2.String(encoded),
-						},
-					},
-				}, nil)
-			},
-			wantedUsername: mockUsername,
-			wantedPassword: mockPassword,
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			// GIVEN
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			mockECRAPI := mocks.NewMockapi(ctrl)
-			tc.mockECRClient(mockECRAPI)
-
-			client := ECR{
-				mockECRAPI,
-			}
-
-			gotUsername, gotPassword, gotErr := client.Auth()
-
-			require.Equal(t, tc.wantedUsername, gotUsername)
-			require.Equal(t, tc.wantedPassword, gotPassword)
-			require.Equal(t, tc.wantErr, gotErr)
-		})
-
-	}
-}
-
-func TestRepositoryURI(t *testing.T) {
-	mockError := errors.New("error")
-
-	mockRepoName := "mockRepoName"
-	mockRepoURI := "mockRepoURI"
-
-	testCases := map[string]struct {
-		mockECRClient func(m *mocks.Mockapi)
-
-		wantURI string
-		wantErr error
-	}{
-		"should return wrapped error given error returned from DescribeRepositories": {
-			mockECRClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRepositories(gomock.Any(), gomock.Any()).Return(nil, mockError)
-			},
-			wantErr: fmt.Errorf("ecr describe repository %s: %w", mockRepoName, mockError),
-		},
-		"should return error given no repositories returned in list": {
-			mockECRClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRepositories(gomock.Any(), &ecr.DescribeRepositoriesInput{
-					RepositoryNames: []string{mockRepoName},
-				}).Return(&ecr.DescribeRepositoriesOutput{
-					Repositories: []types.Repository{},
-				}, nil)
-			},
-			wantErr: errors.New("no repositories found"),
-		},
-		"should return repository URI": {
-			mockECRClient: func(m *mocks.Mockapi) {
-				m.EXPECT().DescribeRepositories(gomock.Any(), &ecr.DescribeRepositoriesInput{
-					RepositoryNames: []string{mockRepoName},
-				}).Return(&ecr.DescribeRepositoriesOutput{
-					Repositories: []types.Repository{
-						{
-							RepositoryUri: awsv2.String(mockRepoURI),
-						},
-					},
-				}, nil)
-			},
-			wantURI: mockRepoURI,
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			// GIVEN
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			mockECRAPI := mocks.NewMockapi(ctrl)
-			tc.mockECRClient(mockECRAPI)
-
-			client := ECR{
-				mockECRAPI,
-			}
-
-			gotURI, gotErr := client.RepositoryURI(mockRepoName)
-
-			require.Equal(t, tc.wantURI, gotURI)
-			require.Equal(t, tc.wantErr, gotErr)
-		})
-	}
 }
 
 func TestURIFromARN(t *testing.T) {
@@ -291,7 +167,7 @@ func TestListImages(t *testing.T) {
 				mockECRAPI,
 			}
 
-			gotImages, gotError := client.ListImages(mockRepoName)
+			gotImages, gotError := client.ListImages(context.Background(), mockRepoName)
 
 			require.ElementsMatch(t, tc.wantImages, gotImages)
 			require.Equal(t, tc.wantError, gotError)
@@ -400,7 +276,7 @@ func TestDeleteImages(t *testing.T) {
 				mockECRAPI,
 			}
 
-			got := client.DeleteImages(tc.images, mockRepoName)
+			got := client.DeleteImages(context.Background(), tc.images, mockRepoName)
 
 			require.Equal(t, tc.wantError, got)
 		})
@@ -479,7 +355,7 @@ func TestClearRepository(t *testing.T) {
 				mockECRAPI,
 			}
 
-			gotError := client.ClearRepository(mockRepoName)
+			gotError := client.ClearRepository(context.Background(), mockRepoName)
 
 			require.Equal(t, tc.wantError, gotError)
 		})

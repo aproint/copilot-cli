@@ -93,11 +93,7 @@ type deploySvcOpts struct {
 	templateVersion string
 }
 
-func newSvcDeployOpts(vars deployWkldVars) (*deploySvcOpts, error) {
-	return newSvcDeployOptsWithContext(context.Background(), vars)
-}
-
-func newSvcDeployOptsWithContext(ctx context.Context, vars deployWkldVars) (*deploySvcOpts, error) {
+func newSvcDeployOpts(ctx context.Context, vars deployWkldVars) (*deploySvcOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -187,7 +183,7 @@ func newManifestInterpolator(app, env string) interpolator {
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *deploySvcOpts) Validate() error {
+func (o *deploySvcOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -225,6 +221,7 @@ func (o *deploySvcOpts) Execute(ctx context.Context) error {
 		}
 	}
 	mft, interpolated, err := workloadManifest(&workloadManifestInput{
+		ctx:          ctx,
 		name:         o.name,
 		appName:      o.appName,
 		envName:      o.envName,
@@ -440,7 +437,7 @@ func (o *deploySvcOpts) validateOrAskEnvName(ctx context.Context) error {
 }
 
 func (o *deploySvcOpts) configureClients(ctx context.Context) error {
-	o.gitShortCommit = imageTagFromGit(o.cmd) // Best effort assign git tag.
+	o.gitShortCommit = imageTagFromGit(ctx, o.cmd) // Best effort assign git tag.
 	env, err := o.store.GetEnvironment(ctx, o.appName, o.envName)
 	if err != nil {
 		return fmt.Errorf("get environment %s configuration: %w", o.envName, err)
@@ -489,6 +486,7 @@ func (o *deploySvcOpts) configureClients(ctx context.Context) error {
 }
 
 type workloadManifestInput struct {
+	ctx          context.Context
 	name         string
 	appName      string
 	envName      string
@@ -518,7 +516,7 @@ func workloadManifest(in *workloadManifestInput) (manifest.DynamicWorkload, stri
 	if err := envMft.Validate(); err != nil {
 		return nil, "", fmt.Errorf("validate manifest against environment %q: %w", in.envName, err)
 	}
-	if err := envMft.Load(in.cfg); err != nil {
+	if err := envMft.Load(in.ctx, in.cfg); err != nil {
 		return nil, "", fmt.Errorf("load dynamic content: %w", err)
 	}
 	return envMft, interpolated, nil
@@ -583,10 +581,6 @@ func validateWkldVersion(vg versionGetter, name, templateVersion string) error {
 
 func (o *deploySvcOpts) uriRecommendedActions() ([]string, error) {
 	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
 	describer, err := describe.NewReachableService(ctx, o.appName, o.name, o.store)
 	if err != nil {
 		var errNotAccessible *describe.ErrNonAccessibleServiceType
@@ -724,7 +718,7 @@ func buildSvcDeployCmd() *cobra.Command {
   Deploys a service with additional resource tags.
   /code $ copilot svc deploy --resource-tags source/revision=bb133e7,deployment/initiator=manual`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcDeployOptsWithContext(cmd.Context(), vars)
+			opts, err := newSvcDeployOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

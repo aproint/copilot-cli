@@ -223,7 +223,7 @@ func newInitEnvOptsWithSessionProvider(ctx context.Context, vars initEnvVars, se
 			}, nil
 		},
 		newAppVersionGetter: func(ctx context.Context, appName string) (versionGetter, error) {
-			return describe.NewAppDescriberWithContext(ctx, appName)
+			return describe.NewAppDescriber(ctx, appName)
 		},
 		selApp:         selector.NewAppEnvSelector(prompt.New(), store),
 		appCFN:         deploycfn.New(defaultConfig, deploycfn.WithProgressTracker(os.Stderr)),
@@ -236,7 +236,7 @@ func newInitEnvOptsWithSessionProvider(ctx context.Context, vars initEnvVars, se
 }
 
 // Validate returns an error if the values passed by flags are invalid.
-func (o *initEnvOpts) Validate() error {
+func (o *initEnvOpts) Validate(ctx context.Context) error {
 	if o.wsAppName == "" {
 		return errNoAppInWorkspace
 	}
@@ -323,7 +323,7 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if err := o.delegateDNSFromApp(app, envCaller.Account); err != nil {
+		if err := o.delegateDNSFromApp(ctx, app, envCaller.Account); err != nil {
 			return fmt.Errorf("granting DNS permissions: %w", err)
 		}
 	}
@@ -334,13 +334,13 @@ func (o *initEnvOpts) Execute(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	_ = o.iam.CreateECSServiceLinkedRoleWithContext(ctx)
+	_ = o.iam.CreateECSServiceLinkedRole(ctx)
 
 	// 4. Add the stack set instance to the app stackset.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := o.addToStackset(&deploycfn.AddEnvToAppOpts{
+	if err := o.addToStackset(ctx, &deploycfn.AddEnvToAppOpts{
 		App:          app,
 		EnvName:      o.name,
 		EnvRegion:    o.cfg.Region,
@@ -553,7 +553,7 @@ func (o *initEnvOpts) askImportResources(ctx context.Context) error {
 	if o.ec2Client == nil {
 		o.ec2Client = ec2.New(o.cfg)
 	}
-	dnsSupport, err := o.ec2Client.HasDNSSupportWithContext(ctx, o.importVPC.ID)
+	dnsSupport, err := o.ec2Client.HasDNSSupport(ctx, o.importVPC.ID)
 	if err != nil {
 		return fmt.Errorf("check if VPC %s has DNS support enabled: %w", o.importVPC.ID, err)
 	}
@@ -670,7 +670,7 @@ func (o *initEnvOpts) askAZs(ctx context.Context) ([]string, error) {
 	if o.ec2Client == nil {
 		o.ec2Client = ec2.New(o.cfg)
 	}
-	azs, err := o.ec2Client.ListAZsWithContext(ctx)
+	azs, err := o.ec2Client.ListAZs(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list availability zones for region %s: %v", o.cfg.Region, err)
 	}
@@ -761,7 +761,7 @@ func (o *initEnvOpts) adjustVPCConfig() *config.AdjustVPC {
 
 func (o *initEnvOpts) deployEnv(ctx context.Context, app *config.Application) error {
 	envRegion := o.cfg.Region
-	resources, err := o.appCFN.GetAppResourcesByRegion(app, envRegion)
+	resources, err := o.appCFN.GetAppResourcesByRegion(ctx, app, envRegion)
 	if err != nil {
 		return fmt.Errorf("get app resources: %w", err)
 	}
@@ -814,21 +814,21 @@ func (o *initEnvOpts) deployEnv(ctx context.Context, app *config.Application) er
 	return nil
 }
 
-func (o *initEnvOpts) addToStackset(opts *deploycfn.AddEnvToAppOpts) error {
-	if err := o.appDeployer.AddEnvToApp(opts); err != nil {
+func (o *initEnvOpts) addToStackset(ctx context.Context, opts *deploycfn.AddEnvToAppOpts) error {
+	if err := o.appDeployer.AddEnvToApp(ctx, opts); err != nil {
 		return fmt.Errorf("add env %s to application %s: %w", opts.EnvName, opts.App.Name, err)
 	}
 	return nil
 }
 
-func (o *initEnvOpts) delegateDNSFromApp(app *config.Application, accountID string) error {
+func (o *initEnvOpts) delegateDNSFromApp(ctx context.Context, app *config.Application, accountID string) error {
 	// By default, our DNS Delegation permits same account delegation.
 	if accountID == app.AccountID {
 		return nil
 	}
 
 	o.prog.Start(fmt.Sprintf(fmtDNSDelegationStart, color.HighlightUserInput(accountID)))
-	if err := o.appDeployer.DelegateDNSPermissions(app, accountID); err != nil {
+	if err := o.appDeployer.DelegateDNSPermissions(ctx, app, accountID); err != nil {
 		o.prog.Stop(log.Serrorf(fmtDNSDelegationFailed, color.HighlightUserInput(accountID)))
 		return err
 	}
@@ -874,7 +874,7 @@ func (o *initEnvOpts) validateInternalALBSubnets() error {
 // cleanUpDanglingRoles deletes any IAM roles created for the same app and env that were left over from a previous
 // environment creation.
 func (o *initEnvOpts) cleanUpDanglingRoles(ctx context.Context, app, env string) error {
-	exists, err := o.cfn.Exists(stack.NameForEnv(app, env))
+	exists, err := o.cfn.Exists(ctx, stack.NameForEnv(app, env))
 	if err != nil {
 		return fmt.Errorf("check if stack %s exists: %w", stack.NameForEnv(app, env), err)
 	}
@@ -900,7 +900,7 @@ func (o *initEnvOpts) deleteEnvRoles(ctx context.Context, app, env string) error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		tags, err := o.iam.ListRoleTagsContext(ctx, roleName)
+		tags, err := o.iam.ListRoleTags(ctx, roleName)
 		if err != nil {
 			continue
 		}
@@ -910,7 +910,7 @@ func (o *initEnvOpts) deleteEnvRoles(ctx context.Context, app, env string) error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		_ = o.iam.DeleteRoleWithContext(ctx, roleName)
+		_ = o.iam.DeleteRole(ctx, roleName)
 	}
 	return nil
 }

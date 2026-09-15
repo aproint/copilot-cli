@@ -12,12 +12,9 @@ import (
 )
 
 type cfn interface {
-	Describe(name string) (*cloudformation.StackDescription, error)
-	DescribeWithContext(ctx context.Context, name string) (*cloudformation.StackDescription, error)
-	StackResources(name string) ([]*cloudformation.StackResource, error)
-	StackResourcesWithContext(ctx context.Context, name string) ([]*cloudformation.StackResource, error)
-	Metadata(opt cloudformation.MetadataOpts) (string, error)
-	MetadataWithContext(ctx context.Context, opt cloudformation.MetadataOpts) (string, error)
+	Describe(ctx context.Context, name string) (*cloudformation.StackDescription, error)
+	StackResources(ctx context.Context, name string) ([]*cloudformation.StackResource, error)
+	Metadata(ctx context.Context, opt cloudformation.MetadataOpts) (string, error)
 }
 
 // StackDescription is the description of a cloudformation stack.
@@ -53,15 +50,9 @@ func NewStackDescriber(stackName string, cfg aws.Config) *StackDescriber {
 	}
 }
 
-// Describe retrieves information about a cloudformation stack.
-func (d *StackDescriber) Describe() (StackDescription, error) {
-	descr, err := d.cfn.Describe(d.name)
-	return d.stackDescription(descr, err)
-}
-
-// DescribeWithContext retrieves information about a CloudFormation stack using ctx.
-func (d *StackDescriber) DescribeWithContext(ctx context.Context) (StackDescription, error) {
-	descr, err := d.cfn.DescribeWithContext(ctx, d.name)
+// Describe retrieves information about a CloudFormation stack using ctx.
+func (d *StackDescriber) Describe(ctx context.Context) (StackDescription, error) {
+	descr, err := d.cfn.Describe(ctx, d.name)
 	return d.stackDescription(descr, err)
 }
 
@@ -88,15 +79,9 @@ func (d *StackDescriber) stackDescription(descr *cloudformation.StackDescription
 	}, nil
 }
 
-// Resources retrieves the information about a stack's resources.
-func (d *StackDescriber) Resources() ([]*Resource, error) {
-	resources, err := d.cfn.StackResources(d.name)
-	return d.resources(resources, err)
-}
-
-// ResourcesWithContext retrieves stack resources using ctx.
-func (d *StackDescriber) ResourcesWithContext(ctx context.Context) ([]*Resource, error) {
-	resources, err := d.cfn.StackResourcesWithContext(ctx, d.name)
+// Resources retrieves stack resources using ctx.
+func (d *StackDescriber) Resources(ctx context.Context) ([]*Resource, error) {
+	resources, err := d.cfn.StackResources(ctx, d.name)
 	return d.resources(resources, err)
 }
 
@@ -107,15 +92,9 @@ func (d *StackDescriber) resources(resources []*cloudformation.StackResource, er
 	return flattenResources(resources), nil
 }
 
-// StackMetadata returns the metadata of the stack.
-func (d *StackDescriber) StackMetadata() (string, error) {
-	metadata, err := d.cfn.Metadata(cloudformation.MetadataWithStackName(d.name))
-	return d.stackMetadata(metadata, err)
-}
-
-// StackMetadataWithContext returns stack metadata using ctx.
-func (d *StackDescriber) StackMetadataWithContext(ctx context.Context) (string, error) {
-	metadata, err := d.cfn.MetadataWithContext(ctx, cloudformation.MetadataWithStackName(d.name))
+// StackMetadata returns stack metadata using ctx.
+func (d *StackDescriber) StackMetadata(ctx context.Context) (string, error) {
+	metadata, err := d.cfn.Metadata(ctx, cloudformation.MetadataWithStackName(d.name))
 	return d.stackMetadata(metadata, err)
 }
 
@@ -126,15 +105,9 @@ func (d *StackDescriber) stackMetadata(metadata string, err error) (string, erro
 	return metadata, nil
 }
 
-// StackSetMetadata returns the metadata of the stackset.
-func (d *StackDescriber) StackSetMetadata() (string, error) {
-	metadata, err := d.cfn.Metadata(cloudformation.MetadataWithStackSetName(d.name))
-	return d.stackSetMetadata(metadata, err)
-}
-
-// StackSetMetadataWithContext returns stack set metadata using ctx.
-func (d *StackDescriber) StackSetMetadataWithContext(ctx context.Context) (string, error) {
-	metadata, err := d.cfn.MetadataWithContext(ctx, cloudformation.MetadataWithStackSetName(d.name))
+// StackSetMetadata returns stack set metadata using ctx.
+func (d *StackDescriber) StackSetMetadata(ctx context.Context) (string, error) {
+	metadata, err := d.cfn.Metadata(ctx, cloudformation.MetadataWithStackSetName(d.name))
 	return d.stackSetMetadata(metadata, err)
 }
 

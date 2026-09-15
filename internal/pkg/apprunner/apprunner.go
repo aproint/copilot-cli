@@ -13,7 +13,6 @@ import (
 	"github.com/aproint/copilot-cli/internal/pkg/aws/resourcegroups"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy"
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/apprunner/types"
 )
 
 const (
@@ -21,18 +20,13 @@ const (
 )
 
 type appRunnerClient interface {
-	DescribeOperation(operationId, svcARN string) (*types.OperationSummary, error)
-	StartDeployment(svcARN string) (string, error)
-	StartDeploymentWithContext(ctx context.Context, svcARN string) (string, error)
-	DescribeService(svcARN string) (*apprunner.Service, error)
-	DescribeServiceWithContext(ctx context.Context, svcARN string) (*apprunner.Service, error)
-	WaitForOperation(operationId, svcARN string) error
-	WaitForOperationWithContext(ctx context.Context, operationId, svcARN string) error
+	StartDeployment(ctx context.Context, svcARN string) (string, error)
+	DescribeService(ctx context.Context, svcARN string) (*apprunner.Service, error)
+	WaitForOperation(ctx context.Context, operationId, svcARN string) error
 }
 
 type resourceGetter interface {
-	GetResourcesByTags(resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
-	GetResourcesByTagsWithContext(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
+	GetResourcesByTags(ctx context.Context, resourceType string, tags map[string]string) ([]*resourcegroups.Resource, error)
 }
 
 // Client retrieves Copilot information from App Runner endpoint.
@@ -49,78 +43,34 @@ func New(rgConfig awsv2.Config) *Client {
 	}
 }
 
-// ForceUpdateService forces a new update for an App Runner service given Copilot service info.
-func (c Client) ForceUpdateService(app, env, svc string) error {
-	svcARN, err := c.serviceARN(app, env, svc)
+// ForceUpdateService forces a new update using ctx for discovery, deployment, and waiting.
+func (c Client) ForceUpdateService(ctx context.Context, app, env, svc string) error {
+	svcARN, err := c.serviceARN(ctx, app, env, svc)
 	if err != nil {
 		return err
 	}
-	id, err := c.appRunnerClient.StartDeployment(svcARN)
+	id, err := c.appRunnerClient.StartDeployment(ctx, svcARN)
 	if err != nil {
 		return err
 	}
-	return c.appRunnerClient.WaitForOperation(id, svcARN)
+	return c.appRunnerClient.WaitForOperation(ctx, id, svcARN)
 }
 
-// ForceUpdateServiceWithContext forces a new update using ctx for discovery, deployment, and waiting.
-func (c Client) ForceUpdateServiceWithContext(ctx context.Context, app, env, svc string) error {
-	svcARN, err := c.serviceARNWithContext(ctx, app, env, svc)
-	if err != nil {
-		return err
-	}
-	id, err := c.appRunnerClient.StartDeploymentWithContext(ctx, svcARN)
-	if err != nil {
-		return err
-	}
-	return c.appRunnerClient.WaitForOperationWithContext(ctx, id, svcARN)
-}
-
-// LastUpdatedAt returns the last updated time of the app runner service.
-func (c Client) LastUpdatedAt(app, env, svc string) (time.Time, error) {
-	svcARN, err := c.serviceARN(app, env, svc)
+// LastUpdatedAt returns the last service update time using ctx.
+func (c Client) LastUpdatedAt(ctx context.Context, app, env, svc string) (time.Time, error) {
+	svcARN, err := c.serviceARN(ctx, app, env, svc)
 	if err != nil {
 		return time.Time{}, err
 	}
-	desc, err := c.appRunnerClient.DescribeService(svcARN)
+	desc, err := c.appRunnerClient.DescribeService(ctx, svcARN)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("describe service: %w", err)
 	}
 	return desc.DateUpdated, nil
 }
 
-// LastUpdatedAtWithContext returns the last service update time using ctx.
-func (c Client) LastUpdatedAtWithContext(ctx context.Context, app, env, svc string) (time.Time, error) {
-	svcARN, err := c.serviceARNWithContext(ctx, app, env, svc)
-	if err != nil {
-		return time.Time{}, err
-	}
-	desc, err := c.appRunnerClient.DescribeServiceWithContext(ctx, svcARN)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("describe service: %w", err)
-	}
-	return desc.DateUpdated, nil
-}
-
-func (c Client) serviceARN(app, env, svc string) (string, error) {
-	services, err := c.rgGetter.GetResourcesByTags(serviceResourceType, map[string]string{
-		deploy.AppTagKey:     app,
-		deploy.EnvTagKey:     env,
-		deploy.ServiceTagKey: svc,
-	})
-	if err != nil {
-		return "", fmt.Errorf("get App Runner service with tags (%s, %s, %s): %w", app, env, svc, err)
-	}
-	if len(services) == 0 {
-		return "", fmt.Errorf("no App Runner service found for %s in environment %s", svc, env)
-	}
-	if len(services) > 1 {
-		return "", fmt.Errorf("more than one App Runner service with the name %s found in environment %s", svc, env)
-	}
-	return services[0].ARN, nil
-}
-
-func (c Client) serviceARNWithContext(ctx context.Context, app, env, svc string) (string, error) {
-	services, err := c.rgGetter.GetResourcesByTagsWithContext(ctx, serviceResourceType, map[string]string{
+func (c Client) serviceARN(ctx context.Context, app, env, svc string) (string, error) {
+	services, err := c.rgGetter.GetResourcesByTags(ctx, serviceResourceType, map[string]string{
 		deploy.AppTagKey:     app,
 		deploy.EnvTagKey:     env,
 		deploy.ServiceTagKey: svc,

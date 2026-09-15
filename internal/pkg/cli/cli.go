@@ -90,13 +90,7 @@ func isStackSetNotExistsErr(err error) bool {
 }
 
 func run(ctx context.Context, cmd cmd) error {
-	var err error
-	if validator, ok := cmd.(contextValidator); ok {
-		err = validator.ValidateWithContext(ctx)
-	} else {
-		err = cmd.Validate()
-	}
-	if err != nil {
+	if err := cmd.Validate(ctx); err != nil {
 		return err
 	}
 	if err := cmd.Ask(ctx); err != nil {

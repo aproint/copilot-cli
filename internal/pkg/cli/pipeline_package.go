@@ -54,11 +54,7 @@ type packagePipelineOpts struct {
 	jobBuffer   *bytes.Buffer
 }
 
-func newPackagePipelineOpts(vars packagePipelineVars) (*packagePipelineOpts, error) {
-	return newPackagePipelineOptsWithContext(context.Background(), vars)
-}
-
-func newPackagePipelineOptsWithContext(ctx context.Context, vars packagePipelineVars) (*packagePipelineOpts, error) {
+func newPackagePipelineOpts(ctx context.Context, vars packagePipelineVars) (*packagePipelineOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("pipeline package"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -145,7 +141,7 @@ func (o *packagePipelineOpts) Execute(ctx context.Context) error {
 
 	connection, ok := pipelineMft.Source.Properties["connection_name"]
 	if ok {
-		arn, err := o.codestar.GetConnectionARNWithContext(ctx, (connection).(string))
+		arn, err := o.codestar.GetConnectionARN(ctx, (connection).(string))
 		if err != nil {
 			return fmt.Errorf("get connection ARN: %w", err)
 		}
@@ -237,7 +233,7 @@ func (o *packagePipelineOpts) getPipelineMft(pipelinePath string) (*manifest.Pip
 
 func (o *packagePipelineOpts) isLegacy(ctx context.Context, inputName string) (bool, error) {
 	lister := o.configureDeployedPipelineLister()
-	pipelines, err := lister.ListDeployedPipelinesWithContext(ctx, o.appName)
+	pipelines, err := lister.ListDeployedPipelines(ctx, o.appName)
 	if err != nil {
 		return false, fmt.Errorf("list deployed pipelines for app %s: %w", o.appName, err)
 	}
@@ -293,7 +289,7 @@ func (o packagePipelineOpts) getLocalWorkloads(ctx context.Context) ([]string, e
 }
 
 func (o *packagePipelineOpts) getArtifactBuckets(ctx context.Context) ([]deploy.ArtifactBucket, error) {
-	regionalResources, err := o.pipelineDeployer.GetRegionalAppResourcesWithContext(ctx, o.app)
+	regionalResources, err := o.pipelineDeployer.GetRegionalAppResources(ctx, o.app)
 	if err != nil {
 		return nil, err
 	}

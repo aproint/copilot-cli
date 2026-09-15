@@ -42,7 +42,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
 					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{}, nil),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return(nil, errors.New("some error")),
@@ -58,7 +58,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
 					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{}, nil),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return([]*rg.Resource{{ARN: "mockARN", Tags: map[string]string{}}}, nil),
@@ -74,7 +74,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
 					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return(nil, errors.New("some error")),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Times(0),
@@ -106,7 +106,7 @@ func TestStore_ListDeployedServices(t *testing.T) {
 							Type: manifestinfo.ScheduledJobType,
 						},
 					}, nil),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return([]*rg.Resource{{ARN: "mockARN1", Tags: map[string]string{ServiceTagKey: "mockSvc1"}},
@@ -189,7 +189,7 @@ func TestStore_ListDeployedJobs(t *testing.T) {
 							Type: manifestinfo.ScheduledJobType,
 						},
 					}, nil),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return([]*rg.Resource{{ARN: "mockARN1", Tags: map[string]string{ServiceTagKey: "mockJob1"}},
@@ -206,7 +206,7 @@ func TestStore_ListDeployedJobs(t *testing.T) {
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
 					m.configStore.EXPECT().ListWorkloads(context.Background(), "mockApp").Return([]*config.Workload{}, nil),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return([]*rg.Resource{{ARN: "mockARN", Tags: map[string]string{}}}, nil),
@@ -280,7 +280,7 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 							Name: "mockEnv",
 						},
 					}, nil),
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(gomock.Any(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockSvc",
@@ -305,12 +305,12 @@ func TestStore_ListEnvironmentsDeployedTo(t *testing.T) {
 						Name: "mockEnv2",
 					},
 				}, nil)
-				m.rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
+				m.rgGetter.EXPECT().GetResourcesByTags(gomock.Any(), stackResourceType, map[string]string{
 					AppTagKey:     "mockApp",
 					EnvTagKey:     "mockEnv1",
 					ServiceTagKey: "mockSvc",
 				}).Return([]*rg.Resource{{ARN: "mockSvcARN"}}, nil)
-				m.rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
+				m.rgGetter.EXPECT().GetResourcesByTags(gomock.Any(), stackResourceType, map[string]string{
 					AppTagKey:     "mockApp",
 					EnvTagKey:     "mockEnv2",
 					ServiceTagKey: "mockSvc",
@@ -369,7 +369,7 @@ func TestStore_ListEnvironmentsDeployedToWaitsForConcurrentLookups(t *testing.T)
 		{Name: "first"},
 		{Name: "second"},
 	}, nil)
-	rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
+	rgGetter.EXPECT().GetResourcesByTags(gomock.Any(), stackResourceType, map[string]string{
 		AppTagKey:     "mockApp",
 		EnvTagKey:     "first",
 		ServiceTagKey: "mockSvc",
@@ -377,7 +377,7 @@ func TestStore_ListEnvironmentsDeployedToWaitsForConcurrentLookups(t *testing.T)
 		<-secondLookupStarted
 		return nil, context.Canceled
 	})
-	rgGetter.EXPECT().GetResourcesByTagsWithContext(gomock.Any(), stackResourceType, map[string]string{
+	rgGetter.EXPECT().GetResourcesByTags(gomock.Any(), stackResourceType, map[string]string{
 		AppTagKey:     "mockApp",
 		EnvTagKey:     "second",
 		ServiceTagKey: "mockSvc",
@@ -422,7 +422,7 @@ func TestStore_IsServiceDeployed(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockSvc",
@@ -439,7 +439,7 @@ func TestStore_IsServiceDeployed(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockSvc",
@@ -456,7 +456,7 @@ func TestStore_IsServiceDeployed(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockSvc",
@@ -519,7 +519,7 @@ func Test_IsJobDeployed(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockJob",
@@ -536,7 +536,7 @@ func Test_IsJobDeployed(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockJob",
@@ -552,7 +552,7 @@ func Test_IsJobDeployed(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTagsWithContext(context.Background(), stackResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), stackResourceType, map[string]string{
 						AppTagKey:     "mockApp",
 						EnvTagKey:     "mockEnv",
 						ServiceTagKey: "mockJob",
@@ -612,7 +612,7 @@ func TestStore_ListSNSTopics(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTags(snsResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), snsResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return(nil, errors.New("some error")),
@@ -627,7 +627,7 @@ func TestStore_ListSNSTopics(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTags(snsResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), snsResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return([]*rg.Resource{{ARN: "mockARN", Tags: map[string]string{}}}, nil),
@@ -642,7 +642,7 @@ func TestStore_ListSNSTopics(t *testing.T) {
 
 			setupMocks: func(m storeMock) {
 				gomock.InOrder(
-					m.rgGetter.EXPECT().GetResourcesByTags(snsResourceType, map[string]string{
+					m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), snsResourceType, map[string]string{
 						AppTagKey: "mockApp",
 						EnvTagKey: "mockEnv",
 					}).Return([]*rg.Resource{
@@ -660,7 +660,7 @@ func TestStore_ListSNSTopics(t *testing.T) {
 			inputEnv: "mockEnv",
 
 			setupMocks: func(m storeMock) {
-				m.rgGetter.EXPECT().GetResourcesByTags(
+				m.rgGetter.EXPECT().GetResourcesByTags(context.Background(),
 					snsResourceType,
 					map[string]string{
 						AppTagKey: "mockApp",
@@ -756,7 +756,7 @@ func TestPipelineStore_ListDeployedPipelines(t *testing.T) {
 	}{
 		"return error if fail to get resources by tag": {
 			setupMocks: func(m storeMock) {
-				m.rgGetter.EXPECT().GetResourcesByTags(pipelineResourceType, map[string]string{
+				m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), pipelineResourceType, map[string]string{
 					AppTagKey: "mockApp",
 				}).Return(nil, errors.New("some error"))
 			},
@@ -765,7 +765,7 @@ func TestPipelineStore_ListDeployedPipelines(t *testing.T) {
 		},
 		"return error if fail to parse pipeline ARN": {
 			setupMocks: func(m storeMock) {
-				m.rgGetter.EXPECT().GetResourcesByTags(pipelineResourceType, map[string]string{
+				m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), pipelineResourceType, map[string]string{
 					AppTagKey: "mockApp",
 				}).Return([]*rg.Resource{
 					{
@@ -778,7 +778,7 @@ func TestPipelineStore_ListDeployedPipelines(t *testing.T) {
 		},
 		"success": {
 			setupMocks: func(m storeMock) {
-				m.rgGetter.EXPECT().GetResourcesByTags(pipelineResourceType, map[string]string{
+				m.rgGetter.EXPECT().GetResourcesByTags(context.Background(), pipelineResourceType, map[string]string{
 					AppTagKey: "mockApp",
 				}).Return([]*rg.Resource{
 					{
@@ -830,7 +830,7 @@ func TestPipelineStore_ListDeployedPipelines(t *testing.T) {
 			}
 
 			// WHEN
-			pipelines, err := store.ListDeployedPipelines(mockAppName)
+			pipelines, err := store.ListDeployedPipelines(context.Background(), mockAppName)
 
 			// THEN
 			if tc.wantedError != nil {

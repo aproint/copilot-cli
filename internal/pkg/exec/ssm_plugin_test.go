@@ -48,7 +48,7 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 			inSession: mockSession,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().InteractiveRunWithContext(gomock.Any(), ssmPluginBinaryName,
+				mockRunner.EXPECT().InteractiveRun(gomock.Any(), ssmPluginBinaryName,
 					[]string{`{"SessionId":"mockSessionID","StreamUrl":"mockStreamURL","TokenValue":"mockTokenValue"}`, "us-west-2", "StartSession"}).Return(mockError)
 			},
 			wantedError: fmt.Errorf("start session: some error"),
@@ -57,7 +57,7 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 			inSession: mockSession,
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().InteractiveRunWithContext(gomock.Any(), ssmPluginBinaryName,
+				mockRunner.EXPECT().InteractiveRun(gomock.Any(), ssmPluginBinaryName,
 					[]string{`{"SessionId":"mockSessionID","StreamUrl":"mockStreamURL","TokenValue":"mockTokenValue"}`, "us-west-2", "StartSession"}).Return(nil)
 			},
 		},
@@ -70,7 +70,7 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 				runner: mockRunner,
 				region: "us-west-2",
 			}
-			err := s.StartSession(tc.inSession)
+			err := s.StartSession(context.Background(), tc.inSession)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -80,15 +80,15 @@ func TestSSMPluginCommand_StartSession(t *testing.T) {
 	}
 }
 
-func TestSSMPluginCommand_StartSessionWithContextUsesCallerContext(t *testing.T) {
+func TestSSMPluginCommand_StartSessionUsesCallerContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	runner := NewMockrunner(ctrl)
-	runner.EXPECT().InteractiveRunWithContext(gomock.Eq(ctx), ssmPluginBinaryName, gomock.Any()).Return(nil)
+	runner.EXPECT().InteractiveRun(gomock.Eq(ctx), ssmPluginBinaryName, gomock.Any()).Return(nil)
 	command := SSMPluginCommand{runner: runner, region: "us-west-2"}
 
-	err := command.StartSessionWithContext(ctx, &types.Session{})
+	err := command.StartSession(ctx, &types.Session{})
 	require.NoError(t, err)
 }

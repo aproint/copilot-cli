@@ -4,6 +4,7 @@
 package acm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -97,7 +98,7 @@ func TestACM_ValidateCertAliases(t *testing.T) {
 				client: mockClient,
 			}
 
-			gotErr := acmSvc.ValidateCertAliases(tc.inAliases, tc.inCerts)
+			gotErr := acmSvc.ValidateCertAliases(context.Background(), tc.inAliases, tc.inCerts)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())

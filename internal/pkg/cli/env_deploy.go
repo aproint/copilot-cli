@@ -70,11 +70,7 @@ type deployEnvOpts struct {
 	templateVersion string
 }
 
-func newEnvDeployOpts(vars deployEnvVars) (*deployEnvOpts, error) {
-	return newEnvDeployOptsWithContext(context.Background(), vars)
-}
-
-func newEnvDeployOptsWithContext(ctx context.Context, vars deployEnvVars) (*deployEnvOpts, error) {
+func newEnvDeployOpts(ctx context.Context, vars deployEnvVars) (*deployEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env deploy"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -139,7 +135,7 @@ func newEnvDeployer(ctx context.Context, opts *deployEnvOpts, ws deploy.Workspac
 }
 
 // Validate is a no-op for this command.
-func (o *deployEnvOpts) Validate() error {
+func (o *deployEnvOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -391,7 +387,7 @@ func buildEnvDeployCmd() *cobra.Command {
 Deploy an environment named "test".
 /code $copilot env deploy --name test`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newEnvDeployOptsWithContext(cmd.Context(), vars)
+			opts, err := newEnvDeployOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

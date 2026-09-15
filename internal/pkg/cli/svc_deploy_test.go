@@ -105,7 +105,7 @@ func TestSvcDeployOpts_Ask(t *testing.T) {
 				ws:    mocks.NewMockwsWlDirReader(ctrl),
 			}
 			tc.setupMocks(m)
-			opts := deploySvcOpts{
+			opts := deploySvcOpts{ctx: context.Background(),
 				deployWkldVars: deployWkldVars{
 					appName: tc.inAppName,
 					name:    tc.inSvcName,
@@ -495,7 +495,7 @@ func TestSvcDeployOpts_Execute(t *testing.T) {
 			}
 			tc.mock(m)
 
-			opts := deploySvcOpts{
+			opts := deploySvcOpts{ctx: context.Background(),
 				deployWkldVars: deployWkldVars{
 					appName:            mockAppName,
 					name:               mockSvcName,
@@ -637,7 +637,7 @@ func (m *mockWorkloadMft) Validate() error {
 	return nil
 }
 
-func (m *mockWorkloadMft) Load(cfg aws.Config) error {
+func (m *mockWorkloadMft) Load(_ context.Context, cfg aws.Config) error {
 	return nil
 }
 

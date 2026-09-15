@@ -44,13 +44,8 @@ func New(cfg awsv2.Config) ECR {
 	}
 }
 
-// Auth returns the basic authentication credentials needed to push images.
-func (c ECR) Auth() (username string, password string, err error) {
-	return c.AuthWithContext(context.Background())
-}
-
-// AuthWithContext returns the basic authentication credentials needed to push images using ctx.
-func (c ECR) AuthWithContext(ctx context.Context) (username string, password string, err error) {
+// Auth returns the basic authentication credentials needed to push images using ctx.
+func (c ECR) Auth(ctx context.Context) (username string, password string, err error) {
 	response, err := c.client.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 
 	if err != nil {
@@ -67,13 +62,8 @@ func (c ECR) AuthWithContext(ctx context.Context) (username string, password str
 	return tokenStrings[0], tokenStrings[1], nil
 }
 
-// RepositoryURI returns the ECR repository URI.
-func (c ECR) RepositoryURI(name string) (string, error) {
-	return c.RepositoryURIWithContext(context.Background(), name)
-}
-
-// RepositoryURIWithContext returns the ECR repository URI using ctx.
-func (c ECR) RepositoryURIWithContext(ctx context.Context, name string) (string, error) {
+// RepositoryURI returns the ECR repository URI using ctx.
+func (c ECR) RepositoryURI(ctx context.Context, name string) (string, error) {
 	result, err := c.client.DescribeRepositories(ctx, &ecr.DescribeRepositoriesInput{
 		RepositoryNames: []string{name},
 	})
@@ -104,14 +94,8 @@ func (i Image) imageIdentifier() types.ImageIdentifier {
 	}
 }
 
-// ListImages calls the ECR DescribeImages API and returns a list of
-// Image metadata for images in the input ECR repository name.
-func (c ECR) ListImages(repoName string) ([]Image, error) {
-	return c.ListImagesWithContext(context.Background(), repoName)
-}
-
-// ListImagesWithContext returns images in a repository using ctx for every page.
-func (c ECR) ListImagesWithContext(ctx context.Context, repoName string) ([]Image, error) {
+// ListImages returns images in a repository using ctx for every page.
+func (c ECR) ListImages(ctx context.Context, repoName string) ([]Image, error) {
 	var images []Image
 	resp, err := c.client.DescribeImages(ctx, &ecr.DescribeImagesInput{
 		RepositoryName: awsv2.String(repoName),
@@ -144,13 +128,8 @@ func (c ECR) ListImagesWithContext(ctx context.Context, repoName string) ([]Imag
 	return images, nil
 }
 
-// DeleteImages calls the ECR BatchDeleteImage API with the input image list and repository name.
-func (c ECR) DeleteImages(images []Image, repoName string) error {
-	return c.DeleteImagesWithContext(context.Background(), images, repoName)
-}
-
-// DeleteImagesWithContext deletes images using ctx.
-func (c ECR) DeleteImagesWithContext(ctx context.Context, images []Image, repoName string) error {
+// DeleteImages deletes images using ctx.
+func (c ECR) DeleteImages(ctx context.Context, images []Image, repoName string) error {
 	if len(images) == 0 {
 		return nil
 	}
@@ -185,19 +164,13 @@ func (c ECR) DeleteImagesWithContext(ctx context.Context, images []Image, repoNa
 	return nil
 }
 
-// ClearRepository orchestrates a ListImages call followed by a DeleteImages
-// call to delete all images from the input ECR repository name.
-func (c ECR) ClearRepository(repoName string) error {
-	return c.ClearRepositoryWithContext(context.Background(), repoName)
-}
-
-// ClearRepositoryWithContext removes every image from a repository using ctx.
-func (c ECR) ClearRepositoryWithContext(ctx context.Context, repoName string) error {
-	images, err := c.ListImagesWithContext(ctx, repoName)
+// ClearRepository removes every image from a repository using ctx.
+func (c ECR) ClearRepository(ctx context.Context, repoName string) error {
+	images, err := c.ListImages(ctx, repoName)
 
 	if err == nil {
 		// TODO: add retry handling in case images are added to a repository after a call to ListImages
-		return c.DeleteImagesWithContext(ctx, images, repoName)
+		return c.DeleteImages(ctx, images, repoName)
 	}
 	if isRepoNotFoundErr(errors.Unwrap(err)) {
 		return nil

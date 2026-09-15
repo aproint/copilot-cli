@@ -36,33 +36,18 @@ func (m *MocklogGetter) EXPECT() *MocklogGetterMockRecorder {
 }
 
 // LogEvents mocks base method.
-func (m *MocklogGetter) LogEvents(opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error) {
+func (m *MocklogGetter) LogEvents(ctx context.Context, opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LogEvents", opts)
+	ret := m.ctrl.Call(m, "LogEvents", ctx, opts)
 	ret0, _ := ret[0].(*cloudwatchlogs.LogEventsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LogEvents indicates an expected call of LogEvents.
-func (mr *MocklogGetterMockRecorder) LogEvents(opts interface{}) *gomock.Call {
+func (mr *MocklogGetterMockRecorder) LogEvents(ctx, opts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogEvents", reflect.TypeOf((*MocklogGetter)(nil).LogEvents), opts)
-}
-
-// LogEventsWithContext mocks base method.
-func (m *MocklogGetter) LogEventsWithContext(ctx context.Context, opts cloudwatchlogs.LogEventsOpts) (*cloudwatchlogs.LogEventsOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LogEventsWithContext", ctx, opts)
-	ret0, _ := ret[0].(*cloudwatchlogs.LogEventsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// LogEventsWithContext indicates an expected call of LogEventsWithContext.
-func (mr *MocklogGetterMockRecorder) LogEventsWithContext(ctx, opts interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogEventsWithContext", reflect.TypeOf((*MocklogGetter)(nil).LogEventsWithContext), ctx, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogEvents", reflect.TypeOf((*MocklogGetter)(nil).LogEvents), ctx, opts)
 }
 
 // MockserviceARNGetter is a mock of serviceARNGetter interface.

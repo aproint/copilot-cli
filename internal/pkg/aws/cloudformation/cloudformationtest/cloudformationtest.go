@@ -23,7 +23,6 @@ type Double struct {
 	DeleteAndWaitFn             func(stackName string) error
 	DeleteAndWaitWithRoleARNFn  func(stackName, roleARN string) error
 	DescribeFn                  func(name string) (*cfn.StackDescription, error)
-	DescribeWithContextFn       func(ctx context.Context, name string) (*cfn.StackDescription, error)
 	ExistsFn                    func(name string) (bool, error)
 	MetadataFn                  func(opt cfn.MetadataOpts) (string, error)
 	TemplateBodyFn              func(name string) (string, error)
@@ -38,32 +37,17 @@ type Double struct {
 }
 
 // Create calls the stubbed function.
-func (d *Double) Create(stack *cfn.Stack) (string, error) {
-	return d.CreateFn(stack)
-}
-
-// CreateWithContext calls the stubbed function.
-func (d *Double) CreateWithContext(_ context.Context, stack *cfn.Stack) (string, error) {
+func (d *Double) Create(_ context.Context, stack *cfn.Stack) (string, error) {
 	return d.CreateFn(stack)
 }
 
 // CreateAndWait calls the stubbed function.
-func (d *Double) CreateAndWait(stack *cfn.Stack) error {
-	return d.CreateAndWaitFn(stack)
-}
-
-// CreateAndWaitWithContext calls the stubbed function.
-func (d *Double) CreateAndWaitWithContext(_ context.Context, stack *cfn.Stack) error {
+func (d *Double) CreateAndWait(_ context.Context, stack *cfn.Stack) error {
 	return d.CreateAndWaitFn(stack)
 }
 
 // DescribeChangeSet calls the stubbed function.
-func (d *Double) DescribeChangeSet(id, stack string) (*cfn.ChangeSetDescription, error) {
-	return d.DescribeChangeSetFn(id, stack)
-}
-
-// DescribeChangeSetWithContext calls the stubbed function.
-func (d *Double) DescribeChangeSetWithContext(_ context.Context, id, stack string) (*cfn.ChangeSetDescription, error) {
+func (d *Double) DescribeChangeSet(_ context.Context, id, stack string) (*cfn.ChangeSetDescription, error) {
 	return d.DescribeChangeSetFn(id, stack)
 }
 
@@ -73,22 +57,12 @@ func (d *Double) WaitForCreate(ctx context.Context, stack string) error {
 }
 
 // Update calls the stubbed function.
-func (d *Double) Update(stack *cfn.Stack) (string, error) {
-	return d.UpdateFn(stack)
-}
-
-// UpdateWithContext calls the stubbed function.
-func (d *Double) UpdateWithContext(_ context.Context, stack *cfn.Stack) (string, error) {
+func (d *Double) Update(_ context.Context, stack *cfn.Stack) (string, error) {
 	return d.UpdateFn(stack)
 }
 
 // UpdateAndWait calls the stubbed function.
-func (d *Double) UpdateAndWait(stack *cfn.Stack) error {
-	return d.UpdateAndWaitFn(stack)
-}
-
-// UpdateAndWaitWithContext calls the stubbed function.
-func (d *Double) UpdateAndWaitWithContext(_ context.Context, stack *cfn.Stack) error {
+func (d *Double) UpdateAndWait(_ context.Context, stack *cfn.Stack) error {
 	return d.UpdateAndWaitFn(stack)
 }
 
@@ -98,139 +72,76 @@ func (d *Double) WaitForUpdate(ctx context.Context, stackName string) error {
 }
 
 // Delete calls the stubbed function.
-func (d *Double) Delete(stackName string) error {
+func (d *Double) Delete(_ context.Context, stackName string) error {
 	return d.DeleteFn(stackName)
 }
 
 // DeleteAndWait calls the stubbed function.
-func (d *Double) DeleteAndWait(stackName string) error {
-	return d.DeleteAndWaitFn(stackName)
-}
-
-// DeleteAndWaitWithContext calls the stubbed function.
-func (d *Double) DeleteAndWaitWithContext(_ context.Context, stackName string) error {
+func (d *Double) DeleteAndWait(_ context.Context, stackName string) error {
 	return d.DeleteAndWaitFn(stackName)
 }
 
 // DeleteAndWaitWithRoleARN calls the stubbed function.
-func (d *Double) DeleteAndWaitWithRoleARN(stackName, roleARN string) error {
+func (d *Double) DeleteAndWaitWithRoleARN(_ context.Context, stackName, roleARN string) error {
 	return d.DeleteAndWaitWithRoleARNFn(stackName, roleARN)
 }
 
-// DeleteAndWaitWithRoleARNWithContext calls the stubbed function.
-func (d *Double) DeleteAndWaitWithRoleARNWithContext(_ context.Context, stackName, roleARN string) error {
-	return d.DeleteAndWaitWithRoleARN(stackName, roleARN)
-}
-
 // Describe calls the stubbed function.
-func (d *Double) Describe(name string) (*cfn.StackDescription, error) {
-	return d.DescribeFn(name)
-}
-
-// DescribeWithContext calls the stubbed function.
-func (d *Double) DescribeWithContext(ctx context.Context, name string) (*cfn.StackDescription, error) {
-	if d.DescribeWithContextFn != nil {
-		return d.DescribeWithContextFn(ctx, name)
-	}
+func (d *Double) Describe(_ context.Context, name string) (*cfn.StackDescription, error) {
 	return d.DescribeFn(name)
 }
 
 // Exists calls the stubbed function.
-func (d *Double) Exists(name string) (bool, error) {
+func (d *Double) Exists(_ context.Context, name string) (bool, error) {
 	return d.ExistsFn(name)
 }
 
 // Metadata calls the stubbed function.
-func (d *Double) Metadata(opt cfn.MetadataOpts) (string, error) {
-	return d.MetadataFn(opt)
-}
-
-// MetadataWithContext calls the stubbed function.
-func (d *Double) MetadataWithContext(_ context.Context, opt cfn.MetadataOpts) (string, error) {
+func (d *Double) Metadata(_ context.Context, opt cfn.MetadataOpts) (string, error) {
 	return d.MetadataFn(opt)
 }
 
 // TemplateBody calls the stubbed function.
-func (d *Double) TemplateBody(name string) (string, error) {
-	return d.TemplateBodyFn(name)
-}
-
-// TemplateBodyWithContext calls the stubbed function.
-func (d *Double) TemplateBodyWithContext(_ context.Context, name string) (string, error) {
+func (d *Double) TemplateBody(_ context.Context, name string) (string, error) {
 	return d.TemplateBodyFn(name)
 }
 
 // TemplateBodyFromChangeSet calls the stubbed function.
-func (d *Double) TemplateBodyFromChangeSet(changeSetID, stackName string) (string, error) {
-	return d.TemplateBodyFromChangeSetFn(changeSetID, stackName)
-}
-
-// TemplateBodyFromChangeSetWithContext calls the stubbed function.
-func (d *Double) TemplateBodyFromChangeSetWithContext(_ context.Context, changeSetID, stackName string) (string, error) {
+func (d *Double) TemplateBodyFromChangeSet(_ context.Context, changeSetID, stackName string) (string, error) {
 	return d.TemplateBodyFromChangeSetFn(changeSetID, stackName)
 }
 
 // Outputs calls the stubbed function.
-func (d *Double) Outputs(stack *cfn.Stack) (map[string]string, error) {
-	return d.OutputsFn(stack)
-}
-
-// OutputsWithContext calls the stubbed function.
-func (d *Double) OutputsWithContext(_ context.Context, stack *cfn.Stack) (map[string]string, error) {
+func (d *Double) Outputs(_ context.Context, stack *cfn.Stack) (map[string]string, error) {
 	return d.OutputsFn(stack)
 }
 
 // Events calls the stubbed function.
-func (d *Double) Events(stackName string) ([]cfn.StackEvent, error) {
+func (d *Double) Events(_ context.Context, stackName string) ([]cfn.StackEvent, error) {
 	return d.EventsFn(stackName)
 }
 
 // StackResources calls the stubbed function.
-func (d *Double) StackResources(name string) ([]*cfn.StackResource, error) {
-	return d.StackResourcesFn(name)
-}
-
-// StackResourcesWithContext calls the stubbed function.
-func (d *Double) StackResourcesWithContext(_ context.Context, name string) ([]*cfn.StackResource, error) {
+func (d *Double) StackResources(_ context.Context, name string) ([]*cfn.StackResource, error) {
 	return d.StackResourcesFn(name)
 }
 
 // ErrorEvents calls the stubbed function.
-func (d *Double) ErrorEvents(stackName string) ([]cfn.StackEvent, error) {
-	return d.ErrorEventsFn(stackName)
-}
-
-// ErrorEventsWithContext calls the stubbed function.
-func (d *Double) ErrorEventsWithContext(_ context.Context, stackName string) ([]cfn.StackEvent, error) {
+func (d *Double) ErrorEvents(_ context.Context, stackName string) ([]cfn.StackEvent, error) {
 	return d.ErrorEventsFn(stackName)
 }
 
 // ListStacksWithTags calls the stubbed function.
-func (d *Double) ListStacksWithTags(tags map[string]string) ([]cfn.StackDescription, error) {
+func (d *Double) ListStacksWithTags(_ context.Context, tags map[string]string) ([]cfn.StackDescription, error) {
 	return d.ListStacksWithTagsFn(tags)
 }
 
-// ListStacksWithTagsWithContext calls the stubbed function.
-func (d *Double) ListStacksWithTagsWithContext(_ context.Context, tags map[string]string) ([]cfn.StackDescription, error) {
-	return d.ListStacksWithTags(tags)
-}
-
 // DescribeStackEvents calls the stubbed function.
-func (d *Double) DescribeStackEvents(input *sdk.DescribeStackEventsInput) (*sdk.DescribeStackEventsOutput, error) {
-	return d.DescribeStackEventsFn(input)
-}
-
-// DescribeStackEventsWithContext calls the stubbed function.
-func (d *Double) DescribeStackEventsWithContext(_ context.Context, input *sdk.DescribeStackEventsInput) (*sdk.DescribeStackEventsOutput, error) {
+func (d *Double) DescribeStackEvents(_ context.Context, input *sdk.DescribeStackEventsInput) (*sdk.DescribeStackEventsOutput, error) {
 	return d.DescribeStackEventsFn(input)
 }
 
 // CancelUpdateStack calls the stubbed function.
-func (d *Double) CancelUpdateStack(stackName string) error {
-	return d.CancelUpdateStackFn(stackName)
-}
-
-// CancelUpdateStackWithContext calls the stubbed function.
-func (d *Double) CancelUpdateStackWithContext(_ context.Context, stackName string) error {
+func (d *Double) CancelUpdateStack(_ context.Context, stackName string) error {
 	return d.CancelUpdateStackFn(stackName)
 }

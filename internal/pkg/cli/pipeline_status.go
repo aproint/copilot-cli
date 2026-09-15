@@ -54,11 +54,7 @@ type pipelineStatusOpts struct {
 	targetPipeline *deploy.Pipeline
 }
 
-func newPipelineStatusOpts(vars pipelineStatusVars) (*pipelineStatusOpts, error) {
-	return newPipelineStatusOptsWithContext(context.Background(), vars)
-}
-
-func newPipelineStatusOptsWithContext(ctx context.Context, vars pipelineStatusVars) (*pipelineStatusOpts, error) {
+func newPipelineStatusOpts(ctx context.Context, vars pipelineStatusVars) (*pipelineStatusOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -69,7 +65,7 @@ func newPipelineStatusOptsWithContext(ctx context.Context, vars pipelineStatusVa
 		return nil, fmt.Errorf("default config: %w", err)
 	}
 	store := newSSMConfigStoreFromConfig(defaultConfig)
-	codepipeline := codepipeline.New(defaultConfig, defaultConfig)
+	codepipeline := codepipeline.New(defaultConfig)
 	pipelineLister := deploy.NewPipelineStore(rg.New(defaultConfig))
 	prompter := prompt.New()
 	return &pipelineStatusOpts{
@@ -86,7 +82,7 @@ func newPipelineStatusOptsWithContext(ctx context.Context, vars pipelineStatusVa
 			if err != nil {
 				return err
 			}
-			d, err := describe.NewPipelineStatusDescriberWithContext(ctx, pipeline)
+			d, err := describe.NewPipelineStatusDescriber(ctx, pipeline)
 			if err != nil {
 				return fmt.Errorf("new pipeline status describer: %w", err)
 			}
@@ -97,7 +93,7 @@ func newPipelineStatusOptsWithContext(ctx context.Context, vars pipelineStatusVa
 }
 
 // Validate returns an error if the optional flag values provided by the user are invalid.
-func (o *pipelineStatusOpts) Validate() error {
+func (o *pipelineStatusOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -118,7 +114,7 @@ func (o *pipelineStatusOpts) Ask(ctx context.Context) error {
 		}
 		return nil
 	}
-	pipeline, err := askDeployedPipelineNameWithContext(ctx, o.sel, fmt.Sprintf(fmtpipelineStatusPrompt, color.HighlightUserInput(o.appName)), o.appName)
+	pipeline, err := askDeployedPipelineName(ctx, o.sel, fmt.Sprintf(fmtpipelineStatusPrompt, color.HighlightUserInput(o.appName)), o.appName)
 	if err != nil {
 		return err
 	}
@@ -155,7 +151,7 @@ func (o *pipelineStatusOpts) getTargetPipeline(ctx context.Context) (deploy.Pipe
 	if o.targetPipeline != nil {
 		return *o.targetPipeline, nil
 	}
-	pipeline, err := getDeployedPipelineInfoWithContext(ctx, o.deployedPipelineLister, o.appName, o.name)
+	pipeline, err := getDeployedPipelineInfo(ctx, o.deployedPipelineLister, o.appName, o.name)
 	if err != nil {
 		return deploy.Pipeline{}, err
 	}
@@ -184,7 +180,7 @@ func buildPipelineStatusCmd() *cobra.Command {
 Shows status of the pipeline "my-repo-my-branch".
 /code $ copilot pipeline status -n my-repo-my-branch`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPipelineStatusOptsWithContext(cmd.Context(), vars)
+			opts, err := newPipelineStatusOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -19,11 +19,7 @@ import (
 
 // StackEventsDescriber is the CloudFormation interface needed to describe stack events.
 type StackEventsDescriber interface {
-	DescribeStackEvents(*cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error)
-}
-
-type contextualStackEventsDescriber interface {
-	DescribeStackEventsWithContext(context.Context, *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error)
+	DescribeStackEvents(context.Context, *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error)
 }
 
 // StackEvent is a CloudFormation stack event.
@@ -55,7 +51,6 @@ func (c fakeClock) now() time.Time {
 // StackStreamer is a Streamer for StackEvent events started by a change set.
 type StackStreamer struct {
 	ctx                   context.Context
-	useContext            bool
 	client                StackEventsDescriber
 	clock                 clock
 	rand                  func(int) int
@@ -72,20 +67,10 @@ type StackStreamer struct {
 	retries int
 }
 
-// NewStackStreamer creates a StackStreamer from a cloudformation client, stack name, and the change set creation timestamp.
-func NewStackStreamer(cfn StackEventsDescriber, stackID string, csCreationTime time.Time) *StackStreamer {
-	return newStackStreamer(context.Background(), false, cfn, stackID, csCreationTime)
-}
-
-// NewStackStreamerWithContext creates a StackStreamer that uses ctx for fetches.
-func NewStackStreamerWithContext(ctx context.Context, cfn StackEventsDescriber, stackID string, csCreationTime time.Time) *StackStreamer {
-	return newStackStreamer(ctx, true, cfn, stackID, csCreationTime)
-}
-
-func newStackStreamer(ctx context.Context, useContext bool, cfn StackEventsDescriber, stackID string, csCreationTime time.Time) *StackStreamer {
+// NewStackStreamer creates a StackStreamer that uses ctx for fetches.
+func NewStackStreamer(ctx context.Context, cfn StackEventsDescriber, stackID string, csCreationTime time.Time) *StackStreamer {
 	return &StackStreamer{
 		ctx:                   ctx,
-		useContext:            useContext,
 		clock:                 realClock{},
 		rand:                  rand.Intn,
 		client:                cfn,
@@ -140,13 +125,7 @@ func (s *StackStreamer) Fetch() (next time.Time, done bool, err error) {
 			NextToken: nextToken,
 			StackName: aws.String(s.stackID),
 		}
-		var out *cloudformation.DescribeStackEventsOutput
-		var err error
-		if client, ok := s.client.(contextualStackEventsDescriber); s.useContext && ok {
-			out, err = client.DescribeStackEventsWithContext(s.ctx, input)
-		} else {
-			out, err = s.client.DescribeStackEvents(input)
-		}
+		out, err := s.client.DescribeStackEvents(s.ctx, input)
 		if err != nil {
 			// Check for throttles and wait to try again using the StackStreamer's interval.
 			if isThrottleError(err) {

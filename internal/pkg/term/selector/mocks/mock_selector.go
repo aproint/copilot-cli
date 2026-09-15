@@ -547,33 +547,18 @@ func (m *MockcodePipelineLister) EXPECT() *MockcodePipelineListerMockRecorder {
 }
 
 // ListDeployedPipelines mocks base method.
-func (m *MockcodePipelineLister) ListDeployedPipelines(appName string) ([]deploy.Pipeline, error) {
+func (m *MockcodePipelineLister) ListDeployedPipelines(ctx context.Context, appName string) ([]deploy.Pipeline, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListDeployedPipelines", appName)
+	ret := m.ctrl.Call(m, "ListDeployedPipelines", ctx, appName)
 	ret0, _ := ret[0].([]deploy.Pipeline)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListDeployedPipelines indicates an expected call of ListDeployedPipelines.
-func (mr *MockcodePipelineListerMockRecorder) ListDeployedPipelines(appName interface{}) *gomock.Call {
+func (mr *MockcodePipelineListerMockRecorder) ListDeployedPipelines(ctx, appName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeployedPipelines", reflect.TypeOf((*MockcodePipelineLister)(nil).ListDeployedPipelines), appName)
-}
-
-// ListDeployedPipelinesWithContext mocks base method.
-func (m *MockcodePipelineLister) ListDeployedPipelinesWithContext(ctx context.Context, appName string) ([]deploy.Pipeline, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListDeployedPipelinesWithContext", ctx, appName)
-	ret0, _ := ret[0].([]deploy.Pipeline)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListDeployedPipelinesWithContext indicates an expected call of ListDeployedPipelinesWithContext.
-func (mr *MockcodePipelineListerMockRecorder) ListDeployedPipelinesWithContext(ctx, appName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeployedPipelinesWithContext", reflect.TypeOf((*MockcodePipelineLister)(nil).ListDeployedPipelinesWithContext), ctx, appName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeployedPipelines", reflect.TypeOf((*MockcodePipelineLister)(nil).ListDeployedPipelines), ctx, appName)
 }
 
 // MockworkspaceRetriever is a mock of workspaceRetriever interface.
@@ -825,34 +810,34 @@ func (m *MocktaskStackDescriber) EXPECT() *MocktaskStackDescriberMockRecorder {
 	return m.recorder
 }
 
-// ListDefaultTaskStacksWithContext mocks base method.
-func (m *MocktaskStackDescriber) ListDefaultTaskStacksWithContext(ctx context.Context) ([]deploy.TaskStackInfo, error) {
+// ListDefaultTaskStacks mocks base method.
+func (m *MocktaskStackDescriber) ListDefaultTaskStacks(ctx context.Context) ([]deploy.TaskStackInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListDefaultTaskStacksWithContext", ctx)
+	ret := m.ctrl.Call(m, "ListDefaultTaskStacks", ctx)
 	ret0, _ := ret[0].([]deploy.TaskStackInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListDefaultTaskStacksWithContext indicates an expected call of ListDefaultTaskStacksWithContext.
-func (mr *MocktaskStackDescriberMockRecorder) ListDefaultTaskStacksWithContext(ctx interface{}) *gomock.Call {
+// ListDefaultTaskStacks indicates an expected call of ListDefaultTaskStacks.
+func (mr *MocktaskStackDescriberMockRecorder) ListDefaultTaskStacks(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDefaultTaskStacksWithContext", reflect.TypeOf((*MocktaskStackDescriber)(nil).ListDefaultTaskStacksWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDefaultTaskStacks", reflect.TypeOf((*MocktaskStackDescriber)(nil).ListDefaultTaskStacks), ctx)
 }
 
-// ListTaskStacksWithContext mocks base method.
-func (m *MocktaskStackDescriber) ListTaskStacksWithContext(ctx context.Context, appName, envName string) ([]deploy.TaskStackInfo, error) {
+// ListTaskStacks mocks base method.
+func (m *MocktaskStackDescriber) ListTaskStacks(ctx context.Context, appName, envName string) ([]deploy.TaskStackInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTaskStacksWithContext", ctx, appName, envName)
+	ret := m.ctrl.Call(m, "ListTaskStacks", ctx, appName, envName)
 	ret0, _ := ret[0].([]deploy.TaskStackInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListTaskStacksWithContext indicates an expected call of ListTaskStacksWithContext.
-func (mr *MocktaskStackDescriberMockRecorder) ListTaskStacksWithContext(ctx, appName, envName interface{}) *gomock.Call {
+// ListTaskStacks indicates an expected call of ListTaskStacks.
+func (mr *MocktaskStackDescriberMockRecorder) ListTaskStacks(ctx, appName, envName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTaskStacksWithContext", reflect.TypeOf((*MocktaskStackDescriber)(nil).ListTaskStacksWithContext), ctx, appName, envName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTaskStacks", reflect.TypeOf((*MocktaskStackDescriber)(nil).ListTaskStacks), ctx, appName, envName)
 }
 
 // MocktaskLister is a mock of taskLister interface.
@@ -878,32 +863,32 @@ func (m *MocktaskLister) EXPECT() *MocktaskListerMockRecorder {
 	return m.recorder
 }
 
-// ListActiveAppEnvTasksWithContext mocks base method.
-func (m *MocktaskLister) ListActiveAppEnvTasksWithContext(ctx context.Context, opts ecs0.ListActiveAppEnvTasksOpts) ([]*ecs.Task, error) {
+// ListActiveAppEnvTasks mocks base method.
+func (m *MocktaskLister) ListActiveAppEnvTasks(ctx context.Context, opts ecs0.ListActiveAppEnvTasksOpts) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListActiveAppEnvTasksWithContext", ctx, opts)
+	ret := m.ctrl.Call(m, "ListActiveAppEnvTasks", ctx, opts)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListActiveAppEnvTasksWithContext indicates an expected call of ListActiveAppEnvTasksWithContext.
-func (mr *MocktaskListerMockRecorder) ListActiveAppEnvTasksWithContext(ctx, opts interface{}) *gomock.Call {
+// ListActiveAppEnvTasks indicates an expected call of ListActiveAppEnvTasks.
+func (mr *MocktaskListerMockRecorder) ListActiveAppEnvTasks(ctx, opts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveAppEnvTasksWithContext", reflect.TypeOf((*MocktaskLister)(nil).ListActiveAppEnvTasksWithContext), ctx, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveAppEnvTasks", reflect.TypeOf((*MocktaskLister)(nil).ListActiveAppEnvTasks), ctx, opts)
 }
 
-// ListActiveDefaultClusterTasksWithContext mocks base method.
-func (m *MocktaskLister) ListActiveDefaultClusterTasksWithContext(ctx context.Context, filter ecs0.ListTasksFilter) ([]*ecs.Task, error) {
+// ListActiveDefaultClusterTasks mocks base method.
+func (m *MocktaskLister) ListActiveDefaultClusterTasks(ctx context.Context, filter ecs0.ListTasksFilter) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListActiveDefaultClusterTasksWithContext", ctx, filter)
+	ret := m.ctrl.Call(m, "ListActiveDefaultClusterTasks", ctx, filter)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListActiveDefaultClusterTasksWithContext indicates an expected call of ListActiveDefaultClusterTasksWithContext.
-func (mr *MocktaskListerMockRecorder) ListActiveDefaultClusterTasksWithContext(ctx, filter interface{}) *gomock.Call {
+// ListActiveDefaultClusterTasks indicates an expected call of ListActiveDefaultClusterTasks.
+func (mr *MocktaskListerMockRecorder) ListActiveDefaultClusterTasks(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveDefaultClusterTasksWithContext", reflect.TypeOf((*MocktaskLister)(nil).ListActiveDefaultClusterTasksWithContext), ctx, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveDefaultClusterTasks", reflect.TypeOf((*MocktaskLister)(nil).ListActiveDefaultClusterTasks), ctx, filter)
 }

@@ -71,11 +71,7 @@ type deleteJobOpts struct {
 	newTaskStopper  func(aws.Config) taskStopper
 }
 
-func newDeleteJobOpts(vars deleteJobVars) (*deleteJobOpts, error) {
-	return newDeleteJobOptsWithContext(context.Background(), vars)
-}
-
-func newDeleteJobOptsWithContext(ctx context.Context, vars deleteJobVars) (*deleteJobOpts, error) {
+func newDeleteJobOpts(ctx context.Context, vars deleteJobVars) (*deleteJobOpts, error) {
 	provider := sessions.ImmutableProvider(sessions.UserAgentExtras("job delete"))
 	defaultConfig, err := provider.DefaultConfig(ctx)
 	if err != nil {
@@ -106,12 +102,7 @@ func newDeleteJobOptsWithContext(ctx context.Context, vars deleteJobVars) (*dele
 }
 
 // Validate returns an error if the user inputs are invalid.
-func (o *deleteJobOpts) Validate() error {
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
+func (o *deleteJobOpts) Validate(ctx context.Context) error {
 	if o.name != "" {
 		if _, err := o.store.GetJob(ctx, o.appName, o.name); err != nil {
 			return err
@@ -262,20 +253,20 @@ func (o *deleteJobOpts) deleteJobs(ctx context.Context, envs []*config.Environme
 			return err
 		}
 		// Delete job stack
-		if err = o.deleteStack(cfg, env); err != nil {
+		if err = o.deleteStack(ctx, cfg, env); err != nil {
 			return err
 		}
 		// Delete orphan tasks
-		if err = o.deleteTasks(cfg, env.Name); err != nil {
+		if err = o.deleteTasks(ctx, cfg, env.Name); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (o *deleteJobOpts) deleteStack(cfg aws.Config, env *config.Environment) error {
+func (o *deleteJobOpts) deleteStack(ctx context.Context, cfg aws.Config, env *config.Environment) error {
 	cfClient := o.newWlDeleter(cfg)
-	if err := cfClient.DeleteWorkload(deploy.DeleteWorkloadInput{
+	if err := cfClient.DeleteWorkload(ctx, deploy.DeleteWorkloadInput{
 		Name:             o.name,
 		EnvName:          env.Name,
 		AppName:          o.appName,
@@ -286,9 +277,9 @@ func (o *deleteJobOpts) deleteStack(cfg aws.Config, env *config.Environment) err
 	return nil
 }
 
-func (o *deleteJobOpts) deleteTasks(cfg aws.Config, env string) error {
+func (o *deleteJobOpts) deleteTasks(ctx context.Context, cfg aws.Config, env string) error {
 	o.spinner.Start(fmt.Sprintf(fmtJobTasksStopStart, o.name, env))
-	if err := o.newTaskStopper(cfg).StopWorkloadTasks(o.appName, env, o.name); err != nil {
+	if err := o.newTaskStopper(cfg).StopWorkloadTasks(ctx, o.appName, env, o.name); err != nil {
 		o.spinner.Stop(log.Serrorf(fmtJobTasksStopFailed, o.name, env, err))
 		return fmt.Errorf("stop tasks for environment %s: %w", env, err)
 	}
@@ -320,7 +311,7 @@ func (o *deleteJobOpts) emptyECRRepos(ctx context.Context, envs []*config.Enviro
 			return err
 		}
 		client := o.newImageRemover(cfg)
-		if err := client.ClearRepository(repoName); err != nil {
+		if err := client.ClearRepository(ctx, repoName); err != nil {
 			return err
 		}
 	}
@@ -333,7 +324,7 @@ func (o *deleteJobOpts) removeJobFromApp(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.appCFN.RemoveJobFromApp(proj, o.name); err != nil {
+	if err := o.appCFN.RemoveJobFromApp(ctx, proj, o.name); err != nil {
 		if !isStackSetNotExistsErr(err) {
 			return err
 		}
@@ -377,7 +368,7 @@ func buildJobDeleteCmd() *cobra.Command {
   Delete the "report-generator" job without confirmation prompt.
   /code $ copilot job delete --name report-generator --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteJobOptsWithContext(cmd.Context(), vars)
+			opts, err := newDeleteJobOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

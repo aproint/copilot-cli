@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -96,7 +97,7 @@ func TestLBWebServiceDescriber_URI(t *testing.T) {
 							PhysicalID: "mockRuleARN",
 						},
 					}, nil),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders([]string{"mockRuleARN"}).
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), []string{"mockRuleARN"}).
 						Return(nil, mockErr),
 				)
 			},
@@ -127,7 +128,7 @@ func TestLBWebServiceDescriber_URI(t *testing.T) {
 							PhysicalID: "mockRuleARN2",
 						},
 					}, nil),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders([]string{"mockRuleARN1", "mockRuleARN2"}).
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), []string{"mockRuleARN1", "mockRuleARN2"}).
 						Return([]string{"jobs.test.phonetool.com", "phonetool.com", "v1.phonetool.com"}, nil),
 				)
 			},
@@ -174,7 +175,7 @@ func TestLBWebServiceDescriber_URI(t *testing.T) {
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
 						},
 					}, nil).Times(1),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(nil).
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), nil).
 						Return(nil, nil),
 					m.ecsDescriber.EXPECT().EnvVars().Return(nil, errors.New("some error")),
 					m.envDescriber.EXPECT().Outputs().Return(nil, nil),
@@ -205,7 +206,7 @@ func TestLBWebServiceDescriber_URI(t *testing.T) {
 							LogicalID: svcStackResourceALBTargetGroupLogicalID,
 						},
 					}, nil).Times(1),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(nil).
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), nil).
 						Return(nil, nil),
 					m.ecsDescriber.EXPECT().EnvVars().Return([]*ecs.ContainerEnvVar{
 						{
@@ -377,7 +378,7 @@ func TestLBWebServiceDescriber_URI(t *testing.T) {
 							PhysicalID: "mockRuleARN",
 						},
 					}, nil),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders([]string{"mockRuleARN"}).
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), []string{"mockRuleARN"}).
 						Return([]string{"example.com", "v1.example.com"}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(map[string]string{
 						stack.LBWebServiceNLBPortParamKey:      "443",
@@ -407,7 +408,7 @@ func TestLBWebServiceDescriber_URI(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &LBWebServiceDescriber{
+			d := &LBWebServiceDescriber{ctx: context.Background(),
 				app:                      testApp,
 				svc:                      testSvc,
 				initECSServiceDescribers: func(s string) (ecsDescriber, error) { return mockSvcDescriber, nil },
@@ -492,7 +493,7 @@ func TestBackendServiceDescriber_URI(t *testing.T) {
 						stack.WorkloadRulePathParamKey: "mySvc",
 					}, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(resources, nil),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders([]string{"mockRuleARN"}).
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), []string{"mockRuleARN"}).
 						Return([]string{"jobs.test.phonetool.internal", "1234.us-west-2.internal.aws.com"}, nil),
 					m.envDescriber.EXPECT().Outputs().Return(map[string]string{
 						envOutputInternalLoadBalancerDNSName: "1234.us-west-2.internal.aws.com",
@@ -525,7 +526,7 @@ func TestBackendServiceDescriber_URI(t *testing.T) {
 							PhysicalID: "mockRuleARN2",
 						},
 					}, nil),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders([]string{"mockRuleARN1", "mockRuleARN2"}).
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), []string{"mockRuleARN1", "mockRuleARN2"}).
 						Return([]string{"jobs.test.phonetool.com", "phonetool.com", "v1.phonetool.com"}, nil),
 				)
 			},
@@ -549,7 +550,7 @@ func TestBackendServiceDescriber_URI(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &BackendServiceDescriber{
+			d := &BackendServiceDescriber{ctx: context.Background(),
 				app:                      testApp,
 				svc:                      testSvc,
 				initECSServiceDescribers: func(s string) (ecsDescriber, error) { return mockSvcDescriber, nil },
@@ -641,7 +642,7 @@ func TestRDWebServiceDescriber_URI(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &RDWebServiceDescriber{
+			d := &RDWebServiceDescriber{ctx: context.Background(),
 				app:                    testApp,
 				svc:                    testSvc,
 				initAppRunnerDescriber: func(string) (apprunnerDescriber, error) { return mockSvcDescriber, nil },

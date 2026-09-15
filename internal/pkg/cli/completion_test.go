@@ -42,7 +42,7 @@ func TestCompletionOpts_Validate(t *testing.T) {
 			opts := completionOpts{Shell: tc.inputShell}
 
 			// WHEN
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			// THEN
 			if tc.wantedError == nil {

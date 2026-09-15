@@ -14,16 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
-// DeployTask deploys a task stack, renders the deployment to out until it is done.
-// If the task stack doesn't exist, then it creates the stack.
-// If the task stack already exists, it updates the stack.
-// If the task stack doesn't have any changes, it returns nil
-func (cf CloudFormation) DeployTask(input *deploy.CreateTaskResourcesInput, opts ...cloudformation.StackOption) error {
-	return cf.DeployTaskWithContext(context.Background(), input, opts...)
-}
-
-// DeployTaskWithContext deploys a task stack using ctx.
-func (cf CloudFormation) DeployTaskWithContext(ctx context.Context, input *deploy.CreateTaskResourcesInput, opts ...cloudformation.StackOption) error {
+// DeployTask deploys a task stack using ctx.
+func (cf CloudFormation) DeployTask(ctx context.Context, input *deploy.CreateTaskResourcesInput, opts ...cloudformation.StackOption) error {
 	conf := stack.NewTaskStackConfig(input)
 	stack, err := toStack(conf)
 	if err != nil {
@@ -42,19 +34,14 @@ func (cf CloudFormation) DeployTaskWithContext(ctx context.Context, input *deplo
 	return nil
 }
 
-// ListTaskStacks returns all the CF stacks which represent one-off copilot tasks in a given application's environments.
-func (cf CloudFormation) ListTaskStacks(appName, envName string) ([]deploy.TaskStackInfo, error) {
-	return cf.ListTaskStacksWithContext(context.Background(), appName, envName)
-}
-
-// ListTaskStacksWithContext returns task stacks for an environment using ctx.
-func (cf CloudFormation) ListTaskStacksWithContext(ctx context.Context, appName, envName string) ([]deploy.TaskStackInfo, error) {
+// ListTaskStacks returns task stacks for an environment using ctx.
+func (cf CloudFormation) ListTaskStacks(ctx context.Context, appName, envName string) ([]deploy.TaskStackInfo, error) {
 	taskAppEnvTags := map[string]string{
 		deploy.TaskTagKey: "",
 		deploy.AppTagKey:  appName,
 		deploy.EnvTagKey:  envName,
 	}
-	tasks, err := cf.cfnClient.ListStacksWithTagsWithContext(ctx, taskAppEnvTags)
+	tasks, err := cf.cfnClient.ListStacksWithTags(ctx, taskAppEnvTags)
 
 	if err != nil {
 		return nil, err
@@ -73,16 +60,10 @@ func (cf CloudFormation) ListTaskStacksWithContext(ctx context.Context, appName,
 	return outputTaskStacks, nil
 }
 
-// GetTaskStack grabs information about the given one-off task's cloudformation stack
-// and returns it to the user in a convenient struct.
-func (cf CloudFormation) GetTaskStack(taskName string) (*deploy.TaskStackInfo, error) {
-	return cf.GetTaskStackWithContext(context.Background(), taskName)
-}
-
-// GetTaskStackWithContext returns task stack information using ctx.
-func (cf CloudFormation) GetTaskStackWithContext(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error) {
+// GetTaskStack returns task stack information using ctx.
+func (cf CloudFormation) GetTaskStack(ctx context.Context, taskName string) (*deploy.TaskStackInfo, error) {
 	stackName := string(stack.NameForTask(taskName))
-	desc, err := cf.cfnClient.DescribeWithContext(ctx, stackName)
+	desc, err := cf.cfnClient.Describe(ctx, stackName)
 	if err != nil {
 		return nil, err
 	}
@@ -113,14 +94,9 @@ func (cf CloudFormation) GetTaskStackWithContext(ctx context.Context, taskName s
 	return &info, nil
 }
 
-// ListDefaultTaskStacks returns all the CF stacks created by copilot but not associated with an application.
-func (cf CloudFormation) ListDefaultTaskStacks() ([]deploy.TaskStackInfo, error) {
-	return cf.ListDefaultTaskStacksWithContext(context.Background())
-}
-
-// ListDefaultTaskStacksWithContext returns default-cluster task stacks using ctx.
-func (cf CloudFormation) ListDefaultTaskStacksWithContext(ctx context.Context) ([]deploy.TaskStackInfo, error) {
-	tasks, err := cf.cfnClient.ListStacksWithTagsWithContext(ctx, map[string]string{deploy.TaskTagKey: ""})
+// ListDefaultTaskStacks returns default-cluster task stacks using ctx.
+func (cf CloudFormation) ListDefaultTaskStacks(ctx context.Context) ([]deploy.TaskStackInfo, error) {
+	tasks, err := cf.cfnClient.ListStacksWithTags(ctx, map[string]string{deploy.TaskTagKey: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -146,16 +122,10 @@ func (cf CloudFormation) ListDefaultTaskStacksWithContext(ctx context.Context) (
 	return outputTaskStacks, nil
 }
 
-// DeleteTask deletes a Copilot-created one-off task stack using the RoleARN that stack was created with.
-// If there is no role arn specified, it tries to delete the stack using the default session.
-func (cf CloudFormation) DeleteTask(task deploy.TaskStackInfo) error {
-	return cf.DeleteTaskWithContext(context.Background(), task)
-}
-
-// DeleteTaskWithContext deletes a task stack using ctx.
-func (cf CloudFormation) DeleteTaskWithContext(ctx context.Context, task deploy.TaskStackInfo) error {
+// DeleteTask deletes a task stack using ctx.
+func (cf CloudFormation) DeleteTask(ctx context.Context, task deploy.TaskStackInfo) error {
 	if task.RoleARN != "" {
-		return cf.cfnClient.DeleteAndWaitWithRoleARNWithContext(ctx, task.StackName, task.RoleARN)
+		return cf.cfnClient.DeleteAndWaitWithRoleARN(ctx, task.StackName, task.RoleARN)
 	}
-	return cf.cfnClient.DeleteAndWaitWithContext(ctx, task.StackName)
+	return cf.cfnClient.DeleteAndWait(ctx, task.StackName)
 }

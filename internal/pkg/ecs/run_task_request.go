@@ -21,32 +21,23 @@ const (
 
 // ECSServiceDescriber provides information on an ECS service.
 type ECSServiceDescriber interface {
-	Service(clusterName, serviceName string) (*awsecs.Service, error)
-	ServiceWithContext(ctx context.Context, clusterName, serviceName string) (*awsecs.Service, error)
-	TaskDefinition(taskDefName string) (*awsecs.TaskDefinition, error)
-	TaskDefinitionWithContext(ctx context.Context, taskDefName string) (*awsecs.TaskDefinition, error)
-	NetworkConfiguration(cluster, serviceName string) (*awsecs.NetworkConfiguration, error)
-	NetworkConfigurationWithContext(ctx context.Context, cluster, serviceName string) (*awsecs.NetworkConfiguration, error)
+	Service(ctx context.Context, clusterName, serviceName string) (*awsecs.Service, error)
+	TaskDefinition(ctx context.Context, taskDefName string) (*awsecs.TaskDefinition, error)
+	NetworkConfiguration(ctx context.Context, cluster, serviceName string) (*awsecs.NetworkConfiguration, error)
 }
 
 // ServiceDescriber provides information on a Copilot service.
 type ServiceDescriber interface {
-	TaskDefinition(app, env, svc string) (*awsecs.TaskDefinition, error)
-	TaskDefinitionWithContext(ctx context.Context, app, env, svc string) (*awsecs.TaskDefinition, error)
-	NetworkConfiguration(app, env, svc string) (*awsecs.NetworkConfiguration, error)
-	NetworkConfigurationWithContext(ctx context.Context, app, env, svc string) (*awsecs.NetworkConfiguration, error)
-	ClusterARN(app, env string) (string, error)
-	ClusterARNWithContext(ctx context.Context, app, env string) (string, error)
+	TaskDefinition(ctx context.Context, app, env, svc string) (*awsecs.TaskDefinition, error)
+	NetworkConfiguration(ctx context.Context, app, env, svc string) (*awsecs.NetworkConfiguration, error)
+	ClusterARN(ctx context.Context, app, env string) (string, error)
 }
 
 // JobDescriber provides information on a Copilot job.
 type JobDescriber interface {
-	TaskDefinition(app, env, job string) (*awsecs.TaskDefinition, error)
-	TaskDefinitionWithContext(ctx context.Context, app, env, job string) (*awsecs.TaskDefinition, error)
-	NetworkConfigurationForJob(app, env, job string) (*awsecs.NetworkConfiguration, error)
-	NetworkConfigurationForJobWithContext(ctx context.Context, app, env, job string) (*awsecs.NetworkConfiguration, error)
-	ClusterARN(app, env string) (string, error)
-	ClusterARNWithContext(ctx context.Context, app, env string) (string, error)
+	TaskDefinition(ctx context.Context, app, env, job string) (*awsecs.TaskDefinition, error)
+	NetworkConfigurationForJob(ctx context.Context, app, env, job string) (*awsecs.NetworkConfiguration, error)
+	ClusterARN(ctx context.Context, app, env string) (string, error)
 }
 
 // RunTaskRequest contains information to generate a task run command.
@@ -70,25 +61,20 @@ type containerInfo struct {
 	secrets    map[string]string
 }
 
-// RunTaskRequestFromECSService populates a RunTaskRequest with information from an ECS service.
-func RunTaskRequestFromECSService(client ECSServiceDescriber, cluster, service string) (*RunTaskRequest, error) {
-	return RunTaskRequestFromECSServiceWithContext(context.Background(), client, cluster, service)
-}
-
-// RunTaskRequestFromECSServiceWithContext populates a request using ctx for service lookups.
-func RunTaskRequestFromECSServiceWithContext(ctx context.Context, client ECSServiceDescriber, cluster, service string) (*RunTaskRequest, error) {
-	networkConfig, err := client.NetworkConfigurationWithContext(ctx, cluster, service)
+// RunTaskRequestFromECSService populates a request using ctx for service lookups.
+func RunTaskRequestFromECSService(ctx context.Context, client ECSServiceDescriber, cluster, service string) (*RunTaskRequest, error) {
+	networkConfig, err := client.NetworkConfiguration(ctx, cluster, service)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve network configuration for service %s in cluster %s: %w", service, cluster, err)
 	}
 
-	svc, err := client.ServiceWithContext(ctx, cluster, service)
+	svc, err := client.Service(ctx, cluster, service)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve service %s in cluster %s: %w", service, cluster, err)
 	}
 
 	taskDefNameOrARN := aws.ToString(svc.TaskDefinition)
-	taskDef, err := client.TaskDefinitionWithContext(ctx, taskDefNameOrARN)
+	taskDef, err := client.TaskDefinition(ctx, taskDefNameOrARN)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve task definition %s: %w", taskDefNameOrARN, err)
 	}
@@ -114,14 +100,9 @@ func RunTaskRequestFromECSServiceWithContext(ctx context.Context, client ECSServ
 	}, nil
 }
 
-// RunTaskRequestFromService populates a RunTaskRequest with information from a Copilot service.
-func RunTaskRequestFromService(client ServiceDescriber, app, env, svc string) (*RunTaskRequest, error) {
-	return RunTaskRequestFromServiceWithContext(context.Background(), client, app, env, svc)
-}
-
-// RunTaskRequestFromServiceWithContext populates a request using ctx for service lookups.
-func RunTaskRequestFromServiceWithContext(ctx context.Context, client ServiceDescriber, app, env, svc string) (*RunTaskRequest, error) {
-	networkConfig, err := client.NetworkConfigurationWithContext(ctx, app, env, svc)
+// RunTaskRequestFromService populates a request using ctx for service lookups.
+func RunTaskRequestFromService(ctx context.Context, client ServiceDescriber, app, env, svc string) (*RunTaskRequest, error) {
+	networkConfig, err := client.NetworkConfiguration(ctx, app, env, svc)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve network configuration for service %s: %w", svc, err)
 	}
@@ -132,7 +113,7 @@ func RunTaskRequestFromServiceWithContext(ctx context.Context, client ServiceDes
 		networkConfig.Subnets = nil
 	}
 
-	taskDef, err := client.TaskDefinitionWithContext(ctx, app, env, svc)
+	taskDef, err := client.TaskDefinition(ctx, app, env, svc)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve task definition for service %s: %w", svc, err)
 	}
@@ -153,14 +134,9 @@ func RunTaskRequestFromServiceWithContext(ctx context.Context, client ServiceDes
 	}, nil
 }
 
-// RunTaskRequestFromJob populates a RunTaskRequest with information from a Copilot job.
-func RunTaskRequestFromJob(client JobDescriber, app, env, job string) (*RunTaskRequest, error) {
-	return RunTaskRequestFromJobWithContext(context.Background(), client, app, env, job)
-}
-
-// RunTaskRequestFromJobWithContext populates a request using ctx for job lookups.
-func RunTaskRequestFromJobWithContext(ctx context.Context, client JobDescriber, app, env, job string) (*RunTaskRequest, error) {
-	config, err := client.NetworkConfigurationForJobWithContext(ctx, app, env, job)
+// RunTaskRequestFromJob populates a request using ctx for job lookups.
+func RunTaskRequestFromJob(ctx context.Context, client JobDescriber, app, env, job string) (*RunTaskRequest, error) {
+	config, err := client.NetworkConfigurationForJob(ctx, app, env, job)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve network configuration for job %s: %w", job, err)
 	}
@@ -171,7 +147,7 @@ func RunTaskRequestFromJobWithContext(ctx context.Context, client JobDescriber, 
 		config.Subnets = nil
 	}
 
-	taskDef, err := client.TaskDefinitionWithContext(ctx, app, env, job)
+	taskDef, err := client.TaskDefinition(ctx, app, env, job)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve task definition for job %s: %w", job, err)
 	}

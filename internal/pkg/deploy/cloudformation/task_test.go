@@ -24,7 +24,7 @@ func TestCloudFormation_DeployTask(t *testing.T) {
 		Name: "hello",
 	}
 	when := func(cf CloudFormation) error {
-		return cf.DeployTask(mockTask)
+		return cf.DeployTask(context.Background(), mockTask)
 	}
 
 	t.Run("returns a wrapped error if creating a change set fails", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 		"successfully gets task stacks while excluding wrongly tagged stack": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), map[string]string{
+				m.EXPECT().ListStacksWithTags(gomock.Any(), map[string]string{
 					"copilot-application": "appname",
 					"copilot-environment": "test",
 					"copilot-task":        "",
@@ -128,7 +128,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 		"error listing stacks": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListStacksWithTags(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: "some error",
 		},
@@ -145,7 +145,7 @@ func TestCloudFormation_ListTaskStacks(t *testing.T) {
 			cf := CloudFormation{cfnClient: mockCf}
 
 			// WHEN
-			tasks, err := cf.ListTaskStacks("appname", "test")
+			tasks, err := cf.ListTaskStacks(context.Background(), "appname", "test")
 
 			if tc.wantedErr != "" {
 				require.EqualError(t, err, tc.wantedErr)
@@ -166,7 +166,7 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 		"successfully gets task stacks while excluding wrongly tagged stack": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), map[string]string{
+				m.EXPECT().ListStacksWithTags(gomock.Any(), map[string]string{
 					"copilot-task": "",
 				}).Return([]cloudformation.StackDescription{
 					*mockDescription1,
@@ -184,7 +184,7 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 		"error listing stacks": {
 			inAppName: "appname",
 			mockClient: func(m *mocks.MockcfnClient) {
-				m.EXPECT().ListStacksWithTagsWithContext(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
+				m.EXPECT().ListStacksWithTags(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			wantedErr: "some error",
 		},
@@ -201,7 +201,7 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 			cf := CloudFormation{cfnClient: mockCf}
 
 			// WHEN
-			tasks, err := cf.ListDefaultTaskStacks()
+			tasks, err := cf.ListDefaultTaskStacks(context.Background())
 
 			if tc.wantedErr != "" {
 				require.EqualError(t, err, tc.wantedErr)
@@ -214,16 +214,16 @@ func TestCloudFormation_GetTaskDefaultStackInfo(t *testing.T) {
 
 }
 
-func TestCloudFormation_GetTaskStackWithContextUsesCallerContext(t *testing.T) {
+func TestCloudFormation_GetTaskStackUsesCallerContext(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "task-stack")
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	client := mocks.NewMockcfnClient(ctrl)
-	client.EXPECT().DescribeWithContext(gomock.Eq(ctx), "task-database").Return(mockDescription1, nil)
+	client.EXPECT().Describe(gomock.Eq(ctx), "task-database").Return(mockDescription1, nil)
 	cf := CloudFormation{cfnClient: client}
 
-	info, err := cf.GetTaskStackWithContext(ctx, "database")
+	info, err := cf.GetTaskStack(ctx, "database")
 
 	require.NoError(t, err)
 	require.Equal(t, &deploy.TaskStackInfo{
@@ -234,7 +234,7 @@ func TestCloudFormation_GetTaskStackWithContextUsesCallerContext(t *testing.T) {
 	}, info)
 }
 
-func TestCloudFormation_DeleteTaskWithContextUsesCallerContext(t *testing.T) {
+func TestCloudFormation_DeleteTaskUsesCallerContext(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "delete-task")
 
@@ -242,10 +242,10 @@ func TestCloudFormation_DeleteTaskWithContextUsesCallerContext(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		client := mocks.NewMockcfnClient(ctrl)
-		client.EXPECT().DeleteAndWaitWithRoleARNWithContext(gomock.Eq(ctx), "task-database", "role").Return(nil)
+		client.EXPECT().DeleteAndWaitWithRoleARN(gomock.Eq(ctx), "task-database", "role").Return(nil)
 		cf := CloudFormation{cfnClient: client}
 
-		err := cf.DeleteTaskWithContext(ctx, deploy.TaskStackInfo{StackName: "task-database", RoleARN: "role"})
+		err := cf.DeleteTask(ctx, deploy.TaskStackInfo{StackName: "task-database", RoleARN: "role"})
 
 		require.NoError(t, err)
 	})
@@ -254,10 +254,10 @@ func TestCloudFormation_DeleteTaskWithContextUsesCallerContext(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		client := mocks.NewMockcfnClient(ctrl)
-		client.EXPECT().DeleteAndWaitWithContext(gomock.Eq(ctx), "task-database").Return(nil)
+		client.EXPECT().DeleteAndWait(gomock.Eq(ctx), "task-database").Return(nil)
 		cf := CloudFormation{cfnClient: client}
 
-		err := cf.DeleteTaskWithContext(ctx, deploy.TaskStackInfo{StackName: "task-database"})
+		err := cf.DeleteTask(ctx, deploy.TaskStackInfo{StackName: "task-database"})
 
 		require.NoError(t, err)
 	})

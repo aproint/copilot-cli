@@ -87,11 +87,7 @@ type wkldLogOpts struct {
 	initRuntimeClients func(context.Context) error // Overridden in tests.
 }
 
-func newSvcLogOpts(vars svcLogsVars) (*svcLogsOpts, error) {
-	return newSvcLogOptsWithContext(context.Background(), vars)
-}
-
-func newSvcLogOptsWithContext(ctx context.Context, vars svcLogsVars) (*svcLogsOpts, error) {
+func newSvcLogOpts(ctx context.Context, vars svcLogsVars) (*svcLogsOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc logs"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -148,7 +144,7 @@ func newSvcLogOptsWithContext(ctx context.Context, vars svcLogsVars) (*svcLogsOp
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *svcLogsOpts) Validate() error {
+func (o *svcLogsOpts) Validate(ctx context.Context) error {
 	if o.since != 0 && o.humanStartTime != "" {
 		return errors.New("only one of --since or --start-time may be used")
 	}
@@ -226,7 +222,7 @@ func (o *svcLogsOpts) Execute(ctx context.Context) error {
 		o.taskIDs = []string{taskID}
 		log.Infoln("previously stopped task:", taskID)
 	}
-	err := o.logsSvc.WriteLogEventsWithContext(ctx, logging.WriteLogEventsOpts{
+	err := o.logsSvc.WriteLogEvents(ctx, logging.WriteLogEventsOpts{
 		Follow:        o.follow,
 		Limit:         limit,
 		EndTime:       o.endTime,
@@ -243,7 +239,7 @@ func (o *svcLogsOpts) Execute(ctx context.Context) error {
 }
 
 func (o *svcLogsOpts) latestStoppedTaskID(ctx context.Context) (string, error) {
-	svcDesc, err := o.ecs.DescribeServiceWithContext(ctx, o.appName, o.envName, o.name)
+	svcDesc, err := o.ecs.DescribeService(ctx, o.appName, o.envName, o.name)
 	if err != nil {
 		return "", fmt.Errorf("describe service %s: %w", o.name, err)
 	}
@@ -357,7 +353,7 @@ func buildSvcLogsCmd() *cobra.Command {
   Display logs from specific log group.
   /code $ copilot svc logs --log-group system`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcLogOptsWithContext(cmd.Context(), vars)
+			opts, err := newSvcLogOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

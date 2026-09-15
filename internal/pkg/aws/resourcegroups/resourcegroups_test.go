@@ -4,6 +4,7 @@
 package resourcegroups
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -143,7 +144,7 @@ func TestResourceGroups_GetResourcesByTags(t *testing.T) {
 
 			// WHEN
 			tc.setupMocks(mockClient)
-			actualOut, actualErr := rg.GetResourcesByTags(tc.inResourceType, tc.inTags)
+			actualOut, actualErr := rg.GetResourcesByTags(context.Background(), tc.inResourceType, tc.inTags)
 
 			// THEN
 			if actualErr != nil {

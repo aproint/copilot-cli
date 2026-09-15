@@ -6,6 +6,7 @@ package exec
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 )
 
 // InstallLatestBinary installs the latest ssm plugin.
-func (s SSMPluginCommand) InstallLatestBinary() error {
+func (s SSMPluginCommand) InstallLatestBinary(ctx context.Context) error {
 	if s.tempDir == "" {
 		dir, err := os.MkdirTemp("", "ssmplugin")
 		if err != nil {
@@ -22,18 +23,18 @@ func (s SSMPluginCommand) InstallLatestBinary() error {
 		defer os.RemoveAll(dir)
 		s.tempDir = dir
 	}
-	isUbuntu, err := s.isUbuntu()
+	isUbuntu, err := s.isUbuntu(ctx)
 	if err != nil {
 		return err
 	}
 	if isUbuntu {
-		return s.installUbuntuBinary()
+		return s.installUbuntuBinary(ctx)
 	}
-	return s.installLinuxBinary()
+	return s.installLinuxBinary(ctx)
 }
 
-func (s SSMPluginCommand) isUbuntu() (bool, error) {
-	if err := s.runner.Run("cat", []string{"/etc/os-release"}, Stdout(&s.linuxDistVersionBuffer)); err != nil {
+func (s SSMPluginCommand) isUbuntu(ctx context.Context) (bool, error) {
+	if err := s.runner.Run(ctx, "cat", []string{"/etc/os-release"}, Stdout(&s.linuxDistVersionBuffer)); err != nil {
 		return false, fmt.Errorf("run cat /etc/os-release: %w", err)
 	}
 	/*
@@ -60,22 +61,22 @@ func (s SSMPluginCommand) isUbuntu() (bool, error) {
 	return false, nil
 }
 
-func (s SSMPluginCommand) installLinuxBinary() error {
+func (s SSMPluginCommand) installLinuxBinary(ctx context.Context) error {
 	if err := download(s.http, filepath.Join(s.tempDir, "session-manager-plugin.rpm"), linuxSSMPluginBinaryURL); err != nil {
 		return fmt.Errorf("download ssm plugin: %w", err)
 	}
-	if err := s.runner.Run("sudo", []string{"yum", "install", "-y",
+	if err := s.runner.Run(ctx, "sudo", []string{"yum", "install", "-y",
 		filepath.Join(s.tempDir, "session-manager-plugin.rpm")}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s SSMPluginCommand) installUbuntuBinary() error {
+func (s SSMPluginCommand) installUbuntuBinary(ctx context.Context) error {
 	if err := download(s.http, filepath.Join(s.tempDir, "session-manager-plugin.deb"), ubuntuSSMPluginBinaryURL); err != nil {
 		return fmt.Errorf("download ssm plugin: %w", err)
 	}
-	if err := s.runner.Run("sudo", []string{"dpkg", "-i",
+	if err := s.runner.Run(ctx, "sudo", []string{"dpkg", "-i",
 		filepath.Join(s.tempDir, "session-manager-plugin.deb")}); err != nil {
 		return err
 	}

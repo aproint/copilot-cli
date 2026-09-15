@@ -72,7 +72,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddJobToApp(&config.Application{
+				m.EXPECT().AddJobToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "resizer")
@@ -109,7 +109,7 @@ func TestWorkloadInitializer_Job(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddJobToApp(&config.Application{
+				m.EXPECT().AddJobToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "resizer")
@@ -490,7 +490,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "frontend")
@@ -523,7 +523,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "static", gomock.Any())
@@ -646,7 +646,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "backend")
@@ -687,7 +687,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "backend")
@@ -739,7 +739,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "backend")
@@ -786,7 +786,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "worker")
@@ -834,7 +834,7 @@ func TestWorkloadInitializer_Service(t *testing.T) {
 				}, nil)
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name:      "app",
 					AccountID: "1234",
 				}, "worker")
@@ -921,7 +921,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 				})
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddJobToApp(&config.Application{
+				m.EXPECT().AddJobToApp(context.Background(), &config.Application{
 					Name: "app",
 				}, "job").Return(nil)
 			},
@@ -942,7 +942,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 				})
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name: "app",
 				}, "svc").Return(nil)
 			},
@@ -963,7 +963,7 @@ func TestWorkloadInitializer_AddWorkloadToApp(t *testing.T) {
 				})
 			},
 			mockappDeployer: func(m *mocks.MockWorkloadAdder) {
-				m.EXPECT().AddServiceToApp(&config.Application{
+				m.EXPECT().AddServiceToApp(context.Background(), &config.Application{
 					Name: "app",
 				}, "svc", gomock.Any()).Return(nil)
 			},
@@ -1026,7 +1026,7 @@ func TestWorkloadInitializer_AddWorkloadToApp_PreMutationCanceledContextPrevents
 	mockappDeployer := mocks.NewMockWorkloadAdder(ctrl)
 
 	mockstore.EXPECT().GetApplication(parent, "app").Return(&config.Application{Name: "app"}, nil)
-	mockappDeployer.EXPECT().AddServiceToApp(gomock.Any(), gomock.Any()).Times(0)
+	mockappDeployer.EXPECT().AddServiceToApp(context.Background(), gomock.Any(), gomock.Any()).Times(0)
 	mockstore.EXPECT().CreateService(gomock.Any(), gomock.Any()).Times(0)
 
 	initializer := &WorkloadInitializer{
@@ -1048,7 +1048,7 @@ func TestWorkloadInitializer_AddWorkloadToApp_CanceledParentStillCommitsMetadata
 	mockappDeployer := mocks.NewMockWorkloadAdder(ctrl)
 
 	mockstore.EXPECT().GetApplication(parent, "app").Return(&config.Application{Name: "app"}, nil)
-	mockappDeployer.EXPECT().AddServiceToApp(&config.Application{Name: "app"}, "svc").DoAndReturn(func(*config.Application, string, ...cloudformation.AddWorkloadToAppOpt) error {
+	mockappDeployer.EXPECT().AddServiceToApp(parent, &config.Application{Name: "app"}, "svc").DoAndReturn(func(context.Context, *config.Application, string, ...cloudformation.AddWorkloadToAppOpt) error {
 		cancel()
 		return nil
 	})
@@ -1083,7 +1083,7 @@ func TestWorkloadInitializer_AddWorkloadToApp_MetadataCommitErrorIsPartialSucces
 	mockappDeployer := mocks.NewMockWorkloadAdder(ctrl)
 
 	mockstore.EXPECT().GetApplication(ctx, "app").Return(&config.Application{Name: "app"}, nil)
-	mockappDeployer.EXPECT().AddJobToApp(&config.Application{Name: "app"}, "job").Return(nil)
+	mockappDeployer.EXPECT().AddJobToApp(context.Background(), &config.Application{Name: "app"}, "job").Return(nil)
 	mockstore.EXPECT().CreateJob(gomock.Any(), &config.Workload{
 		App:  "app",
 		Name: "job",

@@ -50,7 +50,7 @@ func NewStaticSiteDeployer(in *WorkloadDeployerInput) (*staticSiteDeployer, erro
 	if err != nil {
 		return nil, err
 	}
-	versionGetter, err := describe.NewAppDescriber(in.App.Name)
+	versionGetter, err := describe.NewAppDescriber(in.Ctx, in.App.Name)
 	if err != nil {
 		return nil, fmt.Errorf("new app describer for application %s: %w", in.App.Name, err)
 	}
@@ -72,7 +72,7 @@ func NewStaticSiteDeployer(in *WorkloadDeployerInput) (*staticSiteDeployer, erro
 			AssetDir:            artifactBucketAssetsDir,
 			AssetMappingFileDir: fmt.Sprintf("%s/environments/%s/workloads/%s/mapping", artifactBucketAssetsDir, svcDeployer.env.Name, svcDeployer.name),
 			Upload: func(ctx context.Context, path string, data io.Reader) error {
-				_, err := svcDeployer.s3Client.UploadWithContext(ctx, svcDeployer.resources.S3Bucket, path, data)
+				_, err := svcDeployer.s3Client.Upload(ctx, svcDeployer.resources.S3Bucket, path, data)
 				return err
 			},
 		},

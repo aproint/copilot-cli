@@ -56,11 +56,7 @@ type svcExecOpts struct {
 	randInt func(int) int
 }
 
-func newSvcExecOpts(vars execVars) (*svcExecOpts, error) {
-	return newSvcExecOptsWithContext(context.Background(), vars)
-}
-
-func newSvcExecOptsWithContext(ctx context.Context, vars execVars) (*svcExecOpts, error) {
+func newSvcExecOpts(ctx context.Context, vars execVars) (*svcExecOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc exec"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -91,8 +87,8 @@ func newSvcExecOptsWithContext(ctx context.Context, vars execVars) (*svcExecOpts
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *svcExecOpts) Validate() error {
-	return validateSSMBinary(o.prompter, o.ssmPluginManager, o.skipConfirmation)
+func (o *svcExecOpts) Validate(ctx context.Context) error {
+	return validateSSMBinary(ctx, o.prompter, o.ssmPluginManager, o.skipConfirmation)
 }
 
 // Ask prompts for and validates any required flags.
@@ -119,7 +115,7 @@ func (o *svcExecOpts) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	svcDesc, err := o.newSvcDescriber(cfg).DescribeServiceWithContext(ctx, o.appName, o.envName, o.name)
+	svcDesc, err := o.newSvcDescriber(cfg).DescribeService(ctx, o.appName, o.envName, o.name)
 	if err != nil {
 		return fmt.Errorf("describe ECS service for %s in environment %s: %w", o.name, o.envName, err)
 	}
@@ -130,7 +126,7 @@ func (o *svcExecOpts) Execute(ctx context.Context) error {
 	container := o.selectContainer()
 	log.Infof("Execute %s in container %s in task %s.\n", color.HighlightCode(o.command),
 		color.HighlightUserInput(container), color.HighlightResource(taskID))
-	if err = o.newCommandExecutor(cfg).ExecuteCommandWithContext(ctx, awsecs.ExecuteCommandInput{
+	if err = o.newCommandExecutor(cfg).ExecuteCommand(ctx, awsecs.ExecuteCommandInput{
 		Cluster:   svcDesc.ClusterName,
 		Command:   o.command,
 		Container: container,
@@ -221,11 +217,11 @@ func (o *svcExecOpts) selectContainer() string {
 	return o.name
 }
 
-func validateSSMBinary(prompt prompter, manager ssmPluginManager, skipConfirmation *bool) error {
+func validateSSMBinary(ctx context.Context, prompt prompter, manager ssmPluginManager, skipConfirmation *bool) error {
 	if skipConfirmation != nil && !aws.ToBool(skipConfirmation) {
 		return nil
 	}
-	err := manager.ValidateBinary()
+	err := manager.ValidateBinary(ctx)
 	if err == nil {
 		return nil
 	}
@@ -241,7 +237,7 @@ func validateSSMBinary(prompt prompter, manager ssmPluginManager, skipConfirmati
 				return errSSMPluginCommandInstallCancelled
 			}
 		}
-		if err := manager.InstallLatestBinary(); err != nil {
+		if err := manager.InstallLatestBinary(ctx); err != nil {
 			return fmt.Errorf("install ssm plugin: %w", err)
 		}
 		return nil
@@ -260,7 +256,7 @@ func validateSSMBinary(prompt prompter, manager ssmPluginManager, skipConfirmati
 				return nil
 			}
 		}
-		if err := manager.InstallLatestBinary(); err != nil {
+		if err := manager.InstallLatestBinary(ctx); err != nil {
 			return fmt.Errorf("update ssm plugin: %w", err)
 		}
 		return nil
@@ -285,7 +281,7 @@ func buildSvcExecCmd() *cobra.Command {
   Runs the 'ls' command in the task prefixed with ID "8c38184" within the "backend" service.
   /code $ copilot svc exec -a my-app -e test --name backend --task-id 8c38184 --command "ls"`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newSvcExecOptsWithContext(cmd.Context(), vars)
+			opts, err := newSvcExecOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

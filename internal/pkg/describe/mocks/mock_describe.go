@@ -88,121 +88,61 @@ func (m *MockstackDescriber) EXPECT() *MockstackDescriberMockRecorder {
 }
 
 // Describe mocks base method.
-func (m *MockstackDescriber) Describe() (stack.StackDescription, error) {
+func (m *MockstackDescriber) Describe(ctx context.Context) (stack.StackDescription, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Describe")
+	ret := m.ctrl.Call(m, "Describe", ctx)
 	ret0, _ := ret[0].(stack.StackDescription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Describe indicates an expected call of Describe.
-func (mr *MockstackDescriberMockRecorder) Describe() *gomock.Call {
+func (mr *MockstackDescriberMockRecorder) Describe(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*MockstackDescriber)(nil).Describe))
-}
-
-// DescribeWithContext mocks base method.
-func (m *MockstackDescriber) DescribeWithContext(ctx context.Context) (stack.StackDescription, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeWithContext", ctx)
-	ret0, _ := ret[0].(stack.StackDescription)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeWithContext indicates an expected call of DescribeWithContext.
-func (mr *MockstackDescriberMockRecorder) DescribeWithContext(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWithContext", reflect.TypeOf((*MockstackDescriber)(nil).DescribeWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*MockstackDescriber)(nil).Describe), ctx)
 }
 
 // Resources mocks base method.
-func (m *MockstackDescriber) Resources() ([]*stack.Resource, error) {
+func (m *MockstackDescriber) Resources(ctx context.Context) ([]*stack.Resource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Resources")
+	ret := m.ctrl.Call(m, "Resources", ctx)
 	ret0, _ := ret[0].([]*stack.Resource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Resources indicates an expected call of Resources.
-func (mr *MockstackDescriberMockRecorder) Resources() *gomock.Call {
+func (mr *MockstackDescriberMockRecorder) Resources(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Resources", reflect.TypeOf((*MockstackDescriber)(nil).Resources))
-}
-
-// ResourcesWithContext mocks base method.
-func (m *MockstackDescriber) ResourcesWithContext(ctx context.Context) ([]*stack.Resource, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResourcesWithContext", ctx)
-	ret0, _ := ret[0].([]*stack.Resource)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ResourcesWithContext indicates an expected call of ResourcesWithContext.
-func (mr *MockstackDescriberMockRecorder) ResourcesWithContext(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResourcesWithContext", reflect.TypeOf((*MockstackDescriber)(nil).ResourcesWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Resources", reflect.TypeOf((*MockstackDescriber)(nil).Resources), ctx)
 }
 
 // StackMetadata mocks base method.
-func (m *MockstackDescriber) StackMetadata() (string, error) {
+func (m *MockstackDescriber) StackMetadata(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackMetadata")
+	ret := m.ctrl.Call(m, "StackMetadata", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StackMetadata indicates an expected call of StackMetadata.
-func (mr *MockstackDescriberMockRecorder) StackMetadata() *gomock.Call {
+func (mr *MockstackDescriberMockRecorder) StackMetadata(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackMetadata", reflect.TypeOf((*MockstackDescriber)(nil).StackMetadata))
-}
-
-// StackMetadataWithContext mocks base method.
-func (m *MockstackDescriber) StackMetadataWithContext(ctx context.Context) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackMetadataWithContext", ctx)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// StackMetadataWithContext indicates an expected call of StackMetadataWithContext.
-func (mr *MockstackDescriberMockRecorder) StackMetadataWithContext(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackMetadataWithContext", reflect.TypeOf((*MockstackDescriber)(nil).StackMetadataWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackMetadata", reflect.TypeOf((*MockstackDescriber)(nil).StackMetadata), ctx)
 }
 
 // StackSetMetadata mocks base method.
-func (m *MockstackDescriber) StackSetMetadata() (string, error) {
+func (m *MockstackDescriber) StackSetMetadata(ctx context.Context) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackSetMetadata")
+	ret := m.ctrl.Call(m, "StackSetMetadata", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StackSetMetadata indicates an expected call of StackSetMetadata.
-func (mr *MockstackDescriberMockRecorder) StackSetMetadata() *gomock.Call {
+func (mr *MockstackDescriberMockRecorder) StackSetMetadata(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackSetMetadata", reflect.TypeOf((*MockstackDescriber)(nil).StackSetMetadata))
-}
-
-// StackSetMetadataWithContext mocks base method.
-func (m *MockstackDescriber) StackSetMetadataWithContext(ctx context.Context) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackSetMetadataWithContext", ctx)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// StackSetMetadataWithContext indicates an expected call of StackSetMetadataWithContext.
-func (mr *MockstackDescriberMockRecorder) StackSetMetadataWithContext(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackSetMetadataWithContext", reflect.TypeOf((*MockstackDescriber)(nil).StackSetMetadataWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackSetMetadata", reflect.TypeOf((*MockstackDescriber)(nil).StackSetMetadata), ctx)
 }

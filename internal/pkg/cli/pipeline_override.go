@@ -27,11 +27,7 @@ type overridePipelineOpts struct {
 	wsPrompt wsPipelineSelector
 }
 
-func newOverridePipelineOpts(vars overrideVars) (*overridePipelineOpts, error) {
-	return newOverridePipelineOptsWithContext(context.Background(), vars)
-}
-
-func newOverridePipelineOptsWithContext(ctx context.Context, vars overrideVars) (*overridePipelineOpts, error) {
+func newOverridePipelineOpts(ctx context.Context, vars overrideVars) (*overridePipelineOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -66,8 +62,8 @@ func newOverridePipelineOptsWithContext(ctx context.Context, vars overrideVars) 
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *overridePipelineOpts) Validate() error {
-	if err := o.overrideOpts.Validate(); err != nil {
+func (o *overridePipelineOpts) Validate(ctx context.Context) error {
+	if err := o.overrideOpts.Validate(ctx); err != nil {
 		return err
 	}
 	return o.validatePipelineName()
@@ -120,7 +116,7 @@ func (o *overridePipelineOpts) askPipelineName() error {
 }
 
 func (o *overridePipelineOpts) newPipelinePackageCmd(tplBuf stringWriteCloser) (executor, error) {
-	cmd, err := newPackagePipelineOptsWithContext(o.ctx, packagePipelineVars{
+	cmd, err := newPackagePipelineOpts(o.ctx, packagePipelineVars{
 		name:    o.name,
 		appName: o.appName,
 	})
@@ -144,7 +140,7 @@ or add new resources to the Pipeline's AWS CloudFormation template.`,
   /code $ copilot pipeline override -n myrepo-main --toolkit cdk`,
 
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newOverridePipelineOptsWithContext(cmd.Context(), vars)
+			opts, err := newOverridePipelineOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

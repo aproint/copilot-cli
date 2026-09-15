@@ -65,31 +65,17 @@ func (mr *MockContainerLoginBuildPusherMockRecorder) IsEcrCredentialHelperEnable
 }
 
 // Login mocks base method.
-func (m *MockContainerLoginBuildPusher) Login(uri, username, password string) error {
+func (m *MockContainerLoginBuildPusher) Login(ctx context.Context, uri, username, password string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", uri, username, password)
+	ret := m.ctrl.Call(m, "Login", ctx, uri, username, password)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Login indicates an expected call of Login.
-func (mr *MockContainerLoginBuildPusherMockRecorder) Login(uri, username, password interface{}) *gomock.Call {
+func (mr *MockContainerLoginBuildPusherMockRecorder) Login(ctx, uri, username, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockContainerLoginBuildPusher)(nil).Login), uri, username, password)
-}
-
-// LoginWithContext mocks base method.
-func (m *MockContainerLoginBuildPusher) LoginWithContext(ctx context.Context, uri, username, password string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoginWithContext", ctx, uri, username, password)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// LoginWithContext indicates an expected call of LoginWithContext.
-func (mr *MockContainerLoginBuildPusherMockRecorder) LoginWithContext(ctx, uri, username, password interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoginWithContext", reflect.TypeOf((*MockContainerLoginBuildPusher)(nil).LoginWithContext), ctx, uri, username, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockContainerLoginBuildPusher)(nil).Login), ctx, uri, username, password)
 }
 
 // Push mocks base method.
@@ -136,9 +122,9 @@ func (m *MockRegistry) EXPECT() *MockRegistryMockRecorder {
 }
 
 // Auth mocks base method.
-func (m *MockRegistry) Auth() (string, string, error) {
+func (m *MockRegistry) Auth(ctx context.Context) (string, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Auth")
+	ret := m.ctrl.Call(m, "Auth", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -146,53 +132,22 @@ func (m *MockRegistry) Auth() (string, string, error) {
 }
 
 // Auth indicates an expected call of Auth.
-func (mr *MockRegistryMockRecorder) Auth() *gomock.Call {
+func (mr *MockRegistryMockRecorder) Auth(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Auth", reflect.TypeOf((*MockRegistry)(nil).Auth))
-}
-
-// AuthWithContext mocks base method.
-func (m *MockRegistry) AuthWithContext(ctx context.Context) (string, string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AuthWithContext", ctx)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// AuthWithContext indicates an expected call of AuthWithContext.
-func (mr *MockRegistryMockRecorder) AuthWithContext(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthWithContext", reflect.TypeOf((*MockRegistry)(nil).AuthWithContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Auth", reflect.TypeOf((*MockRegistry)(nil).Auth), ctx)
 }
 
 // RepositoryURI mocks base method.
-func (m *MockRegistry) RepositoryURI(name string) (string, error) {
+func (m *MockRegistry) RepositoryURI(ctx context.Context, name string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RepositoryURI", name)
+	ret := m.ctrl.Call(m, "RepositoryURI", ctx, name)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RepositoryURI indicates an expected call of RepositoryURI.
-func (mr *MockRegistryMockRecorder) RepositoryURI(name interface{}) *gomock.Call {
+func (mr *MockRegistryMockRecorder) RepositoryURI(ctx, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RepositoryURI", reflect.TypeOf((*MockRegistry)(nil).RepositoryURI), name)
-}
-
-// RepositoryURIWithContext mocks base method.
-func (m *MockRegistry) RepositoryURIWithContext(ctx context.Context, name string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RepositoryURIWithContext", ctx, name)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RepositoryURIWithContext indicates an expected call of RepositoryURIWithContext.
-func (mr *MockRegistryMockRecorder) RepositoryURIWithContext(ctx, name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RepositoryURIWithContext", reflect.TypeOf((*MockRegistry)(nil).RepositoryURIWithContext), ctx, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RepositoryURI", reflect.TypeOf((*MockRegistry)(nil).RepositoryURI), ctx, name)
 }

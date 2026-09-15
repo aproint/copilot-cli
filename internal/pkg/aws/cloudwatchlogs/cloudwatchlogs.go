@@ -62,12 +62,7 @@ func New(cfg awsv2.Config) *CloudWatchLogs {
 	}
 }
 
-// logStreams returns all name of the log streams in a log group with optional limit and prefix filters.
-func (c *CloudWatchLogs) logStreams(logGroup string, logStreamLimit int, logStreamPrefixes ...string) ([]string, error) {
-	return c.logStreamsWithContext(context.Background(), logGroup, logStreamLimit, logStreamPrefixes...)
-}
-
-func (c *CloudWatchLogs) logStreamsWithContext(ctx context.Context, logGroup string, logStreamLimit int, logStreamPrefixes ...string) ([]string, error) {
+func (c *CloudWatchLogs) logStreams(ctx context.Context, logGroup string, logStreamLimit int, logStreamPrefixes ...string) ([]string, error) {
 	var logStreamNames []string
 	logStreamsResp := &cloudwatchlogs.DescribeLogStreamsOutput{}
 	for {
@@ -112,17 +107,12 @@ func (c *CloudWatchLogs) logStreamsWithContext(ctx context.Context, logGroup str
 	return truncateStreams(logStreamLimit, logStreamNames), nil
 }
 
-// LogEvents returns an array of Cloudwatch Logs events.
-func (c *CloudWatchLogs) LogEvents(opts LogEventsOpts) (*LogEventsOutput, error) {
-	return c.LogEventsWithContext(context.Background(), opts)
-}
-
-// LogEventsWithContext returns CloudWatch Logs events using ctx.
-func (c *CloudWatchLogs) LogEventsWithContext(ctx context.Context, opts LogEventsOpts) (*LogEventsOutput, error) {
+// LogEvents returns CloudWatch Logs events using ctx.
+func (c *CloudWatchLogs) LogEvents(ctx context.Context, opts LogEventsOpts) (*LogEventsOutput, error) {
 	var events []*Event
 	in := initGetLogEventsInput(opts)
 
-	logStreams, err := c.logStreamsWithContext(ctx, opts.LogGroup, opts.LogStreamLimit, opts.LogStreamPrefixFilters...)
+	logStreams, err := c.logStreams(ctx, opts.LogGroup, opts.LogStreamLimit, opts.LogStreamPrefixFilters...)
 	if err != nil {
 		return nil, err
 	}

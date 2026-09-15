@@ -36,31 +36,16 @@ func (m *MockpipelineStateGetter) EXPECT() *MockpipelineStateGetterMockRecorder 
 }
 
 // GetPipelineState mocks base method.
-func (m *MockpipelineStateGetter) GetPipelineState(pipelineName string) (*codepipeline.PipelineState, error) {
+func (m *MockpipelineStateGetter) GetPipelineState(ctx context.Context, pipelineName string) (*codepipeline.PipelineState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPipelineState", pipelineName)
+	ret := m.ctrl.Call(m, "GetPipelineState", ctx, pipelineName)
 	ret0, _ := ret[0].(*codepipeline.PipelineState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPipelineState indicates an expected call of GetPipelineState.
-func (mr *MockpipelineStateGetterMockRecorder) GetPipelineState(pipelineName interface{}) *gomock.Call {
+func (mr *MockpipelineStateGetterMockRecorder) GetPipelineState(ctx, pipelineName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineState", reflect.TypeOf((*MockpipelineStateGetter)(nil).GetPipelineState), pipelineName)
-}
-
-// GetPipelineStateWithContext mocks base method.
-func (m *MockpipelineStateGetter) GetPipelineStateWithContext(ctx context.Context, pipelineName string) (*codepipeline.PipelineState, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPipelineStateWithContext", ctx, pipelineName)
-	ret0, _ := ret[0].(*codepipeline.PipelineState)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelineStateWithContext indicates an expected call of GetPipelineStateWithContext.
-func (mr *MockpipelineStateGetterMockRecorder) GetPipelineStateWithContext(ctx, pipelineName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineStateWithContext", reflect.TypeOf((*MockpipelineStateGetter)(nil).GetPipelineStateWithContext), ctx, pipelineName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineState", reflect.TypeOf((*MockpipelineStateGetter)(nil).GetPipelineState), ctx, pipelineName)
 }

@@ -46,8 +46,8 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				defer ctrl.Finish()
 
 				vars := overrideVars{appName: tc.appName}
-				cmd := &overridePipelineOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overridePipelineOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}
@@ -56,7 +56,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				}
 
 				//WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				//THEN
 				if tc.wanted != nil {
@@ -115,8 +115,8 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				defer ctrl.Finish()
 
 				vars := overrideVars{name: tc.name, appName: "demo", cdkLang: "typescript"}
-				cmd := &overridePipelineOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overridePipelineOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}
@@ -125,7 +125,7 @@ func TestOverridePipeline_Validate(t *testing.T) {
 				}
 
 				// WHEN
-				err := cmd.Validate()
+				err := cmd.Validate(context.Background())
 
 				// THEN
 				if tc.wanted != nil {
@@ -147,8 +147,8 @@ func TestOverridePipeline_Ask(t *testing.T) {
 		wsPrompt.EXPECT().WsPipeline("Which pipeline's resources would you like to override?", "").Return(&workspace.PipelineManifest{Name: "pipeline-production", Path: "path"}, nil)
 
 		vars := overrideVars{name: "", appName: "demo", iacTool: "cdk", skipResources: true}
-		cmd := &overridePipelineOpts{
-			overrideOpts: &overrideOpts{
+		cmd := &overridePipelineOpts{ctx: context.Background(),
+			overrideOpts: &overrideOpts{ctx: context.Background(),
 				overrideVars: vars,
 				cfgStore:     mocks.NewMockstore(ctrl),
 				packageCmd: func(_ stringWriteCloser) (executor, error) {
@@ -199,8 +199,8 @@ func TestOverridePipeline_Ask(t *testing.T) {
 				mockCfnPrompt.EXPECT().Resources(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 				vars := overrideVars{appName: "demo", name: "test", iacTool: tc.iacTool}
-				cmd := &overridePipelineOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overridePipelineOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 						cfnPrompt:    mockCfnPrompt,
@@ -289,8 +289,8 @@ func TestOverridePipeline_Ask(t *testing.T) {
 				mockSSM := mocks.NewMockstore(ctrl)
 
 				vars := overrideVars{appName: "demo", name: "test", iacTool: "cdk", skipResources: tc.skip}
-				cmd := &overridePipelineOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overridePipelineOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 						cfgStore:     mockSSM,
 						spinner:      &spinnerTestDouble{},
@@ -365,8 +365,8 @@ func TestOverridePipeline_Execute(t *testing.T) {
 				defer ctrl.Finish()
 
 				vars := overrideVars{appName: "demo", name: "mockPipelineName", iacTool: "cdk", resources: tc.resources}
-				cmd := &overridePipelineOpts{
-					overrideOpts: &overrideOpts{
+				cmd := &overridePipelineOpts{ctx: context.Background(),
+					overrideOpts: &overrideOpts{ctx: context.Background(),
 						overrideVars: vars,
 					},
 				}

@@ -14,13 +14,8 @@ import (
 
 const interactiveCancelGracePeriod = 2 * time.Second
 
-// InteractiveRun runs the input command that starts a child process.
-func (c *Cmd) InteractiveRun(name string, args []string) error {
-	return c.InteractiveRunWithContext(context.Background(), name, args)
-}
-
-// InteractiveRunWithContext runs the input command with ctx.
-func (c *Cmd) InteractiveRunWithContext(ctx context.Context, name string, args []string) error {
+// InteractiveRun runs the input command with ctx.
+func (c *Cmd) InteractiveRun(ctx context.Context, name string, args []string) error {
 	cmd := c.command(ctx, name, args,
 		Stdout(os.Stdout),
 		Stdin(os.Stdin),

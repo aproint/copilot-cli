@@ -62,7 +62,7 @@ func (cf CloudFormation) DeployApp(ctx context.Context, in *deploy.CreateAppInpu
 	if err != nil {
 		return fmt.Errorf("get stack set administrator role arn: %w", err)
 	}
-	return cf.appStackSet.CreateWithContext(ctx, appConfig.StackSetName(), blankAppTemplate,
+	return cf.appStackSet.Create(ctx, appConfig.StackSetName(), blankAppTemplate,
 		stackset.WithDescription(appConfig.StackSetDescription()),
 		stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
 		stackset.WithAdministrationRoleARN(stackSetAdminRoleARN),
@@ -72,7 +72,7 @@ func (cf CloudFormation) DeployApp(ctx context.Context, in *deploy.CreateAppInpu
 // UpgradeApplication upgrades the application stack to the latest version.
 func (cf CloudFormation) UpgradeApplication(ctx context.Context, in *deploy.CreateAppInput) error {
 	appConfig := stack.NewAppStackConfig(in)
-	appStack, err := cf.cfnClient.DescribeWithContext(ctx, appConfig.StackName())
+	appStack, err := cf.cfnClient.Describe(ctx, appConfig.StackName())
 	if err != nil {
 		return fmt.Errorf("get existing application infrastructure stack: %w", err)
 	}
@@ -91,15 +91,15 @@ func (cf CloudFormation) UpgradeApplication(ctx context.Context, in *deploy.Crea
 func (cf CloudFormation) upgradeAppStackSet(ctx context.Context, config *stack.AppStackConfig) error {
 	for {
 		ssName := config.StackSetName()
-		if err := cf.appStackSet.WaitForStackSetLastOperationCompleteWithContext(ctx, ssName); err != nil {
+		if err := cf.appStackSet.WaitForStackSetLastOperationComplete(ctx, ssName); err != nil {
 			return fmt.Errorf("wait for stack set %s last operation complete: %w", ssName, err)
 		}
-		previouslyDeployedConfig, err := cf.getLastDeployedAppConfigWithContext(ctx, config)
+		previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(ctx, config)
 		if err != nil {
 			return err
 		}
 		previouslyDeployedConfig.Version += 1
-		err = cf.deployAppConfigWithContext(ctx, config, previouslyDeployedConfig, true /* updating template resources should update all instances*/)
+		err = cf.deployAppConfig(ctx, config, previouslyDeployedConfig, true /* updating template resources should update all instances*/)
 		if err == nil {
 			return nil
 		}
@@ -126,7 +126,7 @@ func (cf CloudFormation) upgradeAppStack(ctx context.Context, conf *stack.AppSta
 		spinner.Start(label)
 		defer stopSpinner(spinner, err, label)
 
-		changeSetID, err = cf.cfnClient.UpdateWithContext(ctx, s)
+		changeSetID, err = cf.cfnClient.Update(ctx, s)
 		if err != nil {
 			return "", err
 		}
@@ -136,27 +136,9 @@ func (cf CloudFormation) upgradeAppStack(ctx context.Context, conf *stack.AppSta
 	return cf.executeAndRenderChangeSet(ctx, in)
 }
 
-// removeDNSDelegationAndCrossAccountAccess removes the provided account ID from the list of accounts that can write to the
-// application's DNS HostedZone. It does this by creating the new list of DNS delegated accounts, updating the app
-// infrastructure roles stack, then redeploying all the stackset instances with the new list of accounts.
-// If the list of accounts already excludes the account to remove, we return early for idempotency.
-func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccess(appStack *stack.AppStackConfig, accountID string) error {
-	return cf.removeDNSDelegationAndCrossAccountAccessWithOptionalContext(nil, appStack, accountID)
-}
-
-func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithContext(ctx context.Context, appStack *stack.AppStackConfig, accountID string) error {
-	return cf.removeDNSDelegationAndCrossAccountAccessWithOptionalContext(ctx, appStack, accountID)
-}
-
-func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithOptionalContext(ctx context.Context, appStack *stack.AppStackConfig, accountID string) error {
+func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccess(ctx context.Context, appStack *stack.AppStackConfig, accountID string) error {
 	// Get the most recently deployed list of delegated accounts.
-	var appStackDesc *cloudformation.StackDescription
-	var err error
-	if ctx == nil {
-		appStackDesc, err = cf.cfnClient.Describe(appStack.StackName())
-	} else {
-		appStackDesc, err = cf.cfnClient.DescribeWithContext(ctx, appStack.StackName())
-	}
+	appStackDesc, err := cf.cfnClient.Describe(ctx, appStack.StackName())
 	if err != nil {
 		return fmt.Errorf("get existing application infrastructure stack: %w", err)
 	}
@@ -191,11 +173,7 @@ func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithOptionalCon
 		return err
 	}
 	// Update app stack.
-	if ctx == nil {
-		err = cf.cfnClient.UpdateAndWait(s)
-	} else {
-		err = cf.cfnClient.UpdateAndWaitWithContext(ctx, s)
-	}
+	err = cf.cfnClient.UpdateAndWait(ctx, s)
 	if err != nil {
 		var errNoUpdates *cloudformation.ErrChangeSetEmpty
 		if errors.As(err, &errNoUpdates) {
@@ -205,12 +183,7 @@ func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithOptionalCon
 	}
 
 	// Update stackset instances to remove account.
-	var appResourcesConfig *stack.AppResourcesConfig
-	if ctx == nil {
-		appResourcesConfig, err = cf.getLastDeployedAppConfig(appStack)
-	} else {
-		appResourcesConfig, err = cf.getLastDeployedAppConfigWithContext(ctx, appStack)
-	}
+	appResourcesConfig, err := cf.getLastDeployedAppConfig(ctx, appStack)
 	if err != nil {
 		return err
 	}
@@ -220,11 +193,7 @@ func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithOptionalCon
 		Accounts:  newAccountList,
 		App:       appResourcesConfig.App,
 	}
-	if ctx == nil {
-		err = cf.deployAppConfig(newCfg, newDeploymentConfig, true)
-	} else {
-		err = cf.deployAppConfigWithContext(ctx, newCfg, newDeploymentConfig, true)
-	}
+	err = cf.deployAppConfig(ctx, newCfg, newDeploymentConfig, true)
 	if err != nil {
 		return err
 	}
@@ -233,7 +202,7 @@ func (cf CloudFormation) removeDNSDelegationAndCrossAccountAccessWithOptionalCon
 
 // DelegateDNSPermissions grants the provided account ID the ability to write to this application's
 // DNS HostedZone. This allows us to perform cross account DNS delegation.
-func (cf CloudFormation) DelegateDNSPermissions(app *config.Application, accountID string) error {
+func (cf CloudFormation) DelegateDNSPermissions(ctx context.Context, app *config.Application, accountID string) error {
 	deployApp := deploy.CreateAppInput{
 		Name:               app.Name,
 		AccountID:          app.AccountID,
@@ -243,7 +212,7 @@ func (cf CloudFormation) DelegateDNSPermissions(app *config.Application, account
 	}
 
 	appConfig := stack.NewAppStackConfig(&deployApp)
-	appStack, err := cf.cfnClient.Describe(appConfig.StackName())
+	appStack, err := cf.cfnClient.Describe(ctx, appConfig.StackName())
 	if err != nil {
 		return fmt.Errorf("getting existing application infrastructure stack: %w", err)
 	}
@@ -255,7 +224,7 @@ func (cf CloudFormation) DelegateDNSPermissions(app *config.Application, account
 	if err != nil {
 		return err
 	}
-	if err := cf.cfnClient.UpdateAndWait(s); err != nil {
+	if err := cf.cfnClient.UpdateAndWait(ctx, s); err != nil {
 		var errNoUpdates *cloudformation.ErrChangeSetEmpty
 		if errors.As(err, &errNoUpdates) {
 			return nil
@@ -265,9 +234,9 @@ func (cf CloudFormation) DelegateDNSPermissions(app *config.Application, account
 	return nil
 }
 
-// GetAppResourcesByRegion fetches all the regional resources for a particular region.
-func (cf CloudFormation) GetAppResourcesByRegion(app *config.Application, region string) (*stack.AppRegionalResources, error) {
-	resources, err := cf.getResourcesForStackInstances(app, &region)
+// GetAppResourcesByRegion fetches regional application resources using ctx.
+func (cf CloudFormation) GetAppResourcesByRegion(ctx context.Context, app *config.Application, region string) (*stack.AppRegionalResources, error) {
+	resources, err := cf.getResourcesForStackInstances(ctx, app, &region)
 	if err != nil {
 		return nil, fmt.Errorf("describing application resources: %w", err)
 	}
@@ -278,38 +247,16 @@ func (cf CloudFormation) GetAppResourcesByRegion(app *config.Application, region
 	return resources[0], nil
 }
 
-// GetAppResourcesByRegionWithContext fetches regional application resources using ctx.
-func (cf CloudFormation) GetAppResourcesByRegionWithContext(ctx context.Context, app *config.Application, region string) (*stack.AppRegionalResources, error) {
-	resources, err := cf.getResourcesForStackInstancesWithContext(ctx, app, &region)
-	if err != nil {
-		return nil, fmt.Errorf("describing application resources: %w", err)
-	}
-	if len(resources) == 0 {
-		return nil, &errNoRegionalResources{app.Name, region}
-	}
-
-	return resources[0], nil
-}
-
-// GetRegionalAppResources fetches all the regional resources for a particular application.
-func (cf CloudFormation) GetRegionalAppResources(app *config.Application) ([]*stack.AppRegionalResources, error) {
-	resources, err := cf.getResourcesForStackInstances(app, nil)
+// GetRegionalAppResources fetches all regional application resources using ctx.
+func (cf CloudFormation) GetRegionalAppResources(ctx context.Context, app *config.Application) ([]*stack.AppRegionalResources, error) {
+	resources, err := cf.getResourcesForStackInstances(ctx, app, nil)
 	if err != nil {
 		return nil, fmt.Errorf("describing application resources: %w", err)
 	}
 	return resources, nil
 }
 
-// GetRegionalAppResourcesWithContext fetches all regional application resources using ctx.
-func (cf CloudFormation) GetRegionalAppResourcesWithContext(ctx context.Context, app *config.Application) ([]*stack.AppRegionalResources, error) {
-	resources, err := cf.getResourcesForStackInstancesWithContext(ctx, app, nil)
-	if err != nil {
-		return nil, fmt.Errorf("describing application resources: %w", err)
-	}
-	return resources, nil
-}
-
-func (cf CloudFormation) getResourcesForStackInstances(app *config.Application, region *string) ([]*stack.AppRegionalResources, error) {
+func (cf CloudFormation) getResourcesForStackInstances(ctx context.Context, app *config.Application, region *string) ([]*stack.AppRegionalResources, error) {
 	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
 		Name:      app.Name,
 		AccountID: app.AccountID,
@@ -320,40 +267,7 @@ func (cf CloudFormation) getResourcesForStackInstances(app *config.Application, 
 	if region != nil {
 		opts = append(opts, stackset.FilterSummariesByRegion(*region))
 	}
-	summaries, err := cf.appStackSet.InstanceSummaries(appConfig.StackSetName(), opts...)
-	if err != nil {
-		return nil, err
-	}
-	var regionalResources []*stack.AppRegionalResources
-	for _, summary := range summaries {
-		regionalCFClient := cf.regionalClient(summary.Region)
-		cfStack, err := regionalCFClient.Describe(summary.StackID)
-		if err != nil {
-			return nil, fmt.Errorf("getting outputs for stack %s in region %s: %w", summary.StackID, summary.Region, err)
-		}
-		regionalResource, err := stack.ToAppRegionalResources(cfStack.SDK())
-		if err != nil {
-			return nil, err
-		}
-		regionalResource.Region = summary.Region
-		regionalResources = append(regionalResources, regionalResource)
-	}
-
-	return regionalResources, nil
-}
-
-func (cf CloudFormation) getResourcesForStackInstancesWithContext(ctx context.Context, app *config.Application, region *string) ([]*stack.AppRegionalResources, error) {
-	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
-		Name:      app.Name,
-		AccountID: app.AccountID,
-	})
-	opts := []stackset.InstanceSummariesOption{
-		stackset.FilterSummariesByAccountID(app.AccountID),
-	}
-	if region != nil {
-		opts = append(opts, stackset.FilterSummariesByRegion(*region))
-	}
-	summaries, err := cf.appStackSet.InstanceSummariesWithContext(ctx, appConfig.StackSetName(), opts...)
+	summaries, err := cf.appStackSet.InstanceSummaries(ctx, appConfig.StackSetName(), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +277,7 @@ func (cf CloudFormation) getResourcesForStackInstancesWithContext(ctx context.Co
 		// the default cf client. Instead, we'll have to create a new client
 		// configured with the stack's region.
 		regionalCFClient := cf.regionalClient(summary.Region)
-		cfStack, err := regionalCFClient.DescribeWithContext(ctx, summary.StackID)
+		cfStack, err := regionalCFClient.Describe(ctx, summary.StackID)
 		if err != nil {
 			return nil, fmt.Errorf("getting outputs for stack %s in region %s: %w", summary.StackID, summary.Region, err)
 		}
@@ -389,8 +303,8 @@ func AddWorkloadToAppOptWithoutECR(s *stack.AppResourcesWorkload) {
 // AddServiceToApp attempts to add new service specific resources to the application resource stack.
 // Currently, this means that we'll set up an ECR repo with a policy for all envs to be able
 // to pull from it.
-func (cf CloudFormation) AddServiceToApp(app *config.Application, svcName string, opts ...AddWorkloadToAppOpt) error {
-	if err := cf.addWorkloadToApp(app, svcName, opts...); err != nil {
+func (cf CloudFormation) AddServiceToApp(ctx context.Context, app *config.Application, svcName string, opts ...AddWorkloadToAppOpt) error {
+	if err := cf.addWorkloadToApp(ctx, app, svcName, opts...); err != nil {
 		return fmt.Errorf("adding service %s resources to application %s: %w", svcName, app.Name, err)
 	}
 	return nil
@@ -399,21 +313,21 @@ func (cf CloudFormation) AddServiceToApp(app *config.Application, svcName string
 // AddJobToApp attempts to add new job-specific resources to the application resource stack.
 // Currently, this means that we'll set up an ECR repo with a policy for all envs to be able
 // to pull from it.
-func (cf CloudFormation) AddJobToApp(app *config.Application, jobName string, opts ...AddWorkloadToAppOpt) error {
-	if err := cf.addWorkloadToApp(app, jobName, opts...); err != nil {
+func (cf CloudFormation) AddJobToApp(ctx context.Context, app *config.Application, jobName string, opts ...AddWorkloadToAppOpt) error {
+	if err := cf.addWorkloadToApp(ctx, app, jobName, opts...); err != nil {
 		return fmt.Errorf("adding job %s resources to application %s: %w", jobName, app.Name, err)
 	}
 	return nil
 }
 
-func (cf CloudFormation) addWorkloadToApp(app *config.Application, wlName string, opts ...AddWorkloadToAppOpt) error {
+func (cf CloudFormation) addWorkloadToApp(ctx context.Context, app *config.Application, wlName string, opts ...AddWorkloadToAppOpt) error {
 	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
 		Name:           app.Name,
 		AccountID:      app.AccountID,
 		AdditionalTags: app.Tags,
 		Version:        version.LatestTemplateVersion(),
 	})
-	previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(appConfig)
+	previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(ctx, appConfig)
 	if err != nil {
 		return err
 	}
@@ -447,7 +361,7 @@ func (cf CloudFormation) addWorkloadToApp(app *config.Application, wlName string
 		Accounts:  previouslyDeployedConfig.Accounts,
 		App:       appConfig.Name,
 	}
-	if err := cf.deployAppConfig(appConfig, &newDeploymentConfig, shouldAddNewWl); err != nil {
+	if err := cf.deployAppConfig(ctx, appConfig, &newDeploymentConfig, shouldAddNewWl); err != nil {
 		return err
 	}
 
@@ -455,16 +369,16 @@ func (cf CloudFormation) addWorkloadToApp(app *config.Application, wlName string
 }
 
 // RemoveServiceFromApp attempts to remove service-specific resources (ECR repositories) from the application resource stack.
-func (cf CloudFormation) RemoveServiceFromApp(app *config.Application, svcName string) error {
-	if err := cf.removeWorkloadFromApp(app, svcName); err != nil {
+func (cf CloudFormation) RemoveServiceFromApp(ctx context.Context, app *config.Application, svcName string) error {
+	if err := cf.removeWorkloadFromApp(ctx, app, svcName); err != nil {
 		return fmt.Errorf("removing %s service resources from application: %w", svcName, err)
 	}
 	return nil
 }
 
 // RemoveJobFromApp attempts to remove job-specific resources (ECR repositories) from the application resource stack.
-func (cf CloudFormation) RemoveJobFromApp(app *config.Application, jobName string) error {
-	if err := cf.removeWorkloadFromApp(app, jobName); err != nil {
+func (cf CloudFormation) RemoveJobFromApp(ctx context.Context, app *config.Application, jobName string) error {
+	if err := cf.removeWorkloadFromApp(ctx, app, jobName); err != nil {
 		return fmt.Errorf("removing %s job resources from application: %w", jobName, err)
 	}
 	return nil
@@ -477,15 +391,8 @@ type RemoveEnvFromAppOpts struct {
 	Environments []*config.Environment
 }
 
-// RemoveEnvFromApp optionally redeploys the app stack to remove the account and, if necessary, empties
-// ECR repos and a regional S3 bucket before deleting the stackset instance for that region. This method
-// cannot check that deleting the stackset or removing the app won't break copilot. Be careful.
-func (cf CloudFormation) RemoveEnvFromApp(opts *RemoveEnvFromAppOpts) error {
-	return cf.removeEnvFromApp(nil, opts)
-}
-
-// RemoveEnvFromAppWithContext removes an environment from application resources using ctx.
-func (cf CloudFormation) RemoveEnvFromAppWithContext(ctx context.Context, opts *RemoveEnvFromAppOpts) error {
+// RemoveEnvFromApp removes an environment from application resources using ctx.
+func (cf CloudFormation) RemoveEnvFromApp(ctx context.Context, opts *RemoveEnvFromAppOpts) error {
 	return cf.removeEnvFromApp(ctx, opts)
 }
 
@@ -516,48 +423,29 @@ func (cf CloudFormation) removeEnvFromApp(ctx context.Context, opts *RemoveEnvFr
 	})
 
 	if !regionHasOtherEnvs {
-		var err error
-		if ctx == nil {
-			err = cf.cleanUpRegionalResources(opts.App, opts.EnvToDelete.Region)
-		} else {
-			err = cf.cleanUpRegionalResourcesWithContext(ctx, opts.App, opts.EnvToDelete.Region)
-		}
+		err := cf.cleanUpRegionalResources(ctx, opts.App, opts.EnvToDelete.Region)
 		if err != nil {
 			return err
 		}
-		if ctx == nil {
-			err = cf.deleteStackSetInstance(appConfig.StackSetName(), opts.EnvToDelete.AccountID, opts.EnvToDelete.Region)
-		} else {
-			err = cf.deleteStackSetInstanceWithContext(ctx, appConfig.StackSetName(), opts.EnvToDelete.AccountID, opts.EnvToDelete.Region)
-		}
+		err = cf.deleteStackSetInstance(ctx, appConfig.StackSetName(), opts.EnvToDelete.AccountID, opts.EnvToDelete.Region)
 		if err != nil {
 			return err
 		}
 	}
 
 	if !accountHasOtherEnvs {
-		if ctx == nil {
-			return cf.removeDNSDelegationAndCrossAccountAccess(appConfig, opts.EnvToDelete.AccountID)
-		}
-		return cf.removeDNSDelegationAndCrossAccountAccessWithContext(ctx, appConfig, opts.EnvToDelete.AccountID)
+		return cf.removeDNSDelegationAndCrossAccountAccess(ctx, appConfig, opts.EnvToDelete.AccountID)
 	}
 
 	return nil
 }
 
-// cleanUpRegionalResources checks for existing regional resources and optionally empties ECR Repos and S3 buckets.
-// If there are no regional resources in that region (i.e. a delete call has already been made) it returns nil.
-func (cf CloudFormation) cleanUpRegionalResources(app *config.Application, region string) error {
-	resources, err := cf.GetAppResourcesByRegion(app, region)
-	return cf.cleanUpRegionalResourcesFrom(app, region, resources, err, nil)
+func (cf CloudFormation) cleanUpRegionalResources(ctx context.Context, app *config.Application, region string) error {
+	resources, err := cf.GetAppResourcesByRegion(ctx, app, region)
+	return cf.cleanUpRegionalResourcesFrom(ctx, app, region, resources, err)
 }
 
-func (cf CloudFormation) cleanUpRegionalResourcesWithContext(ctx context.Context, app *config.Application, region string) error {
-	resources, err := cf.GetAppResourcesByRegionWithContext(ctx, app, region)
-	return cf.cleanUpRegionalResourcesFrom(app, region, resources, err, ctx)
-}
-
-func (cf CloudFormation) cleanUpRegionalResourcesFrom(app *config.Application, region string, resources *stack.AppRegionalResources, err error, ctx context.Context) error {
+func (cf CloudFormation) cleanUpRegionalResourcesFrom(ctx context.Context, app *config.Application, region string, resources *stack.AppRegionalResources, err error) error {
 	if err != nil {
 		// Return early for idempotency if resources not found.
 		var errNotFound *errNoRegionalResources
@@ -567,11 +455,7 @@ func (cf CloudFormation) cleanUpRegionalResourcesFrom(app *config.Application, r
 		return err
 	}
 	s3 := cf.regionalS3Client(region)
-	if ctx == nil {
-		err = s3.EmptyBucket(resources.S3Bucket)
-	} else {
-		err = s3.EmptyBucketWithContext(ctx, resources.S3Bucket)
-	}
+	err = s3.EmptyBucket(ctx, resources.S3Bucket)
 	if err != nil {
 		return err
 	}
@@ -580,11 +464,7 @@ func (cf CloudFormation) cleanUpRegionalResourcesFrom(app *config.Application, r
 	}
 	ecr := cf.regionalECRClient(region)
 	for svcName := range resources.RepositoryURLs {
-		if ctx == nil {
-			err = ecr.ClearRepository(ecrRepoName(app.Name, svcName))
-		} else {
-			err = ecr.ClearRepositoryWithContext(ctx, ecrRepoName(app.Name, svcName))
-		}
+		err = ecr.ClearRepository(ctx, ecrRepoName(app.Name, svcName))
 		if err != nil {
 			return err
 		}
@@ -592,14 +472,14 @@ func (cf CloudFormation) cleanUpRegionalResourcesFrom(app *config.Application, r
 	return nil
 }
 
-func (cf CloudFormation) removeWorkloadFromApp(app *config.Application, wlName string) error {
+func (cf CloudFormation) removeWorkloadFromApp(ctx context.Context, app *config.Application, wlName string) error {
 	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
 		Name:           app.Name,
 		AccountID:      app.AccountID,
 		AdditionalTags: app.Tags,
 		Version:        app.Version,
 	})
-	previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(appConfig)
+	previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(ctx, appConfig)
 	if err != nil {
 		return fmt.Errorf("get previous application %s config: %w", app.Name, err)
 	}
@@ -626,7 +506,7 @@ func (cf CloudFormation) removeWorkloadFromApp(app *config.Application, wlName s
 		Accounts:  previouslyDeployedConfig.Accounts,
 		App:       appConfig.Name,
 	}
-	if err := cf.deployAppConfig(appConfig, &newDeploymentConfig, shouldRemoveWl); err != nil {
+	if err := cf.deployAppConfig(ctx, appConfig, &newDeploymentConfig, shouldRemoveWl); err != nil {
 		return err
 	}
 
@@ -644,14 +524,14 @@ type AddEnvToAppOpts struct {
 // AddEnvToApp takes a new environment and updates the application configuration
 // with new Account IDs in resource policies (KMS Keys and ECR Repos) - and
 // sets up a new stack instance if the environment is in a new region.
-func (cf CloudFormation) AddEnvToApp(opts *AddEnvToAppOpts) error {
+func (cf CloudFormation) AddEnvToApp(ctx context.Context, opts *AddEnvToAppOpts) error {
 	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
 		Name:           opts.App.Name,
 		AccountID:      opts.App.AccountID,
 		AdditionalTags: opts.App.Tags,
 		Version:        version.LatestTemplateVersion(),
 	})
-	previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(appConfig)
+	previouslyDeployedConfig, err := cf.getLastDeployedAppConfig(ctx, appConfig)
 	if err != nil {
 		return fmt.Errorf("getting previous deployed stackset %w", err)
 	}
@@ -679,11 +559,11 @@ func (cf CloudFormation) AddEnvToApp(opts *AddEnvToAppOpts) error {
 		App:       appConfig.Name,
 	}
 
-	if err := cf.deployAppConfig(appConfig, &newDeploymentConfig, shouldAddNewAccountID); err != nil {
+	if err := cf.deployAppConfig(ctx, appConfig, &newDeploymentConfig, shouldAddNewAccountID); err != nil {
 		return fmt.Errorf("adding %s environment resources to application: %w", opts.EnvName, err)
 	}
 
-	if err := cf.addNewAppStackInstances(appConfig, previouslyDeployedConfig, opts.EnvRegion); err != nil {
+	if err := cf.addNewAppStackInstances(ctx, appConfig, previouslyDeployedConfig, opts.EnvRegion); err != nil {
 		return fmt.Errorf("adding new stack instance for environment %s: %w", opts.EnvName, err)
 	}
 
@@ -694,32 +574,8 @@ var getRegionFromClient = func(client any) (string, error) {
 	return "", errors.New("failed to retrieve the region")
 }
 
-// AddPipelineResourcesToApp conditionally adds resources needed to support
-// a pipeline in the application region (i.e. the same region that hosts our SSM store).
-// This is necessary because the application region might not contain any environment.
+// AddPipelineResourcesToApp adds pipeline resources using ctx.
 func (cf CloudFormation) AddPipelineResourcesToApp(
-	app *config.Application, appRegion string) error {
-	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
-		Name:      app.Name,
-		AccountID: app.AccountID,
-		Version:   version.LatestTemplateVersion(),
-	})
-
-	resourcesConfig, err := cf.getLastDeployedAppConfig(appConfig)
-	if err != nil {
-		return err
-	}
-
-	if err := cf.addNewAppStackInstances(appConfig, resourcesConfig, appRegion); err != nil {
-		return fmt.Errorf("failed to add stack instance for pipeline, application: %s, region: %s, error: %w",
-			app.Name, appRegion, err)
-	}
-
-	return nil
-}
-
-// AddPipelineResourcesToAppWithContext adds pipeline resources using ctx.
-func (cf CloudFormation) AddPipelineResourcesToAppWithContext(
 	ctx context.Context, app *config.Application, appRegion string) error {
 	appConfig := stack.NewAppStackConfig(&deploy.CreateAppInput{
 		Name:      app.Name,
@@ -727,14 +583,14 @@ func (cf CloudFormation) AddPipelineResourcesToAppWithContext(
 		Version:   version.LatestTemplateVersion(),
 	})
 
-	resourcesConfig, err := cf.getLastDeployedAppConfigWithContext(ctx, appConfig)
+	resourcesConfig, err := cf.getLastDeployedAppConfig(ctx, appConfig)
 	if err != nil {
 		return err
 	}
 
 	// conditionally create a new stack instance in the application region
 	// if there's no existing stack instance.
-	if err := cf.addNewAppStackInstancesWithContext(ctx, appConfig, resourcesConfig, appRegion); err != nil {
+	if err := cf.addNewAppStackInstances(ctx, appConfig, resourcesConfig, appRegion); err != nil {
 		return fmt.Errorf("failed to add stack instance for pipeline, application: %s, region: %s, error: %w",
 			app.Name, appRegion, err)
 	}
@@ -742,33 +598,7 @@ func (cf CloudFormation) AddPipelineResourcesToAppWithContext(
 	return nil
 }
 
-func (cf CloudFormation) deployAppConfig(appConfig *stack.AppStackConfig, resources *stack.AppResourcesConfig, hasInstanceUpdates bool) error {
-	newTemplateToDeploy, err := appConfig.ResourceTemplate(resources)
-	if err != nil {
-		return err
-	}
-	stackSetAdminRoleARN, err := appConfig.StackSetAdminRoleARN(cf.region)
-	if err != nil {
-		return fmt.Errorf("get stack set administrator role arn: %w", err)
-	}
-	renderInput := renderStackSetInput{
-		name:               appConfig.StackSetName(),
-		template:           newTemplateToDeploy,
-		hasInstanceUpdates: hasInstanceUpdates,
-		createOpFn: func(context.Context) (string, error) {
-			return cf.appStackSet.Update(appConfig.StackSetName(), newTemplateToDeploy,
-				stackset.WithOperationID(fmt.Sprintf("%d", resources.Version)),
-				stackset.WithDescription(appConfig.StackSetDescription()),
-				stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
-				stackset.WithAdministrationRoleARN(stackSetAdminRoleARN),
-				stackset.WithTags(toMapPtr(appConfig.Tags())))
-		},
-		now: time.Now,
-	}
-	return cf.renderStackSet(context.Background(), renderInput)
-}
-
-func (cf CloudFormation) deployAppConfigWithContext(ctx context.Context, appConfig *stack.AppStackConfig, resources *stack.AppResourcesConfig, hasInstanceUpdates bool) error {
+func (cf CloudFormation) deployAppConfig(ctx context.Context, appConfig *stack.AppStackConfig, resources *stack.AppResourcesConfig, hasInstanceUpdates bool) error {
 	newTemplateToDeploy, err := appConfig.ResourceTemplate(resources)
 	if err != nil {
 		return err
@@ -793,7 +623,7 @@ func (cf CloudFormation) deployAppConfigWithContext(ctx context.Context, appConf
 		template:           newTemplateToDeploy,
 		hasInstanceUpdates: hasInstanceUpdates,
 		createOpFn: func(ctx context.Context) (string, error) {
-			return cf.appStackSet.UpdateWithContext(ctx, appConfig.StackSetName(), newTemplateToDeploy,
+			return cf.appStackSet.Update(ctx, appConfig.StackSetName(), newTemplateToDeploy,
 				stackset.WithOperationID(fmt.Sprintf("%d", resources.Version)),
 				stackset.WithDescription(appConfig.StackSetDescription()),
 				stackset.WithExecutionRoleName(appConfig.StackSetExecutionRoleName()),
@@ -805,44 +635,8 @@ func (cf CloudFormation) deployAppConfigWithContext(ctx context.Context, appConf
 	return cf.renderStackSet(ctx, renderInput)
 }
 
-// addNewAppStackInstances takes an environment and determines if we need to create a new
-// stack instance. We only spin up a new stack instance if the env is in a new region.
-func (cf CloudFormation) addNewAppStackInstances(appConfig *stack.AppStackConfig, resourcesConfig *stack.AppResourcesConfig, region string) error {
-	summaries, err := cf.appStackSet.InstanceSummaries(appConfig.StackSetName())
-	if err != nil {
-		return err
-	}
-
-	shouldDeployNewStackInstance := true
-	for _, summary := range summaries {
-		if summary.Region == region {
-			shouldDeployNewStackInstance = false
-		}
-	}
-
-	if !shouldDeployNewStackInstance {
-		return nil
-	}
-
-	template, err := appConfig.ResourceTemplate(resourcesConfig)
-	if err != nil {
-		return err
-	}
-
-	renderInput := renderStackSetInput{
-		name:               appConfig.StackSetName(),
-		template:           template,
-		hasInstanceUpdates: shouldDeployNewStackInstance,
-		createOpFn: func(context.Context) (string, error) {
-			return cf.appStackSet.CreateInstances(appConfig.StackSetName(), []string{appConfig.AccountID}, []string{region})
-		},
-		now: time.Now,
-	}
-	return cf.renderStackSet(context.Background(), renderInput)
-}
-
-func (cf CloudFormation) addNewAppStackInstancesWithContext(ctx context.Context, appConfig *stack.AppStackConfig, resourcesConfig *stack.AppResourcesConfig, region string) error {
-	summaries, err := cf.appStackSet.InstanceSummariesWithContext(ctx, appConfig.StackSetName())
+func (cf CloudFormation) addNewAppStackInstances(ctx context.Context, appConfig *stack.AppStackConfig, resourcesConfig *stack.AppResourcesConfig, region string) error {
+	summaries, err := cf.appStackSet.InstanceSummaries(ctx, appConfig.StackSetName())
 	if err != nil {
 		return err
 	}
@@ -871,30 +665,17 @@ func (cf CloudFormation) addNewAppStackInstancesWithContext(ctx context.Context,
 		template:           template,
 		hasInstanceUpdates: shouldDeployNewStackInstance,
 		createOpFn: func(ctx context.Context) (string, error) {
-			return cf.appStackSet.CreateInstancesWithContext(ctx, appConfig.StackSetName(), []string{appConfig.AccountID}, []string{region})
+			return cf.appStackSet.CreateInstances(ctx, appConfig.StackSetName(), []string{appConfig.AccountID}, []string{region})
 		},
 		now: time.Now,
 	}
 	return cf.renderStackSet(ctx, renderInput)
 }
 
-func (cf CloudFormation) getLastDeployedAppConfig(appConfig *stack.AppStackConfig) (*stack.AppResourcesConfig, error) {
-	descr, err := cf.appStackSet.Describe(appConfig.StackSetName())
-	if err != nil {
-		return nil, err
-	}
-	previouslyDeployedConfig, err := stack.AppConfigFrom(&descr.Template)
-	if err != nil {
-		return nil, fmt.Errorf("parse previous deployed stackset %w", err)
-	}
-	previouslyDeployedConfig.App = appConfig.Name
-	return previouslyDeployedConfig, nil
-}
-
-func (cf CloudFormation) getLastDeployedAppConfigWithContext(ctx context.Context, appConfig *stack.AppStackConfig) (*stack.AppResourcesConfig, error) {
+func (cf CloudFormation) getLastDeployedAppConfig(ctx context.Context, appConfig *stack.AppStackConfig) (*stack.AppResourcesConfig, error) {
 	// Check the existing deploy stack template. From that template, we'll parse out the list of services and accounts that
 	// are deployed in the stack.
-	descr, err := cf.appStackSet.DescribeWithContext(ctx, appConfig.StackSetName())
+	descr, err := cf.appStackSet.Describe(ctx, appConfig.StackSetName())
 	if err != nil {
 		return nil, err
 	}
@@ -906,43 +687,17 @@ func (cf CloudFormation) getLastDeployedAppConfigWithContext(ctx context.Context
 	return previouslyDeployedConfig, nil
 }
 
-// DeleteApp deletes all application specific StackSet and Stack resources.
-func (cf CloudFormation) DeleteApp(appName string) error {
+// DeleteApp deletes all application-specific resources using ctx.
+func (cf CloudFormation) DeleteApp(ctx context.Context, appName string) error {
 	spinner := progress.NewSpinner(cf.console)
 	spinner.Start(fmt.Sprintf("Delete regional resources for application %q", appName))
 
 	stackSetName := fmt.Sprintf("%s-infrastructure", appName)
-	if err := cf.deleteStackSetInstances(stackSetName); err != nil {
+	if err := cf.deleteStackSetInstances(ctx, stackSetName); err != nil {
 		spinner.Stop(log.Serrorf("Error deleting regional resources for application %q\n", appName))
 		return err
 	}
-	if err := cf.appStackSet.Delete(stackSetName); err != nil {
-		spinner.Stop(log.Serrorf("Error deleting regional resources for application %q\n", appName))
-		return err
-	}
-	spinner.Stop(log.Ssuccessf("Deleted regional resources for application %q\n", appName))
-	stackName := fmt.Sprintf("%s-infrastructure-roles", appName)
-	description := fmt.Sprintf("Delete application roles stack %s", stackName)
-	return cf.deleteAndRenderStack(deleteAndRenderInput{
-		stackName:   stackName,
-		description: description,
-		deleteFn: func(context.Context) error {
-			return cf.cfnClient.DeleteAndWait(stackName)
-		},
-	})
-}
-
-// DeleteAppWithContext deletes all application-specific resources using ctx.
-func (cf CloudFormation) DeleteAppWithContext(ctx context.Context, appName string) error {
-	spinner := progress.NewSpinner(cf.console)
-	spinner.Start(fmt.Sprintf("Delete regional resources for application %q", appName))
-
-	stackSetName := fmt.Sprintf("%s-infrastructure", appName)
-	if err := cf.deleteStackSetInstancesWithContext(ctx, stackSetName); err != nil {
-		spinner.Stop(log.Serrorf("Error deleting regional resources for application %q\n", appName))
-		return err
-	}
-	if err := cf.appStackSet.DeleteWithContext(ctx, stackSetName); err != nil {
+	if err := cf.appStackSet.Delete(ctx, stackSetName); err != nil {
 		spinner.Stop(log.Serrorf("Error deleting regional resources for application %q\n", appName))
 		return err
 	}
@@ -954,53 +709,31 @@ func (cf CloudFormation) DeleteAppWithContext(ctx context.Context, appName strin
 		stackName:   stackName,
 		description: description,
 		deleteFn: func(ctx context.Context) error {
-			return cf.cfnClient.DeleteAndWaitWithContext(ctx, stackName)
+			return cf.cfnClient.DeleteAndWait(ctx, stackName)
 		},
 	})
 }
 
-func (cf CloudFormation) deleteStackSetInstances(name string) error {
-	opID, err := cf.appStackSet.DeleteAllInstances(name)
+func (cf CloudFormation) deleteStackSetInstances(ctx context.Context, name string) error {
+	opID, err := cf.appStackSet.DeleteAllInstances(ctx, name)
 	if err != nil {
 		if IsEmptyErr(err) {
 			return nil
 		}
 		return err
 	}
-	return cf.appStackSet.WaitForOperation(name, opID)
+	return cf.appStackSet.WaitForOperation(ctx, name, opID)
 }
 
-func (cf CloudFormation) deleteStackSetInstancesWithContext(ctx context.Context, name string) error {
-	opID, err := cf.appStackSet.DeleteAllInstancesWithContext(ctx, name)
+func (cf CloudFormation) deleteStackSetInstance(ctx context.Context, name, account, region string) error {
+	opId, err := cf.appStackSet.DeleteInstance(ctx, name, account, region)
 	if err != nil {
 		if IsEmptyErr(err) {
 			return nil
 		}
 		return err
 	}
-	return cf.appStackSet.WaitForOperationWithContext(ctx, name, opID)
-}
-
-func (cf CloudFormation) deleteStackSetInstance(name, account, region string) error {
-	opId, err := cf.appStackSet.DeleteInstance(name, account, region)
-	if err != nil {
-		if IsEmptyErr(err) {
-			return nil
-		}
-		return err
-	}
-	return cf.appStackSet.WaitForOperation(name, opId)
-}
-
-func (cf CloudFormation) deleteStackSetInstanceWithContext(ctx context.Context, name, account, region string) error {
-	opId, err := cf.appStackSet.DeleteInstanceWithContext(ctx, name, account, region)
-	if err != nil {
-		if IsEmptyErr(err) {
-			return nil
-		}
-		return err
-	}
-	return cf.appStackSet.WaitForOperationWithContext(ctx, name, opId)
+	return cf.appStackSet.WaitForOperation(ctx, name, opId)
 }
 
 type renderStackSetInput struct {
@@ -1025,7 +758,7 @@ func (cf CloudFormation) renderStackSetImpl(ctx context.Context, in renderStackS
 	}
 
 	// Collect streamers.
-	setStreamer := stream.NewStackSetStreamerWithContext(ctx, cf.appStackSet, in.name, opID, timestamp)
+	setStreamer := stream.NewStackSetStreamer(ctx, cf.appStackSet, in.name, opID, timestamp)
 	var stackStreamers []*stream.StackStreamer
 	if in.hasInstanceUpdates {
 		stackStreamers, err = setStreamer.InstanceStreamers(func(region string) stream.StackEventsDescriber {

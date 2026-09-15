@@ -68,7 +68,7 @@ func TestS3_Upload(t *testing.T) {
 				s3Manager: mockS3ManagerClient,
 			}
 
-			gotURL, gotErr := service.Upload("mockBucket", "src/mockIndex.html", bytes.NewBuffer([]byte("bar")))
+			gotURL, gotErr := service.Upload(context.Background(), "mockBucket", "src/mockIndex.html", bytes.NewBuffer([]byte("bar")))
 
 			if gotErr != nil {
 				require.EqualError(t, gotErr, tc.wantError.Error())
@@ -80,7 +80,7 @@ func TestS3_Upload(t *testing.T) {
 	}
 }
 
-func TestS3UploadWithContext(t *testing.T) {
+func TestS3Upload(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	uploader := mocks.NewMocks3ManagerAPI(ctrl)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
@@ -88,7 +88,7 @@ func TestS3UploadWithContext(t *testing.T) {
 	uploader.EXPECT().Upload(ctx, gomock.Any()).Return(&manager.UploadOutput{Location: "mockURL"}, nil)
 
 	service := S3{s3Manager: uploader}
-	url, err := service.UploadWithContext(ctx, "mockBucket", "mockKey", bytes.NewBufferString("data"))
+	url, err := service.Upload(ctx, "mockBucket", "mockKey", bytes.NewBufferString("data"))
 
 	require.NoError(t, err)
 	require.Equal(t, "mockURL", url)
@@ -337,7 +337,7 @@ first failed on key "mock/key": some error`),
 				s3Client: mockS3Client,
 			}
 
-			gotErr := service.EmptyBucket(tc.inBucket)
+			gotErr := service.EmptyBucket(context.Background(), tc.inBucket)
 			if tc.wantErr != nil {
 				require.EqualError(t, gotErr, tc.wantErr.Error())
 				return
@@ -704,7 +704,7 @@ func TestS3_BucketTree(t *testing.T) {
 			}
 			tc.setupMocks(s3mocks)
 
-			gotTree, gotErr := service.BucketTree(aws.ToString(mockBucket))
+			gotTree, gotErr := service.BucketTree(context.Background(), aws.ToString(mockBucket))
 			if tc.wantErr != nil {
 				require.EqualError(t, gotErr, tc.wantErr.Error())
 				return
@@ -866,7 +866,7 @@ func TestS3_BucketSizeAndCount(t *testing.T) {
 			}
 			tc.setupMocks(s3mocks)
 
-			gotSize, gotCount, gotErr := service.BucketSizeAndCount(aws.ToString(mockBucket))
+			gotSize, gotCount, gotErr := service.BucketSizeAndCount(context.Background(), aws.ToString(mockBucket))
 			if tc.wantErr != nil {
 				require.EqualError(t, gotErr, tc.wantErr.Error())
 				return

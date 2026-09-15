@@ -36,31 +36,16 @@ func (m *MockTasksDescriber) EXPECT() *MockTasksDescriberMockRecorder {
 }
 
 // DescribeTasks mocks base method.
-func (m *MockTasksDescriber) DescribeTasks(cluster string, taskARNs []string) ([]*ecs.Task, error) {
+func (m *MockTasksDescriber) DescribeTasks(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeTasks", cluster, taskARNs)
+	ret := m.ctrl.Call(m, "DescribeTasks", ctx, cluster, taskARNs)
 	ret0, _ := ret[0].([]*ecs.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeTasks indicates an expected call of DescribeTasks.
-func (mr *MockTasksDescriberMockRecorder) DescribeTasks(cluster, taskARNs interface{}) *gomock.Call {
+func (mr *MockTasksDescriberMockRecorder) DescribeTasks(ctx, cluster, taskARNs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasks", reflect.TypeOf((*MockTasksDescriber)(nil).DescribeTasks), cluster, taskARNs)
-}
-
-// DescribeTasksWithContext mocks base method.
-func (m *MockTasksDescriber) DescribeTasksWithContext(ctx context.Context, cluster string, taskARNs []string) ([]*ecs.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeTasksWithContext", ctx, cluster, taskARNs)
-	ret0, _ := ret[0].([]*ecs.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeTasksWithContext indicates an expected call of DescribeTasksWithContext.
-func (mr *MockTasksDescriberMockRecorder) DescribeTasksWithContext(ctx, cluster, taskARNs interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasksWithContext", reflect.TypeOf((*MockTasksDescriber)(nil).DescribeTasksWithContext), ctx, cluster, taskARNs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTasks", reflect.TypeOf((*MockTasksDescriber)(nil).DescribeTasks), ctx, cluster, taskARNs)
 }

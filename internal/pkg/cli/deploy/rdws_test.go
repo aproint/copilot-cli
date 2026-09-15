@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -201,7 +202,7 @@ func TestSvcDeployOpts_rdWebServiceStackConfiguration(t *testing.T) {
 
 			deployer := rdwsDeployer{
 				svcDeployer: &svcDeployer{
-					workloadDeployer: &workloadDeployer{
+					workloadDeployer: &workloadDeployer{ctx: context.Background(),
 						name:             mockName,
 						app:              tc.inApp,
 						env:              tc.inEnvironment,
@@ -254,7 +255,7 @@ func TestSvcDeployOpts_rdWebServiceStackConfiguration(t *testing.T) {
 func mockRDWSDeployer(opts ...func(*rdwsDeployer)) *rdwsDeployer {
 	deployer := &rdwsDeployer{
 		svcDeployer: &svcDeployer{
-			workloadDeployer: &workloadDeployer{
+			workloadDeployer: &workloadDeployer{ctx: context.Background(),
 				name: "example",
 				app: &config.Application{
 					Name: "demo",

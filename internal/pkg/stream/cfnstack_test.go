@@ -26,16 +26,12 @@ type contextualMockStackClient struct {
 	out    *cloudformation.DescribeStackEventsOutput
 }
 
-func (m *contextualMockStackClient) DescribeStackEvents(*cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
-	return nil, errors.New("legacy describe stack events called")
-}
-
-func (m *contextualMockStackClient) DescribeStackEventsWithContext(ctx context.Context, _ *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+func (m *contextualMockStackClient) DescribeStackEvents(ctx context.Context, _ *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
 	m.gotCtx = ctx
 	return m.out, nil
 }
 
-func (m mockStackClient) DescribeStackEvents(*cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+func (m mockStackClient) DescribeStackEvents(context.Context, *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
 	return m.out, m.err
 }
 
@@ -61,7 +57,7 @@ func TestStackStreamer_Region(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			// GIVEN
-			streamer := NewStackStreamer(nil, tc.stackID, time.Now())
+			streamer := NewStackStreamer(context.Background(), nil, tc.stackID, time.Now())
 
 			// WHEN
 			region, ok := streamer.Region()
@@ -76,7 +72,7 @@ func TestStackStreamer_Region(t *testing.T) {
 func TestStackStreamer_Subscribe(t *testing.T) {
 	t.Run("allow new subscriptions if stack streamer is still active", func(t *testing.T) {
 		// GIVEN
-		streamer := &StackStreamer{}
+		streamer := &StackStreamer{ctx: context.Background()}
 
 		// WHEN
 		_ = streamer.Subscribe()
@@ -87,7 +83,7 @@ func TestStackStreamer_Subscribe(t *testing.T) {
 	})
 	t.Run("new subscriptions on a finished stack streamer should return closed channels", func(t *testing.T) {
 		// GIVEN
-		streamer := &StackStreamer{isDone: true}
+		streamer := &StackStreamer{ctx: context.Background(), isDone: true}
 
 		// WHEN
 		ch := streamer.Subscribe()
@@ -110,7 +106,7 @@ func TestStackStreamer_FetchUsesConstructorContext(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "stack-streamer")
 	client := &contextualMockStackClient{out: &cloudformation.DescribeStackEventsOutput{}}
-	streamer := NewStackStreamerWithContext(ctx, client, "stack", time.Now())
+	streamer := NewStackStreamer(ctx, client, "stack", time.Now())
 
 	_, _, err := streamer.Fetch()
 
@@ -135,7 +131,7 @@ func TestStackStreamer_Notify(t *testing.T) {
 		},
 	}
 	sub := make(chan StackEvent, 2)
-	streamer := &StackStreamer{
+	streamer := &StackStreamer{ctx: context.Background(),
 		subscribers:   []chan StackEvent{sub},
 		eventsToFlush: wantedEvents,
 	}
@@ -198,7 +194,7 @@ func testStackStreamer_Fetch_Success(t *testing.T) {
 			},
 		},
 	}
-	streamer := NewStackStreamer(client, "arn:aws:cloudformation:us-west-2:111111:stack/phonetool-test/b3184400-1429-11ed-a574-0a587ce78f9b", startTime)
+	streamer := NewStackStreamer(context.Background(), client, "arn:aws:cloudformation:us-west-2:111111:stack/phonetool-test/b3184400-1429-11ed-a574-0a587ce78f9b", startTime)
 
 	// WHEN
 	beforeFetch := time.Now()
@@ -250,7 +246,7 @@ func testStackStreamer_Fetch_PostChangeSet(t *testing.T) {
 			},
 		},
 	}
-	streamer := &StackStreamer{
+	streamer := &StackStreamer{ctx: context.Background(),
 		client:                client,
 		clock:                 fakeClock{fakeNow: time.Now()},
 		rand:                  func(n int) int { return n },
@@ -289,7 +285,7 @@ func testStackStreamer_Fetch_WithSeenEvents(t *testing.T) {
 			},
 		},
 	}
-	streamer := &StackStreamer{
+	streamer := &StackStreamer{ctx: context.Background(),
 		client:                client,
 		clock:                 fakeClock{fakeNow: time.Now()},
 		rand:                  func(n int) int { return n },
@@ -320,7 +316,7 @@ func testStackStreamer_Fetch_WithError(t *testing.T) {
 	client := mockStackClient{
 		err: errors.New("some error"),
 	}
-	streamer := &StackStreamer{
+	streamer := &StackStreamer{ctx: context.Background(),
 		client:                client,
 		clock:                 fakeClock{fakeNow: time.Now()},
 		rand:                  func(n int) int { return n },
@@ -344,7 +340,7 @@ func testStackStreamer_Fetch_withThrottle(t *testing.T) {
 			Message: "throttle err",
 		},
 	}
-	streamer := &StackStreamer{
+	streamer := &StackStreamer{ctx: context.Background(),
 		client:                *client,
 		clock:                 fakeClock{fakeNow: time.Date(2020, time.November, 23, 16, 0, 0, 0, time.UTC)},
 		rand:                  func(n int) int { return n },
@@ -365,7 +361,7 @@ func testStackStreamer_Fetch_withThrottle(t *testing.T) {
 
 func TestStackStreamer_Close(t *testing.T) {
 	// GIVEN
-	streamer := &StackStreamer{}
+	streamer := &StackStreamer{ctx: context.Background()}
 	c := streamer.Subscribe()
 
 	// WHEN

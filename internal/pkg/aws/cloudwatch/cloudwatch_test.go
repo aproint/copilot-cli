@@ -4,6 +4,7 @@
 package cloudwatch
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -42,21 +43,21 @@ func TestCloudWatch_AlarmsWithTags(t *testing.T) {
 	}{
 		"errors if failed to search resources": {
 			setupMocks: func(m cloudWatchMocks) {
-				m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return(nil, mockError)
+				m.rg.EXPECT().GetResourcesByTags(gomock.Any(), cloudwatchResourceType, gomock.Eq(testTags)).Return(nil, mockError)
 			},
 
 			wantErr: mockError,
 		},
 		"errors if failed to get alarm names because of invalid ARN": {
 			setupMocks: func(m cloudWatchMocks) {
-				m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: "badArn"}}, nil)
+				m.rg.EXPECT().GetResourcesByTags(gomock.Any(), cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: "badArn"}}, nil)
 			},
 
 			wantErr: fmt.Errorf("parse alarm ARN badArn: arn: invalid prefix"),
 		},
 		"errors if failed to get alarm names because of bad ARN resource": {
 			setupMocks: func(m cloudWatchMocks) {
-				m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: "arn:aws:cloudwatch:us-west-2:1234567890:alarm:badAlarm:Names"}}, nil)
+				m.rg.EXPECT().GetResourcesByTags(gomock.Any(), cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: "arn:aws:cloudwatch:us-west-2:1234567890:alarm:badAlarm:Names"}}, nil)
 			},
 
 			wantErr: fmt.Errorf("unknown ARN resource format alarm:badAlarm:Names"),
@@ -64,7 +65,7 @@ func TestCloudWatch_AlarmsWithTags(t *testing.T) {
 		"errors if failed to describe CloudWatch alarms": {
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
-					m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: mockAlarmArn}}, nil),
+					m.rg.EXPECT().GetResourcesByTags(gomock.Any(), cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: mockAlarmArn}}, nil),
 					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
 						AlarmNames: []string{"mockAlarmName"},
 					}).Return(nil, mockError),
@@ -75,7 +76,7 @@ func TestCloudWatch_AlarmsWithTags(t *testing.T) {
 		},
 		"return if no alarms found": {
 			setupMocks: func(m cloudWatchMocks) {
-				m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{}, nil)
+				m.rg.EXPECT().GetResourcesByTags(gomock.Any(), cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{}, nil)
 			},
 
 			wantAlarmStatus: nil,
@@ -83,7 +84,7 @@ func TestCloudWatch_AlarmsWithTags(t *testing.T) {
 		"should invoke DescribeAlarms on alarms that have matching tags": {
 			setupMocks: func(m cloudWatchMocks) {
 				gomock.InOrder(
-					m.rg.EXPECT().GetResourcesByTags(cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: mockAlarmArn}}, nil),
+					m.rg.EXPECT().GetResourcesByTags(gomock.Any(), cloudwatchResourceType, gomock.Eq(testTags)).Return([]*rg.Resource{{ARN: mockAlarmArn}}, nil),
 					m.cw.EXPECT().DescribeAlarms(gomock.Any(), &cwapi.DescribeAlarmsInput{
 						AlarmNames: []string{"mockAlarmName"},
 					}).Return(&cwapi.DescribeAlarmsOutput{
@@ -134,7 +135,7 @@ func TestCloudWatch_AlarmsWithTags(t *testing.T) {
 				rgClient: mockrgClient,
 			}
 
-			gotAlarmStatus, gotErr := cwSvc.AlarmsWithTags(testTags)
+			gotAlarmStatus, gotErr := cwSvc.AlarmsWithTags(context.Background(), testTags)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -457,7 +458,7 @@ func TestCloudWatch_AlarmStatuses(t *testing.T) {
 				client: mockcwClient,
 			}
 
-			gotAlarmStatuses, gotErr := cwSvc.AlarmStatuses(tc.in)
+			gotAlarmStatuses, gotErr := cwSvc.AlarmStatuses(context.Background(), tc.in)
 			if gotErr != nil {
 				require.EqualError(t, gotErr, tc.wantedErr.Error())
 			} else {
@@ -590,7 +591,7 @@ func TestCloudWatch_AlarmDescriptions(t *testing.T) {
 				client: mockcwClient,
 			}
 
-			gotAlarmDescriptions, gotErr := cwSvc.AlarmDescriptions(tc.in)
+			gotAlarmDescriptions, gotErr := cwSvc.AlarmDescriptions(context.Background(), tc.in)
 			if gotErr != nil {
 				require.EqualError(t, gotErr, tc.wantedErr.Error())
 			} else {

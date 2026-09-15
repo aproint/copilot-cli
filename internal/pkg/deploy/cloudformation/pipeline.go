@@ -27,14 +27,9 @@ const (
 	cfnResourceTypePipeline      = "AWS::CodePipeline::Pipeline"
 )
 
-// PipelineExists checks if the pipeline with the provided config exists.
-func (cf CloudFormation) PipelineExists(stackConfig StackConfiguration) (bool, error) {
-	return cf.PipelineExistsWithContext(context.Background(), stackConfig)
-}
-
-// PipelineExistsWithContext checks if the pipeline exists using ctx.
-func (cf CloudFormation) PipelineExistsWithContext(ctx context.Context, stackConfig StackConfiguration) (bool, error) {
-	_, err := cf.cfnClient.DescribeWithContext(ctx, stackConfig.StackName())
+// PipelineExists checks if the pipeline exists using ctx.
+func (cf CloudFormation) PipelineExists(ctx context.Context, stackConfig StackConfiguration) (bool, error) {
+	_, err := cf.cfnClient.Describe(ctx, stackConfig.StackName())
 	if err != nil {
 		var stackNotFound *cloudformation.ErrStackNotFound
 		if !errors.As(err, &stackNotFound) {
@@ -45,14 +40,9 @@ func (cf CloudFormation) PipelineExistsWithContext(ctx context.Context, stackCon
 	return true, nil
 }
 
-// CreatePipeline sets up a new CodePipeline for deploying services.
-func (cf CloudFormation) CreatePipeline(bucketName string, stackConfig StackConfiguration) error {
-	return cf.CreatePipelineWithContext(context.Background(), bucketName, stackConfig)
-}
-
-// CreatePipelineWithContext sets up a new CodePipeline using ctx.
-func (cf CloudFormation) CreatePipelineWithContext(ctx context.Context, bucketName string, stackConfig StackConfiguration) error {
-	templateURL, err := cf.pushTemplateToS3BucketWithContext(ctx, bucketName, stackConfig)
+// CreatePipeline sets up a new CodePipeline using ctx.
+func (cf CloudFormation) CreatePipeline(ctx context.Context, bucketName string, stackConfig StackConfiguration) error {
+	templateURL, err := cf.pushTemplateToS3Bucket(ctx, bucketName, stackConfig)
 	if err != nil {
 		return err
 	}
@@ -60,12 +50,12 @@ func (cf CloudFormation) CreatePipelineWithContext(ctx context.Context, bucketNa
 	if err != nil {
 		return err
 	}
-	err = cf.cfnClient.CreateAndWaitWithContext(ctx, s)
+	err = cf.cfnClient.CreateAndWait(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	output, err := cf.cfnClient.OutputsWithContext(ctx, s)
+	output, err := cf.cfnClient.Outputs(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -79,22 +69,18 @@ func (cf CloudFormation) CreatePipelineWithContext(ctx context.Context, bucketNa
 		return err
 	}
 
-	pipelineResourceName, err := cf.pipelinePhysicalResourceIDWithContext(ctx, stackConfig.StackName())
+	pipelineResourceName, err := cf.pipelinePhysicalResourceID(ctx, stackConfig.StackName())
 	if err != nil {
 		return err
 	}
-	if err = cf.cpClient.RetryStageExecutionWithContext(ctx, pipelineResourceName, sourceStage); err != nil {
+	if err = cf.cpClient.RetryStageExecution(ctx, pipelineResourceName, sourceStage); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (cf CloudFormation) pipelinePhysicalResourceID(stackName string) (string, error) {
-	return cf.pipelinePhysicalResourceIDWithContext(context.Background(), stackName)
-}
-
-func (cf CloudFormation) pipelinePhysicalResourceIDWithContext(ctx context.Context, stackName string) (string, error) {
-	stackResources, err := cf.cfnClient.StackResourcesWithContext(ctx, stackName)
+func (cf CloudFormation) pipelinePhysicalResourceID(ctx context.Context, stackName string) (string, error) {
+	stackResources, err := cf.cfnClient.StackResources(ctx, stackName)
 	if err != nil {
 		return "", err
 	}
@@ -106,14 +92,9 @@ func (cf CloudFormation) pipelinePhysicalResourceIDWithContext(ctx context.Conte
 	return "", fmt.Errorf(`cannot find a resource in stack %s with logical ID "%s" of type "%s"`, stackName, cfnLogicalResourceIDPipeline, cfnResourceTypePipeline)
 }
 
-// UpdatePipeline updates an existing CodePipeline for deploying services.
-func (cf CloudFormation) UpdatePipeline(bucketName string, stackConfig StackConfiguration) error {
-	return cf.UpdatePipelineWithContext(context.Background(), bucketName, stackConfig)
-}
-
-// UpdatePipelineWithContext updates an existing CodePipeline using ctx.
-func (cf CloudFormation) UpdatePipelineWithContext(ctx context.Context, bucketName string, stackConfig StackConfiguration) error {
-	templateURL, err := cf.pushTemplateToS3BucketWithContext(ctx, bucketName, stackConfig)
+// UpdatePipeline updates an existing CodePipeline using ctx.
+func (cf CloudFormation) UpdatePipeline(ctx context.Context, bucketName string, stackConfig StackConfiguration) error {
+	templateURL, err := cf.pushTemplateToS3Bucket(ctx, bucketName, stackConfig)
 	if err != nil {
 		return err
 	}
@@ -121,7 +102,7 @@ func (cf CloudFormation) UpdatePipelineWithContext(ctx context.Context, bucketNa
 	if err != nil {
 		return err
 	}
-	if err := cf.cfnClient.UpdateAndWaitWithContext(ctx, s); err != nil {
+	if err := cf.cfnClient.UpdateAndWait(ctx, s); err != nil {
 		var errNoUpdates *cloudformation.ErrChangeSetEmpty
 		if errors.As(err, &errNoUpdates) {
 			return nil
@@ -131,27 +112,18 @@ func (cf CloudFormation) UpdatePipelineWithContext(ctx context.Context, bucketNa
 	return nil
 }
 
-// DeletePipeline removes the CodePipeline stack.
-func (cf CloudFormation) DeletePipeline(pipeline deploy.Pipeline) error {
-	return cf.DeletePipelineWithContext(context.Background(), pipeline)
+// DeletePipeline removes the CodePipeline stack using ctx.
+func (cf CloudFormation) DeletePipeline(ctx context.Context, pipeline deploy.Pipeline) error {
+	return cf.cfnClient.DeleteAndWait(ctx, stack.NameForPipeline(pipeline.AppName, pipeline.Name, pipeline.IsLegacy))
 }
 
-// DeletePipelineWithContext removes the CodePipeline stack using ctx.
-func (cf CloudFormation) DeletePipelineWithContext(ctx context.Context, pipeline deploy.Pipeline) error {
-	return cf.cfnClient.DeleteAndWaitWithContext(ctx, stack.NameForPipeline(pipeline.AppName, pipeline.Name, pipeline.IsLegacy))
-}
-
-func (cf CloudFormation) pushTemplateToS3Bucket(bucket string, config StackConfiguration) (string, error) {
-	return cf.pushTemplateToS3BucketWithContext(context.Background(), bucket, config)
-}
-
-func (cf CloudFormation) pushTemplateToS3BucketWithContext(ctx context.Context, bucket string, config StackConfiguration) (string, error) {
+func (cf CloudFormation) pushTemplateToS3Bucket(ctx context.Context, bucket string, config StackConfiguration) (string, error) {
 	template, err := config.Template()
 	if err != nil {
 		return "", fmt.Errorf("generate template: %w", err)
 	}
 	reader := strings.NewReader(template)
-	url, err := cf.s3Client.UploadWithContext(ctx, bucket, fmt.Sprintf(fmtPipelineCfnTemplateName, config.StackName()), reader)
+	url, err := cf.s3Client.Upload(ctx, bucket, fmt.Sprintf(fmtPipelineCfnTemplateName, config.StackName()), reader)
 	if err != nil {
 		return "", fmt.Errorf("upload pipeline template to S3 bucket %s: %w", bucket, err)
 	}

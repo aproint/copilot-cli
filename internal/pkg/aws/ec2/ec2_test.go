@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEC2_PublicIPWithContextUsesCallerContext(t *testing.T) {
+func TestEC2_PublicIPUsesCallerContext(t *testing.T) {
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	ctrl := gomock.NewController(t)
 	mockAPI := mocks.NewMockapi(ctrl)
@@ -28,13 +28,13 @@ func TestEC2_PublicIPWithContextUsesCallerContext(t *testing.T) {
 	}, nil)
 
 	client := EC2{client: mockAPI}
-	publicIP, err := client.PublicIPWithContext(ctx, "eni-123")
+	publicIP, err := client.PublicIP(ctx, "eni-123")
 
 	require.NoError(t, err)
 	require.Equal(t, "1.2.3.4", publicIP)
 }
 
-func TestEC2_ListVPCsWithContextUsesCallerContextForEveryPage(t *testing.T) {
+func TestEC2_ListVPCsUsesCallerContextForEveryPage(t *testing.T) {
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	ctrl := gomock.NewController(t)
 	mockAPI := mocks.NewMockapi(ctrl)
@@ -49,7 +49,7 @@ func TestEC2_ListVPCsWithContextUsesCallerContextForEveryPage(t *testing.T) {
 	)
 
 	client := EC2{client: mockAPI}
-	vpcs, err := client.ListVPCsWithContext(ctx)
+	vpcs, err := client.ListVPCs(ctx)
 
 	require.NoError(t, err)
 	require.Equal(t, []VPC{
@@ -58,7 +58,7 @@ func TestEC2_ListVPCsWithContextUsesCallerContextForEveryPage(t *testing.T) {
 	}, vpcs)
 }
 
-func TestEC2_ListVPCsWithContextStopsBeforeNextPageWhenCanceled(t *testing.T) {
+func TestEC2_ListVPCsStopsBeforeNextPageWhenCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	ctrl := gomock.NewController(t)
 	mockAPI := mocks.NewMockapi(ctrl)
@@ -68,7 +68,7 @@ func TestEC2_ListVPCsWithContextStopsBeforeNextPageWhenCanceled(t *testing.T) {
 	})
 
 	client := EC2{client: mockAPI}
-	_, err := client.ListVPCsWithContext(ctx)
+	_, err := client.ListVPCs(ctx)
 
 	require.ErrorIs(t, err, context.Canceled)
 }
@@ -231,7 +231,7 @@ func TestEC2_ListVPC(t *testing.T) {
 				client: mockAPI,
 			}
 
-			vpcs, err := ec2Client.ListVPCs()
+			vpcs, err := ec2Client.ListVPCs(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -316,7 +316,7 @@ func TestEC2_ListAZs(t *testing.T) {
 			ec2 := EC2{client: m}
 
 			// WHEN
-			azs, err := ec2.ListAZs()
+			azs, err := ec2.ListAZs(context.Background())
 
 			// THEN
 			if tc.wantedErr != "" {
@@ -491,7 +491,7 @@ func TestEC2_CloudFrontManagedPrefixListId(t *testing.T) {
 				client: mockAPI,
 			}
 
-			id, err := ec2Client.CloudFrontManagedPrefixListID()
+			id, err := ec2Client.CloudFrontManagedPrefixListID(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else if tc.wantedErrorMsgPrefix != "" {
@@ -785,7 +785,7 @@ func TestEC2_ListVPCSubnets(t *testing.T) {
 				client: mockAPI,
 			}
 
-			subnets, err := ec2Client.ListVPCSubnets(mockVPCID)
+			subnets, err := ec2Client.ListVPCSubnets(context.Background(), mockVPCID)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -856,7 +856,7 @@ func TestEC2_PublicIP(t *testing.T) {
 				client: mockAPI,
 			}
 
-			out, err := ec2Client.PublicIP(tc.inENI)
+			out, err := ec2Client.PublicIP(context.Background(), tc.inENI)
 			if tc.wantedErr != nil {
 				require.EqualError(t, tc.wantedErr, err.Error())
 			} else {
@@ -945,7 +945,7 @@ func TestEC2_SubnetIDs(t *testing.T) {
 				client: mockAPI,
 			}
 
-			arns, err := ec2Client.SubnetIDs(tc.inFilter...)
+			arns, err := ec2Client.SubnetIDs(context.Background(), tc.inFilter...)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -1006,7 +1006,7 @@ func TestEC2_SecurityGroups(t *testing.T) {
 				client: mockAPI,
 			}
 
-			arns, err := ec2Client.SecurityGroups(inAppEnvFilters...)
+			arns, err := ec2Client.SecurityGroups(context.Background(), inAppEnvFilters...)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -1059,7 +1059,7 @@ func TestEC2_HasDNSSupport(t *testing.T) {
 				client: mockAPI,
 			}
 
-			support, err := ec2Client.HasDNSSupport(tc.vpcID)
+			support, err := ec2Client.HasDNSSupport(context.Background(), tc.vpcID)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {

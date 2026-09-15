@@ -47,7 +47,7 @@ var (
 )
 
 type cleaner interface {
-	Clean() error
+	Clean(context.Context) error
 }
 
 type deleteSvcVars struct {
@@ -72,11 +72,7 @@ type deleteSvcOpts struct {
 	newSvcCleaner func(cfg aws.Config, env *config.Environment, manifestType string) cleaner
 }
 
-func newDeleteSvcOpts(vars deleteSvcVars) (*deleteSvcOpts, error) {
-	return newDeleteSvcOptsWithContext(context.Background(), vars)
-}
-
-func newDeleteSvcOptsWithContext(ctx context.Context, vars deleteSvcVars) (*deleteSvcOpts, error) {
+func newDeleteSvcOpts(ctx context.Context, vars deleteSvcVars) (*deleteSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc delete"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -111,7 +107,7 @@ func newDeleteSvcOptsWithContext(ctx context.Context, vars deleteSvcVars) (*dele
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *deleteSvcOpts) Validate() error {
+func (o *deleteSvcOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -278,12 +274,12 @@ func (o *deleteSvcOpts) deleteStacks(ctx context.Context, wkldType string, envs 
 			return err
 		}
 
-		if err := o.newSvcCleaner(cfg, env, wkldType).Clean(); err != nil {
+		if err := o.newSvcCleaner(cfg, env, wkldType).Clean(ctx); err != nil {
 			return fmt.Errorf("clean resources: %w", err)
 		}
 
 		cfClient := o.getSvcCFN(cfg)
-		if err := cfClient.DeleteWorkload(deploy.DeleteWorkloadInput{
+		if err := cfClient.DeleteWorkload(ctx, deploy.DeleteWorkloadInput{
 			Name:             o.name,
 			EnvName:          env.Name,
 			AppName:          o.appName,
@@ -312,7 +308,7 @@ func (o *deleteSvcOpts) emptyECRRepos(ctx context.Context, envs []*config.Enviro
 			return err
 		}
 		client := o.getECR(cfg)
-		if err := client.ClearRepository(repoName); err != nil {
+		if err := client.ClearRepository(ctx, repoName); err != nil {
 			return err
 		}
 	}
@@ -325,7 +321,7 @@ func (o *deleteSvcOpts) removeSvcFromApp(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.appCFN.RemoveServiceFromApp(proj, o.name); err != nil {
+	if err := o.appCFN.RemoveServiceFromApp(ctx, proj, o.name); err != nil {
 		if !isStackSetNotExistsErr(err) {
 			return err
 		}
@@ -369,7 +365,7 @@ func buildSvcDeleteCmd() *cobra.Command {
   Delete the "test" service without confirmation prompt.
   /code $ copilot svc delete --name test --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteSvcOptsWithContext(cmd.Context(), vars)
+			opts, err := newDeleteSvcOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

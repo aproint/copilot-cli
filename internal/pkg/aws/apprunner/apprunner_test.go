@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAppRunner_WaitForOperationWithContextStopsOnCancellation(t *testing.T) {
+func TestAppRunner_WaitForOperationStopsOnCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockapi(ctrl)
@@ -31,7 +31,7 @@ func TestAppRunner_WaitForOperationWithContextStopsOnCancellation(t *testing.T) 
 	})
 
 	service := AppRunner{client: client}
-	err := service.WaitForOperationWithContext(ctx, "operation", "service-arn")
+	err := service.WaitForOperation(ctx, "operation", "service-arn")
 
 	require.ErrorIs(t, err, context.Canceled)
 }
@@ -132,7 +132,7 @@ func TestAppRunner_DescribeService(t *testing.T) {
 				client: mockAppRunnerClient,
 			}
 
-			gotSvc, gotErr := service.DescribeService(tc.serviceArn)
+			gotSvc, gotErr := service.DescribeService(context.Background(), tc.serviceArn)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -205,7 +205,7 @@ func TestAppRunner_ServiceARN(t *testing.T) {
 				client: mockAppRunnerClient,
 			}
 
-			svcArn, err := service.ServiceARN("mockSvc")
+			svcArn, err := service.ServiceARN(context.Background(), "mockSvc")
 
 			if err != nil {
 				require.EqualError(t, tc.wantErr, err.Error())
@@ -418,7 +418,7 @@ func TestAppRunner_DescribeOperation(t *testing.T) {
 				client: mockAppRunnerClient,
 			}
 
-			operation, err := service.DescribeOperation(mockOperationId, mockSvcARN)
+			operation, err := service.DescribeOperation(context.Background(), mockOperationId, mockSvcARN)
 
 			if err != nil {
 				require.EqualError(t, tc.wantErr, err.Error())
@@ -470,7 +470,7 @@ func TestAppRunner_PrivateURL(t *testing.T) {
 				client: mockAppRunnerClient,
 			}
 
-			url, err := service.PrivateURL(mockARN)
+			url, err := service.PrivateURL(context.Background(), mockARN)
 			if tc.expectedErr != "" {
 				require.EqualError(t, err, tc.expectedErr)
 			}
@@ -553,7 +553,7 @@ func TestAppRunner_PauseService(t *testing.T) {
 				client: mockAppRunnerClient,
 			}
 
-			err := service.PauseService(mockSvcARN)
+			err := service.PauseService(context.Background(), mockSvcARN)
 
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
@@ -638,7 +638,7 @@ func TestAppRunner_ResumeService(t *testing.T) {
 				client: mockAppRunnerClient,
 			}
 
-			err := service.ResumeService(mockSvcARN)
+			err := service.ResumeService(context.Background(), mockSvcARN)
 
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())
@@ -691,7 +691,7 @@ func TestAppRunner_StartDeployment(t *testing.T) {
 				client: mockAppRunnerClient,
 			}
 
-			got, err := service.StartDeployment(mockSvcARN)
+			got, err := service.StartDeployment(context.Background(), mockSvcARN)
 
 			if tc.wantErr != nil {
 				require.EqualError(t, err, tc.wantErr.Error())

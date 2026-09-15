@@ -8,9 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 	"path/filepath"
 	"testing"
+
+	"github.com/aproint/copilot-cli/internal/pkg/term/prompt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
@@ -453,7 +454,7 @@ func TestTaskRunOpts_Validate(t *testing.T) {
 				tc.mockStore(mockStore)
 			}
 
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())
 			} else {
@@ -769,11 +770,11 @@ type runTaskMocks struct {
 }
 
 func mockHasDefaultCluster(m runTaskMocks) {
-	m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Return(true, nil).AnyTimes()
+	m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Return(true, nil).AnyTimes()
 }
 
 func mockRepositoryAnytime(m runTaskMocks) {
-	m.repository.EXPECT().LoginWithContext(gomock.Any()).AnyTimes()
+	m.repository.EXPECT().Login(gomock.Any()).AnyTimes()
 	m.repository.EXPECT().BuildAndPush(context.Background(), gomock.Any(), gomock.Any()).AnyTimes()
 }
 
@@ -812,32 +813,32 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Return(true, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Return(true, nil)
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockRepositoryAnytime(m)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
 			},
 		},
 		"do not check for default cluster if deploying to environment": {
 			inEnv: "test",
 			setupMocks: func(m runTaskMocks) {
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Times(0)
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Times(0)
 				m.store.EXPECT().
 					GetEnvironment(ctx, gomock.Any(), "test").
 					Return(&config.Environment{
 						ExecutionRoleARN: "env execution role",
 					}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockRepositoryAnytime(m)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
 			},
 		},
 		"error deploying resources": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), &deploy.CreateTaskResourcesInput{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), &deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
 					Command:    []string{},
@@ -851,13 +852,13 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), &deploy.CreateTaskResourcesInput{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), &deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
 					Command:    []string{},
 					EntryPoint: []string{},
 				}).Return(nil)
-				m.repository.EXPECT().LoginWithContext(gomock.Any()).Return(mockRepoURI, errors.New("some error"))
+				m.repository.EXPECT().Login(gomock.Any()).Return(mockRepoURI, errors.New("some error"))
 				mockHasDefaultCluster(m)
 			},
 			wantedError: errors.New("login to docker: some error"),
@@ -866,15 +867,15 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), &deploy.CreateTaskResourcesInput{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), &deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
 					Command:    []string{},
 					EntryPoint: []string{},
 				}).Return(nil)
-				m.repository.EXPECT().LoginWithContext(gomock.Any()).Return(mockRepoURI, nil)
+				m.repository.EXPECT().Login(gomock.Any()).Return(mockRepoURI, nil)
 				m.repository.EXPECT().BuildAndPush(ctx, gomock.Any(), gomock.Any())
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), &deploy.CreateTaskResourcesInput{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), &deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "uri/repo:latest",
 					Command:    []string{},
@@ -888,9 +889,9 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				mockRepositoryAnytime(m)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).Return(nil, errors.New("error running"))
+				m.runner.EXPECT().Run(gomock.Any()).Return(nil, errors.New("error running"))
 				mockHasDefaultCluster(m)
 			},
 			wantedError: errors.New("run task my-task: error running"),
@@ -903,19 +904,19 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 						ExecutionRoleARN: "env execution role",
 					}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Len(1)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Len(1)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Times(0)
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Times(0)
 			},
 		},
 		"deploy without execution role option if env is empty": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).Times(0)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Len(0)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Len(0)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
 				mockHasDefaultCluster(m)
 			},
 		},
@@ -924,8 +925,8 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any()).AnyTimes()
-				m.repository.EXPECT().LoginWithContext(gomock.Any()).Return(mockRepoURI, nil)
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).AnyTimes()
+				m.repository.EXPECT().Login(gomock.Any()).Return(mockRepoURI, nil)
 				m.repository.EXPECT().BuildAndPush(ctx, gomock.Eq(
 					&dockerengine.BuildArguments{
 						URI:     mockRepoURI,
@@ -933,7 +934,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 						Tags:    []string{imageTagLatest, tag},
 					}), gomock.Any(),
 				)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
 				mockHasDefaultCluster(m)
 			},
 		},
@@ -942,8 +943,8 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any()).AnyTimes()
-				m.repository.EXPECT().LoginWithContext(gomock.Any()).Return(mockRepoURI, nil)
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).AnyTimes()
+				m.repository.EXPECT().Login(gomock.Any()).Return(mockRepoURI, nil)
 				m.repository.EXPECT().BuildAndPush(ctx, gomock.Eq(
 					&dockerengine.BuildArguments{
 						URI:     mockRepoURI,
@@ -951,7 +952,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 						Tags:    []string{imageTagLatest},
 					}), gomock.Any(),
 				)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
 				mockHasDefaultCluster(m)
 			},
 		},
@@ -961,29 +962,29 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetEnvironment(ctx, gomock.Any(), gomock.Any()).AnyTimes()
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), &deploy.CreateTaskResourcesInput{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), &deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "",
 					Command:    []string{"/bin/sh", "-c", "curl $ECS_CONTAINER_METADATA_URI_V4"},
 					EntryPoint: []string{"exec", "some command"},
 				}).Times(1).Return(nil)
-				m.repository.EXPECT().LoginWithContext(gomock.Any()).Return(mockRepoURI, nil)
+				m.repository.EXPECT().Login(gomock.Any()).Return(mockRepoURI, nil)
 				m.repository.EXPECT().BuildAndPush(ctx, gomock.Eq(&defaultBuildArguments), gomock.Any())
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), &deploy.CreateTaskResourcesInput{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), &deploy.CreateTaskResourcesInput{
 					Name:       inGroupName,
 					Image:      "uri/repo:latest",
 					Command:    []string{"/bin/sh", "-c", "curl $ECS_CONTAINER_METADATA_URI_V4"},
 					EntryPoint: []string{"exec", "some command"},
 				}).Times(1).Return(nil)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
 				mockHasDefaultCluster(m)
 			},
 		},
 		"fail to get ENI information for some tasks": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any()).AnyTimes()
-				m.runner.EXPECT().RunWithContext(gomock.Any()).Return([]*task.Task{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).Return([]*task.Task{
 					{
 						TaskARN: "task-1",
 						ENI:     "eni-1",
@@ -995,7 +996,7 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 						TaskARN: "task-3",
 					},
 				}, nil)
-				m.publicIPGetter.EXPECT().PublicIPWithContext(gomock.Any(), "eni-1").Return("1.2.3", nil)
+				m.publicIPGetter.EXPECT().PublicIP(gomock.Any(), "eni-1").Return("1.2.3", nil)
 				mockHasDefaultCluster(m)
 				mockRepositoryAnytime(m)
 			},
@@ -1003,14 +1004,14 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 		"fail to get public ips": {
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any()).AnyTimes()
-				m.runner.EXPECT().RunWithContext(gomock.Any()).Return([]*task.Task{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).Return([]*task.Task{
 					{
 						TaskARN: "task-1",
 						ENI:     "eni-1",
 					},
 				}, nil)
-				m.publicIPGetter.EXPECT().PublicIPWithContext(gomock.Any(), "eni-1").Return("", errors.New("some error"))
+				m.publicIPGetter.EXPECT().PublicIP(gomock.Any(), "eni-1").Return("", errors.New("some error"))
 				mockHasDefaultCluster(m)
 				mockRepositoryAnytime(m)
 			},
@@ -1021,15 +1022,15 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			inImage:  "image",
 			setupMocks: func(m runTaskMocks) {
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{}, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any()).AnyTimes()
-				m.runner.EXPECT().RunWithContext(gomock.Any()).Return([]*task.Task{
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).Return([]*task.Task{
 					{
 						TaskARN: "task-1",
 						ENI:     "eni-1",
 					},
 				}, nil)
-				m.publicIPGetter.EXPECT().PublicIPWithContext(gomock.Any(), "eni-1").Return("1.2.3", nil)
-				m.eventsWriter.EXPECT().WriteEventsUntilStoppedWithContext(gomock.Any()).Times(1).
+				m.publicIPGetter.EXPECT().PublicIP(gomock.Any(), "eni-1").Return("1.2.3", nil)
+				m.eventsWriter.EXPECT().WriteEventsUntilStopped(gomock.Any()).Times(1).
 					Return(errors.New("error writing events"))
 				mockHasDefaultCluster(m)
 			},
@@ -1045,10 +1046,10 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 					}, nil)
 				m.provider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil)
 				m.store.EXPECT().GetApplication(ctx, "my-app").Return(nil, errors.New("some error"))
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Len(1)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Len(1)).AnyTimes() // NOTE: matching length because gomock is unable to match function arguments.
 				mockRepositoryAnytime(m)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Times(0)
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Times(0)
 			},
 			wantedError: fmt.Errorf("provision resources for task %s: get application: some error", "my-task"),
 		},
@@ -1064,17 +1065,17 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				region := "us-east-35"
 
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Return(true, nil)
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
 				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil).Times(2)
-				m.deployer.EXPECT().GetTaskStackWithContext(gomock.Any(), inGroupName).Return(&info, nil)
+				m.deployer.EXPECT().GetTaskStack(gomock.Any(), inGroupName).Return(&info, nil)
 				key := "manual/env-files/magic.env/4963d64294508aa3fa103ccac5ad1537944c577d469608ddccad09b6f79b6406.env"
 				url := "https://bigbucket.s3-us-west-2.amazonaws.com/" + key
-				m.uploader.EXPECT().UploadWithContext(gomock.Any(), "arn:aws:s3:::bigbucket", key,
+				m.uploader.EXPECT().Upload(gomock.Any(), "arn:aws:s3:::bigbucket", key,
 					bytes.NewReader([]byte("SOMETHING=VALUE"))).Return(url, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockRepositoryAnytime(m)
-				m.runner.EXPECT().RunWithContext(gomock.Any()).AnyTimes()
+				m.runner.EXPECT().Run(gomock.Any()).AnyTimes()
 			},
 		},
 		"env file not found": {
@@ -1084,11 +1085,11 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 				region := "us-east-35"
 
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Return(true, nil)
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
 				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
-				m.deployer.EXPECT().GetTaskStackWithContext(gomock.Any(), inGroupName).Return(&info, nil)
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.deployer.EXPECT().GetTaskStack(gomock.Any(), inGroupName).Return(&info, nil)
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantedError: errors.New("deploy env file sadness.env: read env file sadness.env: open sadness.env: file does not exist"),
 		},
@@ -1102,11 +1103,11 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				region := "us-east-35"
 
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Return(true, nil)
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Return(true, nil)
 				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
-				m.deployer.EXPECT().GetTaskStackWithContext(gomock.Any(), inGroupName).Return(nil, errors.New("hull breach in sector 3"))
+				m.deployer.EXPECT().GetTaskStack(gomock.Any(), inGroupName).Return(nil, errors.New("hull breach in sector 3"))
 			},
 			wantedError: errors.New("deploy env file testdir/../magic.env: deploy env file: hull breach in sector 3"),
 		},
@@ -1120,16 +1121,16 @@ func TestTaskRunOpts_Execute(t *testing.T) {
 			setupMocks: func(m runTaskMocks) {
 				region := "us-east-35"
 
-				m.deployer.EXPECT().DeployTaskWithContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				m.deployer.EXPECT().DeployTask(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				m.provider.EXPECT().DefaultConfig(gomock.Any()).Return(aws.Config{Region: region}, nil)
-				m.defaultClusterGetter.EXPECT().HasDefaultClusterWithContext(gomock.Any()).Return(true, nil)
+				m.defaultClusterGetter.EXPECT().HasDefaultCluster(gomock.Any()).Return(true, nil)
 				info := deploy.TaskStackInfo{BucketName: "arn:aws:s3:::bigbucket"}
 				m.store.EXPECT().GetApplication(ctx, "my-app").Return(&config.Application{Name: "my-app"}, nil)
-				m.deployer.EXPECT().GetTaskStackWithContext(gomock.Any(), inGroupName).Return(&info, nil)
+				m.deployer.EXPECT().GetTaskStack(gomock.Any(), inGroupName).Return(&info, nil)
 
 				key := "manual/env-files/magic.env/4963d64294508aa3fa103ccac5ad1537944c577d469608ddccad09b6f79b6406.env"
 				arn := "arn:aws:s3:::bigbucket/" + key
-				m.uploader.EXPECT().UploadWithContext(gomock.Any(), "arn:aws:s3:::bigbucket", key,
+				m.uploader.EXPECT().Upload(gomock.Any(), "arn:aws:s3:::bigbucket", key,
 					bytes.NewReader([]byte("SOMETHING=VALUE"))).Return(arn, errors.New("out of floppy disks"))
 
 			},

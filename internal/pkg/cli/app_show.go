@@ -51,11 +51,7 @@ type showAppOpts struct {
 	newVersionGetter func(context.Context, string) (versionGetter, error)
 }
 
-func newShowAppOpts(vars showAppVars) (*showAppOpts, error) {
-	return newShowAppOptsWithContext(context.Background(), vars)
-}
-
-func newShowAppOptsWithContext(ctx context.Context, vars showAppVars) (*showAppOpts, error) {
+func newShowAppOpts(ctx context.Context, vars showAppVars) (*showAppOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("app show"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -73,10 +69,10 @@ func newShowAppOptsWithContext(ctx context.Context, vars showAppVars) (*showAppO
 		w:              log.OutputWriter,
 		sel:            selector.NewAppEnvSelector(prompt.New(), store),
 		deployStore:    deployStore,
-		codepipeline:   codepipeline.New(defaultConfig, defaultConfig),
+		codepipeline:   codepipeline.New(defaultConfig),
 		pipelineLister: deploy.NewPipelineStore(rg.New(defaultConfig)),
 		newVersionGetter: func(ctx context.Context, s string) (versionGetter, error) {
-			d, err := describe.NewAppDescriberWithContext(ctx, s)
+			d, err := describe.NewAppDescriber(ctx, s)
 			if err != nil {
 				return d, fmt.Errorf("new app describer for application %s: %v", s, err)
 			}
@@ -86,12 +82,9 @@ func newShowAppOptsWithContext(ctx context.Context, vars showAppVars) (*showAppO
 }
 
 // Validate returns an error if the values provided by the user are invalid.
-func (o *showAppOpts) Validate() error {
+func (o *showAppOpts) Validate(ctx context.Context) error {
 	if o.name != "" {
 		ctx := o.ctx
-		if ctx == nil {
-			ctx = context.Background()
-		}
 		_, err := o.store.GetApplication(ctx, o.name)
 		if err != nil {
 			return fmt.Errorf("get application %s: %w", o.name, err)
@@ -180,13 +173,13 @@ func (o *showAppOpts) description(ctx context.Context) (*describe.App, error) {
 		sort.Strings(wkldDeployedtoEnvs[k])
 	}
 
-	pipelines, err := o.pipelineLister.ListDeployedPipelinesWithContext(ctx, o.name)
+	pipelines, err := o.pipelineLister.ListDeployedPipelines(ctx, o.name)
 	if err != nil {
 		return nil, fmt.Errorf("list pipelines in application %s: %w", o.name, err)
 	}
 	var pipelineInfo []*codepipeline.Pipeline
 	for _, pipeline := range pipelines {
-		info, err := o.codepipeline.GetPipelineWithContext(ctx, pipeline.ResourceName)
+		info, err := o.codepipeline.GetPipeline(ctx, pipeline.ResourceName)
 		if err != nil {
 			return nil, fmt.Errorf("get info for pipeline %s: %w", pipeline.Name, err)
 		}
@@ -259,7 +252,7 @@ func buildAppShowCmd() *cobra.Command {
   Shows info about the application "my-app"
   /code $ copilot app show -n my-app`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newShowAppOptsWithContext(cmd.Context(), vars)
+			opts, err := newShowAppOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

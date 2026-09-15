@@ -49,7 +49,7 @@ type resumeSvcOpts struct {
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *resumeSvcOpts) Validate() error {
+func (o *resumeSvcOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -75,7 +75,7 @@ func (o *resumeSvcOpts) Execute(ctx context.Context) error {
 	}
 
 	o.spinner.Start(fmt.Sprintf(fmtSvcResumeStarted, o.svcName, o.envName))
-	if err := o.serviceResumer.ResumeServiceWithContext(ctx, svcARN); err != nil {
+	if err := o.serviceResumer.ResumeService(ctx, svcARN); err != nil {
 		o.spinner.Stop(log.Serrorf(fmtSvcResumeFailed, o.svcName, o.envName, err))
 		return err
 	}
@@ -127,11 +127,7 @@ func (o *resumeSvcOpts) validateAndAskSvcEnvName(ctx context.Context) error {
 	return nil
 }
 
-func newResumeSvcOpts(vars resumeSvcVars) (*resumeSvcOpts, error) {
-	return newResumeSvcOptsWithContext(context.Background(), vars)
-}
-
-func newResumeSvcOptsWithContext(ctx context.Context, vars resumeSvcVars) (*resumeSvcOpts, error) {
+func newResumeSvcOpts(ctx context.Context, vars resumeSvcVars) (*resumeSvcOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("svc resume"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -201,7 +197,7 @@ func buildSvcResumeCmd() *cobra.Command {
   Resumes the service named "my-svc" in the "test" environment.
   /code $ copilot svc resume --name my-svc --env test`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newResumeSvcOptsWithContext(cmd.Context(), vars)
+			opts, err := newResumeSvcOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

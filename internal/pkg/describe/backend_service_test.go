@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -174,7 +175,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 						Architecture:    "X86_64",
 					}, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm1, alarm2}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm1, alarm2}).Return(nil, errors.New("some error")),
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm1, alarm2}).Return(nil, errors.New("some error")),
 				)
 			},
 			wantedError: fmt.Errorf("retrieve alarm descriptions: some error"),
@@ -352,7 +353,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 						Architecture:    "ARM64",
 					}, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm1}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm1}).Return([]*cloudwatch.AlarmDescription{
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm1}).Return([]*cloudwatch.AlarmDescription{
 						{
 							Name:        alarm1,
 							Description: desc1,
@@ -380,7 +381,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 						Architecture:    "X86_64",
 					}, nil),
 					m.ecsDescriber.EXPECT().RollbackAlarmNames().Return([]string{alarm2}, nil),
-					m.cwDescriber.EXPECT().AlarmDescriptions([]string{alarm2}).Return([]*cloudwatch.AlarmDescription{
+					m.cwDescriber.EXPECT().AlarmDescriptions(context.Background(), []string{alarm2}).Return([]*cloudwatch.AlarmDescription{
 						{
 							Name:        alarm2,
 							Description: desc2,
@@ -560,7 +561,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 					m.ecsDescriber.EXPECT().StackResources().Return(resources, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.ecsDescriber.EXPECT().StackResources().Return(resources, nil),
-					m.lbDescriber.EXPECT().ListenerRulesHostHeaders([]string{"listenerRuleARN"}).Return([]string{"jobs.test.phonetool.internal"}, nil),
+					m.lbDescriber.EXPECT().ListenerRulesHostHeaders(context.Background(), []string{"listenerRuleARN"}).Return([]string{"jobs.test.phonetool.internal"}, nil),
 					m.ecsDescriber.EXPECT().Params().Return(params, nil),
 					m.envDescriber.EXPECT().ServiceDiscoveryEndpoint().Return("test.phonetool.local", nil),
 					m.ecsDescriber.EXPECT().ServiceConnectDNSNames().Return([]string{"jobs"}, nil),
@@ -668,7 +669,7 @@ func TestBackendServiceDescriber_Describe(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &BackendServiceDescriber{
+			d := &BackendServiceDescriber{ctx: context.Background(),
 				app:                      testApp,
 				svc:                      testSvc,
 				enableResources:          tc.shouldOutputResources,

@@ -41,13 +41,8 @@ func New(cfg awsv2.Config) *IAM {
 	}
 }
 
-// ListRoleTags gathers all the tags associated with an IAM role.
-func (c *IAM) ListRoleTags(roleName string) (map[string]string, error) {
-	return c.ListRoleTagsContext(context.Background(), roleName)
-}
-
 // ListRoleTagsContext gathers all tags associated with an IAM role using ctx.
-func (c *IAM) ListRoleTagsContext(ctx context.Context, roleName string) (map[string]string, error) {
+func (c *IAM) ListRoleTags(ctx context.Context, roleName string) (map[string]string, error) {
 	tags := make(map[string]string)
 	var marker *string
 	for {
@@ -68,14 +63,8 @@ func (c *IAM) ListRoleTagsContext(ctx context.Context, roleName string) (map[str
 	}
 }
 
-// DeleteRole deletes an IAM role based on its ARN.
-// If the role does not exist it returns nil.
-func (c *IAM) DeleteRole(roleNameOrARN string) error {
-	return c.DeleteRoleWithContext(context.Background(), roleNameOrARN)
-}
-
-// DeleteRoleWithContext deletes an IAM role using ctx.
-func (c *IAM) DeleteRoleWithContext(ctx context.Context, roleNameOrARN string) error {
+// DeleteRole deletes an IAM role using ctx.
+func (c *IAM) DeleteRole(ctx context.Context, roleNameOrARN string) error {
 	roleName := roleNameOrARN
 	if parsed, err := arn.Parse(roleNameOrARN); err == nil {
 		// The parameter is an ARN instead!
@@ -98,15 +87,8 @@ func (c *IAM) DeleteRoleWithContext(ctx context.Context, roleNameOrARN string) e
 	return nil
 }
 
-// CreateECSServiceLinkedRole creates a Service-Linked Role for Amazon ECS.
-// This role is necessary so that Amazon ECS can call AWS APIs.
-// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using-service-linked-roles.html
-func (c *IAM) CreateECSServiceLinkedRole() error {
-	return c.CreateECSServiceLinkedRoleWithContext(context.Background())
-}
-
-// CreateECSServiceLinkedRoleWithContext creates the ECS service-linked role using ctx.
-func (c *IAM) CreateECSServiceLinkedRoleWithContext(ctx context.Context) error {
+// CreateECSServiceLinkedRole creates the ECS service-linked role using ctx.
+func (c *IAM) CreateECSServiceLinkedRole(ctx context.Context) error {
 	if _, err := c.client.CreateServiceLinkedRole(ctx, &iam.CreateServiceLinkedRoleInput{
 		AWSServiceName: awsv2.String(ecsServiceName),
 	}); err != nil {
@@ -115,13 +97,8 @@ func (c *IAM) CreateECSServiceLinkedRoleWithContext(ctx context.Context) error {
 	return nil
 }
 
-// ListPolicyNames returns a list of local policy names.
-func (c *IAM) ListPolicyNames() ([]string, error) {
-	return c.ListPolicyNamesContext(context.Background())
-}
-
 // ListPolicyNamesContext returns local policy names using ctx.
-func (c *IAM) ListPolicyNamesContext(ctx context.Context) ([]string, error) {
+func (c *IAM) ListPolicyNames(ctx context.Context) ([]string, error) {
 	var policies []types.Policy
 	var marker *string
 	for {

@@ -4,6 +4,7 @@
 package manifest
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -67,7 +68,7 @@ type DynamicWorkload interface {
 	ApplyEnv(envName string) (DynamicWorkload, error)
 	Validate() error
 	RequiredEnvironmentFeatures() []string
-	Load(cfg aws.Config) error
+	Load(ctx context.Context, cfg aws.Config) error
 	Manifest() any
 }
 
@@ -581,7 +582,7 @@ type dynamicSubnets struct {
 }
 
 // Load populates the subnet's IDs field if the client is using tags.
-func (dyn *dynamicSubnets) load() error {
+func (dyn *dynamicSubnets) load(ctx context.Context) error {
 	if dyn.cfg == nil || dyn.cfg.isEmpty() {
 		return nil
 	}
@@ -596,7 +597,7 @@ func (dyn *dynamicSubnets) load() error {
 		}
 		filters = append(filters, ec2.FilterForTags(k, values...))
 	}
-	ids, err := dyn.client.SubnetIDs(filters...)
+	ids, err := dyn.client.SubnetIDs(ctx, filters...)
 	if err != nil {
 		return fmt.Errorf("get subnet IDs: %w", err)
 	}

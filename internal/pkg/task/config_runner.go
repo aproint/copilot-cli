@@ -43,21 +43,14 @@ type ConfigRunner struct {
 	OS string
 }
 
-// Run runs tasks given subnets, security groups and the cluster, and returns the tasks.
-// If subnets are not provided, it uses the default subnets.
-// If cluster is not provided, it uses the default cluster.
-func (r *ConfigRunner) Run() ([]*Task, error) {
-	return r.RunWithContext(context.Background())
-}
-
-// RunWithContext runs tasks using ctx.
-func (r *ConfigRunner) RunWithContext(ctx context.Context) ([]*Task, error) {
+// Run runs tasks using ctx.
+func (r *ConfigRunner) Run(ctx context.Context) ([]*Task, error) {
 	if err := r.validateDependencies(); err != nil {
 		return nil, err
 	}
 
 	if r.Cluster == "" {
-		cluster, err := r.ClusterGetter.DefaultClusterWithContext(ctx)
+		cluster, err := r.ClusterGetter.DefaultCluster(ctx)
 		if err != nil {
 			return nil, &errGetDefaultCluster{
 				parentErr: err,
@@ -67,7 +60,7 @@ func (r *ConfigRunner) RunWithContext(ctx context.Context) ([]*Task, error) {
 	}
 
 	if r.Subnets == nil {
-		subnets, err := r.VPCGetter.SubnetIDsWithContext(ctx, ec2.FilterForDefaultVPCSubnets)
+		subnets, err := r.VPCGetter.SubnetIDs(ctx, ec2.FilterForDefaultVPCSubnets)
 		if err != nil {
 			return nil, fmt.Errorf(fmtErrDefaultSubnets, err)
 		}
@@ -81,7 +74,7 @@ func (r *ConfigRunner) RunWithContext(ctx context.Context) ([]*Task, error) {
 		platformVersion = "1.0.0"
 	}
 
-	ecsTasks, err := r.Starter.RunTaskWithContext(ctx, ecs.RunTaskInput{
+	ecsTasks, err := r.Starter.RunTask(ctx, ecs.RunTaskInput{
 		Cluster:         r.Cluster,
 		Count:           r.Count,
 		Subnets:         r.Subnets,
@@ -113,16 +106,11 @@ func (r *ConfigRunner) validateDependencies() error {
 	return nil
 }
 
-// CheckNonZeroExitCode returns the status of the containers part of the given tasks.
-func (r *ConfigRunner) CheckNonZeroExitCode(tasks []*Task) error {
-	return r.CheckNonZeroExitCodeWithContext(context.Background(), tasks)
-}
-
-// CheckNonZeroExitCodeWithContext checks task exit codes using ctx.
-func (r *ConfigRunner) CheckNonZeroExitCodeWithContext(ctx context.Context, tasks []*Task) error {
+// CheckNonZeroExitCode checks task exit codes using ctx.
+func (r *ConfigRunner) CheckNonZeroExitCode(ctx context.Context, tasks []*Task) error {
 	taskARNs := make([]string, len(tasks))
 	for idx, task := range tasks {
 		taskARNs[idx] = task.TaskARN
 	}
-	return r.NonZeroExitCodeGetter.HasNonZeroExitCodeWithContext(ctx, taskARNs, r.Cluster)
+	return r.NonZeroExitCodeGetter.HasNonZeroExitCode(ctx, taskARNs, r.Cluster)
 }

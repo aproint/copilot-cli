@@ -373,7 +373,7 @@ func TestLogEvents(t *testing.T) {
 			service := CloudWatchLogs{
 				client: mockcloudwatchlogsClient,
 			}
-			gotLogEventsOutput, gotErr := service.LogEvents(LogEventsOpts{
+			gotLogEventsOutput, gotErr := service.LogEvents(context.Background(), LogEventsOpts{
 				LogGroup:               tc.logGroupName,
 				EndTime:                tc.endTime,
 				Limit:                  tc.limit,
@@ -394,7 +394,7 @@ func TestLogEvents(t *testing.T) {
 	}
 }
 
-func TestLogEventsWithContextUsesCallerContextForStreamDiscoveryAndRetrieval(t *testing.T) {
+func TestLogEventsUsesCallerContextForStreamDiscoveryAndRetrieval(t *testing.T) {
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller context")
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockapi(ctrl)
@@ -408,7 +408,7 @@ func TestLogEventsWithContextUsesCallerContextForStreamDiscoveryAndRetrieval(t *
 	)
 
 	logs := CloudWatchLogs{client: client}
-	output, err := logs.LogEventsWithContext(ctx, LogEventsOpts{LogGroup: "group"})
+	output, err := logs.LogEvents(ctx, LogEventsOpts{LogGroup: "group"})
 
 	require.NoError(t, err)
 	require.Equal(t, "message", output.Events[0].Message)

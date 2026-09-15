@@ -200,7 +200,7 @@ func TestResumeSvcOpts_Execute(t *testing.T) {
 				m.apprunnerDescriber.EXPECT().ServiceARN(testEnvName).Return(testSvcARN, nil)
 				gomock.InOrder(
 					m.spinner.EXPECT().Start("Resuming service phonetool in environment test."),
-					m.serviceResumer.EXPECT().ResumeServiceWithContext(gomock.Any(), testSvcARN).Return(nil),
+					m.serviceResumer.EXPECT().ResumeService(gomock.Any(), testSvcARN).Return(nil),
 					m.spinner.EXPECT().Stop(log.Ssuccessf("Resumed service phonetool in environment test.\n")),
 				)
 			},
@@ -223,7 +223,7 @@ func TestResumeSvcOpts_Execute(t *testing.T) {
 				m.apprunnerDescriber.EXPECT().ServiceARN(testEnvName).Return(testSvcARN, nil)
 				gomock.InOrder(
 					m.spinner.EXPECT().Start("Resuming service phonetool in environment test."),
-					m.serviceResumer.EXPECT().ResumeServiceWithContext(gomock.Any(), testSvcARN).Return(mockError),
+					m.serviceResumer.EXPECT().ResumeService(gomock.Any(), testSvcARN).Return(mockError),
 					m.spinner.EXPECT().Stop(log.Serrorf("Failed to resume service phonetool in environment test: mockError\n")),
 				)
 			},

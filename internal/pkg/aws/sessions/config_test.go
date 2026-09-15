@@ -18,26 +18,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type mockV2CredentialsProvider struct {
+type mockCredentialsProvider struct {
 	value awsv2.Credentials
 	err   error
 }
 
-func (m mockV2CredentialsProvider) Retrieve(context.Context) (awsv2.Credentials, error) {
+func (m mockCredentialsProvider) Retrieve(context.Context) (awsv2.Credentials, error) {
 	if m.err != nil {
 		return awsv2.Credentials{}, m.err
 	}
 	return m.value, nil
 }
 
-type stubV2Loader struct {
+type stubConfigLoader struct {
 	cfg   awsv2.Config
 	err   error
 	calls int
 	opts  v2config.LoadOptions
 }
 
-func (s *stubV2Loader) load(_ context.Context, optFns ...func(*v2config.LoadOptions) error) (awsv2.Config, error) {
+func (s *stubConfigLoader) load(_ context.Context, optFns ...func(*v2config.LoadOptions) error) (awsv2.Config, error) {
 	s.calls++
 	var opts v2config.LoadOptions
 	for _, fn := range optFns {
@@ -52,13 +52,13 @@ func (s *stubV2Loader) load(_ context.Context, optFns ...func(*v2config.LoadOpti
 	return s.cfg, nil
 }
 
-type stubV2Validator struct {
+type stubCredentialsValidator struct {
 	value awsv2.Credentials
 	err   error
 	calls int
 }
 
-func (s *stubV2Validator) ValidateV2Credentials(context.Context, awsv2.Config) (awsv2.Credentials, error) {
+func (s *stubCredentialsValidator) ValidateCredentials(context.Context, awsv2.Config) (awsv2.Credentials, error) {
 	s.calls++
 	if s.err != nil {
 		return awsv2.Credentials{}, s.err
@@ -68,17 +68,17 @@ func (s *stubV2Validator) ValidateV2Credentials(context.Context, awsv2.Config) (
 
 func TestProvider_DefaultConfig(t *testing.T) {
 	t.Run("returns a cached config with v2 defaults applied", func(t *testing.T) {
-		loader := &stubV2Loader{
+		loader := &stubConfigLoader{
 			cfg: awsv2.Config{
 				Region:      "us-west-2",
-				Credentials: mockV2CredentialsProvider{},
+				Credentials: mockCredentialsProvider{},
 			},
 		}
-		validator := &stubV2Validator{}
+		validator := &stubCredentialsValidator{}
 		provider := &Provider{
-			userAgentExtras:   []string{"svc deploy"},
-			loadV2Config:      loader.load,
-			configV2Validator: validator,
+			userAgentExtras:     []string{"svc deploy"},
+			loadConfig:          loader.load,
+			validateCredentials: validator.ValidateCredentials,
 		}
 
 		cfg, err := provider.DefaultConfig(context.Background())
@@ -100,14 +100,14 @@ func TestProvider_DefaultConfig(t *testing.T) {
 	})
 
 	t.Run("returns an error if region is missing", func(t *testing.T) {
-		loader := &stubV2Loader{
+		loader := &stubConfigLoader{
 			cfg: awsv2.Config{
-				Credentials: mockV2CredentialsProvider{},
+				Credentials: mockCredentialsProvider{},
 			},
 		}
 		provider := &Provider{
-			loadV2Config:      loader.load,
-			configV2Validator: &stubV2Validator{},
+			loadConfig:          loader.load,
+			validateCredentials: (&stubCredentialsValidator{}).ValidateCredentials,
 		}
 
 		cfg, err := provider.DefaultConfig(context.Background())
@@ -116,15 +116,15 @@ func TestProvider_DefaultConfig(t *testing.T) {
 	})
 
 	t.Run("wraps credential retrieval errors", func(t *testing.T) {
-		loader := &stubV2Loader{
+		loader := &stubConfigLoader{
 			cfg: awsv2.Config{
 				Region:      "us-west-2",
-				Credentials: mockV2CredentialsProvider{},
+				Credentials: mockCredentialsProvider{},
 			},
 		}
 		provider := &Provider{
-			loadV2Config:      loader.load,
-			configV2Validator: &stubV2Validator{err: context.DeadlineExceeded},
+			loadConfig:          loader.load,
+			validateCredentials: (&stubCredentialsValidator{err: context.DeadlineExceeded}).ValidateCredentials,
 		}
 
 		cfg, err := provider.DefaultConfig(context.Background())
@@ -136,13 +136,13 @@ func TestProvider_DefaultConfig(t *testing.T) {
 }
 
 func TestProvider_DefaultConfigWithRegion(t *testing.T) {
-	loader := &stubV2Loader{
+	loader := &stubConfigLoader{
 		cfg: awsv2.Config{
 			Region:      "us-west-2",
-			Credentials: mockV2CredentialsProvider{},
+			Credentials: mockCredentialsProvider{},
 		},
 	}
-	provider := &Provider{loadV2Config: loader.load}
+	provider := &Provider{loadConfig: loader.load}
 
 	cfg, err := provider.DefaultConfigWithRegion(context.Background(), "us-west-2")
 	require.NoError(t, err)
@@ -152,16 +152,16 @@ func TestProvider_DefaultConfigWithRegion(t *testing.T) {
 
 func TestProvider_ConfigFromProfile(t *testing.T) {
 	t.Run("loads config with profile and validates credentials", func(t *testing.T) {
-		loader := &stubV2Loader{
+		loader := &stubConfigLoader{
 			cfg: awsv2.Config{
 				Region:      "us-west-2",
-				Credentials: mockV2CredentialsProvider{},
+				Credentials: mockCredentialsProvider{},
 			},
 		}
-		validator := &stubV2Validator{}
+		validator := &stubCredentialsValidator{}
 		provider := &Provider{
-			loadV2Config:      loader.load,
-			configV2Validator: validator,
+			loadConfig:          loader.load,
+			validateCredentials: validator.ValidateCredentials,
 		}
 
 		cfg, err := provider.ConfigFromProfile(context.Background(), "prod")
@@ -172,15 +172,15 @@ func TestProvider_ConfigFromProfile(t *testing.T) {
 	})
 
 	t.Run("wraps credential retrieval errors with profile context", func(t *testing.T) {
-		loader := &stubV2Loader{
+		loader := &stubConfigLoader{
 			cfg: awsv2.Config{
 				Region:      "us-west-2",
-				Credentials: mockV2CredentialsProvider{},
+				Credentials: mockCredentialsProvider{},
 			},
 		}
 		provider := &Provider{
-			loadV2Config:      loader.load,
-			configV2Validator: &stubV2Validator{err: errors.New("NoCredentialProviders: no valid providers in chain")},
+			loadConfig:          loader.load,
+			validateCredentials: (&stubCredentialsValidator{err: errors.New("NoCredentialProviders: no valid providers in chain")}).ValidateCredentials,
 		}
 
 		cfg, err := provider.ConfigFromProfile(context.Background(), "prod")
@@ -204,7 +204,7 @@ func TestProvider_ConfigFromStaticCreds(t *testing.T) {
 	require.Equal(t, maxRetriesOnRecoverableFailures, cfg.Retryer().MaxAttempts())
 	require.Len(t, cfg.APIOptions, 1)
 
-	creds, err := V2Creds(context.Background(), cfg)
+	creds, err := Credentials(context.Background(), cfg)
 	require.NoError(t, err)
 	require.Equal(t, awsv2.Credentials{
 		AccessKeyID:     "access",
@@ -214,10 +214,10 @@ func TestProvider_ConfigFromStaticCreds(t *testing.T) {
 	}, creds)
 }
 
-func TestV2Creds(t *testing.T) {
+func TestCredentials(t *testing.T) {
 	t.Run("returns values if provider is valid", func(t *testing.T) {
 		cfg := awsv2.Config{
-			Credentials: mockV2CredentialsProvider{
+			Credentials: mockCredentialsProvider{
 				value: awsv2.Credentials{
 					AccessKeyID:     "abc",
 					SecretAccessKey: "def",
@@ -225,7 +225,7 @@ func TestV2Creds(t *testing.T) {
 			},
 		}
 
-		creds, err := V2Creds(context.Background(), cfg)
+		creds, err := Credentials(context.Background(), cfg)
 		require.NoError(t, err)
 		require.Equal(t, awsv2.Credentials{
 			AccessKeyID:     "abc",
@@ -235,20 +235,20 @@ func TestV2Creds(t *testing.T) {
 
 	t.Run("returns a wrapped error if fetching credentials fails", func(t *testing.T) {
 		cfg := awsv2.Config{
-			Credentials: mockV2CredentialsProvider{err: errors.New("some error")},
+			Credentials: mockCredentialsProvider{err: errors.New("some error")},
 		}
 
-		_, err := V2Creds(context.Background(), cfg)
+		_, err := Credentials(context.Background(), cfg)
 		require.EqualError(t, err, "get credentials of config: some error")
 	})
 
 	t.Run("returns an error if provider is missing", func(t *testing.T) {
-		_, err := V2Creds(context.Background(), awsv2.Config{})
+		_, err := Credentials(context.Background(), awsv2.Config{})
 		require.EqualError(t, err, "get credentials of config: missing credentials provider")
 	})
 }
 
-func TestAreV2CredsFromEnvVars(t *testing.T) {
+func TestAreCredentialsFromEnvVars(t *testing.T) {
 	testCases := map[string]struct {
 		source string
 		want   bool
@@ -266,12 +266,12 @@ func TestAreV2CredsFromEnvVars(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			cfg := awsv2.Config{
-				Credentials: mockV2CredentialsProvider{
+				Credentials: mockCredentialsProvider{
 					value: awsv2.Credentials{Source: tc.source},
 				},
 			}
 
-			ok, err := AreV2CredsFromEnvVars(context.Background(), cfg)
+			ok, err := AreCredentialsFromEnvVars(context.Background(), cfg)
 			require.NoError(t, err)
 			require.Equal(t, tc.want, ok)
 		})

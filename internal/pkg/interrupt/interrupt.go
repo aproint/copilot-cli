@@ -16,7 +16,7 @@ type notifier struct {
 	once sync.Once
 }
 
-// WithContext returns a context that exposes an interrupt notification and an idempotent notifier.
+// returns a context that exposes an interrupt notification and an idempotent notifier.
 func WithContext(parent context.Context) (context.Context, func()) {
 	n := &notifier{done: make(chan struct{})}
 	ctx := context.WithValue(parent, contextKey{}, (<-chan struct{})(n.done))

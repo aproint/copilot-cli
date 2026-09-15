@@ -62,15 +62,9 @@ func (c clientWithWaiters) WaitUntilStackDeleteComplete(ctx context.Context, in 
 	return cloudformation.NewStackDeleteCompleteWaiter(c.Client).Wait(ctx, in, maxWaitDur, optFns...)
 }
 
-// Create deploys a new CloudFormation stack using Change Sets.
-// If the stack already exists in a failed state, deletes the stack and re-creates it.
-func (c *CloudFormation) Create(stack *Stack) (changeSetID string, err error) {
-	return c.CreateWithContext(context.Background(), stack)
-}
-
-// CreateWithContext deploys a new CloudFormation stack using Change Sets and ctx.
-func (c *CloudFormation) CreateWithContext(ctx context.Context, stack *Stack) (changeSetID string, err error) {
-	descr, err := c.DescribeWithContext(ctx, stack.Name)
+// Create deploys a new CloudFormation stack using Change Sets and ctx.
+func (c *CloudFormation) Create(ctx context.Context, stack *Stack) (changeSetID string, err error) {
+	descr, err := c.Describe(ctx, stack.Name)
 	if err != nil {
 		var stackNotFound *ErrStackNotFound
 		if !errors.As(err, &stackNotFound) {
@@ -82,7 +76,7 @@ func (c *CloudFormation) CreateWithContext(ctx context.Context, stack *Stack) (c
 	status := StackStatus(descr.StackStatus)
 	if status.requiresCleanup() {
 		// If the stack exists, but failed to create, we'll clean it up and then re-create it.
-		if err := c.DeleteAndWaitWithContext(ctx, stack.Name); err != nil {
+		if err := c.DeleteAndWait(ctx, stack.Name); err != nil {
 			return "", fmt.Errorf("clean up previously failed stack %s: %w", stack.Name, err)
 		}
 		return c.create(ctx, stack)
@@ -98,26 +92,16 @@ func (c *CloudFormation) CreateWithContext(ctx context.Context, stack *Stack) (c
 	}
 }
 
-// CreateAndWait calls Create and then WaitForCreate.
-func (c *CloudFormation) CreateAndWait(stack *Stack) error {
-	return c.CreateAndWaitWithContext(context.Background(), stack)
-}
-
-// CreateAndWaitWithContext calls CreateWithContext and then WaitForCreate using ctx.
-func (c *CloudFormation) CreateAndWaitWithContext(ctx context.Context, stack *Stack) error {
-	if _, err := c.CreateWithContext(ctx, stack); err != nil {
+// CreateAndWait calls Create and then WaitForCreate using ctx.
+func (c *CloudFormation) CreateAndWait(ctx context.Context, stack *Stack) error {
+	if _, err := c.Create(ctx, stack); err != nil {
 		return err
 	}
 	return c.WaitForCreate(ctx, stack.Name)
 }
 
-// DescribeChangeSet gathers and returns all changes for a change set.
-func (c *CloudFormation) DescribeChangeSet(changeSetID, stackName string) (*ChangeSetDescription, error) {
-	return c.DescribeChangeSetWithContext(context.Background(), changeSetID, stackName)
-}
-
-// DescribeChangeSetWithContext gathers and returns all changes for a change set using ctx.
-func (c *CloudFormation) DescribeChangeSetWithContext(ctx context.Context, changeSetID, stackName string) (*ChangeSetDescription, error) {
+// DescribeChangeSet gathers and returns all changes for a change set using ctx.
+func (c *CloudFormation) DescribeChangeSet(ctx context.Context, changeSetID, stackName string) (*ChangeSetDescription, error) {
 	cs := &changeSet{name: changeSetID, stackName: stackName, client: c.client}
 	out, err := cs.describe(ctx)
 	if err != nil {
@@ -137,15 +121,9 @@ func (c *CloudFormation) WaitForCreate(ctx context.Context, stackName string) er
 	return nil
 }
 
-// Update updates an existing CloudFormation with the new configuration.
-// If there are no changes for the stack, deletes the empty change set and returns ErrChangeSetEmpty.
-func (c *CloudFormation) Update(stack *Stack) (changeSetID string, err error) {
-	return c.UpdateWithContext(context.Background(), stack)
-}
-
-// UpdateWithContext updates an existing CloudFormation stack using ctx.
-func (c *CloudFormation) UpdateWithContext(ctx context.Context, stack *Stack) (changeSetID string, err error) {
-	descr, err := c.DescribeWithContext(ctx, stack.Name)
+// Update updates an existing CloudFormation stack using ctx.
+func (c *CloudFormation) Update(ctx context.Context, stack *Stack) (changeSetID string, err error) {
+	descr, err := c.Describe(ctx, stack.Name)
 	if err != nil {
 		return "", err
 	}
@@ -158,14 +136,9 @@ func (c *CloudFormation) UpdateWithContext(ctx context.Context, stack *Stack) (c
 	return c.update(ctx, stack)
 }
 
-// UpdateAndWait calls Update and then blocks until the stack is updated or until the max attempt window expires.
-func (c *CloudFormation) UpdateAndWait(stack *Stack) error {
-	return c.UpdateAndWaitWithContext(context.Background(), stack)
-}
-
-// UpdateAndWaitWithContext calls UpdateWithContext and then WaitForUpdate using ctx.
-func (c *CloudFormation) UpdateAndWaitWithContext(ctx context.Context, stack *Stack) error {
-	if _, err := c.UpdateWithContext(ctx, stack); err != nil {
+// UpdateAndWait calls Update and then WaitForUpdate using ctx.
+func (c *CloudFormation) UpdateAndWait(ctx context.Context, stack *Stack) error {
+	if _, err := c.Update(ctx, stack); err != nil {
 		return err
 	}
 	return c.WaitForUpdate(ctx, stack.Name)
@@ -182,14 +155,8 @@ func (c *CloudFormation) WaitForUpdate(ctx context.Context, stackName string) er
 	return nil
 }
 
-// Delete removes an existing CloudFormation stack.
-// If the stack doesn't exist then do nothing.
-func (c *CloudFormation) Delete(stackName string) error {
-	return c.DeleteWithContext(context.Background(), stackName)
-}
-
-// DeleteWithContext removes an existing CloudFormation stack using ctx.
-func (c *CloudFormation) DeleteWithContext(ctx context.Context, stackName string) error {
+// Delete removes an existing CloudFormation stack using ctx.
+func (c *CloudFormation) Delete(ctx context.Context, stackName string) error {
 	_, err := c.client.DeleteStack(ctx, &cloudformation.DeleteStackInput{
 		StackName: awsv2.String(stackName),
 	})
@@ -202,40 +169,24 @@ func (c *CloudFormation) DeleteWithContext(ctx context.Context, stackName string
 	return nil
 }
 
-// DeleteAndWait calls Delete then blocks until the stack is deleted or until the max attempt window expires.
-func (c *CloudFormation) DeleteAndWait(stackName string) error {
-	return c.DeleteAndWaitWithContext(context.Background(), stackName)
-}
-
-// DeleteAndWaitWithContext calls Delete then waits using ctx.
-func (c *CloudFormation) DeleteAndWaitWithContext(ctx context.Context, stackName string) error {
+// DeleteAndWait calls Delete then waits using ctx.
+func (c *CloudFormation) DeleteAndWait(ctx context.Context, stackName string) error {
 	return c.deleteAndWait(ctx, &cloudformation.DeleteStackInput{
 		StackName: awsv2.String(stackName),
 	})
 }
 
-// DeleteAndWaitWithRoleARN is DeleteAndWait but with a role ARN that AWS CloudFormation assumes to delete the stack.
-func (c *CloudFormation) DeleteAndWaitWithRoleARN(stackName, roleARN string) error {
-	return c.DeleteAndWaitWithRoleARNWithContext(context.Background(), stackName, roleARN)
-}
-
-// DeleteAndWaitWithRoleARNWithContext deletes a stack using a role ARN and waits using ctx.
-func (c *CloudFormation) DeleteAndWaitWithRoleARNWithContext(ctx context.Context, stackName, roleARN string) error {
+// DeleteAndWaitWithRoleARN deletes a stack using a role ARN and waits using ctx.
+func (c *CloudFormation) DeleteAndWaitWithRoleARN(ctx context.Context, stackName, roleARN string) error {
 	return c.deleteAndWait(ctx, &cloudformation.DeleteStackInput{
 		StackName: awsv2.String(stackName),
 		RoleARN:   awsv2.String(roleARN),
 	})
 }
 
-// Describe returns a description of an existing stack.
+// Describe returns a description of an existing stack using ctx.
 // If the stack does not exist, returns ErrStackNotFound.
-func (c *CloudFormation) Describe(name string) (*StackDescription, error) {
-	return c.DescribeWithContext(context.Background(), name)
-}
-
-// DescribeWithContext returns a description of an existing stack using ctx.
-// If the stack does not exist, returns ErrStackNotFound.
-func (c *CloudFormation) DescribeWithContext(ctx context.Context, name string) (*StackDescription, error) {
+func (c *CloudFormation) Describe(ctx context.Context, name string) (*StackDescription, error) {
 	out, err := c.client.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
 		StackName: awsv2.String(name),
 	})
@@ -252,20 +203,15 @@ func (c *CloudFormation) DescribeWithContext(ctx context.Context, name string) (
 	return &descr, nil
 }
 
-// DescribeStackEvents describes stack events using a background context.
-func (c *CloudFormation) DescribeStackEvents(input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
-	return c.DescribeStackEventsWithContext(context.Background(), input)
-}
-
-// DescribeStackEventsWithContext describes stack events using ctx.
-func (c *CloudFormation) DescribeStackEventsWithContext(ctx context.Context, input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+// DescribeStackEvents describes stack events using ctx.
+func (c *CloudFormation) DescribeStackEvents(ctx context.Context, input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
 	return c.client.DescribeStackEvents(ctx, input)
 }
 
 // Exists returns true if the CloudFormation stack exists, false otherwise.
 // If an error occurs for another reason than ErrStackNotFound, then returns the error.
-func (c *CloudFormation) Exists(name string) (bool, error) {
-	if _, err := c.Describe(name); err != nil {
+func (c *CloudFormation) Exists(ctx context.Context, name string) (bool, error) {
+	if _, err := c.Describe(ctx, name); err != nil {
 		var notFound *ErrStackNotFound
 		if errors.As(err, &notFound) {
 			return false, nil
@@ -292,14 +238,8 @@ func MetadataWithStackSetName(name string) MetadataOpts {
 	}
 }
 
-// Metadata returns the Metadata property of the CloudFormation stack(set)'s template.
-// If the stack does not exist, returns ErrStackNotFound.
-func (c *CloudFormation) Metadata(opt MetadataOpts) (string, error) {
-	return c.MetadataWithContext(context.Background(), opt)
-}
-
-// MetadataWithContext returns stack template metadata using ctx.
-func (c *CloudFormation) MetadataWithContext(ctx context.Context, opt MetadataOpts) (string, error) {
+// Metadata returns stack template metadata using ctx.
+func (c *CloudFormation) Metadata(ctx context.Context, opt MetadataOpts) (string, error) {
 	out, err := c.GetTemplateSummary(ctx, opt)
 	if err != nil {
 		if stackDoesNotExist(err) {
@@ -313,14 +253,8 @@ func (c *CloudFormation) MetadataWithContext(ctx context.Context, opt MetadataOp
 	return awsv2.ToString(out.Metadata), nil
 }
 
-// TemplateBody returns the template body of an existing stack.
-// If the stack does not exist, returns ErrStackNotFound.
-func (c *CloudFormation) TemplateBody(name string) (string, error) {
-	return c.TemplateBodyWithContext(context.Background(), name)
-}
-
-// TemplateBodyWithContext returns the template body of an existing stack using ctx.
-func (c *CloudFormation) TemplateBodyWithContext(ctx context.Context, name string) (string, error) {
+// TemplateBody returns the template body of an existing stack using ctx.
+func (c *CloudFormation) TemplateBody(ctx context.Context, name string) (string, error) {
 	out, err := c.client.GetTemplate(ctx, &cloudformation.GetTemplateInput{
 		StackName: awsv2.String(name),
 	})
@@ -333,14 +267,8 @@ func (c *CloudFormation) TemplateBodyWithContext(ctx context.Context, name strin
 	return awsv2.ToString(out.TemplateBody), nil
 }
 
-// TemplateBodyFromChangeSet returns the template body of a stack based on a change set.
-// If the stack does not exist, then returns ErrStackNotFound.
-func (c *CloudFormation) TemplateBodyFromChangeSet(changeSetID, stackName string) (string, error) {
-	return c.TemplateBodyFromChangeSetWithContext(context.Background(), changeSetID, stackName)
-}
-
-// TemplateBodyFromChangeSetWithContext returns a change set's template body using ctx.
-func (c *CloudFormation) TemplateBodyFromChangeSetWithContext(ctx context.Context, changeSetID, stackName string) (string, error) {
+// TemplateBodyFromChangeSet returns a change set's template body using ctx.
+func (c *CloudFormation) TemplateBodyFromChangeSet(ctx context.Context, changeSetID, stackName string) (string, error) {
 	out, err := c.client.GetTemplate(ctx, &cloudformation.GetTemplateInput{
 		ChangeSetName: awsv2.String(changeSetID),
 		StackName:     awsv2.String(stackName),
@@ -354,14 +282,9 @@ func (c *CloudFormation) TemplateBodyFromChangeSetWithContext(ctx context.Contex
 	return awsv2.ToString(out.TemplateBody), nil
 }
 
-// Outputs returns the outputs of a stack description.
-func (c *CloudFormation) Outputs(stack *Stack) (map[string]string, error) {
-	return c.OutputsWithContext(context.Background(), stack)
-}
-
-// OutputsWithContext returns the outputs of a stack description using ctx.
-func (c *CloudFormation) OutputsWithContext(ctx context.Context, stack *Stack) (map[string]string, error) {
-	stackDescription, err := c.DescribeWithContext(ctx, stack.Name)
+// Outputs returns the outputs of a stack description using ctx.
+func (c *CloudFormation) Outputs(ctx context.Context, stack *Stack) (map[string]string, error) {
+	stackDescription, err := c.Describe(ctx, stack.Name)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve outputs of stack description: %w", err)
 	}
@@ -373,17 +296,12 @@ func (c *CloudFormation) OutputsWithContext(ctx context.Context, stack *Stack) (
 }
 
 // Events returns the list of stack events in **chronological** order.
-func (c *CloudFormation) Events(stackName string) ([]StackEvent, error) {
-	return c.events(context.Background(), stackName, func(in types.StackEvent) bool { return true })
+func (c *CloudFormation) Events(ctx context.Context, stackName string) ([]StackEvent, error) {
+	return c.events(ctx, stackName, func(in types.StackEvent) bool { return true })
 }
 
-// StackResources returns the list of resources created as part of a CloudFormation stack.
-func (c *CloudFormation) StackResources(name string) ([]*StackResource, error) {
-	return c.StackResourcesWithContext(context.Background(), name)
-}
-
-// StackResourcesWithContext returns the resources created as part of a CloudFormation stack using ctx.
-func (c *CloudFormation) StackResourcesWithContext(ctx context.Context, name string) ([]*StackResource, error) {
+// StackResources returns the resources created as part of a CloudFormation stack using ctx.
+func (c *CloudFormation) StackResources(ctx context.Context, name string) ([]*StackResource, error) {
 	out, err := c.DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{
 		StackName: awsv2.String(name),
 	})
@@ -428,13 +346,8 @@ func (c *CloudFormation) events(ctx context.Context, stackName string, match eve
 	return events, nil
 }
 
-// ErrorEvents returns the list of events with "failed" status in **chronological order**
-func (c *CloudFormation) ErrorEvents(stackName string) ([]StackEvent, error) {
-	return c.ErrorEventsWithContext(context.Background(), stackName)
-}
-
-// ErrorEventsWithContext returns failed stack events using ctx.
-func (c *CloudFormation) ErrorEventsWithContext(ctx context.Context, stackName string) ([]StackEvent, error) {
+// ErrorEvents returns failed stack events using ctx.
+func (c *CloudFormation) ErrorEvents(ctx context.Context, stackName string) ([]StackEvent, error) {
 	return c.events(ctx, stackName, func(in types.StackEvent) bool {
 		for _, status := range eventErrorStates {
 			if string(in.ResourceStatus) == status {
@@ -445,14 +358,8 @@ func (c *CloudFormation) ErrorEventsWithContext(ctx context.Context, stackName s
 	})
 }
 
-// ListStacksWithTags returns all the stacks in the current AWS account and region with the specified matching
-// tags. If a tag key is provided but the value is empty, the method will match tags with any value for the given key.
-func (c *CloudFormation) ListStacksWithTags(tags map[string]string) ([]StackDescription, error) {
-	return c.ListStacksWithTagsWithContext(context.Background(), tags)
-}
-
-// ListStacksWithTagsWithContext returns matching stacks using ctx for every page.
-func (c *CloudFormation) ListStacksWithTagsWithContext(ctx context.Context, tags map[string]string) ([]StackDescription, error) {
+// ListStacksWithTags returns matching stacks using ctx for every page.
+func (c *CloudFormation) ListStacksWithTags(ctx context.Context, tags map[string]string) ([]StackDescription, error) {
 	match := makeTagMatcher(tags)
 
 	var nextToken *string
@@ -483,14 +390,8 @@ func (c *CloudFormation) ListStacksWithTagsWithContext(ctx context.Context, tags
 	return summaries, nil
 }
 
-// CancelUpdateStack attempts to cancel the update for a CloudFormation stack specified by the stackName.
-// Returns an error if failed to cancel CloudFormation stack update.
-func (c *CloudFormation) CancelUpdateStack(stackName string) error {
-	return c.CancelUpdateStackWithContext(context.Background(), stackName)
-}
-
-// CancelUpdateStackWithContext cancels an in-progress stack update using ctx.
-func (c *CloudFormation) CancelUpdateStackWithContext(ctx context.Context, stackName string) error {
+// CancelUpdateStack cancels an in-progress stack update using ctx.
+func (c *CloudFormation) CancelUpdateStack(ctx context.Context, stackName string) error {
 	if _, err := c.client.CancelUpdateStack(ctx, &cloudformation.CancelUpdateStackInput{
 		StackName: awsv2.String(stackName),
 	}); err != nil {

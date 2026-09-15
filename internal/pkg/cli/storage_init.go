@@ -186,11 +186,7 @@ type initStorageOpts struct {
 	workloadExists bool
 }
 
-func newStorageInitOpts(vars initStorageVars) (*initStorageOpts, error) {
-	return newStorageInitOptsWithContext(context.Background(), vars)
-}
-
-func newStorageInitOptsWithContext(ctx context.Context, vars initStorageVars) (*initStorageOpts, error) {
+func newStorageInitOpts(ctx context.Context, vars initStorageVars) (*initStorageOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("storage init"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -219,7 +215,7 @@ func newStorageInitOptsWithContext(ctx context.Context, vars initStorageVars) (*
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *initStorageOpts) Validate() error {
+func (o *initStorageOpts) Validate(ctx context.Context) error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
@@ -1225,7 +1221,7 @@ Storage resources are addons, either for a workload or the environments.`,
   Create an RDS Aurora Serverless v2 cluster using PostgreSQL.
   /code $ copilot storage init -n my-cluster -t Aurora -w frontend --engine PostgreSQL --initial-db testdb`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newStorageInitOptsWithContext(cmd.Context(), vars)
+			opts, err := newStorageInitOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

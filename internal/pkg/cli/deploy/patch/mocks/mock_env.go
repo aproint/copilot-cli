@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -34,32 +35,32 @@ func (m *MockenvironmentTemplateUpdateGetter) EXPECT() *MockenvironmentTemplateU
 }
 
 // Template mocks base method.
-func (m *MockenvironmentTemplateUpdateGetter) Template(stackName string) (string, error) {
+func (m *MockenvironmentTemplateUpdateGetter) Template(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Template", stackName)
+	ret := m.ctrl.Call(m, "Template", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Template indicates an expected call of Template.
-func (mr *MockenvironmentTemplateUpdateGetterMockRecorder) Template(stackName interface{}) *gomock.Call {
+func (mr *MockenvironmentTemplateUpdateGetterMockRecorder) Template(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Template", reflect.TypeOf((*MockenvironmentTemplateUpdateGetter)(nil).Template), stackName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Template", reflect.TypeOf((*MockenvironmentTemplateUpdateGetter)(nil).Template), arg0, arg1)
 }
 
 // UpdateEnvironmentTemplate mocks base method.
-func (m *MockenvironmentTemplateUpdateGetter) UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN string) error {
+func (m *MockenvironmentTemplateUpdateGetter) UpdateEnvironmentTemplate(arg0 context.Context, arg1, arg2, arg3, arg4 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateEnvironmentTemplate", appName, envName, templateBody, cfnExecRoleARN)
+	ret := m.ctrl.Call(m, "UpdateEnvironmentTemplate", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateEnvironmentTemplate indicates an expected call of UpdateEnvironmentTemplate.
-func (mr *MockenvironmentTemplateUpdateGetterMockRecorder) UpdateEnvironmentTemplate(appName, envName, templateBody, cfnExecRoleARN interface{}) *gomock.Call {
+func (mr *MockenvironmentTemplateUpdateGetterMockRecorder) UpdateEnvironmentTemplate(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvironmentTemplate", reflect.TypeOf((*MockenvironmentTemplateUpdateGetter)(nil).UpdateEnvironmentTemplate), appName, envName, templateBody, cfnExecRoleARN)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnvironmentTemplate", reflect.TypeOf((*MockenvironmentTemplateUpdateGetter)(nil).UpdateEnvironmentTemplate), arg0, arg1, arg2, arg3, arg4)
 }
 
 // Mockprogress is a mock of progress interface.

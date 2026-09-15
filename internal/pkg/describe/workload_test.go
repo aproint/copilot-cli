@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -25,7 +26,7 @@ func TestServiceStackDescriber_Manifest(t *testing.T) {
 		"should return wrapped error if Metadata cannot be retrieved from stack": {
 			mockCFN: func(ctrl *gomock.Controller) *mocks.MockstackDescriber {
 				cfn := mocks.NewMockstackDescriber(ctrl)
-				cfn.EXPECT().StackMetadata().Return("", errors.New("some error"))
+				cfn.EXPECT().StackMetadata(context.Background()).Return("", errors.New("some error"))
 				return cfn
 			},
 			wantedErr: errors.New("retrieve stack metadata for phonetool-test-api: some error"),
@@ -33,7 +34,7 @@ func TestServiceStackDescriber_Manifest(t *testing.T) {
 		"should return ErrManifestNotFoundInTemplate if Metadata.Manifest is empty": {
 			mockCFN: func(ctrl *gomock.Controller) *mocks.MockstackDescriber {
 				cfn := mocks.NewMockstackDescriber(ctrl)
-				cfn.EXPECT().StackMetadata().Return("", nil)
+				cfn.EXPECT().StackMetadata(context.Background()).Return("", nil)
 				return cfn
 			},
 			wantedErr: &ErrManifestNotFoundInTemplate{app: testApp, env: testEnv, name: testWorkload},
@@ -41,7 +42,7 @@ func TestServiceStackDescriber_Manifest(t *testing.T) {
 		"should return content of Metadata.Manifest if it exists": {
 			mockCFN: func(ctrl *gomock.Controller) *mocks.MockstackDescriber {
 				cfn := mocks.NewMockstackDescriber(ctrl)
-				cfn.EXPECT().StackMetadata().Return(`
+				cfn.EXPECT().StackMetadata(context.Background()).Return(`
 Manifest: |
   hello`, nil)
 				return cfn
@@ -55,7 +56,7 @@ Manifest: |
 			// GIVEN
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			describer := WorkloadStackDescriber{
+			describer := WorkloadStackDescriber{ctx: context.Background(),
 				app:  testApp,
 				env:  testEnv,
 				name: testWorkload,
@@ -91,7 +92,7 @@ func Test_WorkloadManifest(t *testing.T) {
 			mockDescriber: func(ctrl *gomock.Controller) interface{ Manifest(string) ([]byte, error) } {
 				m := mocks.NewMockecsDescriber(ctrl)
 				m.EXPECT().Manifest().Return(nil, errors.New("some error"))
-				return &LBWebServiceDescriber{
+				return &LBWebServiceDescriber{ctx: context.Background(),
 					app: testApp,
 					svc: testService,
 					initECSServiceDescribers: func(s string) (ecsDescriber, error) {
@@ -106,7 +107,7 @@ func Test_WorkloadManifest(t *testing.T) {
 			mockDescriber: func(ctrl *gomock.Controller) interface{ Manifest(string) ([]byte, error) } {
 				m := mocks.NewMockecsDescriber(ctrl)
 				m.EXPECT().Manifest().Return(nil, errors.New("some error"))
-				return &BackendServiceDescriber{
+				return &BackendServiceDescriber{ctx: context.Background(),
 					app: testApp,
 					svc: testService,
 					initECSServiceDescribers: func(s string) (ecsDescriber, error) {
@@ -121,7 +122,7 @@ func Test_WorkloadManifest(t *testing.T) {
 			mockDescriber: func(ctrl *gomock.Controller) interface{ Manifest(string) ([]byte, error) } {
 				m := mocks.NewMockapprunnerDescriber(ctrl)
 				m.EXPECT().Manifest().Return(nil, errors.New("some error"))
-				return &RDWebServiceDescriber{
+				return &RDWebServiceDescriber{ctx: context.Background(),
 					app: testApp,
 					svc: testService,
 					initAppRunnerDescriber: func(s string) (apprunnerDescriber, error) {
@@ -136,7 +137,7 @@ func Test_WorkloadManifest(t *testing.T) {
 			mockDescriber: func(ctrl *gomock.Controller) interface{ Manifest(string) ([]byte, error) } {
 				m := mocks.NewMockecsDescriber(ctrl)
 				m.EXPECT().Manifest().Return(nil, errors.New("some error"))
-				return &WorkerServiceDescriber{
+				return &WorkerServiceDescriber{ctx: context.Background(),
 					app: testApp,
 					svc: testService,
 					initECSDescriber: func(s string) (ecsDescriber, error) {
@@ -151,7 +152,7 @@ func Test_WorkloadManifest(t *testing.T) {
 			mockDescriber: func(ctrl *gomock.Controller) interface{ Manifest(string) ([]byte, error) } {
 				m := mocks.NewMockecsDescriber(ctrl)
 				m.EXPECT().Manifest().Return([]byte("hello"), nil)
-				return &LBWebServiceDescriber{
+				return &LBWebServiceDescriber{ctx: context.Background(),
 					app: testApp,
 					svc: testService,
 					initECSServiceDescribers: func(s string) (ecsDescriber, error) {
@@ -205,7 +206,7 @@ func TestServiceDescriber_StackResources(t *testing.T) {
 		"returns error when fail to describe stack resources": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockCFN.EXPECT().Resources().Return(nil, errors.New("some error")),
+					m.mockCFN.EXPECT().Resources(context.Background()).Return(nil, errors.New("some error")),
 				)
 			},
 
@@ -214,7 +215,7 @@ func TestServiceDescriber_StackResources(t *testing.T) {
 		"ignores dummy stack resources": {
 			setupMocks: func(m ecsSvcDescriberMocks) {
 				gomock.InOrder(
-					m.mockCFN.EXPECT().Resources().Return([]*stack.Resource{
+					m.mockCFN.EXPECT().Resources(context.Background()).Return([]*stack.Resource{
 						{
 							Type:       "AWS::EC2::SecurityGroup",
 							PhysicalID: "sg-0758ed6b233743530",
@@ -252,7 +253,7 @@ func TestServiceDescriber_StackResources(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &WorkloadStackDescriber{
+			d := &WorkloadStackDescriber{ctx: context.Background(),
 				app:  testApp,
 				name: testWkld,
 				env:  testEnv,

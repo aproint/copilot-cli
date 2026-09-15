@@ -32,11 +32,7 @@ type listSvcOpts struct {
 	list workloadListWriter
 }
 
-func newListSvcOpts(vars listWkldVars) (*listSvcOpts, error) {
-	return newListSvcOptsWithContext(context.Background(), vars)
-}
-
-func newListSvcOptsWithContext(ctx context.Context, vars listWkldVars) (*listSvcOpts, error) {
+func newListSvcOpts(ctx context.Context, vars listWkldVars) (*listSvcOpts, error) {
 	ws, err := workspace.Use(afero.NewOsFs())
 	if err != nil {
 		return nil, err
@@ -66,7 +62,7 @@ func newListSvcOptsWithContext(ctx context.Context, vars listWkldVars) (*listSvc
 }
 
 // Validate is a no-op for this command.
-func (o *listSvcOpts) Validate() error {
+func (o *listSvcOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -105,7 +101,7 @@ func buildSvcListCmd() *cobra.Command {
   Lists all the services for the "myapp" application.
   /code $ copilot svc ls --app myapp`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newListSvcOptsWithContext(cmd.Context(), vars)
+			opts, err := newListSvcOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

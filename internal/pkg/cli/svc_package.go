@@ -83,11 +83,7 @@ type packageSvcOpts struct {
 	templateVersion string
 }
 
-func newPackageSvcOpts(vars packageSvcVars) (*packageSvcOpts, error) {
-	return newPackageSvcOptsWithContext(context.Background(), vars)
-}
-
-func newPackageSvcOptsWithContext(ctx context.Context, vars packageSvcVars) (*packageSvcOpts, error) {
+func newPackageSvcOpts(ctx context.Context, vars packageSvcVars) (*packageSvcOpts, error) {
 	fs := afero.NewOsFs()
 	ws, err := workspace.Use(fs)
 	if err != nil {
@@ -177,7 +173,7 @@ func newWorkloadStackGenerator(ctx context.Context, o *packageSvcOpts) (workload
 }
 
 // Validate returns an error for any invalid optional flags.
-func (o *packageSvcOpts) Validate() error {
+func (o *packageSvcOpts) Validate(ctx context.Context) error {
 	return nil
 }
 
@@ -298,7 +294,7 @@ func (o *packageSvcOpts) validateOrAskEnvName(ctx context.Context) error {
 }
 
 func (o *packageSvcOpts) configureClients(ctx context.Context) error {
-	o.gitShortCommit = imageTagFromGit(o.runner) // Best effort assign git tag.
+	o.gitShortCommit = imageTagFromGit(ctx, o.runner) // Best effort assign git tag.
 	// client to retrieve an application's resources created with CloudFormation.
 	defaultConfig, err := o.sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -350,6 +346,7 @@ type cfnStackConfig struct {
 
 func (o *packageSvcOpts) getStackGenerator(ctx context.Context, env *config.Environment) (workloadStackGenerator, error) {
 	mft, interpolated, err := workloadManifest(&workloadManifestInput{
+		ctx:          ctx,
 		name:         o.name,
 		appName:      o.appName,
 		envName:      o.envName,
@@ -512,7 +509,7 @@ func buildSvcPackageCmd() *cobra.Command {
   frontend-test.stack.yml      frontend-test.params.json
   /endcodeblock`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPackageSvcOptsWithContext(cmd.Context(), vars)
+			opts, err := newPackageSvcOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

@@ -43,11 +43,7 @@ type jobLogsOpts struct {
 	targetEnv *config.Environment
 }
 
-func newJobLogOpts(vars jobLogsVars) (*jobLogsOpts, error) {
-	return newJobLogOptsWithContext(context.Background(), vars)
-}
-
-func newJobLogOptsWithContext(ctx context.Context, vars jobLogsVars) (*jobLogsOpts, error) {
+func newJobLogOpts(ctx context.Context, vars jobLogsVars) (*jobLogsOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job logs"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -91,12 +87,7 @@ func newJobLogOptsWithContext(ctx context.Context, vars jobLogsVars) (*jobLogsOp
 }
 
 // Validate returns an error if the values provided by flags are invalid.
-func (o *jobLogsOpts) Validate() error {
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
+func (o *jobLogsOpts) Validate(ctx context.Context) error {
 	if o.appName != "" {
 		if _, err := o.configStore.GetApplication(ctx, o.appName); err != nil {
 			return err
@@ -180,7 +171,7 @@ func (o *jobLogsOpts) Execute(ctx context.Context) error {
 		logStreamLimit = o.last
 	}
 
-	err := o.logsSvc.WriteLogEventsWithContext(ctx, logging.WriteLogEventsOpts{
+	err := o.logsSvc.WriteLogEvents(ctx, logging.WriteLogEventsOpts{
 		Follow:                  o.follow,
 		Limit:                   limit,
 		EndTime:                 o.endTime,
@@ -261,7 +252,7 @@ func buildJobLogsCmd() *cobra.Command {
   Displays container logs and state machine execution logs from the last execution.
   /code $ copilot job logs --include-state-machine --last 1`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newJobLogOptsWithContext(cmd.Context(), vars)
+			opts, err := newJobLogOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

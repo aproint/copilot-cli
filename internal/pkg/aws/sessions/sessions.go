@@ -28,18 +28,16 @@ const (
 // Provider provides methods to create AWS SDK configs.
 // Once a config is created, it's cached locally so that the same config is not re-created.
 type Provider struct {
-	defaultConfigV2    awsv2.Config
-	hasDefaultConfigV2 bool
+	cachedDefaultConfig    awsv2.Config
+	hasCachedDefaultConfig bool
 
 	// Metadata associated with the provider.
-	userAgentExtras   []string
-	loadV2Config      v2ConfigLoader
-	configV2Validator v2ConfigValidator
+	userAgentExtras     []string
+	loadConfig          configLoader
+	validateCredentials credentialsValidator
 }
 
-type v2ConfigValidator interface {
-	ValidateV2Credentials(context.Context, awsv2.Config) (awsv2.Credentials, error)
-}
+type credentialsValidator func(context.Context, awsv2.Config) (awsv2.Credentials, error)
 
 var instance *Provider
 var once sync.Once

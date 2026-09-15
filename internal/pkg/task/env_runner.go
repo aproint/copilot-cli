@@ -55,18 +55,13 @@ type EnvRunner struct {
 	NonZeroExitCodeGetter NonZeroExitCodeGetter
 }
 
-// Run runs tasks in the environment of the application, and returns the tasks.
-func (r *EnvRunner) Run() ([]*Task, error) {
-	return r.RunWithContext(context.Background())
-}
-
-// RunWithContext runs tasks using ctx.
-func (r *EnvRunner) RunWithContext(ctx context.Context) ([]*Task, error) {
+// Run runs tasks using ctx.
+func (r *EnvRunner) Run(ctx context.Context) ([]*Task, error) {
 	if err := r.validateDependencies(); err != nil {
 		return nil, err
 	}
 
-	cluster, err := r.ClusterGetter.ClusterARNWithContext(ctx, r.App, r.Env)
+	cluster, err := r.ClusterGetter.ClusterARN(ctx, r.App, r.Env)
 	if err != nil {
 		return nil, fmt.Errorf("get cluster for environment %s: %w", r.Env, err)
 	}
@@ -83,7 +78,7 @@ func (r *EnvRunner) RunWithContext(ctx context.Context) ([]*Task, error) {
 
 	filters := r.filtersForVPCFromAppEnv()
 	// Use only environment security group https://github.com/aproint/copilot-cli/issues/1882.
-	securityGroups, err := r.VPCGetter.SecurityGroupsWithContext(ctx, append(filters, ec2.Filter{
+	securityGroups, err := r.VPCGetter.SecurityGroups(ctx, append(filters, ec2.Filter{
 		Name:   fmt.Sprintf(ec2.FmtTagFilter, envSecurityGroupCFNLogicalIDTagKey),
 		Values: []string{envSecurityGroupCFNLogicalIDTagValue},
 	})...)
@@ -100,7 +95,7 @@ func (r *EnvRunner) RunWithContext(ctx context.Context) ([]*Task, error) {
 		platformVersion = "1.0.0"
 	}
 
-	ecsTasks, err := r.Starter.RunTaskWithContext(ctx, ecs.RunTaskInput{
+	ecsTasks, err := r.Starter.RunTask(ctx, ecs.RunTaskInput{
 		Cluster:         cluster,
 		Count:           r.Count,
 		Subnets:         subnets,
@@ -166,14 +161,9 @@ func containsString(s []string, search string) bool {
 	return false
 }
 
-// CheckNonZeroExitCode returns the status of the containers part of the given tasks.
-func (r *EnvRunner) CheckNonZeroExitCode(tasks []*Task) error {
-	return r.CheckNonZeroExitCodeWithContext(context.Background(), tasks)
-}
-
-// CheckNonZeroExitCodeWithContext checks task exit codes using ctx.
-func (r *EnvRunner) CheckNonZeroExitCodeWithContext(ctx context.Context, tasks []*Task) error {
-	cluster, err := r.ClusterGetter.ClusterARNWithContext(ctx, r.App, r.Env)
+// CheckNonZeroExitCode checks task exit codes using ctx.
+func (r *EnvRunner) CheckNonZeroExitCode(ctx context.Context, tasks []*Task) error {
+	cluster, err := r.ClusterGetter.ClusterARN(ctx, r.App, r.Env)
 	if err != nil {
 		return fmt.Errorf("get cluster for environment %s: %w", r.Env, err)
 	}
@@ -181,5 +171,5 @@ func (r *EnvRunner) CheckNonZeroExitCodeWithContext(ctx context.Context, tasks [
 	for idx, task := range tasks {
 		taskARNs[idx] = task.TaskARN
 	}
-	return r.NonZeroExitCodeGetter.HasNonZeroExitCodeWithContext(ctx, taskARNs, cluster)
+	return r.NonZeroExitCodeGetter.HasNonZeroExitCode(ctx, taskARNs, cluster)
 }

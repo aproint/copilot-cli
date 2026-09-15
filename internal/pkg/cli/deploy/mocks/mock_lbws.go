@@ -35,17 +35,17 @@ func (m *MockelbGetter) EXPECT() *MockelbGetterMockRecorder {
 	return m.recorder
 }
 
-// LoadBalancerWithContext mocks base method.
-func (m *MockelbGetter) LoadBalancerWithContext(ctx context.Context, nameOrARN string) (*elbv2.LoadBalancer, error) {
+// LoadBalancer mocks base method.
+func (m *MockelbGetter) LoadBalancer(ctx context.Context, nameOrARN string) (*elbv2.LoadBalancer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoadBalancerWithContext", ctx, nameOrARN)
+	ret := m.ctrl.Call(m, "LoadBalancer", ctx, nameOrARN)
 	ret0, _ := ret[0].(*elbv2.LoadBalancer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// LoadBalancerWithContext indicates an expected call of LoadBalancerWithContext.
-func (mr *MockelbGetterMockRecorder) LoadBalancerWithContext(ctx, nameOrARN interface{}) *gomock.Call {
+// LoadBalancer indicates an expected call of LoadBalancer.
+func (mr *MockelbGetterMockRecorder) LoadBalancer(ctx, nameOrARN interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadBalancerWithContext", reflect.TypeOf((*MockelbGetter)(nil).LoadBalancerWithContext), ctx, nameOrARN)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadBalancer", reflect.TypeOf((*MockelbGetter)(nil).LoadBalancer), ctx, nameOrARN)
 }

@@ -197,7 +197,7 @@ func TestCloudFormation_Create(t *testing.T) {
 			}
 
 			// WHEN
-			id, err := c.Create(tc.inStack)
+			id, err := c.Create(context.Background(), tc.inStack)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -210,7 +210,7 @@ func TestCloudFormation_Create(t *testing.T) {
 	}
 }
 
-func TestCloudFormationCreateAndWaitWithContext(t *testing.T) {
+func TestCloudFormationCreateAndWait(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mocks.NewMockclient(ctrl)
 	ctx := context.WithValue(context.Background(), struct{}{}, "caller")
@@ -230,10 +230,10 @@ func TestCloudFormationCreateAndWaitWithContext(t *testing.T) {
 	}, gomock.Any(), gomock.Any()).Return(nil)
 
 	cfn := &CloudFormation{client: client}
-	require.NoError(t, cfn.CreateAndWaitWithContext(ctx, mockStack))
+	require.NoError(t, cfn.CreateAndWait(ctx, mockStack))
 }
 
-func TestCloudFormation_CreateWithContextUsesContextForChangeSetLifecycle(t *testing.T) {
+func TestCloudFormation_CreateUsesContextForChangeSetLifecycle(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "create-change-set")
 	seed := bytes.NewBufferString("12345678901233456789")
@@ -255,7 +255,7 @@ func TestCloudFormation_CreateWithContextUsesContextForChangeSetLifecycle(t *tes
 	m.EXPECT().ExecuteChangeSet(gomock.Eq(ctx), gomock.Any()).Return(&cloudformation.ExecuteChangeSetOutput{}, nil)
 	cfn := CloudFormation{client: m}
 
-	_, err := cfn.CreateWithContext(ctx, mockStack)
+	_, err := cfn.Create(ctx, mockStack)
 
 	require.NoError(t, err)
 }
@@ -273,7 +273,7 @@ func TestCloudFormation_DescribeChangeSet(t *testing.T) {
 		}
 
 		// WHEN
-		out, err := cfn.DescribeChangeSet(mockChangeSetID, "phonetool-test")
+		out, err := cfn.DescribeChangeSet(context.Background(), mockChangeSetID, "phonetool-test")
 
 		// THEN
 		require.EqualError(t, err, fmt.Sprintf("describe change set %s for stack phonetool-test: some error", mockChangeSetID))
@@ -325,7 +325,7 @@ func TestCloudFormation_DescribeChangeSet(t *testing.T) {
 		}
 
 		// WHEN
-		out, err := cfn.DescribeChangeSet(mockChangeSetID, "phonetool-test")
+		out, err := cfn.DescribeChangeSet(context.Background(), mockChangeSetID, "phonetool-test")
 
 		// THEN
 		require.NoError(t, err)
@@ -333,7 +333,7 @@ func TestCloudFormation_DescribeChangeSet(t *testing.T) {
 	})
 }
 
-func TestCloudFormation_DescribeChangeSetWithContextUsesContextForEveryPage(t *testing.T) {
+func TestCloudFormation_DescribeChangeSetUsesContextForEveryPage(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "change-set-pages")
 	ctrl := gomock.NewController(t)
@@ -347,7 +347,7 @@ func TestCloudFormation_DescribeChangeSetWithContextUsesContextForEveryPage(t *t
 	)
 	cfn := CloudFormation{client: m}
 
-	_, err := cfn.DescribeChangeSetWithContext(ctx, mockChangeSetID, "phonetool-test")
+	_, err := cfn.DescribeChangeSet(ctx, mockChangeSetID, "phonetool-test")
 
 	require.NoError(t, err)
 }
@@ -678,7 +678,7 @@ func TestCloudFormation_Update(t *testing.T) {
 			}
 
 			// WHEN
-			id, err := c.Update(tc.inStack)
+			id, err := c.Update(context.Background(), tc.inStack)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -729,7 +729,7 @@ func TestCloudFormation_UpdateAndWait(t *testing.T) {
 			}
 
 			// WHEN
-			err := c.UpdateAndWait(mockStack)
+			err := c.UpdateAndWait(context.Background(), mockStack)
 
 			// THEN
 			require.Equal(t, tc.wantedErr, err)
@@ -780,7 +780,7 @@ func TestCloudFormation_Delete(t *testing.T) {
 			}
 
 			// WHEN
-			err := c.Delete(mockStack.Name)
+			err := c.Delete(context.Background(), mockStack.Name)
 
 			// THEN
 			require.Equal(t, tc.wantedErr, err)
@@ -825,7 +825,7 @@ func TestCloudFormation_DeleteAndWait(t *testing.T) {
 			}
 
 			// WHEN
-			err := c.DeleteAndWait(mockStack.Name)
+			err := c.DeleteAndWait(context.Background(), mockStack.Name)
 
 			// THEN
 			require.Equal(t, tc.wantedErr, err)
@@ -833,7 +833,7 @@ func TestCloudFormation_DeleteAndWait(t *testing.T) {
 	}
 }
 
-func TestCloudFormation_DeleteAndWaitWithContextUsesContextForDeleteAndWaiter(t *testing.T) {
+func TestCloudFormation_DeleteAndWaitUsesContextForDeleteAndWaiter(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "delete-waiter")
 	ctrl := gomock.NewController(t)
@@ -843,12 +843,12 @@ func TestCloudFormation_DeleteAndWaitWithContextUsesContextForDeleteAndWaiter(t 
 	m.EXPECT().WaitUntilStackDeleteComplete(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	cfn := CloudFormation{client: m}
 
-	err := cfn.DeleteAndWaitWithContext(ctx, mockStack.Name)
+	err := cfn.DeleteAndWait(ctx, mockStack.Name)
 
 	require.NoError(t, err)
 }
 
-func TestCloudFormation_DeleteAndWaitWithRoleARNWithContextUsesContextForDeleteAndWaiter(t *testing.T) {
+func TestCloudFormation_DeleteAndWaitWithRoleARNUsesContextForDeleteAndWaiter(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "delete-role-waiter")
 	ctrl := gomock.NewController(t)
@@ -863,7 +863,7 @@ func TestCloudFormation_DeleteAndWaitWithRoleARNWithContextUsesContextForDeleteA
 	}, gomock.Any(), gomock.Any()).Return(nil)
 	cfn := CloudFormation{client: m}
 
-	err := cfn.DeleteAndWaitWithRoleARNWithContext(ctx, mockStack.Name, "role")
+	err := cfn.DeleteAndWaitWithRoleARN(ctx, mockStack.Name, "role")
 
 	require.NoError(t, err)
 }
@@ -947,7 +947,7 @@ func TestStackDescriber_Metadata(t *testing.T) {
 			if tc.isStackSet {
 				name = MetadataWithStackSetName("phonetoolStackSet")
 			}
-			actual, err := c.Metadata(name)
+			actual, err := c.Metadata(context.Background(), name)
 
 			// THEN
 			if tc.wantedErr != nil {
@@ -1012,7 +1012,7 @@ func TestCloudFormation_Describe(t *testing.T) {
 			}
 
 			// WHEN
-			descr, err := c.Describe(mockStack.Name)
+			descr, err := c.Describe(context.Background(), mockStack.Name)
 
 			// THEN
 			require.Equal(t, tc.wantedDescr, descr)
@@ -1035,7 +1035,7 @@ func TestCloudFormation_Exists(t *testing.T) {
 		}
 
 		// WHEN
-		_, err := c.Exists("phonetool-test")
+		_, err := c.Exists(context.Background(), "phonetool-test")
 
 		// THEN
 		require.EqualError(t, err, "describe stack phonetool-test: some error")
@@ -1052,7 +1052,7 @@ func TestCloudFormation_Exists(t *testing.T) {
 		}
 
 		// WHEN
-		exists, err := c.Exists("phonetool-test")
+		exists, err := c.Exists(context.Background(), "phonetool-test")
 
 		// THEN
 		require.NoError(t, err)
@@ -1074,7 +1074,7 @@ func TestCloudFormation_Exists(t *testing.T) {
 		}
 
 		// WHEN
-		exists, err := c.Exists("phonetool-test")
+		exists, err := c.Exists(context.Background(), "phonetool-test")
 
 		// THEN
 		require.NoError(t, err)
@@ -1120,7 +1120,7 @@ func TestCloudFormation_TemplateBody(t *testing.T) {
 			}
 
 			// WHEN
-			body, err := c.TemplateBody(mockStack.Name)
+			body, err := c.TemplateBody(context.Background(), mockStack.Name)
 
 			// THEN
 			require.Equal(t, tc.wantedBody, body)
@@ -1176,7 +1176,7 @@ func TestCloudFormation_TemplateBodyFromChangeSet(t *testing.T) {
 			}
 
 			// WHEN
-			body, err := c.TemplateBodyFromChangeSet(mockChangeSetID, mockStack.Name)
+			body, err := c.TemplateBodyFromChangeSet(context.Background(), mockChangeSetID, mockStack.Name)
 
 			// THEN
 			if tc.wantedErr == "" {
@@ -1237,7 +1237,7 @@ func TestCloudFormation_Outputs(t *testing.T) {
 			}
 
 			// WHEN
-			outputs, err := c.Outputs(mockStack)
+			outputs, err := c.Outputs(context.Background(), mockStack)
 
 			// THEN
 			if tc.wantedErr != "" {
@@ -1306,7 +1306,7 @@ func TestCloudFormation_ErrorEvents(t *testing.T) {
 				client: mockCf,
 			}
 			// WHEN
-			events, err := c.ErrorEvents(mockStack.Name)
+			events, err := c.ErrorEvents(context.Background(), mockStack.Name)
 
 			// THEN
 			if tc.wantedErr != "" {
@@ -1362,7 +1362,7 @@ func TestCloudFormation_Events(t *testing.T) {
 			}
 
 			// WHEN
-			events, err := c.Events(mockStack.Name)
+			events, err := c.Events(context.Background(), mockStack.Name)
 
 			// THEN
 			require.Equal(t, tc.wantedEvents, events)
@@ -1418,7 +1418,7 @@ func TestStackDescriber_StackResources(t *testing.T) {
 			}
 
 			// WHEN
-			actual, err := c.StackResources("phonetool-test-api")
+			actual, err := c.StackResources(context.Background(), "phonetool-test-api")
 
 			// THEN
 			if tc.wantedError != nil {
@@ -1596,7 +1596,7 @@ func TestCloudFormation_ListStacksWithTags(t *testing.T) {
 			}
 
 			// WHEN
-			stacks, err := c.ListStacksWithTags(tc.inTags)
+			stacks, err := c.ListStacksWithTags(context.Background(), tc.inTags)
 
 			// THEN
 			if tc.wantedErr != "" {
@@ -1663,7 +1663,7 @@ func TestCloudformation_CancelUpdateStack(t *testing.T) {
 			}
 
 			// WHEN
-			err := c.CancelUpdateStack("phonetool-test-api")
+			err := c.CancelUpdateStack(context.Background(), "phonetool-test-api")
 
 			// THEN
 			if tc.wantedErr != nil {

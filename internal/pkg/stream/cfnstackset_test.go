@@ -28,29 +28,21 @@ type contextualMockStackSetClient struct {
 	operation       stackset.Operation
 }
 
-func (m *contextualMockStackSetClient) InstanceSummaries(string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
-	return nil, errors.New("legacy instance summaries called")
-}
-
-func (m *contextualMockStackSetClient) DescribeOperation(string, string) (stackset.Operation, error) {
-	return stackset.Operation{}, errors.New("legacy describe operation called")
-}
-
-func (m *contextualMockStackSetClient) InstanceSummariesWithContext(ctx context.Context, _ string, _ ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
+func (m *contextualMockStackSetClient) InstanceSummaries(ctx context.Context, _ string, _ ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
 	m.gotInstanceCtx = ctx
 	return m.instances, nil
 }
 
-func (m *contextualMockStackSetClient) DescribeOperationWithContext(ctx context.Context, _, _ string) (stackset.Operation, error) {
+func (m *contextualMockStackSetClient) DescribeOperation(ctx context.Context, _, _ string) (stackset.Operation, error) {
 	m.gotOperationCtx = ctx
 	return m.operation, nil
 }
 
-func (m mockStackSetClient) InstanceSummaries(name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
+func (m mockStackSetClient) InstanceSummaries(_ context.Context, name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error) {
 	return m.instanceSummariesFn(name, opts...)
 }
 
-func (m mockStackSetClient) DescribeOperation(name, opID string) (stackset.Operation, error) {
+func (m mockStackSetClient) DescribeOperation(_ context.Context, name, opID string) (stackset.Operation, error) {
 	return m.describeOpFn(name, opID)
 }
 
@@ -65,7 +57,7 @@ func TestStackSetStreamer_InstanceStreamers(t *testing.T) {
 		mockStackLocator := func(_ string) StackEventsDescriber {
 			return mockStackClient{}
 		}
-		streamer := NewStackSetStreamer(mockStackSet, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), mockStackSet, "demo-infrastructure", "1", time.Now())
 
 		// WHEN
 		_, err := streamer.InstanceStreamers(mockStackLocator)
@@ -96,7 +88,7 @@ func TestStackSetStreamer_InstanceStreamers(t *testing.T) {
 			regionalStreamers[region] += 1
 			return mockStackClient{}
 		}
-		streamer := NewStackSetStreamer(mockStackSet, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), mockStackSet, "demo-infrastructure", "1", time.Now())
 
 		// WHEN
 		children, err := streamer.InstanceStreamers(mockStackLocator)
@@ -127,7 +119,7 @@ func TestStackSetStreamer_InstanceStreamers(t *testing.T) {
 			regionalStreamers[region] += 1
 			return mockStackClient{}
 		}
-		streamer := NewStackSetStreamer(mockStackSet, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), mockStackSet, "demo-infrastructure", "1", time.Now())
 
 		// WHEN
 		_, err := streamer.InstanceStreamers(mockStackLocator)
@@ -174,7 +166,7 @@ func TestStackSetStreamer_InstanceStreamers(t *testing.T) {
 			regionalStreamers[region] += 1
 			return mockStackClient{}
 		}
-		streamer := NewStackSetStreamer(mockStackSet, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), mockStackSet, "demo-infrastructure", "1", time.Now())
 		streamer.instanceSummariesInterval = 0 // override time to wait interval.
 
 		// WHEN
@@ -190,7 +182,7 @@ func TestStackSetStreamer_InstanceStreamers(t *testing.T) {
 func TestStackSetStreamer_InstanceStreamersStopsDuringPollingDelay(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client := &contextualMockStackSetClient{operation: stackset.Operation{Status: "RUNNING"}}
-	streamer := NewStackSetStreamerWithContext(ctx, client, "demo-infrastructure", "1", time.Now())
+	streamer := NewStackSetStreamer(ctx, client, "demo-infrastructure", "1", time.Now())
 	streamer.instanceSummariesInterval = time.Hour
 	cancel()
 
@@ -211,7 +203,7 @@ func TestStackSetStreamer_Subscribe(t *testing.T) {
 				return nil, nil
 			},
 		}
-		streamer := NewStackSetStreamer(client, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), client, "demo-infrastructure", "1", time.Now())
 		streamer.Close()
 
 		// WHEN
@@ -231,7 +223,7 @@ func TestStackSetStreamer_Close(t *testing.T) {
 				return nil, nil
 			},
 		}
-		streamer := NewStackSetStreamer(client, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), client, "demo-infrastructure", "1", time.Now())
 		first := streamer.Subscribe()
 		second := streamer.Subscribe()
 
@@ -258,7 +250,7 @@ func TestStackSetStreamer_Fetch(t *testing.T) {
 			},
 		}
 		startTime := time.Date(2020, time.November, 23, 16, 0, 0, 0, time.UTC)
-		streamer := NewStackSetStreamer(client, "demo-infrastructure", "1", startTime)
+		streamer := NewStackSetStreamer(context.Background(), client, "demo-infrastructure", "1", startTime)
 		streamer.clock = fakeClock{fakeNow: startTime}
 		streamer.rand = func(n int) int { return n }
 		wantedTime := startTime.Add(2 * streamerFetchIntervalDurationMs * time.Millisecond)
@@ -278,7 +270,7 @@ func TestStackSetStreamer_Fetch(t *testing.T) {
 				return stackset.Operation{}, errors.New("some error")
 			},
 		}
-		streamer := NewStackSetStreamer(client, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), client, "demo-infrastructure", "1", time.Now())
 
 		// WHEN
 		_, _, err := streamer.Fetch()
@@ -294,7 +286,7 @@ func TestStackSetStreamer_Fetch(t *testing.T) {
 			},
 		}
 		startTime := time.Date(2020, time.November, 23, 16, 0, 0, 0, time.UTC)
-		streamer := NewStackSetStreamer(client, "demo-infrastructure", "1", startTime)
+		streamer := NewStackSetStreamer(context.Background(), client, "demo-infrastructure", "1", startTime)
 		streamer.clock = fakeClock{fakeNow: startTime}
 		streamer.rand = func(n int) int { return n }
 
@@ -311,7 +303,7 @@ func TestStackSetStreamer_FetchUsesConstructorContext(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "stack-set-streamer")
 	client := &contextualMockStackSetClient{operation: stackset.Operation{Status: "SUCCEEDED"}}
-	streamer := NewStackSetStreamerWithContext(ctx, client, "demo-infrastructure", "1", time.Now())
+	streamer := NewStackSetStreamer(ctx, client, "demo-infrastructure", "1", time.Now())
 
 	_, done, err := streamer.Fetch()
 
@@ -331,7 +323,7 @@ func TestStackSetStreamer_Integration(t *testing.T) {
 				}, nil
 			},
 		}
-		streamer := NewStackSetStreamer(client, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), client, "demo-infrastructure", "1", time.Now())
 
 		// WHEN
 		_, done, err := streamer.Fetch()
@@ -362,7 +354,7 @@ func TestStackSetStreamer_Integration(t *testing.T) {
 				return responses[callCount], nil
 			},
 		}
-		streamer := NewStackSetStreamer(client, "demo-infrastructure", "1", time.Now())
+		streamer := NewStackSetStreamer(context.Background(), client, "demo-infrastructure", "1", time.Now())
 		sub := streamer.Subscribe()
 
 		// WHEN

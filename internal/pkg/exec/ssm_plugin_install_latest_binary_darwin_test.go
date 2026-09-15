@@ -4,6 +4,7 @@
 package exec
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -25,7 +26,7 @@ func TestSSMPluginCommand_InstallLatestBinary_darwin(t *testing.T) {
 		"return error if fail to unzip binary": {
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("unzip", []string{"-o", filepath.Join(mockDir, "sessionmanager-bundle.zip"),
+				mockRunner.EXPECT().Run(context.Background(), "unzip", []string{"-o", filepath.Join(mockDir, "sessionmanager-bundle.zip"),
 					"-d", mockDir}).
 					Return(mockError)
 			},
@@ -34,10 +35,10 @@ func TestSSMPluginCommand_InstallLatestBinary_darwin(t *testing.T) {
 		"return error if fail to install binary": {
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("unzip", []string{"-o", filepath.Join(mockDir, "sessionmanager-bundle.zip"),
+				mockRunner.EXPECT().Run(context.Background(), "unzip", []string{"-o", filepath.Join(mockDir, "sessionmanager-bundle.zip"),
 					"-d", mockDir}).
 					Return(nil)
-				mockRunner.EXPECT().Run("sudo", []string{filepath.Join(mockDir, "sessionmanager-bundle", "install"), "-i",
+				mockRunner.EXPECT().Run(context.Background(), "sudo", []string{filepath.Join(mockDir, "sessionmanager-bundle", "install"), "-i",
 					"/usr/local/sessionmanagerplugin", "-b",
 					"/usr/local/bin/session-manager-plugin"}).
 					Return(mockError)
@@ -47,10 +48,10 @@ func TestSSMPluginCommand_InstallLatestBinary_darwin(t *testing.T) {
 		"success": {
 			setupMocks: func(controller *gomock.Controller) {
 				mockRunner = NewMockrunner(controller)
-				mockRunner.EXPECT().Run("unzip", []string{"-o", filepath.Join(mockDir, "sessionmanager-bundle.zip"),
+				mockRunner.EXPECT().Run(context.Background(), "unzip", []string{"-o", filepath.Join(mockDir, "sessionmanager-bundle.zip"),
 					"-d", mockDir}).
 					Return(nil)
-				mockRunner.EXPECT().Run("sudo", []string{filepath.Join(mockDir, "sessionmanager-bundle", "install"), "-i",
+				mockRunner.EXPECT().Run(context.Background(), "sudo", []string{filepath.Join(mockDir, "sessionmanager-bundle", "install"), "-i",
 					"/usr/local/sessionmanagerplugin", "-b",
 					"/usr/local/bin/session-manager-plugin"}).
 					Return(nil)
@@ -69,7 +70,7 @@ func TestSSMPluginCommand_InstallLatestBinary_darwin(t *testing.T) {
 					content: []byte("hello"),
 				},
 			}
-			err := s.InstallLatestBinary()
+			err := s.InstallLatestBinary(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {

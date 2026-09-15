@@ -29,7 +29,7 @@ type completionOpts struct {
 }
 
 // Validate returns an error if the shell is not "bash" or "zsh" or "fish".
-func (opts *completionOpts) Validate() error {
+func (opts *completionOpts) Validate(ctx context.Context) error {
 	if opts.Shell == "bash" {
 		return nil
 	}
@@ -90,7 +90,7 @@ The code must be evaluated to provide interactive completion of commands.`,
 		},
 		PreRunE: runCmdE(func(cmd *cobra.Command, args []string) error {
 			opts.Shell = args[0]
-			return opts.Validate()
+			return opts.Validate(cmd.Context())
 		}),
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
 			opts.w = os.Stdout

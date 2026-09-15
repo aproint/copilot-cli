@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -82,7 +83,7 @@ func TestStaticSiteDescriber_URI(t *testing.T) {
 
 			tc.setupMocks(mocks)
 
-			d := &StaticSiteDescriber{
+			d := &StaticSiteDescriber{ctx: context.Background(),
 				app:                    mockApp,
 				svc:                    mockSvc,
 				initWkldStackDescriber: func(string) (workloadDescriber, error) { return mocks.wkldDescriber, nil },
@@ -134,8 +135,8 @@ func TestStaticSiteDescriber_Describe(t *testing.T) {
 					m.wkldDescriber.EXPECT().Outputs().Return(map[string]string{
 						"CloudFrontDistributionDomainName": "dut843shvcmvn.cloudfront.net",
 					}, nil),
-					m.s3Client.EXPECT().BucketName(mockApp, mockEnv, mockSvc).Return(mockBucket, nil),
-					m.awsS3Client.EXPECT().BucketTree(mockBucket).Return("", nil),
+					m.s3Client.EXPECT().BucketName(context.Background(), mockApp, mockEnv, mockSvc).Return(mockBucket, nil),
+					m.awsS3Client.EXPECT().BucketTree(context.Background(), mockBucket).Return("", nil),
 				)
 			},
 			wantedHuman: `About
@@ -160,8 +161,8 @@ Routes
 					m.wkldDescriber.EXPECT().Outputs().Return(map[string]string{
 						"CloudFrontDistributionDomainName": "dut843shvcmvn.cloudfront.net",
 					}, nil),
-					m.s3Client.EXPECT().BucketName(mockApp, mockEnv, mockSvc).Return(mockBucket, nil),
-					m.awsS3Client.EXPECT().BucketTree(mockBucket).Return("", nil),
+					m.s3Client.EXPECT().BucketName(context.Background(), mockApp, mockEnv, mockSvc).Return(mockBucket, nil),
+					m.awsS3Client.EXPECT().BucketTree(context.Background(), mockBucket).Return("", nil),
 					m.wkldDescriber.EXPECT().StackResources().Return(nil, mockErr),
 				)
 			},
@@ -175,8 +176,8 @@ Routes
 					m.wkldDescriber.EXPECT().Outputs().Return(map[string]string{
 						"CloudFrontDistributionDomainName": "dut843shvcmvn.cloudfront.net",
 					}, nil),
-					m.s3Client.EXPECT().BucketName(mockApp, mockEnv, mockSvc).Return(mockBucket, nil),
-					m.awsS3Client.EXPECT().BucketTree(mockBucket).Return(`.
+					m.s3Client.EXPECT().BucketName(context.Background(), mockApp, mockEnv, mockSvc).Return(mockBucket, nil),
+					m.awsS3Client.EXPECT().BucketTree(context.Background(), mockBucket).Return(`.
 ├── README.md
 ├── error.html
 ├── index.html
@@ -257,7 +258,7 @@ Resources
 
 			tc.setupMocks(mocks)
 
-			d := &StaticSiteDescriber{
+			d := &StaticSiteDescriber{ctx: context.Background(),
 				app:                    mockApp,
 				svc:                    mockSvc,
 				enableResources:        tc.shouldOutputResources,

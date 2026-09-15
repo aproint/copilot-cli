@@ -100,47 +100,28 @@ type cwClient interface {
 }
 
 type cfnClient interface {
-	// Methods augmented by the aws wrapper struct.
-	Create(*cloudformation.Stack) (string, error)
-	CreateWithContext(context.Context, *cloudformation.Stack) (string, error)
-	CreateAndWait(*cloudformation.Stack) error
-	CreateAndWaitWithContext(context.Context, *cloudformation.Stack) error
+	Create(context.Context, *cloudformation.Stack) (string, error)
+	CreateAndWait(context.Context, *cloudformation.Stack) error
 	WaitForCreate(ctx context.Context, stackName string) error
-	Update(*cloudformation.Stack) (string, error)
-	UpdateWithContext(context.Context, *cloudformation.Stack) (string, error)
-	UpdateAndWait(*cloudformation.Stack) error
-	UpdateAndWaitWithContext(context.Context, *cloudformation.Stack) error
+	Update(context.Context, *cloudformation.Stack) (string, error)
+	UpdateAndWait(context.Context, *cloudformation.Stack) error
 	WaitForUpdate(ctx context.Context, stackName string) error
-	Delete(stackName string) error
-	DeleteAndWait(stackName string) error
-	DeleteAndWaitWithContext(context.Context, string) error
-	DeleteAndWaitWithRoleARN(stackName, roleARN string) error
-	DeleteAndWaitWithRoleARNWithContext(ctx context.Context, stackName, roleARN string) error
-	Describe(stackName string) (*cloudformation.StackDescription, error)
-	DescribeWithContext(ctx context.Context, stackName string) (*cloudformation.StackDescription, error)
-	DescribeChangeSet(changeSetID, stackName string) (*cloudformation.ChangeSetDescription, error)
-	DescribeChangeSetWithContext(context.Context, string, string) (*cloudformation.ChangeSetDescription, error)
-	TemplateBody(stackName string) (string, error)
-	TemplateBodyWithContext(context.Context, string) (string, error)
-	TemplateBodyFromChangeSet(changeSetID, stackName string) (string, error)
-	TemplateBodyFromChangeSetWithContext(context.Context, string, string) (string, error)
-	Events(stackName string) ([]cloudformation.StackEvent, error)
-	ListStacksWithTags(tags map[string]string) ([]cloudformation.StackDescription, error)
-	ListStacksWithTagsWithContext(ctx context.Context, tags map[string]string) ([]cloudformation.StackDescription, error)
-	ErrorEvents(stackName string) ([]cloudformation.StackEvent, error)
-	ErrorEventsWithContext(context.Context, string) ([]cloudformation.StackEvent, error)
-	Outputs(stack *cloudformation.Stack) (map[string]string, error)
-	OutputsWithContext(context.Context, *cloudformation.Stack) (map[string]string, error)
-	StackResources(name string) ([]*cloudformation.StackResource, error)
-	StackResourcesWithContext(context.Context, string) ([]*cloudformation.StackResource, error)
-	Metadata(opts cloudformation.MetadataOpts) (string, error)
-	MetadataWithContext(context.Context, cloudformation.MetadataOpts) (string, error)
-	CancelUpdateStack(stackName string) error
-	CancelUpdateStackWithContext(context.Context, string) error
+	Delete(context.Context, string) error
+	DeleteAndWait(context.Context, string) error
+	DeleteAndWaitWithRoleARN(ctx context.Context, stackName, roleARN string) error
+	Describe(ctx context.Context, stackName string) (*cloudformation.StackDescription, error)
+	DescribeChangeSet(context.Context, string, string) (*cloudformation.ChangeSetDescription, error)
+	TemplateBody(context.Context, string) (string, error)
+	TemplateBodyFromChangeSet(context.Context, string, string) (string, error)
+	Events(context.Context, string) ([]cloudformation.StackEvent, error)
+	ListStacksWithTags(ctx context.Context, tags map[string]string) ([]cloudformation.StackDescription, error)
+	ErrorEvents(context.Context, string) ([]cloudformation.StackEvent, error)
+	Outputs(context.Context, *cloudformation.Stack) (map[string]string, error)
+	StackResources(context.Context, string) ([]*cloudformation.StackResource, error)
+	Metadata(context.Context, cloudformation.MetadataOpts) (string, error)
+	CancelUpdateStack(context.Context, string) error
 
-	// Methods vended by the aws sdk struct.
-	DescribeStackEvents(*sdkcloudformation.DescribeStackEventsInput) (*sdkcloudformation.DescribeStackEventsOutput, error)
-	DescribeStackEventsWithContext(context.Context, *sdkcloudformation.DescribeStackEventsInput) (*sdkcloudformation.DescribeStackEventsOutput, error)
+	DescribeStackEvents(context.Context, *sdkcloudformation.DescribeStackEventsInput) (*sdkcloudformation.DescribeStackEventsOutput, error)
 }
 
 type codeStarClient interface {
@@ -148,47 +129,32 @@ type codeStarClient interface {
 }
 
 type codePipelineClient interface {
-	RetryStageExecution(pipelineName, stageName string) error
-	RetryStageExecutionWithContext(context.Context, string, string) error
+	RetryStageExecution(context.Context, string, string) error
 }
 
 type s3Client interface {
-	Upload(bucket, fileName string, data io.Reader) (string, error)
-	UploadWithContext(ctx context.Context, bucket, fileName string, data io.Reader) (string, error)
-	EmptyBucket(bucket string) error
-	EmptyBucketWithContext(context.Context, string) error
+	Upload(ctx context.Context, bucket, fileName string, data io.Reader) (string, error)
+	EmptyBucket(context.Context, string) error
 }
 
 type imageRemover interface {
-	ClearRepository(repoName string) error
-	ClearRepositoryWithContext(context.Context, string) error
+	ClearRepository(context.Context, string) error
 }
 
 type stackSetClient interface {
-	Create(name, template string, opts ...stackset.CreateOrUpdateOption) error
-	CreateWithContext(context.Context, string, string, ...stackset.CreateOrUpdateOption) error
-	CreateInstances(name string, accounts, regions []string) (string, error)
-	CreateInstancesWithContext(context.Context, string, []string, []string) (string, error)
-	CreateInstancesAndWait(name string, accounts, regions []string) error
-	Update(name, template string, opts ...stackset.CreateOrUpdateOption) (string, error)
-	UpdateWithContext(context.Context, string, string, ...stackset.CreateOrUpdateOption) (string, error)
-	UpdateAndWait(name, template string, opts ...stackset.CreateOrUpdateOption) error
-	Describe(name string) (stackset.Description, error)
-	DescribeWithContext(context.Context, string) (stackset.Description, error)
-	DescribeOperation(name, opID string) (stackset.Operation, error)
-	DescribeOperationWithContext(context.Context, string, string) (stackset.Operation, error)
-	InstanceSummaries(name string, opts ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
-	InstanceSummariesWithContext(context.Context, string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
-	DeleteInstance(name, account, region string) (string, error)
-	DeleteInstanceWithContext(context.Context, string, string, string) (string, error)
-	DeleteAllInstances(name string) (string, error)
-	DeleteAllInstancesWithContext(context.Context, string) (string, error)
-	Delete(name string) error
-	DeleteWithContext(context.Context, string) error
-	WaitForStackSetLastOperationComplete(name string) error
-	WaitForStackSetLastOperationCompleteWithContext(context.Context, string) error
-	WaitForOperation(name, opID string) error
-	WaitForOperationWithContext(context.Context, string, string) error
+	Create(context.Context, string, string, ...stackset.CreateOrUpdateOption) error
+	CreateInstances(context.Context, string, []string, []string) (string, error)
+	CreateInstancesAndWait(context.Context, string, []string, []string) error
+	Update(context.Context, string, string, ...stackset.CreateOrUpdateOption) (string, error)
+	UpdateAndWait(context.Context, string, string, ...stackset.CreateOrUpdateOption) error
+	Describe(context.Context, string) (stackset.Description, error)
+	DescribeOperation(context.Context, string, string) (stackset.Operation, error)
+	InstanceSummaries(context.Context, string, ...stackset.InstanceSummariesOption) ([]stackset.InstanceSummary, error)
+	DeleteInstance(context.Context, string, string, string) (string, error)
+	DeleteAllInstances(context.Context, string) (string, error)
+	Delete(context.Context, string) error
+	WaitForStackSetLastOperationComplete(context.Context, string) error
+	WaitForOperation(context.Context, string, string) error
 }
 
 // OptFn represents an optional configuration function for the CloudFormation client.
@@ -237,31 +203,31 @@ type CloudFormation struct {
 }
 
 // New returns a configured CloudFormation client.
-func New(v2Config aws.Config, opts ...OptFn) CloudFormation {
+func New(cfg aws.Config, opts ...OptFn) CloudFormation {
 	client := CloudFormation{
-		cfnClient:      cloudformation.New(v2Config),
-		codeStarClient: codestar.New(v2Config),
-		cpClient:       codepipeline.New(v2Config, v2Config),
-		ecsClient:      ecs.New(v2Config),
-		cwClient:       cloudwatch.New(v2Config, v2Config),
+		cfnClient:      cloudformation.New(cfg),
+		codeStarClient: codestar.New(cfg),
+		cpClient:       codepipeline.New(cfg),
+		ecsClient:      ecs.New(cfg),
+		cwClient:       cloudwatch.New(cfg),
 		regionalClient: func(region string) cfnClient {
-			regionalV2Config := v2Config
-			regionalV2Config.Region = region
-			return cloudformation.New(regionalV2Config)
+			regionalConfig := cfg
+			regionalConfig.Region = region
+			return cloudformation.New(regionalConfig)
 		},
 		regionalECRClient: func(region string) imageRemover {
-			regionalV2Config := v2Config
-			regionalV2Config.Region = region
-			return ecr.New(regionalV2Config)
+			regionalConfig := cfg
+			regionalConfig.Region = region
+			return ecr.New(regionalConfig)
 		},
-		appStackSet: stackset.New(v2Config),
-		s3Client:    s3.New(v2Config),
+		appStackSet: stackset.New(cfg),
+		s3Client:    s3.New(cfg),
 		regionalS3Client: func(region string) s3Client {
-			regionalV2Config := v2Config
-			regionalV2Config.Region = region
-			return s3.New(regionalV2Config)
+			regionalConfig := cfg
+			regionalConfig.Region = region
+			return s3.New(regionalConfig)
 		},
-		region:  v2Config.Region,
+		region:  cfg.Region,
 		console: new(discardFile),
 	}
 	for _, opt := range opts {
@@ -272,14 +238,9 @@ func New(v2Config aws.Config, opts ...OptFn) CloudFormation {
 	return client
 }
 
-// Template returns a deployed stack's template.
-func (cf CloudFormation) Template(stackName string) (string, error) {
-	return cf.cfnClient.TemplateBody(stackName)
-}
-
-// TemplateWithContext returns a deployed stack's template using ctx.
-func (cf CloudFormation) TemplateWithContext(ctx context.Context, stackName string) (string, error) {
-	return cf.cfnClient.TemplateBodyWithContext(ctx, stackName)
+// Template returns a deployed stack's template using ctx.
+func (cf CloudFormation) Template(ctx context.Context, stackName string) (string, error) {
+	return cf.cfnClient.TemplateBody(ctx, stackName)
 }
 
 // IsEmptyErr returns true if the error occurred because the cloudformation resource does not exist or does not contain any sub-resources.
@@ -294,7 +255,7 @@ func IsEmptyErr(err error) bool {
 
 // errorEvents returns the list of status reasons of failed resource events
 func (cf CloudFormation) errorEvents(ctx context.Context, stackName string) ([]string, error) {
-	events, err := cf.cfnClient.ErrorEventsWithContext(ctx, stackName)
+	events, err := cf.cfnClient.ErrorEvents(ctx, stackName)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +300,7 @@ func (cf CloudFormation) newCreateChangeSetInput(w progress.FileWriter, stack *c
 		spinner.Start(label)
 
 		var errAlreadyExists *cloudformation.ErrStackAlreadyExists
-		changeSetID, err := cf.cfnClient.CreateWithContext(ctx, stack)
+		changeSetID, err := cf.cfnClient.Create(ctx, stack)
 		if err != nil && !errors.As(err, &errAlreadyExists) {
 			spinner.Stop(log.Serrorf("%s\n", label))
 			return "", cf.handleStackError(ctx, stack.Name, err)
@@ -359,7 +320,7 @@ func (cf CloudFormation) newUpsertChangeSetInput(w progress.FileWriter, stack *c
 		spinner := progress.NewSpinner(w)
 		label := fmt.Sprintf("Proposing infrastructure changes for stack %s", stack.Name)
 		spinner.Start(label)
-		changeSetID, err = cf.cfnClient.CreateWithContext(ctx, stack)
+		changeSetID, err = cf.cfnClient.Create(ctx, stack)
 		if err == nil {
 			// Successfully created the change set to create the stack.
 			spinner.Stop(log.Ssuccessf("%s\n", label))
@@ -375,7 +336,7 @@ func (cf CloudFormation) newUpsertChangeSetInput(w progress.FileWriter, stack *c
 
 		// We have to create an update stack change set instead.
 		in.stackDescription = fmt.Sprintf("Updating the infrastructure for stack %s", stack.Name)
-		changeSetID, err = cf.cfnClient.UpdateWithContext(ctx, stack)
+		changeSetID, err = cf.cfnClient.Update(ctx, stack)
 		if err != nil {
 			msg := log.Serrorf("%s\n", label)
 			var errChangeSetEmpty *cloudformation.ErrChangeSetEmpty
@@ -520,7 +481,7 @@ func (cf CloudFormation) handleInterrupt(in interruptHandlerInput) error {
 	in.cancelFn()
 	cleanupCtx, cancel := cleanupContext(in.ctx)
 	defer cancel()
-	stackDescr, err := cf.cfnClient.DescribeWithContext(cleanupCtx, in.stackName)
+	stackDescr, err := cf.cfnClient.Describe(cleanupCtx, in.stackName)
 	if err != nil {
 		return fmt.Errorf("describe stack %s: %w", in.stackName, err)
 	}
@@ -535,7 +496,7 @@ func (cf CloudFormation) handleInterrupt(in interruptHandlerInput) error {
 			stackName:   in.stackName,
 			description: description,
 			deleteFn: func(ctx context.Context) error {
-				return cf.cfnClient.DeleteAndWaitWithContext(ctx, in.stackName)
+				return cf.cfnClient.DeleteAndWait(ctx, in.stackName)
 			},
 			updateRenderDone: in.updateRenderDone,
 		}); err != nil {
@@ -552,7 +513,7 @@ func (cf CloudFormation) handleInterrupt(in interruptHandlerInput) error {
 			stackName:   in.stackName,
 			description: description,
 			cancelUpdateFn: func(ctx context.Context) error {
-				return cf.cfnClient.CancelUpdateStackWithContext(ctx, in.stackName)
+				return cf.cfnClient.CancelUpdateStack(ctx, in.stackName)
 			},
 			updateRenderDone: in.updateRenderDone,
 		}); err != nil {
@@ -564,9 +525,6 @@ func (cf CloudFormation) handleInterrupt(in interruptHandlerInput) error {
 }
 
 func cleanupContext(parent context.Context) (context.Context, context.CancelFunc) {
-	if parent == nil {
-		parent = context.Background()
-	}
 	return context.WithTimeout(context.WithoutCancel(parent), waitForStackTimeout)
 }
 
@@ -580,16 +538,7 @@ type cancelUpdateAndRenderInput struct {
 
 func (cf CloudFormation) cancelUpdateAndRender(in *cancelUpdateAndRenderInput) error {
 	ctx := in.ctx
-	var cancel context.CancelFunc
-	var stackDescr *cloudformation.StackDescription
-	var err error
-	if ctx != nil {
-		stackDescr, err = cf.cfnClient.DescribeWithContext(ctx, in.stackName)
-	} else {
-		stackDescr, err = cf.cfnClient.Describe(in.stackName)
-		ctx, cancel = context.WithTimeout(context.Background(), waitForStackTimeout)
-		defer cancel()
-	}
+	stackDescr, err := cf.cfnClient.Describe(ctx, in.stackName)
 	if err != nil {
 		return fmt.Errorf("describe stack %s: %w", in.stackName, err)
 	}
@@ -597,8 +546,7 @@ func (cf CloudFormation) cancelUpdateAndRender(in *cancelUpdateAndRenderInput) e
 		return fmt.Errorf("ChangeSetID not found for stack %s", in.stackName)
 
 	}
-	operationCtx := ctx
-	g, renderCtx := errgroup.WithContext(operationCtx)
+	g, renderCtx := errgroup.WithContext(ctx)
 	renderer, err := cf.createChangeSetRenderer(g, renderCtx, aws.ToString(stackDescr.ChangeSetId), in.stackName, in.description, progress.RenderOptions{})
 	if err != nil {
 		return err
@@ -614,24 +562,10 @@ func (cf CloudFormation) cancelUpdateAndRender(in *cancelUpdateAndRenderInput) e
 	if err := g.Wait(); err != nil {
 		return err
 	}
-	if in.ctx == nil {
-		return cf.errOnFailedCancelUpdateLegacy(in.stackName)
-	}
-	return cf.errOnFailedCancelUpdate(operationCtx, in.stackName)
-}
-
-func (cf CloudFormation) errOnFailedCancelUpdateLegacy(stackName string) error {
-	stack, err := cf.cfnClient.Describe(stackName)
-	if err != nil {
-		return fmt.Errorf("describe stack %s: %w", stackName, err)
-	}
-	if stack.StackStatus != types.StackStatusUpdateRollbackComplete {
-		return fmt.Errorf("stack %s did not rollback successfully and exited with status %s", stackName, stack.StackStatus)
-	}
-	return nil
+	return cf.errOnFailedCancelUpdate(ctx, in.stackName)
 }
 func (cf CloudFormation) errOnFailedCancelUpdate(ctx context.Context, stackName string) error {
-	stack, err := cf.cfnClient.DescribeWithContext(ctx, stackName)
+	stack, err := cf.cfnClient.Describe(ctx, stackName)
 	if err != nil {
 		return fmt.Errorf("describe stack %s: %w", stackName, err)
 	}
@@ -661,11 +595,11 @@ func (e *ErrStackUpdateCanceledOnInterrupt) Error() string {
 }
 
 func (cf CloudFormation) createChangeSetRenderer(group *errgroup.Group, ctx context.Context, changeSetID, stackName, description string, opts progress.RenderOptions) (progress.DynamicRenderer, error) {
-	changeSet, err := cf.cfnClient.DescribeChangeSetWithContext(ctx, changeSetID, stackName)
+	changeSet, err := cf.cfnClient.DescribeChangeSet(ctx, changeSetID, stackName)
 	if err != nil {
 		return nil, err
 	}
-	body, err := cf.cfnClient.TemplateBodyFromChangeSetWithContext(ctx, changeSetID, stackName)
+	body, err := cf.cfnClient.TemplateBodyFromChangeSet(ctx, changeSetID, stackName)
 	if err != nil {
 		return nil, err
 	}
@@ -674,7 +608,7 @@ func (cf CloudFormation) createChangeSetRenderer(group *errgroup.Group, ctx cont
 		return nil, fmt.Errorf("parse cloudformation template for resource descriptions: %w", err)
 	}
 
-	streamer := stream.NewStackStreamerWithContext(ctx, cf.cfnClient, stackName, changeSet.CreationTime)
+	streamer := stream.NewStackStreamer(ctx, cf.cfnClient, stackName, changeSet.CreationTime)
 	children, err := cf.changeRenderers(changeRenderersInput{
 		g:                  group,
 		ctx:                ctx,
@@ -778,12 +712,12 @@ type envControllerRendererInput struct {
 }
 
 func (cf CloudFormation) createEnvControllerRenderer(in *envControllerRendererInput) (progress.DynamicRenderer, error) {
-	workload, err := cf.cfnClient.DescribeWithContext(in.ctx, in.workloadStackName)
+	workload, err := cf.cfnClient.Describe(in.ctx, in.workloadStackName)
 	if err != nil {
 		return nil, err
 	}
 	envStackName := fmt.Sprintf("%s-%s", parseAppNameFromTags(workload.Tags), parseEnvNameFromTags(workload.Tags))
-	body, err := cf.cfnClient.TemplateBodyWithContext(in.ctx, envStackName)
+	body, err := cf.cfnClient.TemplateBody(in.ctx, envStackName)
 	if err != nil {
 		return nil, err
 	}
@@ -791,7 +725,7 @@ func (cf CloudFormation) createEnvControllerRenderer(in *envControllerRendererIn
 	if err != nil {
 		return nil, fmt.Errorf("parse cloudformation template for resource descriptions: %w", err)
 	}
-	envStreamer := stream.NewStackStreamerWithContext(in.ctx, cf.cfnClient, envStackName, in.workloadTimestamp)
+	envStreamer := stream.NewStackStreamer(in.ctx, cf.cfnClient, envStackName, in.workloadTimestamp)
 	ctx, cancel := context.WithCancel(in.ctx)
 	in.g.Go(func() error {
 		if err := stream.Stream(ctx, envStreamer); err != nil {
@@ -818,7 +752,6 @@ func (cf CloudFormation) createEnvControllerRenderer(in *envControllerRendererIn
 
 type renderStackInput struct {
 	group *errgroup.Group // Group of go routines.
-	ctx   context.Context
 
 	// Stack metadata.
 	stackName      string            // Name of the stack.
@@ -829,10 +762,7 @@ type renderStackInput struct {
 }
 
 func (cf CloudFormation) stackRenderer(ctx context.Context, in renderStackInput) progress.DynamicRenderer {
-	streamer := stream.NewStackStreamer(cf.cfnClient, in.stackID, in.startTime)
-	if in.ctx != nil {
-		streamer = stream.NewStackStreamerWithContext(ctx, cf.cfnClient, in.stackID, in.startTime)
-	}
+	streamer := stream.NewStackStreamer(ctx, cf.cfnClient, in.stackID, in.startTime)
 	renderer := progress.ListeningStackRenderer(streamer, in.stackName, in.description, in.descriptionFor, progress.RenderOptions{})
 	in.group.Go(func() error {
 		return stream.Stream(ctx, streamer)
@@ -850,13 +780,7 @@ type deleteAndRenderInput struct {
 
 func (cf CloudFormation) deleteAndRenderStack(in deleteAndRenderInput) error {
 	ctx := in.ctx
-	var body string
-	var err error
-	if ctx != nil {
-		body, err = cf.cfnClient.TemplateBodyWithContext(ctx, in.stackName)
-	} else {
-		body, err = cf.cfnClient.TemplateBody(in.stackName)
-	}
+	body, err := cf.cfnClient.TemplateBody(ctx, in.stackName)
 	if err != nil {
 		if !errors.As(err, &errNotFound) {
 			return fmt.Errorf("get template body of stack %q: %w", in.stackName, err)
@@ -868,12 +792,7 @@ func (cf CloudFormation) deleteAndRenderStack(in deleteAndRenderInput) error {
 		return fmt.Errorf("parse resource descriptions in template of stack %q: %w", in.stackName, err)
 	}
 
-	var stack *cloudformation.StackDescription
-	if ctx != nil {
-		stack, err = cf.cfnClient.DescribeWithContext(ctx, in.stackName)
-	} else {
-		stack, err = cf.cfnClient.Describe(in.stackName)
-	}
+	stack, err := cf.cfnClient.Describe(ctx, in.stackName)
 	if err != nil {
 		if !errors.As(err, &errNotFound) {
 			return fmt.Errorf("retrieve the stack ID for stack %q: %w", in.stackName, err)
@@ -881,17 +800,11 @@ func (cf CloudFormation) deleteAndRenderStack(in deleteAndRenderInput) error {
 		return nil // stack already deleted.
 	}
 
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), waitForStackTimeout)
-		defer cancel()
-	}
 	g, ctx := errgroup.WithContext(ctx)
 	now := time.Now()
 	g.Go(func() error { return in.deleteFn(ctx) })
 	renderer := cf.stackRenderer(ctx, renderStackInput{
 		group:          g,
-		ctx:            in.ctx,
 		stackID:        aws.ToString(stack.StackId),
 		stackName:      in.stackName,
 		description:    in.description,
@@ -939,13 +852,13 @@ func (e *errFailedService) Error() string {
 }
 
 func (cf CloudFormation) errOnFailedStack(ctx context.Context, stackName string) error {
-	stack, err := cf.cfnClient.DescribeWithContext(ctx, stackName)
+	stack, err := cf.cfnClient.Describe(ctx, stackName)
 	if err != nil {
 		return err
 	}
 	status := string(stack.StackStatus)
 	if cloudformation.StackStatus(status).IsFailure() {
-		events, _ := cf.cfnClient.ErrorEventsWithContext(ctx, stackName)
+		events, _ := cf.cfnClient.ErrorEvents(ctx, stackName)
 		var failedResourceType string
 		if len(events) > 0 {
 			failedResourceType = aws.ToString(events[0].ResourceType)

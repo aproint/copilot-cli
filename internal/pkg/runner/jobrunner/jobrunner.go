@@ -15,14 +15,12 @@ import (
 
 // StateMachineExecutor is the interface that implements the Execute method to invoke a state machine.
 type StateMachineExecutor interface {
-	Execute(stateMachineARN string) error
-	ExecuteWithContext(context.Context, string) error
+	Execute(context.Context, string) error
 }
 
 // CFNStackResourceLister is the interface to list CloudFormation stack resources.
 type CFNStackResourceLister interface {
-	StackResources(name string) ([]*cloudformation.StackResource, error)
-	StackResourcesWithContext(context.Context, string) ([]*cloudformation.StackResource, error)
+	StackResources(context.Context, string) ([]*cloudformation.StackResource, error)
 }
 
 // JobRunner can invoke a job.
@@ -58,15 +56,9 @@ func New(cfg *Config) *JobRunner {
 
 }
 
-// Run invokes a job.
-// An error is returned if the state machine's ARN can not be derived from the job, or the execution fails.
-func (job *JobRunner) Run() error {
-	return job.RunWithContext(context.Background())
-}
-
-// RunWithContext invokes a job using ctx.
-func (job *JobRunner) RunWithContext(ctx context.Context) error {
-	resources, err := job.cfn.StackResourcesWithContext(ctx, stack.NameForWorkload(job.app, job.env, job.job))
+// Run invokes a job using ctx.
+func (job *JobRunner) Run(ctx context.Context) error {
+	resources, err := job.cfn.StackResources(ctx, stack.NameForWorkload(job.app, job.env, job.job))
 	if err != nil {
 		return fmt.Errorf("describe stack %q: %v", stack.NameForWorkload(job.app, job.env, job.job), err)
 	}
@@ -81,7 +73,7 @@ func (job *JobRunner) RunWithContext(ctx context.Context) error {
 	if arn == "" {
 		return fmt.Errorf("state machine for job %q is not found in environment %q and application %q", job.job, job.env, job.app)
 	}
-	if err := job.stateMachine.ExecuteWithContext(ctx, arn); err != nil {
+	if err := job.stateMachine.Execute(ctx, arn); err != nil {
 		return fmt.Errorf("execute state machine %q: %v", arn, err)
 	}
 	return nil

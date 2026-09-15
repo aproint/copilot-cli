@@ -36,31 +36,17 @@ func (m *MockStateMachineExecutor) EXPECT() *MockStateMachineExecutorMockRecorde
 }
 
 // Execute mocks base method.
-func (m *MockStateMachineExecutor) Execute(stateMachineARN string) error {
+func (m *MockStateMachineExecutor) Execute(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute", stateMachineARN)
+	ret := m.ctrl.Call(m, "Execute", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockStateMachineExecutorMockRecorder) Execute(stateMachineARN interface{}) *gomock.Call {
+func (mr *MockStateMachineExecutorMockRecorder) Execute(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockStateMachineExecutor)(nil).Execute), stateMachineARN)
-}
-
-// ExecuteWithContext mocks base method.
-func (m *MockStateMachineExecutor) ExecuteWithContext(arg0 context.Context, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteWithContext", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ExecuteWithContext indicates an expected call of ExecuteWithContext.
-func (mr *MockStateMachineExecutorMockRecorder) ExecuteWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteWithContext", reflect.TypeOf((*MockStateMachineExecutor)(nil).ExecuteWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockStateMachineExecutor)(nil).Execute), arg0, arg1)
 }
 
 // MockCFNStackResourceLister is a mock of CFNStackResourceLister interface.
@@ -87,31 +73,16 @@ func (m *MockCFNStackResourceLister) EXPECT() *MockCFNStackResourceListerMockRec
 }
 
 // StackResources mocks base method.
-func (m *MockCFNStackResourceLister) StackResources(name string) ([]*cloudformation.StackResource, error) {
+func (m *MockCFNStackResourceLister) StackResources(arg0 context.Context, arg1 string) ([]*cloudformation.StackResource, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackResources", name)
+	ret := m.ctrl.Call(m, "StackResources", arg0, arg1)
 	ret0, _ := ret[0].([]*cloudformation.StackResource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StackResources indicates an expected call of StackResources.
-func (mr *MockCFNStackResourceListerMockRecorder) StackResources(name interface{}) *gomock.Call {
+func (mr *MockCFNStackResourceListerMockRecorder) StackResources(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResources", reflect.TypeOf((*MockCFNStackResourceLister)(nil).StackResources), name)
-}
-
-// StackResourcesWithContext mocks base method.
-func (m *MockCFNStackResourceLister) StackResourcesWithContext(arg0 context.Context, arg1 string) ([]*cloudformation.StackResource, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StackResourcesWithContext", arg0, arg1)
-	ret0, _ := ret[0].([]*cloudformation.StackResource)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// StackResourcesWithContext indicates an expected call of StackResourcesWithContext.
-func (mr *MockCFNStackResourceListerMockRecorder) StackResourcesWithContext(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResourcesWithContext", reflect.TypeOf((*MockCFNStackResourceLister)(nil).StackResourcesWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StackResources", reflect.TypeOf((*MockCFNStackResourceLister)(nil).StackResources), arg0, arg1)
 }

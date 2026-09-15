@@ -11,12 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newOverrideJobOpts(vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
-	return configureOverrideJobOpts(newOverrideWorkloadOpts(vars))
-}
-
-func newOverrideJobOptsWithContext(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
-	return configureOverrideJobOpts(newOverrideWorkloadOptsWithContext(ctx, vars))
+func newOverrideJobOpts(ctx context.Context, vars overrideWorkloadVars) (*overrideWorkloadOpts, error) {
+	return configureOverrideJobOpts(newOverrideWorkloadOpts(ctx, vars))
 }
 
 func configureOverrideJobOpts(cmd *overrideWorkloadOpts, err error) (*overrideWorkloadOpts, error) {
@@ -68,7 +64,7 @@ or add new resources to the job's template.`,
   Create a new Cloud Development Kit application to override the "report" job template.
   /code $ copilot job override -n report --tool cdk`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newOverrideJobOptsWithContext(cmd.Context(), vars)
+			opts, err := newOverrideJobOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

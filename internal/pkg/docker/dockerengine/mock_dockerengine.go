@@ -36,10 +36,10 @@ func (m *MockCmd) EXPECT() *MockCmdMockRecorder {
 }
 
 // Run mocks base method.
-func (m *MockCmd) Run(name string, args []string, options ...exec.CmdOption) error {
+func (m *MockCmd) Run(ctx context.Context, name string, args []string, opts ...exec.CmdOption) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{name, args}
-	for _, a := range options {
+	varargs := []interface{}{ctx, name, args}
+	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Run", varargs...)
@@ -48,27 +48,8 @@ func (m *MockCmd) Run(name string, args []string, options ...exec.CmdOption) err
 }
 
 // Run indicates an expected call of Run.
-func (mr *MockCmdMockRecorder) Run(name, args interface{}, options ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{name, args}, options...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockCmd)(nil).Run), varargs...)
-}
-
-// RunWithContext mocks base method.
-func (m *MockCmd) RunWithContext(ctx context.Context, name string, args []string, opts ...exec.CmdOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, name, args}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "RunWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RunWithContext indicates an expected call of RunWithContext.
-func (mr *MockCmdMockRecorder) RunWithContext(ctx, name, args interface{}, opts ...interface{}) *gomock.Call {
+func (mr *MockCmdMockRecorder) Run(ctx, name, args interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, name, args}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWithContext", reflect.TypeOf((*MockCmd)(nil).RunWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockCmd)(nil).Run), varargs...)
 }

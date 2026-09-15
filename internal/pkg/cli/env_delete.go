@@ -105,11 +105,7 @@ type deleteEnvOpts struct {
 	initRuntimeClients func(*deleteEnvOpts) error
 }
 
-func newDeleteEnvOpts(vars deleteEnvVars) (*deleteEnvOpts, error) {
-	return newDeleteEnvOptsWithContext(context.Background(), vars)
-}
-
-func newDeleteEnvOptsWithContext(ctx context.Context, vars deleteEnvVars) (*deleteEnvOpts, error) {
+func newDeleteEnvOpts(ctx context.Context, vars deleteEnvVars) (*deleteEnvOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("env delete"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -142,7 +138,7 @@ func newDeleteEnvOptsWithContext(ctx context.Context, vars deleteEnvVars) (*dele
 			o.envStackDescriber = stackdescr.NewStackDescriber(stack.NameForEnv(o.appName, o.name), cfg)
 			o.deployer = cloudformation.New(cfg, cloudformation.WithProgressTracker(os.Stderr))
 			o.envDeleterFromApp = cloudformation.New(defaultConfig, cloudformation.WithProgressTracker(os.Stderr))
-			o.pipelineGetter = codepipeline.New(defaultConfig, defaultConfig)
+			o.pipelineGetter = codepipeline.New(defaultConfig)
 			o.deployedPipelineLister = deploy.NewPipelineStore(rg.New(defaultConfig))
 			return nil
 		},
@@ -150,12 +146,7 @@ func newDeleteEnvOptsWithContext(ctx context.Context, vars deleteEnvVars) (*dele
 }
 
 // Validate returns an error if the individual user inputs are invalid.
-func (o *deleteEnvOpts) Validate() error {
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
+func (o *deleteEnvOpts) Validate(ctx context.Context) error {
 	if o.name != "" {
 		if err := o.validateEnvName(ctx); err != nil {
 			return err
@@ -322,12 +313,12 @@ func (o *deleteEnvOpts) validateNoRunningServices(ctx context.Context) error {
 }
 
 func (o *deleteEnvOpts) validateNoDependencyPipelines(ctx context.Context) error {
-	pipelines, err := o.deployedPipelineLister.ListDeployedPipelinesWithContext(ctx, o.appName)
+	pipelines, err := o.deployedPipelineLister.ListDeployedPipelines(ctx, o.appName)
 	if err != nil {
 		return fmt.Errorf("list deployed pipelines: %w", err)
 	}
 	for _, pipeline := range pipelines {
-		info, err := o.pipelineGetter.GetPipelineWithContext(ctx, pipeline.ResourceName)
+		info, err := o.pipelineGetter.GetPipeline(ctx, pipeline.ResourceName)
 		if err != nil {
 			return fmt.Errorf("get pipeline %s: %w", pipeline.ResourceName, err)
 		}
@@ -353,7 +344,7 @@ func (o *deleteEnvOpts) validateNoDependencyPipelines(ctx context.Context) error
 // In case we encounter a legacy stack, we need to first update the stack to make sure these roles are retained and then
 // proceed with the regular flow.
 func (o *deleteEnvOpts) ensureRolesAreRetained(ctx context.Context) error {
-	body, err := o.deployer.TemplateWithContext(ctx, stack.NameForEnv(o.appName, o.name))
+	body, err := o.deployer.Template(ctx, stack.NameForEnv(o.appName, o.name))
 	if err != nil {
 		var stackDoesNotExist *awscfn.ErrStackNotFound
 		if errors.As(err, &stackDoesNotExist) {
@@ -410,7 +401,7 @@ func (o *deleteEnvOpts) ensureRolesAreRetained(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := o.deployer.UpdateEnvironmentTemplateWithContext(ctx, o.appName, o.name, newBody, env.ExecutionRoleARN); err != nil {
+	if err := o.deployer.UpdateEnvironmentTemplate(ctx, o.appName, o.name, newBody, env.ExecutionRoleARN); err != nil {
 		return fmt.Errorf("update environment stack to retain environment roles: %w", err)
 	}
 	return nil
@@ -444,7 +435,7 @@ func (o *deleteEnvOpts) emptyBuckets(ctx context.Context) error {
 		return fmt.Errorf("find s3 bucket resources: %w", err)
 	}
 
-	envResources, err := o.envStackDescriber.ResourcesWithContext(ctx)
+	envResources, err := o.envStackDescriber.Resources(ctx)
 	if err != nil {
 		return fmt.Errorf("find stack resources: %w", err)
 	}
@@ -465,7 +456,7 @@ func (o *deleteEnvOpts) emptyBuckets(ctx context.Context) error {
 		}
 
 		// Attempt to empty all buckets found via GetResources API call
-		if err = o.s3.EmptyBucketWithContext(ctx, bucketARN.Resource); err != nil {
+		if err = o.s3.EmptyBucket(ctx, bucketARN.Resource); err != nil {
 			failedBuckets = append(failedBuckets, bucketARN.Resource)
 			bucketErrors = append(bucketErrors, err)
 			continue
@@ -494,7 +485,7 @@ func (o *deleteEnvOpts) deleteStack(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := o.deployer.DeleteEnvironmentWithContext(ctx, o.appName, o.name, env.ExecutionRoleARN); err != nil {
+	if err := o.deployer.DeleteEnvironment(ctx, o.appName, o.name, env.ExecutionRoleARN); err != nil {
 		return fmt.Errorf("delete environment %s stack: %w", o.name, err)
 	}
 	return nil
@@ -515,7 +506,7 @@ func (o *deleteEnvOpts) cleanUpAppResources(ctx context.Context) error {
 		return err
 	}
 
-	if err := o.envDeleterFromApp.RemoveEnvFromAppWithContext(ctx, &cloudformation.RemoveEnvFromAppOpts{
+	if err := o.envDeleterFromApp.RemoveEnvFromApp(ctx, &cloudformation.RemoveEnvFromAppOpts{
 		App:          app,
 		EnvToDelete:  currentEnv,
 		Environments: envs,
@@ -538,8 +529,8 @@ func (o *deleteEnvOpts) tryDeleteRoles(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = o.iam.DeleteRoleWithContext(ctx, env.ExecutionRoleARN)
-	_ = o.iam.DeleteRoleWithContext(ctx, env.ManagerRoleARN)
+	_ = o.iam.DeleteRole(ctx, env.ExecutionRoleARN)
+	_ = o.iam.DeleteRole(ctx, env.ManagerRoleARN)
 	return nil
 }
 
@@ -589,7 +580,7 @@ func buildEnvDeleteCmd() *cobra.Command {
   Delete the "test" environment without prompting.
   /code $ copilot env delete --name test --yes`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newDeleteEnvOptsWithContext(cmd.Context(), vars)
+			opts, err := newDeleteEnvOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

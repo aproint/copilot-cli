@@ -32,26 +32,26 @@ func TestJobRunner_Run(t *testing.T) {
 
 		"missing stack": {
 			MockExecutor: func(m *mocks.MockStateMachineExecutor) {
-				m.EXPECT().ExecuteWithContext(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(nil).AnyTimes()
+				m.EXPECT().Execute(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(nil).AnyTimes()
 			},
 			App: "appname",
 			Env: "envname",
 			Job: "jobname",
 			MockCFN: func(m *mocks.MockCFNStackResourceLister) {
-				m.EXPECT().StackResourcesWithContext(context.Background(), "appname-envname-jobname").Return(nil, fmt.Errorf("Missing Stack Resource"))
+				m.EXPECT().StackResources(context.Background(), "appname-envname-jobname").Return(nil, fmt.Errorf("Missing Stack Resource"))
 			},
 			wantedError: fmt.Errorf(`describe stack "appname-envname-jobname": Missing Stack Resource`),
 		},
 
 		"missing statemachine resource": {
 			MockExecutor: func(m *mocks.MockStateMachineExecutor) {
-				m.EXPECT().ExecuteWithContext(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(nil).AnyTimes()
+				m.EXPECT().Execute(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(nil).AnyTimes()
 			},
 			App: "appname",
 			Env: "envname",
 			Job: "jobname",
 			MockCFN: func(m *mocks.MockCFNStackResourceLister) {
-				m.EXPECT().StackResourcesWithContext(context.Background(), "appname-envname-jobname").Return([]*cloudformation.StackResource{
+				m.EXPECT().StackResources(context.Background(), "appname-envname-jobname").Return([]*cloudformation.StackResource{
 					{
 						ResourceType: aws.String("AWS::Lambda::Function"),
 					},
@@ -62,13 +62,13 @@ func TestJobRunner_Run(t *testing.T) {
 
 		"failed statemachine execution": {
 			MockExecutor: func(m *mocks.MockStateMachineExecutor) {
-				m.EXPECT().ExecuteWithContext(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(fmt.Errorf("ExecutionLimitExceeded"))
+				m.EXPECT().Execute(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(fmt.Errorf("ExecutionLimitExceeded"))
 			},
 			App: "appname",
 			Env: "envname",
 			Job: "jobname",
 			MockCFN: func(m *mocks.MockCFNStackResourceLister) {
-				m.EXPECT().StackResourcesWithContext(context.Background(), "appname-envname-jobname").Return([]*cloudformation.StackResource{
+				m.EXPECT().StackResources(context.Background(), "appname-envname-jobname").Return([]*cloudformation.StackResource{
 					{
 						ResourceType:       aws.String("AWS::StepFunctions::StateMachine"),
 						PhysicalResourceId: aws.String("arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job"),
@@ -80,13 +80,13 @@ func TestJobRunner_Run(t *testing.T) {
 
 		"run success": {
 			MockExecutor: func(m *mocks.MockStateMachineExecutor) {
-				m.EXPECT().ExecuteWithContext(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(nil)
+				m.EXPECT().Execute(context.Background(), "arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job").Return(nil)
 			},
 			App: "appname",
 			Env: "envname",
 			Job: "jobname",
 			MockCFN: func(m *mocks.MockCFNStackResourceLister) {
-				m.EXPECT().StackResourcesWithContext(context.Background(), "appname-envname-jobname").Return([]*cloudformation.StackResource{
+				m.EXPECT().StackResources(context.Background(), "appname-envname-jobname").Return([]*cloudformation.StackResource{
 					{
 						ResourceType:       aws.String("AWS::StepFunctions::StateMachine"),
 						PhysicalResourceId: aws.String("arn:aws:states:us-east-1:111111111111:stateMachine:app-env-job"),
@@ -116,7 +116,7 @@ func TestJobRunner_Run(t *testing.T) {
 				cfn:          cfn,
 			}
 
-			err := jobRunner.Run()
+			err := jobRunner.Run(context.Background())
 
 			if tc.wantedError != nil {
 				require.EqualError(t, err, tc.wantedError.Error())

@@ -4,6 +4,7 @@
 package describe
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -88,14 +89,14 @@ func TestPipelineStatusDescriber_Describe(t *testing.T) {
 	}{
 		"wraps GetPipelineState error": {
 			setupMocks: func(m pipelineStatusDescriberMocks) {
-				m.pipelineStateGetter.EXPECT().GetPipelineState(pipelineResourceName).Return(nil, mockError)
+				m.pipelineStateGetter.EXPECT().GetPipelineState(context.Background(), pipelineResourceName).Return(nil, mockError)
 			},
 			expectedError:  fmt.Errorf("get pipeline status: %w", mockError),
 			expectedOutput: nil,
 		},
 		"success": {
 			setupMocks: func(m pipelineStatusDescriberMocks) {
-				m.pipelineStateGetter.EXPECT().GetPipelineState(pipelineResourceName).Return(mockPipelineState, nil)
+				m.pipelineStateGetter.EXPECT().GetPipelineState(context.Background(), pipelineResourceName).Return(mockPipelineState, nil)
 			},
 			expectedError: nil,
 			expectedOutput: &PipelineStatus{
@@ -123,7 +124,7 @@ func TestPipelineStatusDescriber_Describe(t *testing.T) {
 				IsLegacy:     false,
 			}
 
-			describer := &PipelineStatusDescriber{
+			describer := &PipelineStatusDescriber{ctx: context.Background(),
 				pipeline:    mockDeployedPipeline,
 				pipelineSvc: mockPipelineStateGetter,
 			}

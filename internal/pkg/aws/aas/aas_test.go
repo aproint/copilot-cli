@@ -130,7 +130,7 @@ func TestCloudWatch_ECSServiceAutoscalingAlarms(t *testing.T) {
 				client: mockClient,
 			}
 
-			gotAlarmNames, gotErr := aasSvc.ECSServiceAlarmNames(mockCluster, mockService)
+			gotAlarmNames, gotErr := aasSvc.ECSServiceAlarmNames(context.Background(), mockCluster, mockService)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())

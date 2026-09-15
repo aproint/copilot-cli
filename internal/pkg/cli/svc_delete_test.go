@@ -70,7 +70,7 @@ func TestDeleteSvcOpts_Validate(t *testing.T) {
 				store: mockstore,
 			}
 
-			err := opts.Validate()
+			err := opts.Validate(context.Background())
 
 			if test.want != nil {
 				require.EqualError(t, err, test.want.Error())
@@ -365,16 +365,16 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
-					mocks.svcCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
+					mocks.svcCFN.EXPECT().DeleteWorkload(context.Background(), gomock.Any()).Return(nil),
 
 					mocks.sessProvider.EXPECT().DefaultConfigWithRegion(gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 
 					// emptyECRRepos
-					mocks.ecr.EXPECT().ClearRepository(mockRepo).Return(nil),
+					mocks.ecr.EXPECT().ClearRepository(context.Background(), mockRepo).Return(nil),
 
 					// removeSvcFromApp
 					mocks.store.EXPECT().GetApplication(ctx, mockAppName).Return(mockApp, nil),
-					mocks.appCFN.EXPECT().RemoveServiceFromApp(mockApp, mockSvcName).Return(nil),
+					mocks.appCFN.EXPECT().RemoveServiceFromApp(context.Background(), mockApp, mockSvcName).Return(nil),
 
 					// deleteSSMParam
 					mocks.store.EXPECT().DeleteService(ctx, mockAppName, mockSvcName).Return(nil),
@@ -407,13 +407,13 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
-					mocks.svcCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(nil),
+					mocks.svcCFN.EXPECT().DeleteWorkload(context.Background(), gomock.Any()).Return(nil),
 
 					// It should **not** emptyECRRepos
-					mocks.ecr.EXPECT().ClearRepository(gomock.Any()).Return(nil).Times(0),
+					mocks.ecr.EXPECT().ClearRepository(context.Background(), gomock.Any()).Return(nil).Times(0),
 
 					// It should **not** removeSvcFromApp
-					mocks.appCFN.EXPECT().RemoveServiceFromApp(gomock.Any(), gomock.Any()).Return(nil).Times(0),
+					mocks.appCFN.EXPECT().RemoveServiceFromApp(context.Background(), gomock.Any(), gomock.Any()).Return(nil).Times(0),
 
 					// It should **not** deleteSSMParam
 					mocks.store.EXPECT().DeleteService(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(0),
@@ -479,7 +479,7 @@ func TestDeleteSvcOpts_Execute(t *testing.T) {
 
 					mocks.sessProvider.EXPECT().ConfigFromRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(aws.Config{}, nil),
 					// deleteStacks
-					mocks.svcCFN.EXPECT().DeleteWorkload(gomock.Any()).Return(testError),
+					mocks.svcCFN.EXPECT().DeleteWorkload(context.Background(), gomock.Any()).Return(testError),
 				)
 			},
 			wantedError: fmt.Errorf("delete service: %w", testError),

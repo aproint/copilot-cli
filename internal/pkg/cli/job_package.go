@@ -53,11 +53,7 @@ type packageJobOpts struct {
 	newPackageCmd func(*packageJobOpts)
 }
 
-func newPackageJobOpts(vars packageJobVars) (*packageJobOpts, error) {
-	return newPackageJobOptsWithContext(context.Background(), vars)
-}
-
-func newPackageJobOptsWithContext(ctx context.Context, vars packageJobVars) (*packageJobOpts, error) {
+func newPackageJobOpts(ctx context.Context, vars packageJobVars) (*packageJobOpts, error) {
 	sessProvider := sessions.ImmutableProvider(sessions.UserAgentExtras("job package"))
 	defaultConfig, err := sessProvider.DefaultConfig(ctx)
 	if err != nil {
@@ -104,7 +100,7 @@ func newPackageJobOptsWithContext(ctx context.Context, vars packageJobVars) (*pa
 			fs:                fs,
 			sessProvider:      sessProvider,
 			newStackGenerator: newWorkloadStackGenerator,
-			gitShortCommit:    imageTagFromGit(o.runner),
+			gitShortCommit:    imageTagFromGit(ctx, o.runner),
 			templateVersion:   version.LatestTemplateVersion(),
 		}
 	}
@@ -112,12 +108,7 @@ func newPackageJobOptsWithContext(ctx context.Context, vars packageJobVars) (*pa
 }
 
 // Validate returns an error if the values provided by the user are invalid.
-func (o *packageJobOpts) Validate() error {
-	ctx := o.ctx
-	if ctx == nil {
-		// Compatibility for callers that construct options directly. Commands always set ctx.
-		ctx = context.Background()
-	}
+func (o *packageJobOpts) Validate(ctx context.Context) error {
 	if o.appName == "" {
 		return errNoAppInWorkspace
 	}
@@ -204,7 +195,7 @@ func buildJobPackageCmd() *cobra.Command {
   report-generator-test.stack.yml      report-generator-test.params.yml
   /endcodeblock`,
 		RunE: runCmdE(func(cmd *cobra.Command, args []string) error {
-			opts, err := newPackageJobOptsWithContext(cmd.Context(), vars)
+			opts, err := newPackageJobOpts(cmd.Context(), vars)
 			if err != nil {
 				return err
 			}

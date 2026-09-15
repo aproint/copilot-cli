@@ -44,14 +44,8 @@ type PutSecretInput struct {
 // PutSecretOutput wraps an ssm PutParameterOutput struct.
 type PutSecretOutput ssm.PutParameterOutput
 
-// PutSecret tries to create the secret, and overwrites it if the secret exists and that `Overwrite` is true.
-// ErrParameterAlreadyExists is returned if the secret exists and `Overwrite` is false.
-func (s *SSM) PutSecret(in PutSecretInput) (*PutSecretOutput, error) {
-	return s.PutSecretWithContext(context.Background(), in)
-}
-
-// PutSecretWithContext tries to create or overwrite a secret using ctx.
-func (s *SSM) PutSecretWithContext(ctx context.Context, in PutSecretInput) (*PutSecretOutput, error) {
+// PutSecret tries to create or overwrite a secret using ctx.
+func (s *SSM) PutSecret(ctx context.Context, in PutSecretInput) (*PutSecretOutput, error) {
 	// First try to create the secret with the tags.
 	out, err := s.createSecret(ctx, in)
 	if err == nil {

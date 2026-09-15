@@ -4,6 +4,7 @@
 package deploy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation"
@@ -51,7 +52,7 @@ func TestJobDeployer_GenerateCloudFormationTemplate(t *testing.T) {
 
 func mockJobDeployer(opts ...func(*jobDeployer)) *jobDeployer {
 	deployer := &jobDeployer{
-		workloadDeployer: &workloadDeployer{
+		workloadDeployer: &workloadDeployer{ctx: context.Background(),
 			name: "example",
 			app: &config.Application{
 				Name: "demo",

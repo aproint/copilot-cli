@@ -4,6 +4,7 @@
 package patch
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -28,14 +29,14 @@ func TestEnvironmentPatcher_EnsureManagerRoleIsAllowedToUpload(t *testing.T) {
 	}{
 		"error getting environment template": {
 			setupMocks: func(m *envPatcherMock) {
-				m.templatePatcher.EXPECT().Template(stack.NameForEnv("mockApp", "mockEnv")).
+				m.templatePatcher.EXPECT().Template(context.Background(), stack.NameForEnv("mockApp", "mockEnv")).
 					Return("", errors.New("some error"))
 			},
 			wantedError: errors.New(`get environment template for "mockEnv": some error`),
 		},
 		"error updating the environment template with the patch": {
 			setupMocks: func(m *envPatcherMock) {
-				m.templatePatcher.EXPECT().Template(stack.NameForEnv("mockApp", "mockEnv")).
+				m.templatePatcher.EXPECT().Template(context.Background(), stack.NameForEnv("mockApp", "mockEnv")).
 					Return(`
 Metadata:
   Version: v1.7.0
@@ -48,7 +49,7 @@ Resources:
             - Sid: CloudwatchLogs 
   OtherResource:`, nil)
 				m.prog.EXPECT().Start(gomock.Any())
-				m.templatePatcher.EXPECT().UpdateEnvironmentTemplate("mockApp", "mockEnv", `
+				m.templatePatcher.EXPECT().UpdateEnvironmentTemplate(context.Background(), "mockApp", "mockEnv", `
 Metadata:
   Version: v1.7.0
 Resources:
@@ -73,7 +74,7 @@ Resources:
 		},
 		"success when template version is later than v1.9.0": {
 			setupMocks: func(m *envPatcherMock) {
-				m.templatePatcher.EXPECT().Template(stack.NameForEnv("mockApp", "mockEnv")).
+				m.templatePatcher.EXPECT().Template(context.Background(), stack.NameForEnv("mockApp", "mockEnv")).
 					Return(`
 Metadata:
   Version: v1.9.0`, nil)
@@ -81,7 +82,7 @@ Metadata:
 		},
 		"should upgrade non-legacy environments and ignore ErrChangeSet if the environment template already has permissions to upload artifacts": {
 			setupMocks: func(m *envPatcherMock) {
-				m.templatePatcher.EXPECT().Template(stack.NameForEnv("mockApp", "mockEnv")).Return(`
+				m.templatePatcher.EXPECT().Template(context.Background(), stack.NameForEnv("mockApp", "mockEnv")).Return(`
 Metadata:
   Version: v1.1.0
 Resources:
@@ -100,7 +101,7 @@ Resources:
                 - arn:aws:s3:::mockBucket/*
 `, nil)
 				m.prog.EXPECT().Start(gomock.Any())
-				m.templatePatcher.EXPECT().UpdateEnvironmentTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("wrapped err: %w", &cloudformation.ErrChangeSetEmpty{}))
+				m.templatePatcher.EXPECT().UpdateEnvironmentTemplate(context.Background(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("wrapped err: %w", &cloudformation.ErrChangeSetEmpty{}))
 				m.prog.EXPECT().Stop(gomock.Any())
 			},
 		},
@@ -126,7 +127,7 @@ Resources:
 				Prog:            m.prog,
 			}
 
-			got := p.EnsureManagerRoleIsAllowedToUpload("mockBucket")
+			got := p.EnsureManagerRoleIsAllowedToUpload(context.Background(), "mockBucket")
 			if tc.wantedError != nil {
 				require.EqualError(t, got, tc.wantedError.Error())
 			} else {

@@ -92,7 +92,7 @@ func TestECS_TaskDefinition(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			gotTaskDef, gotErr := service.TaskDefinition(tc.taskDefinitionName)
+			gotTaskDef, gotErr := service.TaskDefinition(context.Background(), tc.taskDefinitionName)
 
 			if gotErr != nil {
 				require.Equal(t, tc.wantErr, gotErr)
@@ -175,7 +175,7 @@ func TestECS_Service(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			gotSvc, gotErr := service.Service(tc.clusterName, tc.serviceName)
+			gotSvc, gotErr := service.Service(context.Background(), tc.clusterName, tc.serviceName)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -351,7 +351,7 @@ func TestECS_Services(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			gotSvcs, gotErr := service.Services(tc.clusterName, tc.services...)
+			gotSvcs, gotErr := service.Services(context.Background(), tc.clusterName, tc.services...)
 
 			if tc.wantErr != "" {
 				require.EqualError(t, gotErr, tc.wantErr)
@@ -406,7 +406,7 @@ func TestECS_ListServicesByNamespace(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			gotARNs, gotErr := service.ListServicesByNamespace(tc.namespace)
+			gotARNs, gotErr := service.ListServicesByNamespace(context.Background(), tc.namespace)
 
 			if tc.wantErr != "" {
 				require.EqualError(t, gotErr, tc.wantErr)
@@ -560,7 +560,7 @@ func TestECS_UpdateService(t *testing.T) {
 				opts = append(opts, WithForceUpdate())
 			}
 
-			gotErr := service.UpdateService(clusterName, serviceName, opts...)
+			gotErr := service.UpdateService(context.Background(), clusterName, serviceName, opts...)
 
 			if tc.wantErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -711,7 +711,7 @@ func TestECS_Tasks(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			gotTasks, gotErr := service.ServiceRunningTasks(tc.clusterName, tc.serviceName)
+			gotTasks, gotErr := service.ServiceRunningTasks(context.Background(), tc.clusterName, tc.serviceName)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -723,7 +723,7 @@ func TestECS_Tasks(t *testing.T) {
 	}
 }
 
-func TestECS_RunningTasksWithContextUsesCallerContext(t *testing.T) {
+func TestECS_RunningTasksUsesCallerContext(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "running-tasks")
 	ctrl := gomock.NewController(t)
@@ -735,13 +735,13 @@ func TestECS_RunningTasksWithContextUsesCallerContext(t *testing.T) {
 	}).Return(&ecs.ListTasksOutput{}, nil)
 	client := &ECS{client: m}
 
-	tasks, err := client.RunningTasksWithContext(ctx, "cluster")
+	tasks, err := client.RunningTasks(ctx, "cluster")
 
 	require.NoError(t, err)
 	require.Empty(t, tasks)
 }
 
-func TestECS_RunningTasksInFamilyWithContextUsesCallerContext(t *testing.T) {
+func TestECS_RunningTasksInFamilyUsesCallerContext(t *testing.T) {
 	type contextKey string
 	ctx := context.WithValue(context.Background(), contextKey("sentinel"), "family-tasks")
 	ctrl := gomock.NewController(t)
@@ -754,7 +754,7 @@ func TestECS_RunningTasksInFamilyWithContextUsesCallerContext(t *testing.T) {
 	}).Return(&ecs.ListTasksOutput{}, nil)
 	client := &ECS{client: m}
 
-	tasks, err := client.RunningTasksInFamilyWithContext(ctx, "cluster", "family")
+	tasks, err := client.RunningTasksInFamily(ctx, "cluster", "family")
 
 	require.NoError(t, err)
 	require.Empty(t, tasks)
@@ -899,7 +899,7 @@ func TestECS_StoppedServiceTasks(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			gotTasks, gotErr := service.StoppedServiceTasks(tc.clusterName, tc.serviceName)
+			gotTasks, gotErr := service.StoppedServiceTasks(context.Background(), tc.clusterName, tc.serviceName)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -972,7 +972,7 @@ func TestECS_StopTasks(t *testing.T) {
 			if tc.stopTasksReason != "" {
 				opts = append(opts, WithStopTaskReason(tc.stopTasksReason))
 			}
-			gotErr := service.StopTasks(tc.tasks, opts...)
+			gotErr := service.StopTasks(context.Background(), tc.tasks, opts...)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())
@@ -1050,7 +1050,7 @@ func TestECS_DefaultCluster(t *testing.T) {
 			ecs := ECS{
 				client: mockECSClient,
 			}
-			clusters, err := ecs.DefaultCluster()
+			clusters, err := ecs.DefaultCluster(context.Background())
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -1111,7 +1111,7 @@ func TestECS_HasDefaultCluster(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			hasDefaultCluster, err := ecs.HasDefaultCluster()
+			hasDefaultCluster, err := ecs.HasDefaultCluster(context.Background())
 			if tc.wantedErr != nil {
 				require.EqualError(t, tc.wantedErr, err.Error())
 			} else {
@@ -1186,7 +1186,7 @@ func TestECS_ActiveClusters(t *testing.T) {
 			ecs := ECS{
 				client: mockECSClient,
 			}
-			clusters, err := ecs.ActiveClusters(tc.inArns...)
+			clusters, err := ecs.ActiveClusters(context.Background(), tc.inArns...)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -1252,7 +1252,7 @@ func TestECS_ActiveServices(t *testing.T) {
 			ecs := ECS{
 				client: mockECSClient,
 			}
-			services, err := ecs.ActiveServices(tc.inClusterARN, tc.inArns...)
+			services, err := ecs.ActiveServices(context.Background(), tc.inClusterARN, tc.inArns...)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -1463,7 +1463,7 @@ func TestECS_RunTask(t *testing.T) {
 				client: mockECSClient,
 			}
 
-			tasks, err := ecs.RunTask(RunTaskInput{
+			tasks, err := ecs.RunTask(context.Background(), RunTaskInput{
 				Count:           tc.count,
 				Cluster:         tc.cluster,
 				TaskFamilyName:  tc.taskFamilyName,
@@ -1483,7 +1483,7 @@ func TestECS_RunTask(t *testing.T) {
 	}
 }
 
-func TestECS_RunTaskWithContextUsesCallerContext(t *testing.T) {
+func TestECS_RunTaskUsesCallerContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1498,11 +1498,11 @@ func TestECS_RunTaskWithContextUsesCallerContext(t *testing.T) {
 	}, nil)
 
 	client := &ECS{client: mockAPI}
-	_, err := client.RunTaskWithContext(ctx, RunTaskInput{Cluster: "cluster", Count: 1, TaskFamilyName: "task"})
+	_, err := client.RunTask(ctx, RunTaskInput{Cluster: "cluster", Count: 1, TaskFamilyName: "task"})
 	require.NoError(t, err)
 }
 
-func TestECS_ExecuteCommandWithContextUsesCallerContext(t *testing.T) {
+func TestECS_ExecuteCommandUsesCallerContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1511,7 +1511,7 @@ func TestECS_ExecuteCommandWithContextUsesCallerContext(t *testing.T) {
 	mockAPI := mocks.NewMockapi(ctrl)
 	mockAPI.EXPECT().ExecuteCommand(gomock.Eq(ctx), gomock.Any()).Return(&ecs.ExecuteCommandOutput{Session: session}, nil)
 	mockStarter := mocks.NewMockssmSessionStarter(ctrl)
-	mockStarter.EXPECT().StartSessionWithContext(gomock.Eq(ctx), session).Return(nil)
+	mockStarter.EXPECT().StartSession(gomock.Eq(ctx), session).Return(nil)
 
 	client := &ECS{
 		client: mockAPI,
@@ -1519,7 +1519,7 @@ func TestECS_ExecuteCommandWithContextUsesCallerContext(t *testing.T) {
 			return mockStarter
 		},
 	}
-	err := client.ExecuteCommandWithContext(ctx, ExecuteCommandInput{})
+	err := client.ExecuteCommand(ctx, ExecuteCommandInput{})
 	require.NoError(t, err)
 }
 
@@ -1587,7 +1587,7 @@ func TestECS_DescribeTasks(t *testing.T) {
 				client: mockAPI,
 			}
 
-			tasks, err := ecs.DescribeTasks(inCluster, inTaskARNs)
+			tasks, err := ecs.DescribeTasks(context.Background(), inCluster, inTaskARNs)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {
@@ -1635,7 +1635,7 @@ func TestECS_ExecuteCommand(t *testing.T) {
 				}, nil)
 			},
 			mockSessStarter: func(m *mocks.MockssmSessionStarter) {
-				m.EXPECT().StartSessionWithContext(gomock.Any(), mockSess).Return(mockErr)
+				m.EXPECT().StartSession(gomock.Any(), mockSess).Return(mockErr)
 			},
 			wantedError: fmt.Errorf("start session mockSessID using ssm plugin: some error"),
 		},
@@ -1646,7 +1646,7 @@ func TestECS_ExecuteCommand(t *testing.T) {
 				}, nil)
 			},
 			mockSessStarter: func(m *mocks.MockssmSessionStarter) {
-				m.EXPECT().StartSessionWithContext(gomock.Any(), mockSess).Return(nil)
+				m.EXPECT().StartSession(gomock.Any(), mockSess).Return(nil)
 			},
 		},
 	}
@@ -1668,7 +1668,7 @@ func TestECS_ExecuteCommand(t *testing.T) {
 				},
 			}
 
-			err := ecs.ExecuteCommand(ExecuteCommandInput{
+			err := ecs.ExecuteCommand(context.Background(), ExecuteCommandInput{
 				Cluster:   "mockCluster",
 				Command:   "mockCommand",
 				Container: "mockContainer",
@@ -1756,7 +1756,7 @@ func TestECS_NetworkConfiguration(t *testing.T) {
 
 			inCluster := "crowded-cluster"
 			inServiceName := "cool-service"
-			got, err := e.NetworkConfiguration(inCluster, inServiceName)
+			got, err := e.NetworkConfiguration(context.Background(), inCluster, inServiceName)
 			if tc.wantedError != nil {
 				require.EqualError(t, tc.wantedError, err.Error())
 			} else {

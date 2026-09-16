@@ -20,7 +20,7 @@ Please read it over and let us know if it's not up-to-date (or, even better, sub
 
 ### Environment
 
-- Make sure you are using Go 1.23 (`go version`).
+- Make sure you are using the Go version in `.go-version` (`go version`).
 - Fork the repository.
 - Clone your forked repository locally.
 - We use Go Modules to manage dependencies, so you can develop outside of your $GOPATH.
@@ -53,9 +53,13 @@ Below are the different commands which can be run in the root of the project dir
 
 * Run `make` (This creates a standalone executable in the `bin/local` directory).
 * Run `make run-unit-test` to run only Go unit tests.
+* Run `make security-go` to scan the root Go module. Govulncheck is pinned as a tool in `go.mod` so Dependabot can update it.
+* Run `make security-js` to audit the `cf-custom-resources` npm lockfile.
 * Run `make local-test` to run Go, Node.js unit tests and local integration tests. You'll need Node.js and npm for these tests to run.
 * Run `make integ-test` to run integration tests against your Default AWS profile. **Warning** - this will create AWS resources in your `default` profile.
 * Run `make e2e` to run end-to-end tests (tests that run commands locally). **Warning** - this will create AWS resources in your account. You'll need Docker running for these tests to run.
+
+The security scans have a zero-exception baseline: both commands must pass with no known vulnerabilities. CI reports them as separate jobs. Release publication requires both scans to pass, and the Homebrew update runs only after publication.
 
 ### Generating mocks
 Often times, it's helpful to generate mocks to make unit-testing easier and more focused. We strongly encourage this and encourage you to generate mocks when appropriate! In order to generate mocks:

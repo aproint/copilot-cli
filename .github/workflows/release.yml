@@ -16,6 +16,36 @@ env:
   SYFT_VERSION: v1.46.0
 
 jobs:
+  security-go:
+    if: github.repository == 'aproint/copilot-cli'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+
+      - name: Scan Go dependencies
+        run: make security-go
+
+  security-js:
+    if: github.repository == 'aproint/copilot-cli'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Scan custom resource dependencies
+        run: make security-js
+
   build:
     if: github.repository == 'aproint/copilot-cli'
     runs-on: ubuntu-24.04
@@ -203,6 +233,8 @@ jobs:
     if: github.repository == 'aproint/copilot-cli'
     needs:
       - build
+      - security-go
+      - security-js
       - smoke-linux-amd64
       - smoke-linux-arm64
       - smoke-darwin-amd64

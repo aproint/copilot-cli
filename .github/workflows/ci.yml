@@ -15,12 +15,44 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      full: ${{ steps.classify.outputs.full }}
+      go: ${{ steps.classify.outputs.go }}
+      js: ${{ steps.classify.outputs.js }}
+      license: ${{ steps.classify.outputs.license }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Find changed paths
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.sha || github.event.merge_group.head_sha }}
+        run: |
+          git diff --no-renames --name-only -z "$BASE_SHA" "$HEAD_SHA" > "$RUNNER_TEMP/changed-paths"
+
+      - name: Select checks
+        id: classify
+        run: python3 scripts/ci_changes.py "$RUNNER_TEMP/changed-paths" >> "$GITHUB_OUTPUT"
+
   build-linux:
     name: build (compile-linux)
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.js == 'true') }}
     runs-on: ubuntu-24.04
     env:
       BUILD_COMMAND: compile-linux
     steps: &build_steps
+      - name: Require successful change detection
+        if: ${{ needs.changes.result != 'success' }}
+        run: |
+          echo "Change detection failed; CI cannot skip checks." >&2
+          exit 1
+
       - name: Check out code
         uses: actions/checkout@v7
 
@@ -60,7 +92,8 @@ jobs:
 
   build-windows:
     name: build (compile-windows)
-    if: github.event_name == 'merge_group'
+    needs: changes
+    if: ${{ !cancelled() && github.event_name == 'merge_group' && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.js == 'true') }}
     runs-on: ubuntu-24.04
     env:
       BUILD_COMMAND: compile-windows
@@ -68,13 +101,16 @@ jobs:
 
   build-darwin:
     name: build (compile-darwin)
-    if: github.event_name == 'merge_group'
+    needs: changes
+    if: ${{ !cancelled() && github.event_name == 'merge_group' && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.js == 'true') }}
     runs-on: ubuntu-24.04
     env:
       BUILD_COMMAND: compile-darwin
     steps: *build_steps
 
   mocks:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.go == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -117,6 +153,8 @@ jobs:
         run: '[ -z "$(cat gitstatus.txt)" ] && echo "Generated mocks all match"'
 
   go-unit-tests:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.go == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -151,6 +189,8 @@ jobs:
       #     files: ./coverage.out
 
   security-go:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.go == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -165,6 +205,8 @@ jobs:
         run: make security-go
 
   security-js:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.js == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -179,6 +221,8 @@ jobs:
         run: make security-js
 
   js-unit-tests:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.js == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -198,6 +242,8 @@ jobs:
       #     directory: cf-custom-resources/
 
   js-lint:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.js == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -212,7 +258,8 @@ jobs:
         run: make custom-resource-lint
 
   local-integration-tests:
-    if: github.event_name == 'merge_group'
+    needs: changes
+    if: ${{ !cancelled() && github.event_name == 'merge_group' && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.js == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -247,16 +294,12 @@ jobs:
         run: make local-integration-test
 
   license:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.full == 'true' || needs.changes.outputs.license == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v7
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: .go-version
-          cache: false
 
       - name: Run license check
         run: ./scripts/license.sh .

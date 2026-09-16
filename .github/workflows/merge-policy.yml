@@ -1,0 +1,31 @@
+name: merge-policy
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - labeled
+      - unlabeled
+      - enqueued
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  merge-policy:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check blocking labels
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const blockingLabels = new Set(['WIP', 'do-not-merge']);
+            const labels = context.payload.pull_request.labels.map(label => label.name);
+            const blockedBy = labels.filter(label => blockingLabels.has(label));
+            if (blockedBy.length > 0) {
+              core.setFailed(`Remove blocking label(s): ${blockedBy.join(', ')}`);
+            }

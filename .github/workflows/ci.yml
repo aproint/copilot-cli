@@ -6,6 +6,9 @@ on:
       - opened
       - edited
       - synchronize
+  merge_group:
+    types:
+      - checks_requested
 
 jobs:
   build:
@@ -210,6 +213,7 @@ jobs:
         run: ./scripts/license.sh .
 
   conventional-commits:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
       - name: validate

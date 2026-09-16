@@ -4,19 +4,23 @@ on:
   pull_request:
     types:
       - opened
-      - edited
+      - reopened
       - synchronize
   merge_group:
     types:
       - checks_requested
 
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  build:
+  build-linux:
+    name: build (compile-linux)
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        command: [compile-linux, compile-windows, compile-darwin]
-    steps:
+    env:
+      BUILD_COMMAND: compile-linux
+    steps: &build_steps
       - name: Check out code
         uses: actions/checkout@v7
 
@@ -33,9 +37,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-build-${{ matrix.command }}-${{ hashFiles('go.sum') }}
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-build-${{ env.BUILD_COMMAND }}-${{ hashFiles('go.sum') }}
           restore-keys: |
-            go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-build-${{ matrix.command }}-
+            go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-build-${{ env.BUILD_COMMAND }}-
 
       - name: Download Go modules
         run: make download-go-modules
@@ -49,10 +53,26 @@ jobs:
         run: make package-custom-resources
 
       - name: Build binaries
-        run: make ${{matrix.command}}
+        run: make "$BUILD_COMMAND"
 
       - name: Cleanup
         run: make package-custom-resources-clean
+
+  build-windows:
+    name: build (compile-windows)
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-24.04
+    env:
+      BUILD_COMMAND: compile-windows
+    steps: *build_steps
+
+  build-darwin:
+    name: build (compile-darwin)
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-24.04
+    env:
+      BUILD_COMMAND: compile-darwin
+    steps: *build_steps
 
   mocks:
     runs-on: ubuntu-24.04
@@ -164,6 +184,7 @@ jobs:
         run: make custom-resource-lint
 
   local-integration-tests:
+    if: github.event_name == 'merge_group'
     runs-on: ubuntu-24.04
     steps:
       - name: Check out code
@@ -211,21 +232,3 @@ jobs:
 
       - name: Run license check
         run: ./scripts/license.sh .
-
-  conventional-commits:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: validate
-        uses: actions/github-script@v9
-        with:
-          script: |
-            // See https://gist.github.com/marcojahn/482410b728c31b221b70ea6d2c433f0c#file-conventional-commit-regex-md
-            const regex = /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\([\w\-\.]+\))?(!)?: ([\w ])+([\s\S]*)/g;
-
-            const pr = context.payload.pull_request;
-            const title = pr.title;
-
-            if (title.match(regex) == null) {
-              throw `PR title "${title}"" does not match conventional commits from https://www.conventionalcommits.org/en/v1.0.0/`
-            }

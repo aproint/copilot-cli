@@ -114,7 +114,7 @@ EXPOSE 8080/tcp 5000`),
 			require.NoError(t, err)
 			ast, err := parser.Parse(bytes.NewReader(dat))
 			require.NoError(t, err)
-			stages, _, _ := instructions.Parse(ast.AST)
+			stages, _, _ := instructions.Parse(ast.AST, nil)
 
 			ports, err := New(fs, "./Dockerfile").GetExposedPorts()
 			if tc.wantedErr != nil {
@@ -251,7 +251,7 @@ HEALTHCHECK   CMD     ["a",    "b"]
 			require.NoError(t, err)
 			ast, err := parser.Parse(bytes.NewReader(dat))
 			require.NoError(t, err)
-			stages, _, _ := instructions.Parse(ast.AST)
+			stages, _, _ := instructions.Parse(ast.AST, nil)
 
 			hc, err := New(fs, "./Dockerfile").GetHealthCheck()
 

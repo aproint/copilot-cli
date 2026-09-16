@@ -89,8 +89,11 @@ func TestRecursiveWatcher(t *testing.T) {
 					return
 				}
 
-				if slices.Contains(eventsExpected, e) && !slices.Contains(eventsActual, e) {
-					eventsActual = append(eventsActual, e)
+				// fsnotify may include unexported rename metadata in create events.
+				// Compare only the path and operation reported by the watcher.
+				event := fsnotify.Event{Name: e.Name, Op: e.Op}
+				if slices.Contains(eventsExpected, event) && !slices.Contains(eventsActual, event) {
+					eventsActual = append(eventsActual, event)
 					n -= 1
 				}
 

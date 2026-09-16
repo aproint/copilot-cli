@@ -1,0 +1,22 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: placed-job
+type: Scheduled Job
+image:
+  location: public.ecr.aws/docker/library/alpine:latest
+cpu: 256
+memory: 512
+on:
+  schedule: "0 12 * * MON"
+network:
+  vpc:
+    placement:
+      subnets:
+        - subnet-private-a
+        - subnet-private-b
+    security_groups:
+      deny_default: true
+      groups:
+        - sg-imported-a
+        - sg-imported-b

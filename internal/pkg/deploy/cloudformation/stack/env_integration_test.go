@@ -6,8 +6,6 @@
 package stack_test
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -263,31 +261,58 @@ network:
 			}(),
 			wantedFileName: "template-with-importedvpc-flowlogs.yml",
 		},
+		"imported vpc with selected private ALB subnets": {
+			input: func() *stack.EnvConfig {
+				rawMft := `name: test
+type: Environment
+network:
+  vpc:
+    id: vpc-12345
+    subnets:
+      public:
+        - id: subnet-public-a
+        - id: subnet-public-b
+      private:
+        - id: subnet-private-a
+        - id: subnet-private-b
+        - id: subnet-private-c
+http:
+  private:
+    subnets:
+      - subnet-private-a
+      - subnet-private-c
+    certificates:
+      - arn:aws:acm:us-west-2:111122223333:certificate/private-a
+      - arn:aws:acm:us-west-2:111122223333:certificate/private-b
+    ssl_policy: ELBSecurityPolicy-FS-1-2-Res-2019-08
+    ingress:
+      vpc: true`
+				var mft manifest.Environment
+				require.NoError(t, yaml.Unmarshal([]byte(rawMft), &mft))
+				require.NoError(t, mft.Validate())
+				return &stack.EnvConfig{
+					Version: "1.x",
+					App:     deploy.AppInformation{AccountPrincipalARN: "arn:aws:iam::000000000:root", Name: "demo"},
+					Name:    "test", ArtifactBucketARN: "arn:aws:s3:::mockbucket",
+					ArtifactBucketKeyARN: "arn:aws:kms:us-west-2:000000000:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+					Mft:                  &mft, RawMft: rawMft,
+				}
+			}(),
+			wantedFileName: "template-with-importedvpc-private-alb.yml",
+		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			// GIVEN
-			wanted, err := os.ReadFile(filepath.Join("testdata", "environments", tc.wantedFileName))
-			require.NoError(t, err, "read wanted template")
-			wantedObj := make(map[any]any)
-			require.NoError(t, yaml.Unmarshal(wanted, wantedObj))
-
 			// WHEN
 			envStack, err := stack.NewEnvStackConfig(tc.input)
 			require.NoError(t, err)
 			actual, err := envStack.Template()
 			require.NoError(t, err, "serialize template")
-			actualObj := make(map[any]any)
-			require.NoError(t, yaml.Unmarshal([]byte(actual), actualObj))
-			actualMetadata := actualObj["Metadata"].(map[string]any) // We remove the Version from the expected template, as the latest env version always changes.
-			delete(actualMetadata, "Version")
-			// Strip new lines when comparing outputs.
-			actualObj["Metadata"].(map[string]any)["Manifest"] = strings.TrimSpace(actualObj["Metadata"].(map[string]any)["Manifest"].(string))
-			wantedObj["Metadata"].(map[string]any)["Manifest"] = strings.TrimSpace(wantedObj["Metadata"].(map[string]any)["Manifest"].(string))
-
-			// THEN
-			resetCustomResourceLocations(actualObj)
-			compareStackTemplate(t, wantedObj, actualObj)
+			assertEnvTemplateFixture(t, filepath.Join("testdata", "environments", tc.wantedFileName), actual)
+			params, err := envStack.SerializedParameters()
+			require.NoError(t, err)
+			assertParamsFixture(t, filepath.Join("testdata", "environments", strings.TrimSuffix(tc.wantedFileName, ".yml")+".params.json"), params)
 		})
 	}
 }
@@ -408,34 +433,14 @@ observability:
 }
 
 func compareStackTemplate(t *testing.T, wantedObj, actualObj map[any]any) {
-	actual, wanted := reflect.ValueOf(actualObj), reflect.ValueOf(wantedObj)
-	compareStackTemplateSection(t, reflect.ValueOf("Description"), wanted, actual)
-	compareStackTemplateSection(t, reflect.ValueOf("Metadata"), wanted, actual)
-	compareStackTemplateSection(t, reflect.ValueOf("Parameters"), wanted, actual)
-	compareStackTemplateSection(t, reflect.ValueOf("Conditions"), wanted, actual)
-	compareStackTemplateSection(t, reflect.ValueOf("Outputs"), wanted, actual)
-	// Compare each resource.
-	actualResources, wantedResources := actual.MapIndex(reflect.ValueOf("Resources")).Elem(), wanted.MapIndex(reflect.ValueOf("Resources")).Elem()
-	actualResourceNames, wantedResourceNames := actualResources.MapKeys(), wantedResources.MapKeys()
-	for _, key := range actualResourceNames {
-		compareStackTemplateSection(t, key, wantedResources, actualResources)
-	}
-	for _, key := range wantedResourceNames {
-		compareStackTemplateSection(t, key, wantedResources, actualResources)
+	t.Helper()
+	if !stackTemplatesEqual(wantedObj, actualObj) {
+		require.Equal(t, wantedObj, actualObj, "complete CloudFormation template")
 	}
 }
 
-func compareStackTemplateSection(t *testing.T, key, wanted, actual reflect.Value) {
-	actualExist, wantedExist := actual.MapIndex(key).IsValid(), wanted.MapIndex(key).IsValid()
-	if !actualExist && !wantedExist {
-		return
-	}
-	require.True(t, actualExist,
-		fmt.Sprintf("%q does not exist in the actual template", key.Interface()))
-	require.True(t, wantedExist,
-		fmt.Sprintf("%q does not exist in the expected template", key.Interface()))
-	require.Equal(t, wanted.MapIndex(key).Interface(), actual.MapIndex(key).Interface(),
-		fmt.Sprintf("Comparing %q", key.Interface()))
+func stackTemplatesEqual(wantedObj, actualObj map[any]any) bool {
+	return reflect.DeepEqual(wantedObj, actualObj)
 }
 
 func resetCustomResourceLocations(template map[any]any) {

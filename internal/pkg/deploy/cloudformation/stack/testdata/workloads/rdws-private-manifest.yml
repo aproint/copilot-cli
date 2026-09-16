@@ -1,0 +1,13 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: frontend
+type: Request-Driven Web Service
+image:
+  build: frontend/Dockerfile
+  port: 8080
+cpu: 1024
+memory: 2048
+http:
+  private:
+    endpoint: vpce-0123456789abcdef0

@@ -6,18 +6,17 @@
 package stack_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/aproint/copilot-cli/internal/pkg/aws/elbv2"
 	"github.com/aproint/copilot-cli/internal/pkg/config"
 	"github.com/aproint/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aproint/copilot-cli/internal/pkg/manifest"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
 
 func TestBackendService_TemplateAndParamsGeneration(t *testing.T) {
@@ -33,6 +32,7 @@ func TestBackendService_TemplateAndParamsGeneration(t *testing.T) {
 		TemplatePath        string
 		ParamsPath          string
 		EnvImportedCertARNs []string
+		ImportedALB         *elbv2.LoadBalancer
 	}{
 		"simple": {
 			ManifestPath: filepath.Join(testDir, "simple-manifest.yml"),
@@ -65,6 +65,21 @@ func TestBackendService_TemplateAndParamsGeneration(t *testing.T) {
 			TemplatePath: filepath.Join(testDir, "http-autoscaling-template.yml"),
 			ParamsPath:   filepath.Join(testDir, "http-autoscaling-params.json"),
 		},
+		"imported internal ALB with request autoscaling": {
+			ManifestPath:        filepath.Join(testDir, "imported-internal-alb-manifest.yml"),
+			TemplatePath:        filepath.Join(testDir, "imported-internal-alb-template.yml"),
+			ParamsPath:          filepath.Join(testDir, "imported-internal-alb-params.json"),
+			EnvImportedCertARNs: []string{"arn:aws:acm:us-west-2:111122223333:certificate/private"},
+			ImportedALB: &elbv2.LoadBalancer{
+				ARN:  "arn:aws:elasticloadbalancing:us-west-2:111122223333:loadbalancer/app/internal-shared/abc123",
+				Name: "internal-shared", DNSName: "internal-shared.us-west-2.elb.amazonaws.com", HostedZoneID: "Z123456",
+				SecurityGroups: []string{"sg-shared-alb"},
+				Listeners: []elbv2.Listener{
+					{ARN: "arn:aws:elasticloadbalancing:us-west-2:111122223333:listener/app/internal-shared/abc123/http", Port: 80, Protocol: "HTTP"},
+					{ARN: "arn:aws:elasticloadbalancing:us-west-2:111122223333:listener/app/internal-shared/abc123/https", Port: 443, Protocol: "HTTPS"},
+				},
+			},
+		},
 	}
 
 	// run tests
@@ -75,10 +90,6 @@ func TestBackendService_TemplateAndParamsGeneration(t *testing.T) {
 
 			// parse files
 			manifestBytes, err := os.ReadFile(tc.ManifestPath)
-			require.NoError(t, err)
-			tmplBytes, err := os.ReadFile(tc.TemplatePath)
-			require.NoError(t, err)
-			paramsBytes, err := os.ReadFile(tc.ParamsPath)
 			require.NoError(t, err)
 
 			dynamicMft, err := manifest.UnmarshalWorkload([]byte(manifestBytes))
@@ -92,6 +103,10 @@ func TestBackendService_TemplateAndParamsGeneration(t *testing.T) {
 				},
 			}
 			envConfig.HTTPConfig.Private.Certificates = tc.EnvImportedCertARNs
+			var opts []stack.BackendServiceOption
+			if tc.ImportedALB != nil {
+				opts = append(opts, stack.WithImportedInternalALB(tc.ImportedALB))
+			}
 			serializer, err := stack.NewBackendService(stack.BackendServiceConfig{
 				App: &config.Application{
 					Name: appName,
@@ -105,41 +120,18 @@ func TestBackendService_TemplateAndParamsGeneration(t *testing.T) {
 					EnvVersion:               "v1.42.0",
 					Version:                  "v1.29.0",
 				},
-			})
+			}, opts...)
 			require.NoError(t, err)
 
 			// validate generated template
 			tmpl, err := serializer.Template()
 			require.NoError(t, err)
-			var actualTmpl map[any]any
-			require.NoError(t, yaml.Unmarshal([]byte(tmpl), &actualTmpl))
-
-			// change the random DynamicDesiredCountAction UpdateID to an expected value
-			if v, ok := actualTmpl["Resources"]; ok {
-				if v, ok := v.(map[string]any)["DynamicDesiredCountAction"]; ok {
-					if v, ok := v.(map[string]any)["Properties"]; ok {
-						if v, ok := v.(map[string]any); ok {
-							v["UpdateID"] = "AVeryRandomUUID"
-						}
-					}
-				}
-			}
-			resetCustomResourceLocations(actualTmpl)
-
-			var expectedTmpl map[any]any
-			require.NoError(t, yaml.Unmarshal(tmplBytes, &expectedTmpl))
-			compareStackTemplate(t, expectedTmpl, actualTmpl)
+			assertTemplateFixture(t, tc.TemplatePath, tmpl)
 
 			// validate generated params
 			params, err := serializer.SerializedParameters()
 			require.NoError(t, err)
-			var actualParams map[string]any
-			require.NoError(t, json.Unmarshal([]byte(params), &actualParams))
-
-			var expectedParams map[string]any
-			require.NoError(t, json.Unmarshal(paramsBytes, &expectedParams))
-
-			require.Equal(t, expectedParams, actualParams, "param mismatch")
+			assertParamsFixture(t, tc.ParamsPath, params)
 		})
 	}
 }

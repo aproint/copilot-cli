@@ -91,3 +91,44 @@ func TestGHPipeline_Template(t *testing.T) {
 
 	require.Equal(t, m2, m1)
 }
+
+func TestGHPipeline_CrossRegionTemplate(t *testing.T) {
+	var build deploy.Build
+	require.NoError(t, build.Init(nil, "copilot/pipelines/phonetool-pipeline/"))
+	stages := make([]deploy.PipelineStage, 2)
+	stages[0].Init(&config.Environment{
+		App: "phonetool", Name: "test", Region: "us-west-2", AccountID: "111122223333",
+		ExecutionRoleARN: "arn:aws:iam::111122223333:role/test-CFNExecutionRole",
+		ManagerRoleARN:   "arn:aws:iam::111122223333:role/test-EnvManagerRole",
+	}, &manifest.PipelineStage{
+		Name: "test", RequiresApproval: true, TestCommands: []string{"go test ./..."},
+		PreDeployments:  map[string]*manifest.PrePostDeployment{"prepare": {BuildspecPath: "ci/prepare.yml"}},
+		PostDeployments: map[string]*manifest.PrePostDeployment{"smoke": {BuildspecPath: "ci/smoke.yml"}},
+	}, []string{"api"})
+	stages[1].Init(&config.Environment{
+		App: "phonetool", Name: "prod", Region: "us-east-1", AccountID: "444455556666",
+		ExecutionRoleARN: "arn:aws:iam::444455556666:role/prod-CFNExecutionRole",
+		ManagerRoleARN:   "arn:aws:iam::444455556666:role/prod-EnvManagerRole",
+	}, &manifest.PipelineStage{
+		Name: "prod", RequiresApproval: true,
+		PreDeployments:  map[string]*manifest.PrePostDeployment{"check": {BuildspecPath: "ci/check.yml"}},
+		PostDeployments: map[string]*manifest.PrePostDeployment{"notify": {BuildspecPath: "ci/notify.yml"}},
+	}, []string{"api"})
+	ps := stack.NewPipelineStackConfig(&deploy.CreatePipelineInput{
+		AppName: "phonetool", Name: "phonetool-pipeline",
+		Source: &deploy.GitHubSource{
+			ProviderName:  manifest.GithubProviderName,
+			RepositoryURL: "https://github.com/aws/phonetool", Branch: "mainline",
+			ConnectionARN: "arn:aws:codestar-connections:us-west-2:111122223333:connection/12345678-1234-1234-1234-123456789012",
+		},
+		Build: &build, Stages: stages,
+		ArtifactBuckets: []deploy.ArtifactBucket{
+			{BucketName: "phonetool-artifacts-west", KeyArn: "arn:aws:kms:us-west-2:111122223333:key/west"},
+			{BucketName: "phonetool-artifacts-east", KeyArn: "arn:aws:kms:us-east-1:444455556666:key/east"},
+		},
+		Version: "v1.28.0",
+	})
+	actual, err := ps.Template()
+	require.NoError(t, err)
+	assertTemplateFixture(t, filepath.Join("testdata", "pipeline", "gh_cross_region_template.yaml"), actual)
+}

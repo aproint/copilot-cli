@@ -79,6 +79,16 @@ If you want to get your feet wet, check out issues tagged with [good first issue
 These issues are great for folks who are looking to get started, but not sure where to start 😁.
 
 ## Contributing code
+
+### Updating CloudFormation test fixtures
+
+The stack tests compare complete rendered CloudFormation templates and serialized parameters with files under `internal/pkg/deploy/cloudformation/stack/testdata/`. To update them:
+
+1. Edit the input manifest or test configuration first.
+2. Run `UPDATE_FIXTURES=1 make local-integration-test`. This opt-in command writes stack test fixtures and is disabled in CI.
+3. Review the YAML and JSON changes semantically: IAM permissions; networking, listeners, and DNS; stateful resources; scaling and deployment settings; then parameters. The command produces candidates for review, not automatic approval of rendered changes. If a new case exposes a production defect, investigate it before accepting the output.
+4. Run `make local-integration-test` normally to verify the accepted fixtures. Normal test runs do not write fixtures.
+
 * Please check the existing issues to see if your feedback has already been reported.
 
 * Let us know if you are interested in working on an issue by leaving a comment

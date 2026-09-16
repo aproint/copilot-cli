@@ -1,0 +1,161 @@
+# Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template that represents a request driven web service on AWS App Runner.
+Metadata:
+    Version: v1.29.0
+Parameters:
+    AppName:
+        Type: String
+    EnvName:
+        Type: String
+    WorkloadName:
+        Type: String
+    ContainerImage:
+        Type: String
+    ContainerPort:
+        Type: Number
+    ImageRepositoryType:
+        Type: String
+    InstanceCPU:
+        Type: String
+    InstanceMemory:
+        Type: String
+    HealthCheckPath:
+        Type: String
+        Default: ''
+    HealthCheckInterval:
+        Type: String
+        Default: ''
+    HealthCheckTimeout:
+        Type: String
+        Default: ''
+    HealthCheckHealthyThreshold:
+        Type: String
+        Default: ''
+    HealthCheckUnhealthyThreshold:
+        Type: String
+        Default: ''
+    AddonsTemplateURL:
+        Description: 'URL of the addons nested stack template within the S3 bucket.'
+        Type: String
+        Default: ''
+    ArtifactKeyARN:
+        Type: String
+        Description: 'KMS Key used for encrypting artifacts'
+Conditions:
+    # App Runner will not accept an AccessRole for ImageRepositoryTypes other than ECR.
+    # In this scenario the request will fail.
+    NeedsAccessRole: !Equals [!Ref ImageRepositoryType, 'ECR']
+    HasHealthCheckPath: !Not [!Equals [!Ref HealthCheckPath, '']]
+    HasHealthCheckInterval: !Not [!Equals [!Ref HealthCheckInterval, '']]
+    HasHealthCheckTimeout: !Not [!Equals [!Ref HealthCheckTimeout, '']]
+    HasHealthCheckHealthyThreshold: !Not [!Equals [!Ref HealthCheckHealthyThreshold, '']]
+    HasHealthCheckUnhealthyThreshold: !Not [!Equals [!Ref HealthCheckUnhealthyThreshold, '']]
+    HasAddons: !Not [!Equals [!Ref AddonsTemplateURL, '']]
+Resources: # If a bucket URL is specified, that means the template exists.
+    AccessRole:
+        Metadata:
+            'aws:copilot:description': 'An IAM Role for App Runner to use on your behalf to pull your image from ECR'
+        Type: AWS::IAM::Role
+        Condition: NeedsAccessRole
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                        Service:
+                            - build.apprunner.amazonaws.com
+                      Action: sts:AssumeRole
+            ManagedPolicyArns:
+                - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+    InstanceRole:
+        Metadata:
+            'aws:copilot:description': 'An IAM role to control permissions for the containers in your service'
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                        Service:
+                            - tasks.apprunner.amazonaws.com
+                      Action: 'sts:AssumeRole'
+            Policies:
+                - PolicyName: 'DenyIAM'
+                  PolicyDocument:
+                    Version: '2012-10-17'
+                    Statement:
+                        - Effect: 'Deny'
+                          Action: 'iam:*'
+                          Resource: '*'
+    Service:
+        Metadata:
+            'aws:copilot:description': 'An App Runner service to run and manage your containers'
+        Type: AWS::AppRunner::Service
+        Properties:
+            ServiceName: !Sub '${AppName}-${EnvName}-${WorkloadName}'
+            SourceConfiguration:
+                AuthenticationConfiguration: !If
+                    - NeedsAccessRole
+                    - AccessRoleArn: !GetAtt AccessRole.Arn
+                    - !Ref AWS::NoValue
+                AutoDeploymentsEnabled: false
+                ImageRepository:
+                    ImageIdentifier: !Ref ContainerImage
+                    ImageRepositoryType: !Ref ImageRepositoryType
+                    ImageConfiguration:
+                        Port: !Ref ContainerPort
+                        RuntimeEnvironmentVariables:
+                            - Name: COPILOT_APPLICATION_NAME
+                              Value: !Ref AppName
+                            - Name: COPILOT_ENVIRONMENT_NAME
+                              Value: !Ref EnvName
+                            - Name: COPILOT_SERVICE_NAME
+                              Value: !Ref WorkloadName
+            InstanceConfiguration:
+                Cpu: !Ref InstanceCPU
+                Memory: !Ref InstanceMemory
+                InstanceRoleArn: !GetAtt InstanceRole.Arn
+            NetworkConfiguration:
+                EgressConfiguration:
+                    EgressType: DEFAULT
+                IngressConfiguration:
+                    IsPubliclyAccessible: false
+            Tags:
+                - Key: copilot-application
+                  Value: !Ref AppName
+                - Key: copilot-environment
+                  Value: !Ref EnvName
+                - Key: copilot-service
+                  Value: !Ref WorkloadName
+    AppRunnerVpcIngressConnection:
+        Metadata:
+            'aws:copilot:description': 'The ingress connection from your environment to this service'
+        Type: AWS::AppRunner::VpcIngressConnection
+        Properties:
+            ServiceArn: !GetAtt Service.ServiceArn
+            IngressVpcConfiguration:
+                VpcId:
+                    Fn::ImportValue: !Sub '${AppName}-${EnvName}-VpcId'
+                VpcEndpointId: vpce-0123456789abcdef0
+            Tags:
+                - Key: copilot-application
+                  Value: !Ref AppName
+                - Key: copilot-environment
+                  Value: !Ref EnvName
+                - Key: copilot-service
+                  Value: !Ref WorkloadName
+    AddonsStack:
+        Metadata:
+            'aws:copilot:description': 'An Addons CloudFormation Stack for your additional AWS resources'
+        Type: AWS::CloudFormation::Stack
+        Condition: HasAddons
+        Properties:
+            Parameters:
+                App: !Ref AppName
+                Env: !Ref EnvName
+                Name: !Ref WorkloadName
+            TemplateURL: !Ref AddonsTemplateURL

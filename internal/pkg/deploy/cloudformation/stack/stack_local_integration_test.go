@@ -88,6 +88,7 @@ func Test_Stack_Local_Integration(t *testing.T) {
 	require.NoError(t, err)
 	tpl, err := serializer.Template()
 	require.NoError(t, err)
+	assertTemplateFixture(t, filepath.Join("testdata", "stacklocal", "full-override-cf.yml"), tpl)
 
 	t.Run("CloudFormation template must contain autoscaling resources", func(t *testing.T) {
 		path := filepath.Join("testdata", "stacklocal", wantedAutoScalingCFNTemplatePath)

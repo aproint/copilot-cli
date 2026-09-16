@@ -20,7 +20,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -31,7 +30,15 @@ const (
 )
 
 func TestScheduledJob_Template(t *testing.T) {
-	path := filepath.Join("testdata", "workloads", jobManifestPath)
+	testScheduledJobTemplate(t, jobManifestPath, jobStackPath, jobParamsPath)
+}
+
+func TestScheduledJob_ExplicitPlacement(t *testing.T) {
+	testScheduledJobTemplate(t, "job-explicit-placement-manifest.yml", "job-explicit-placement.stack.yml", "job-explicit-placement.params.json")
+}
+
+func testScheduledJobTemplate(t *testing.T, manifestPath, stackPath, paramsPath string) {
+	path := filepath.Join("testdata", "workloads", manifestPath)
 	manifestBytes, err := os.ReadFile(path)
 	require.NoError(t, err)
 	mft, err := manifest.UnmarshalWorkload(manifestBytes)
@@ -82,29 +89,14 @@ func TestScheduledJob_Template(t *testing.T) {
 	tpl, err := serializer.Template()
 	require.NoError(t, err, "template should render")
 	t.Run("CF Template should be equal", func(t *testing.T) {
-		actualBytes := []byte(tpl)
-		mActual := make(map[interface{}]interface{})
-		require.NoError(t, yaml.Unmarshal(actualBytes, mActual))
-
-		expected, err := os.ReadFile(filepath.Join("testdata", "workloads", jobStackPath))
-		require.NoError(t, err, "should be able to read expected bytes")
-		expectedBytes := []byte(expected)
-		mExpected := make(map[interface{}]interface{})
-		require.NoError(t, yaml.Unmarshal(expectedBytes, mExpected))
-		// Cut out zip file from EnvControllerAction
-		resetCustomResourceLocations(mActual)
-		compareStackTemplate(t, mExpected, mActual)
+		assertTemplateFixture(t, filepath.Join("testdata", "workloads", stackPath), tpl)
 	})
 
 	t.Run("Parameter values should render properly", func(t *testing.T) {
 		actualParams, err := serializer.SerializedParameters()
 		require.NoError(t, err)
 
-		path := filepath.Join("testdata", "workloads", jobParamsPath)
-		wantedCFNParamsBytes, err := os.ReadFile(path)
-		require.NoError(t, err)
-
-		require.Equal(t, string(wantedCFNParamsBytes), actualParams)
+		assertParamsFixture(t, filepath.Join("testdata", "workloads", paramsPath), actualParams)
 	})
 
 }

@@ -1,0 +1,22 @@
+{
+  "Parameters": {
+    "ALBWorkloads": "",
+    "Aliases": "",
+    "AppDNSDelegationRole": "",
+    "AppDNSName": "",
+    "AppName": "demo",
+    "AppRunnerPrivateWorkloads": "",
+    "CreateHTTPSListener": "false",
+    "CreateInternalHTTPSListener": "true",
+    "EFSWorkloads": "",
+    "EnvironmentName": "test",
+    "InternalALBWorkloads": "",
+    "NATWorkloads": "",
+    "ServiceDiscoveryEndpoint": "test.demo.local",
+    "ToolsAccountPrincipalARN": "arn:aws:iam::000000000:root"
+  },
+  "Tags": {
+    "copilot-application": "demo",
+    "copilot-environment": "test"
+  }
+}

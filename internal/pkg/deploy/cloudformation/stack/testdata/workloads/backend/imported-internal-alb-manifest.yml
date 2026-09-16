@@ -1,0 +1,21 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: imported-internal
+type: Backend Service
+http:
+  alb: internal-shared
+  path: /api
+  alias: api.example.com
+  additional_rules:
+    - path: /admin
+      alias: admin.example.com
+      redirect_to_https: true
+image:
+  build: Dockerfile
+  port: 8080
+cpu: 512
+memory: 1024
+count:
+  range: 1-3
+  requests: 256

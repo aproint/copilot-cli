@@ -44,3 +44,12 @@ updates:
       custom-resource-dependencies:
         patterns:
           - "*"
+
+  # The sidecar app is an E2E fixture; its npm dependencies are not maintained by Dependabot.
+  - package-ecosystem: npm
+    directory: "/e2e/sidecars/hello"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"

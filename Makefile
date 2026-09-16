@@ -102,6 +102,14 @@ package-custom-resources-clean:
 run-unit-test:
 	go test -coverprofile=${COVERAGE} ${PACKAGES}
 
+.PHONY: security-go
+security-go:
+	go tool govulncheck ./...
+
+.PHONY: security-js
+security-js:
+	cd ${SOURCE_CUSTOM_RESOURCES} && npm audit --audit-level=low
+
 .PHONY: download-go-modules
 download-go-modules:
 	@attempt=1; \

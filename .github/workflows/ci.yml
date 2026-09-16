@@ -150,6 +150,34 @@ jobs:
       #   with:
       #     files: ./coverage.out
 
+  security-go:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .go-version
+
+      - name: Scan Go dependencies
+        run: make security-go
+
+  security-js:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+
+      - name: Scan custom resource dependencies
+        run: make security-js
+
   js-unit-tests:
     runs-on: ubuntu-24.04
     steps:

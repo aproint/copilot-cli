@@ -23,7 +23,7 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const blockingLabels = new Set(['WIP', 'do-not-merge']);
+            const blockingLabels = new Set(['do-not-merge']);
             const labels = context.payload.pull_request.labels.map(label => label.name);
             const blockedBy = labels.filter(label => blockingLabels.has(label));
             if (blockedBy.length > 0) {

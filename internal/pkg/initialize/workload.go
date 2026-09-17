@@ -1,4 +1,5 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright APROINT, s.r.o. in modifications to this fork.
 // SPDX-License-Identifier: Apache-2.0
 
 // Package initialize contains methods and structs needed to initialize jobs and services.

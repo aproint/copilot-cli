@@ -1,13 +1,14 @@
 //go:build !windows
 
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright APROINT, s.r.o. in modifications to this fork.
+// SPDX-License-Identifier: Apache-2.0
+
 // This test is not compatible with Windows because it makes POSIX-centric assumptions about terminal output.
 //
 // On Windows, these terminal features involve system calls instead of writing escape sequences, which means
 // that this test case doesn't actually test what it's trying to do on Windows and instead just makes a bunch
 // of invalid system calls, in addition to having intermittent timing issues.
-
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: Apache-2.0
 
 package progress
 

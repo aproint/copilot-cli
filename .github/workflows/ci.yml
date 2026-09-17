@@ -300,6 +300,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Run license check
         run: ./scripts/license.sh .

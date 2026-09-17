@@ -3,19 +3,18 @@
 # Copyright APROINT, s.r.o. in modifications to this fork.
 # SPDX-License-Identifier: Apache-2.0
 #
-# Check tracked Go and JavaScript files against the tree before the first APROINT commit.
+# Check Go and JavaScript files changed by a pull request or merge group.
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 rootdir" >&2
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 rootdir base-sha head-sha" >&2
     exit 1
 fi
 
-python3 - "$1" <<'PY'
+python3 - "$1" "$2" "$3" <<'PY'
 import pathlib
 import subprocess
 import sys
 
-FORK_POINT = "a0dbe68908e55c4292e5838bd6cfbaea38364879"
 AMAZON = "// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved."
 APROINT = "// Copyright APROINT, s.r.o."
 MODIFICATIONS = "// Copyright APROINT, s.r.o. in modifications to this fork."
@@ -23,6 +22,7 @@ SPDX = "// SPDX-License-Identifier: Apache-2.0"
 DERIVED = "// Derived from AWS Copilot CLI source."
 
 root = pathlib.Path(sys.argv[1]).resolve()
+base, head = sys.argv[2:4]
 
 
 def git(*args):
@@ -32,15 +32,12 @@ def git(*args):
 
 
 try:
-    git("cat-file", "-e", f"{FORK_POINT}^{{commit}}")
-except subprocess.CalledProcessError:
-    sys.exit(f"license check: fork-point commit {FORK_POINT} is unavailable; fetch it before checking licenses")
-
-try:
-    inherited = set(git("ls-tree", "-r", "--name-only", "-z", FORK_POINT).split(b"\0"))
-    tracked = git("ls-files", "-z", "--", "*.go", "*.js").split(b"\0")
+    changes = git(
+        "diff", "--no-renames", "--diff-filter=AM", "--name-status", "-z",
+        base, head, "--", "*.go", "*.js"
+    ).split(b"\0")
 except subprocess.CalledProcessError as error:
-    sys.exit(f"license check: git failed: {error.stderr.decode(errors='replace').strip()}")
+    sys.exit(f"license check: cannot compare {base} and {head}: {error.stderr.decode(errors='replace').strip()}")
 
 
 def in_scope(path):
@@ -53,41 +50,62 @@ def in_scope(path):
     )
 
 
-failures = 0
-for raw_path in tracked:
-    if not raw_path:
-        continue
-    path = raw_path.decode("utf-8", errors="surrogateescape")
-    if not in_scope(path):
-        continue
-
-    lines = (root / path).read_text(encoding="utf-8").splitlines()
+def header_kind(lines, path):
     offset = 0
     if path.endswith(".go") and lines and lines[0].startswith("//go:build "):
         offset = 1
         while offset < len(lines) and lines[offset].startswith("// +build "):
             offset += 1
         if offset >= len(lines) or lines[offset] != "":
-            failures += 1
-            print(f"{path}: expected a blank line after Go build tags")
-            continue
+            return None, "expected a blank line after Go build tags"
         offset += 1
 
-    if raw_path in inherited:
-        expected = [AMAZON, MODIFICATIONS, SPDX]
-    elif lines[offset:offset + 1] == [AMAZON]:
-        expected = [AMAZON, MODIFICATIONS, SPDX, DERIVED]
-    else:
-        expected = [APROINT, SPDX]
+    formats = {
+        "derived": [AMAZON, MODIFICATIONS, SPDX, DERIVED],
+        "inherited": [AMAZON, MODIFICATIONS, SPDX],
+        "new": [APROINT, SPDX],
+        "legacy": [AMAZON, SPDX],
+    }
+    for kind, expected in formats.items():
+        if lines[offset:offset + len(expected)] == expected:
+            following = lines[offset + len(expected):offset + len(expected) + 1]
+            if following and following[0].startswith(
+                ("// Copyright ", "// SPDX-License-Identifier:", "// Derived from ")
+            ):
+                return None, "unexpected extra license line after header"
+            return kind, None
+    return None, f"invalid header at line {offset + 1}"
 
-    if lines[offset:offset + len(expected)] != expected:
+
+failures = 0
+for status, raw_path in zip(changes[0::2], changes[1::2]):
+    path = raw_path.decode("utf-8", errors="surrogateescape")
+    if not in_scope(path):
+        continue
+
+    lines = (root / path).read_text(encoding="utf-8").splitlines()
+    kind, error = header_kind(lines, path)
+    if error or kind == "legacy":
         failures += 1
-        print(f"{path}: expected header at line {offset + 1}: {' | '.join(expected)}")
-    elif len(lines) > offset + len(expected) and lines[offset + len(expected)].startswith(
-        ("// Copyright ", "// SPDX-License-Identifier:", "// Derived from ")
-    ):
+        print(f"{path}: {error or 'Amazon-only header is no longer valid'}")
+        continue
+
+    if status == b"A":
+        if kind not in ("new", "derived"):
+            failures += 1
+            print(f"{path}: new files need the APROINT header, or the derived-source marker")
+        continue
+
+    try:
+        previous = git("show", f"{base}:{path}").decode("utf-8").splitlines()
+    except subprocess.CalledProcessError:
         failures += 1
-        print(f"{path}: unexpected extra license line after header")
+        print(f"{path}: cannot read the base version")
+        continue
+    previous_kind, _ = header_kind(previous, path)
+    if previous_kind in ("new", "inherited", "derived") and kind != previous_kind:
+        failures += 1
+        print(f"{path}: expected the {previous_kind} header from the base version")
 
 if failures:
     sys.exit(f"license check: {failures} file(s) have invalid headers")

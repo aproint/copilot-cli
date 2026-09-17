@@ -301,7 +301,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Run license check
-        run: ./scripts/license.sh .
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.sha || github.event.merge_group.head_sha }}
+        run: ./scripts/license.sh . "$BASE_SHA" "$HEAD_SHA"

@@ -1,4 +1,4 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright APROINT, s.r.o.
 // SPDX-License-Identifier: Apache-2.0
 
 // Package interrupt carries the root command's first-interrupt notification through context.

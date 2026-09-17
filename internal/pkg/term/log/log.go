@@ -1,4 +1,5 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright APROINT, s.r.o. in modifications to this fork.
 // SPDX-License-Identifier: Apache-2.0
 
 // Package log is a wrapper around the fmt package to print messages to the terminal.

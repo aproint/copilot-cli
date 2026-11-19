@@ -86,8 +86,8 @@ This process will take around 8 minutes to complete - at which point you'll get 
 
 ## Development requirements
 
-Local builds and CI use Go 1.26 and Node.js 24 LTS. The Go module declares
-`toolchain go1.26.0`; developers can use the version files in the repository
+Local builds and CI use Go 1.26 and Node.js 24 LTS. The Go toolchain is pinned
+in `go.mod` and `.go-version`; developers can use the version files in the repository
 root with common version managers, or install matching runtimes directly.
 
 ## Learning more

@@ -2,7 +2,7 @@ module github.com/aproint/copilot-cli
 
 go 1.26.0
 
-toolchain go1.26.6
+toolchain go1.26.11
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2

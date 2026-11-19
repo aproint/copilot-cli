@@ -41,14 +41,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.12",
     "aws-sdk-client-mock": "^4.1.0",
-    "eslint": "^10.6.0",
+    "eslint": "^10.15.0",
     "eslint-plugin-promise": "^7.3.0",
     "globals": "^17.7.0",
     "nock": "^14.0.16",
     "sinon": "^22.0.0",
     "terser": "^5.48.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }
